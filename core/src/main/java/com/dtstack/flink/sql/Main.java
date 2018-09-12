@@ -119,7 +119,6 @@ public class Main {
         Preconditions.checkNotNull(sql, "it requires input parameters sql");
         Preconditions.checkNotNull(name, "it requires input parameters name");
         Preconditions.checkNotNull(localSqlPluginPath, "it requires input parameters localSqlPluginPath");
-        Preconditions.checkNotNull(remoteSqlPluginPath, "it requires input parameters remoteSqlPluginPath");
 
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
@@ -260,7 +259,7 @@ public class Main {
                 }else{
                     fields += ",PROCTIME.PROCTIME";
                 }
-                //tableEnv.registerDataStream(tableInfo.getName(), adaptStream, fields);
+
                 Table regTable = tableEnv.fromDataStream(adaptStream, fields);
                 tableEnv.registerTable(tableInfo.getName(), regTable);
                 registerTableCache.put(tableInfo.getName(), regTable);
