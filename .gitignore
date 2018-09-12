@@ -1,0 +1,11 @@
+target
+.idea/
+/.idea/*
+/target
+target
+.class
+.project
+.classpath
+*.eclipse.*
+*.iml
+plugins/
