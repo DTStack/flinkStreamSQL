@@ -25,6 +25,8 @@
 
 ```
 mvn clean package -Dmaven.test.skip
+
+所有插件包会生成到plugins下
 ```
 
 打包结束后，项目根目录下会产生plugins目录，plugins目录下存放编译好的数据同步插件包
