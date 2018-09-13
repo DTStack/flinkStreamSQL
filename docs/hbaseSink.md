@@ -28,14 +28,14 @@ hbase2.0
 
 ## 4.参数：
   
-|参数名称|含义|是否必填|
-|----|---|---|
-|type | 表明 输出表类型[mysql|hbase|elasticsearch]|是|
-|zookeeperQuorum | hbase zk地址,多个直接用逗号隔开|是|
-|zookeeperParent | zkParent 路径|是|
-|tableName | 关联的hbase表名称|是|
-|rowKey | hbase的rowkey关联的列信息|是|
-|parallelism | 并行度设置|否|
+|参数名称|含义|是否必填|默认值|
+|----|---|---|-----|
+|type | 表明 输出表类型[mysql\|hbase\|elasticsearch]|是||
+|zookeeperQuorum | hbase zk地址,多个直接用逗号隔开|是||
+|zookeeperParent | zkParent 路径|是||
+|tableName | 关联的hbase表名称|是||
+|rowKey | hbase的rowkey关联的列信息|是||
+|parallelism | 并行度设置|否|1|
       
   
 ## 5.样例：

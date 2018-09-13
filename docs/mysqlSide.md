@@ -47,11 +47,11 @@
   | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
   
   ----------
-      > 缓存策略
-      > * NONE: 不做内存缓存
-      > * LRU:
-      > > cacheSize ==> 缓存的条目数量
-      > > cacheTTLMs ==> 缓存的过期时间(ms)
+  > 缓存策略
+  > * NONE: 不做内存缓存
+  > * LRU:
+  > > cacheSize ==> 缓存的条目数量
+  > > cacheTTLMs ==> 缓存的过期时间(ms)
   
 
 ## 5.样例
