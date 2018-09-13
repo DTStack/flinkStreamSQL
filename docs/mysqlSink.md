@@ -1,0 +1,42 @@
+## 1.格式：
+```
+CREATE TABLE tableName(
+    colName colType,
+    ...
+    colNameX colType
+ )WITH(
+    type ='mysql',
+    url ='jdbcUrl',
+    userName ='userName',
+    password ='pwd',
+    tableName ='tableName',
+    parallelism ='parllNum'
+ );
+
+```
+
+## 2.参数：
+  * tableName ==> 在 sql 中使用的名称;即注册到flink-table-env上的名称
+  * colName ==> 列名称
+  * colType ==> 列类型 [colType支持的类型](colType.md)
+  * type ==> 表明 输出表类型[mysql|hbase|elasticsearch]
+  * url ==> 连接mysql数据库 jdbcUrl 
+  * userName ==> mysql连接用户名
+  * password ==> mysql连接密码
+  * tableName ==> mysql表名称
+  * parallelism ==> 并行度设置
+  
+## 3.样例：
+```
+CREATE TABLE MyResult(
+    channel VARCHAR,
+    pv VARCHAR
+ )WITH(
+    type ='mysql',
+    url ='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',
+    userName ='dtstack',
+    password ='abc123',
+    tableName ='pv2',
+    parallelism ='1'
+ )
+ ```
