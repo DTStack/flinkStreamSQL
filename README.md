@@ -9,8 +9,8 @@
   * sql增加临时表功能
   * 增加redis维表功能
   * 增加mongdb维表功能
-  * 增加oracle维表功能
-  * 增加SQlServer维表功能
+  * 增加oracle维表，结果表功能
+  * 增加SQlServer维表，结果表功能
 
 ## 1 快速起步
 ### 1.1 运行模式
