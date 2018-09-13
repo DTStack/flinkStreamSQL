@@ -48,10 +48,10 @@
   
   ----------
   > 缓存策略
-  > * NONE: 不做内存缓存
-  > * LRU:
-  > > cacheSize ==> 缓存的条目数量
-  > > cacheTTLMs ==> 缓存的过期时间(ms)
+  * NONE: 不做内存缓存
+  * LRU:
+    * cacheSize: 缓存的条目数量
+    * cacheTTLMs:缓存的过期时间(ms)
   
 
 ## 5.样例
