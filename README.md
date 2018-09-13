@@ -78,6 +78,7 @@ mvn clean package -Dmaven.test.skip
     
 * **confProp**
     * 描述：一些参数设置
+    * 格式: json
     * 必选：否
     * 默认值：无
     * 可选参数:
