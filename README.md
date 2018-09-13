@@ -8,7 +8,7 @@
   * 增加全局缓存功能
   * sql增加临时表功能
   * 增加redis维表功能
-  * 增加mongdb维表功能
+  * 增加mongodb维表功能
   * 增加oracle维表，结果表功能
   * 增加SQlServer维表，结果表功能
 
