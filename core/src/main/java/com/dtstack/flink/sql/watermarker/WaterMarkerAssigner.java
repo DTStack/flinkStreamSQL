@@ -52,7 +52,6 @@ public class WaterMarkerAssigner {
 
         String[] fieldNames = typeInfo.getFieldNames();
         TypeInformation<?>[] fieldTypes = typeInfo.getFieldTypes();
-        String fields = StringUtils.join(fieldNames, ",");
 
         if(Strings.isNullOrEmpty(eventTimeFieldName)){
             return dataStream;
