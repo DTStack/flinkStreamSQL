@@ -15,20 +15,30 @@ CREATE TABLE MyResult(
 
 ```
 
-## 2.参数：
-  * tableName ==> 在 sql 中使用的名称;即注册到flink-table-env上的名称
-  * colFamily:colName ==> hbase中的列族名称和列名称
-  * colType ==> 列类型 [colType支持的类型](colType.md)
+## 2.支持版本
+hbase2.0
+
+## 3.表结构定义
+ 
+|参数名称|含义|
+|----|---|
+| tableName | 在 sql 中使用的名称;即注册到flink-table-env上的名称
+| colFamily:colName | hbase中的列族名称和列名称
+| colType | 列类型 [colType支持的类型](colType.md)
+
+## 4.参数：
   
-  * type ==> 表明 输出表类型[mysql|hbase|elasticsearch]
-  * zookeeperQuorum ==> hbase zk地址,多个直接用逗号隔开
-  * zookeeperParent ==> zkParent 路径
-  * tableName ==> 关联的hbase表名称
-  * rowKey ==> hbase的rowkey关联的列信息
-  * parallelism ==> 并行度设置
+|参数名称|含义|是否必填|
+|----|---|---|
+|type | 表明 输出表类型[mysql|hbase|elasticsearch]|是|
+|zookeeperQuorum | hbase zk地址,多个直接用逗号隔开|是|
+|zookeeperParent | zkParent 路径|是|
+|tableName | 关联的hbase表名称|是|
+|rowKey | hbase的rowkey关联的列信息|是|
+|parallelism | 并行度设置|否|
       
   
-## 3.样例：
+## 5.样例：
 ```
 CREATE TABLE MyResult(
     cf:channel STRING,

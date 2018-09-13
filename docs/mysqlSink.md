@@ -15,18 +15,29 @@ CREATE TABLE tableName(
 
 ```
 
-## 2.参数：
-  * tableName ==> 在 sql 中使用的名称;即注册到flink-table-env上的名称
-  * colName ==> 列名称
-  * colType ==> 列类型 [colType支持的类型](colType.md)
-  * type ==> 表明 输出表类型[mysql|hbase|elasticsearch]
-  * url ==> 连接mysql数据库 jdbcUrl 
-  * userName ==> mysql连接用户名
-  * password ==> mysql连接密码
-  * tableName ==> mysql表名称
-  * parallelism ==> 并行度设置
+## 2.支持版本
+ mysql-5.6.35
+ 
+## 3.表结构定义
+ 
+|参数名称|含义|
+|----|---|
+| tableName| 在 sql 中使用的名称;即注册到flink-table-env上的名称|
+| colName | 列名称|
+| colType | 列类型 [colType支持的类型](colType.md)|
+
+## 4.参数：
+
+|参数名称|含义|是否必填|
+|----|---|---|
+|type |表明 输出表类型[mysql|hbase|elasticsearch]|是|
+|url | 连接mysql数据库 jdbcUrl |是|
+|userName | mysql连接用户名 |是|
+| password | mysql连接密码|是|
+| tableName | mysql表名称|是|
+| parallelism | 并行度设置|否|
   
-## 3.样例：
+## 5.样例：
 ```
 CREATE TABLE MyResult(
     channel VARCHAR,
