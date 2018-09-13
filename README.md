@@ -191,3 +191,7 @@ into
             a.channel = 'xc2'
             and a.pv=10      ) as d
 ```
+
+# 招聘
+1.大数据平台开发工程师，想了解岗位详细信息可以添加本人微信号ysqwhiletrue,注明招聘，如有意者发送简历至sishu@dtstack.com。
+  
