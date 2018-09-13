@@ -102,7 +102,6 @@ public abstract class AbsTableParser {
             System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
             String fieldName = String.join(" ", filedNameArr);
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
-            //Class fieldClass = ClassUtil.stringConvertClass(filedInfoArr[1].trim());
             Class fieldClass = ClassUtil.stringConvertClass(fieldType);
 
             tableInfo.addField(fieldName);
