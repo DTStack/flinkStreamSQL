@@ -28,14 +28,14 @@ CREATE TABLE tableName(
 
 ## 4.参数：
 
-|参数名称|含义|是否必填|
-|----|---|---|
-|type |表明 输出表类型[mysql|hbase|elasticsearch]|是|
-|url | 连接mysql数据库 jdbcUrl |是|
-|userName | mysql连接用户名 |是|
-| password | mysql连接密码|是|
-| tableName | mysql表名称|是|
-| parallelism | 并行度设置|否|
+|参数名称|含义|是否必填|默认值|
+|----|----|----|----|
+|type |表明 输出表类型[mysql\|hbase\|elasticsearch]|是||
+|url | 连接mysql数据库 jdbcUrl |是||
+|userName | mysql连接用户名 |是||
+| password | mysql连接密码|是||
+| tableName | mysql表名称|是||
+| parallelism | 并行度设置|否|1|
   
 ## 5.样例：
 ```

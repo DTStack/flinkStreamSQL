@@ -25,15 +25,15 @@ CREATE TABLE tableName(
 |colType|列类型 [colType支持的类型](colType.md)|
    
 ## 4.参数：
-|参数名称|含义|是否必填|
-|----|---|---|
-|type|表明 输出表类型[mysql|hbase|elasticsearch]|是|
-|address | 连接ES Transport地址(tcp地址)|是|
-|cluster | ES 集群名称 |是|
-|index | 选择的ES上的index名称|是|
-|estype | 选择ES上的type名称|是|
-|id | 生成id的规则(当前是根据指定的字段pos获取字段信息,拼接生成id)|是|
-|parallelism | 并行度设置|否|
+|参数名称|含义|是否必填|默认值|
+|----|---|---|----|
+|type|表明 输出表类型[mysql\|hbase\|elasticsearch]|是||
+|address | 连接ES Transport地址(tcp地址)|是||
+|cluster | ES 集群名称 |是||
+|index | 选择的ES上的index名称|是||
+|estype | 选择ES上的type名称|是||
+|id | 生成id的规则(当前是根据指定的字段pos获取字段信息,拼接生成id)|是||
+|parallelism | 并行度设置|否|1|
   
 ## 5.样例：
 ```
