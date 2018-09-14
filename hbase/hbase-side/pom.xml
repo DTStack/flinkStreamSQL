@@ -11,19 +11,8 @@
 
     <artifactId>sql.side.hbase</artifactId>
     <name>hbase-side</name>
+    <packaging>jar</packaging>
     <dependencies>
-        <dependency>
-            <groupId>com.dtstack.flinkx</groupId>
-            <artifactId>sql.core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase-client</artifactId>
-            <version>1.3.1</version>
-        </dependency>
 
         <dependency>
             <groupId>org.hbase</groupId>
@@ -31,9 +20,6 @@
             <version>1.8.2</version>
         </dependency>
     </dependencies>
-
-
-    <packaging>jar</packaging>
 
     <build>
         <plugins>
