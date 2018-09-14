@@ -34,7 +34,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 解析创建表语句获得具体的表结构信息
+ * Create table statement parsing table structure to obtain specific information
  * Date: 2018/6/25
  * Company: www.dtstack.com
  * @author xuchao
@@ -54,7 +54,7 @@ public class TableInfoParserFactory {
 
     private static Map<String, AbsTableParser> sideTableInfoMap = Maps.newConcurrentMap();
 
-    //加载插件中的解析
+    //Parsing loaded plugin
     public static TableInfo parseWithTableType(int tableType, CreateTableParser.SqlParserResult parserResult,
                                                String localPluginRoot) throws Exception {
         AbsTableParser absTableParser = null;
@@ -96,14 +96,14 @@ public class TableInfoParserFactory {
 
         Map<String, Object> prop = Maps.newHashMap();
 
-        //屏蔽大小写
+        //Shield case
         parserResult.getPropMap().forEach((key,val) -> prop.put(key.toLowerCase(), val));
 
         return absTableParser.getTableInfo(parserResult.getTableName(), parserResult.getFieldsInfoStr(), prop);
     }
 
     /**
-     * 如果表字段中包含PERIOD FOR SYSTEM_TIME则认为是一个维表
+     * judge dim table of PERIOD FOR SYSTEM_TIME
      * @param tableField
      * @return
      */

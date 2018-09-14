@@ -21,7 +21,6 @@
 package com.dtstack.flink.sql.util;
 
 /**
- * 数字转换
  * Date: 2017/4/21
  * Company: www.dtstack.com
  * @author xuchao

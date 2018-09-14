@@ -44,9 +44,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 所有的继承接口命名规则：类型 + "AsyncReqRow" 比如==》MysqlAsyncReqRow
- * 当前只支持Left join / inner join(join)
- * FIXME 不支持right join
+ * All interfaces inherit naming rules: type + "AsyncReqRow" such as == "MysqlAsyncReqRow
+ * only support Left join / inner join(join),not support right join
  * Date: 2018/7/9
  * Company: www.dtstack.com
  * @author xuchao
@@ -72,14 +71,13 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> {
 
     protected JoinType joinType;
 
-    //key:返回值位置，返回值在输入数据中的索引位置
+    //key:Returns the value of the position, returns the index values ​​in the input data
     protected Map<Integer, Integer> inFieldIndex = Maps.newHashMap();
 
     protected Map<Integer, Integer> sideFieldIndex = Maps.newHashMap();
 
     protected SideTableInfo sideTableInfo;
 
-    //TODO 需要指定类型
     protected AbsSideCache sideCache;
 
     public AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
@@ -202,7 +200,7 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> {
 
     protected void dealMissKey(Row input, ResultFuture<Row> resultFuture){
         if(joinType == JoinType.LEFT){
-            //保留left 表数据
+            //Reserved left table data
             Row row = fillData(input, null);
             resultFuture.complete(Collections.singleton(row));
         }else{

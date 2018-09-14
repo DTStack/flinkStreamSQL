@@ -22,7 +22,8 @@ package com.dtstack.flink.sql.util;
 
 
 /**
- * 
+ * @Date: 2018年09月14日 下午14:23:37
+ * @Company: www.dtstack.com
  * @author sishu.yss
  *
  */
