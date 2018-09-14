@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
 /**
- * 定义的hbase 字段信息必须包含别名-->sql里面不允许出现“:”
+ * hbase field information must include the definition of an alias -> sql which does not allow ":"
  * Date: 2018/8/21
  * Company: www.dtstack.com
  * @author xuchao

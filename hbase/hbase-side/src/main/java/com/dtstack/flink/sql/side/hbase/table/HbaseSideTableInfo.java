@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * hbase 维表填写的属性
+ * hbase-dimensional form of property
  * Date: 2018/8/21
  * Company: www.dtstack.com
  * @author xuchao

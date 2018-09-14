@@ -29,6 +29,11 @@ import java.util.Map;
 
 import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
+/**
+ * Date: 2018/09/14
+ * Company: www.dtstack.com
+ * @author sishu.yss
+ */
 public class HbaseSinkParser extends AbsTableParser {
 
 

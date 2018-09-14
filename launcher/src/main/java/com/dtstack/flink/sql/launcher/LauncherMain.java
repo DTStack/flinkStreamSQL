@@ -32,6 +32,12 @@ import static com.dtstack.flink.sql.launcher.ClusterMode.MODE_LOCAL;
 import static com.dtstack.flink.sql.launcher.LauncherOptions.OPTION_LOCAL_SQL_PLUGIN_PATH;
 import static com.dtstack.flink.sql.launcher.LauncherOptions.OPTION_MODE;
 
+/**
+ * Date: 2017/2/20
+ * Company: www.dtstack.com
+ * @author xuchao
+ */
+
 public class LauncherMain {
 
     private static final String CORE_JAR = "core.jar";

@@ -69,7 +69,6 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
 
     private final static String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 
-    //TODO 这三个参数应该如何设置？
     private final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 10;
 
     private final static int DEFAULT_VERTX_WORKER_POOL_SIZE = 20;
@@ -252,7 +251,7 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
 
         mySQLClient.getConnection(conn -> {
             if (conn.failed()) {
-                //处理失败情况
+                //Treatment failures
                 resultFuture.completeExceptionally(conn.cause());
                 return;
             }

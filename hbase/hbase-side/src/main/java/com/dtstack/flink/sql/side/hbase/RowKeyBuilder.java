@@ -30,7 +30,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * rowkey 生成规则
+ * rowkey rule
  * Date: 2018/8/23
  * Company: www.dtstack.com
  * @author xuchao
