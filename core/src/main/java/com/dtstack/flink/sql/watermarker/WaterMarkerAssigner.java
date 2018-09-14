@@ -32,7 +32,7 @@ import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 
 /**
- * 指定流的watermarker
+ * define watermarker
  * Date: 2018/6/29
  * Company: www.dtstack.com
  * @author xuchao

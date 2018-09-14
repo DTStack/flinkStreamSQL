@@ -27,7 +27,7 @@ import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.flink.table.sinks.TableSink;
 
 /**
- * 根据指定的sink type 加载jar,并初始化对象
+ * Loads jar and initializes the object according to the specified sink type
  * Date: 2017/3/10
  * Company: www.dtstack.com
  * @author xuchao

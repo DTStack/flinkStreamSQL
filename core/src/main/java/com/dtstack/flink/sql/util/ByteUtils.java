@@ -25,7 +25,6 @@ import org.apache.commons.io.Charsets;
 import java.nio.ByteBuffer;
 
 /**
- * byte 转换工具
  * Date: 2018/8/28
  * Company: www.dtstack.com
  * @author xuchao

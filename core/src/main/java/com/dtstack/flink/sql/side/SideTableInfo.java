@@ -49,7 +49,7 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     private int cacheSize = 10000;
 
-    private long cacheTimeout = 60 * 1000;//默认1分钟
+    private long cacheTimeout = 60 * 1000;//
 
     private boolean partitionedJoin = false;
 

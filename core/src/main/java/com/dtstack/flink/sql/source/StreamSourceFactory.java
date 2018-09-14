@@ -30,7 +30,7 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 
 /**
- * 创建streamTableSource
+ * streamTableSource
  * Date: 2017/3/10
  * Company: www.dtstack.com
  * @author xuchao
@@ -58,7 +58,7 @@ public class StreamSourceFactory {
     }
 
     /**
-     * 根据指定的类型构造数据源
+     * The configuration of the type specified data source
      * @param sourceTableInfo
      * @return
      */

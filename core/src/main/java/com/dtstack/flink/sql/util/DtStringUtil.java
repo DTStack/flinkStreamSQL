@@ -36,7 +36,7 @@ import java.util.List;
 public class DtStringUtil {
 
     /**
-     * 根据指定分隔符分割字符串---忽略在引号里面的分隔符
+     * Split the specified string delimiter --- ignored quotes delimiter
      * @param str
      * @param delimiter
      * @return
@@ -73,7 +73,7 @@ public class DtStringUtil {
     }
 
     /***
-     * 根据指定分隔符分割字符串---忽略在引号 和 括号 里面的分隔符
+     * Split the specified string delimiter --- ignored in brackets and quotation marks delimiter
      * @param str
      * @param delimter
      * @return

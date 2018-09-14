@@ -116,9 +116,9 @@ public class Main {
         String deployMode = cl.getOptionValue("mode");
         String confProp = cl.getOptionValue("confProp");
 
-        Preconditions.checkNotNull(sql, "it requires input parameters sql");
-        Preconditions.checkNotNull(name, "it requires input parameters name");
-        Preconditions.checkNotNull(localSqlPluginPath, "it requires input parameters localSqlPluginPath");
+        Preconditions.checkNotNull(sql, "parameters of sql is required");
+        Preconditions.checkNotNull(name, "parameters of name is required");
+        Preconditions.checkNotNull(localSqlPluginPath, "parameters of localSqlPluginPath is required");
 
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
@@ -133,7 +133,7 @@ public class Main {
         DtClassLoader dtClassLoader = new DtClassLoader(new URL[]{}, threadClassLoader);
         Thread.currentThread().setContextClassLoader(dtClassLoader);
 
-        URLClassLoader parentClassloader = null;
+        URLClassLoader parentClassloader;
         if(!LOCAL_MODE.equals(deployMode)){
             parentClassloader = (URLClassLoader) threadClassLoader.getParent();
         }else{
