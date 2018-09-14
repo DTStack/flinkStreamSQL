@@ -3,6 +3,11 @@
 >  >  * 自定义create table 语法（包括源表,输出表,维表）
 >  >  * 自定义create function 语法
 >  >  * 实现了流与维表的join
+ 
+# 已支持
+  * 源表：kafka 0.9，1.x版本
+  * 维表：mysql，hbase
+  * 结果表：mysql，hbase，elasticsearch5.x
 
 # 后续开发计划
   * 增加全局缓存功能
