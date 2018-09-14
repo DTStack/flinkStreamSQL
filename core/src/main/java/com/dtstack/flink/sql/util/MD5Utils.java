@@ -27,7 +27,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * Md5工具类
  * Date: 2018/8/23
  * Company: www.dtstack.com
  * @author xuchao

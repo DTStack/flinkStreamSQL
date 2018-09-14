@@ -31,7 +31,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
 /**
- * 自定义watermark---用于eventtime
+ * Custom watermark --- for eventtime
  * Date: 2017/12/28
  * Company: www.dtstack.com
  * @author xuchao

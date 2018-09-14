@@ -33,7 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- *FIXME 需要考虑是直接返回所有的字段然后在外层再包裹原先的查询？
+ * Need to consider is the direct return to the fields and then all wrapped in the outer layer of the original query?
  * Date: 2018/7/20
  * Company: www.dtstack.com
  * @author xuchao
@@ -42,7 +42,7 @@ import java.util.List;
 public class ParserJoinField {
 
     /**
-     * 需要解析出selectlist和where中的字段信息
+     * Need to parse the fields of information and where selectlist
      * @return
      */
     public static List<FieldInfo> getRowTypeInfo(SqlNode sqlNode, JoinScope scope, boolean getAll){
