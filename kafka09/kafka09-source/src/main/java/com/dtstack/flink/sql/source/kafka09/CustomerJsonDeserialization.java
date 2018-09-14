@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * 自定义的json字符串解析
+ * json string parsing custom
  * Date: 2017/5/28
  * Company: www.dtstack.com
  * @author xuchao
