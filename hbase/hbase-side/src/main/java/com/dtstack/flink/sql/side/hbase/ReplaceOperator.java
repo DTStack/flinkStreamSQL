@@ -49,7 +49,7 @@ public abstract class ReplaceOperator {
     }
 
     /**
-     * 根据函数提供自定义的处理
+     * The processing function to provide custom
      * @param replaceStr
      * @return
      */

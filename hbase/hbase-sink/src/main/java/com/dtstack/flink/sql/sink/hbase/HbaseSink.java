@@ -35,7 +35,11 @@ import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
-
+/**
+ * Date: 2018/09/14
+ * Company: www.dtstack.com
+ * @author sishu.yss
+ */
 public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<HbaseSink> {
 
     protected String[] fieldNames;

@@ -23,9 +23,13 @@ package com.dtstack.flink.sql.sink.hbase.table;
 
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
-
 import java.util.Map;
 
+/**
+ * Date: 2018/09/14
+ * Company: www.dtstack.com
+ * @author sishu.yss
+ */
 public class HbaseTableInfo extends TargetTableInfo {
 
     private static final String CURR_TYPE = "hbase";
