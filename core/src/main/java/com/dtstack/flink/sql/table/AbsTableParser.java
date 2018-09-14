@@ -97,7 +97,7 @@ public abstract class AbsTableParser {
                 throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
             }
 
-            //兼容可能在fieldName中出现空格的情况
+            //Compatible situation may arise in space in the fieldName
             String[] filedNameArr = new String[filedInfoArr.length - 1];
             System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
             String fieldName = String.join(" ", filedNameArr);

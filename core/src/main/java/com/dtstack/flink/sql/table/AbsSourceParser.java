@@ -61,7 +61,7 @@ public abstract class AbsSourceParser extends AbsTableParser {
     static void dealWaterMark(Matcher matcher, TableInfo tableInfo){
         SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
         String eventTimeField = matcher.group(1);
-        //FIXME 暂时不解析第二个row_time_field参数
+        //FIXME Temporarily resolve the second parameter row_time_field
         Integer offset = MathUtil.getIntegerVal(matcher.group(3));
         sourceTableInfo.setEventTimeField(eventTimeField);
         sourceTableInfo.setMaxOutOrderness(offset);

@@ -79,7 +79,7 @@ public class SideSqlExec {
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
         Object pollObj = null;
 
-        //TODO 需要清理
+        //need clean
         boolean preIsSideJoin = false;
         List<FieldReplaceInfo> replaceInfoList = Lists.newArrayList();
 
@@ -150,7 +150,7 @@ public class SideSqlExec {
                 RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getTypes(), targetTable.getSchema().getColumnNames());
                 DataStream adaptStream = tableEnv.toAppendStream(targetTable, org.apache.flink.types.Row.class);
 
-                //join side table 之前先 keyby ===>减少 维表在各个async 的缓存大小
+                //join side table before keyby ===> Reducing the size of each dimension table cache of async
                 if(sideTableInfo.isPartitionedJoin()){
                     List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias());
                     String[] leftJoinColArr = new String[leftJoinColList.size()];
@@ -159,7 +159,7 @@ public class SideSqlExec {
                 }
 
                 AsyncReqRow asyncDbReq = loadAsyncReq(sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
-                //TODO 并行度应该设置为多少？超时时间设置？ capacity设置？
+                //TODO How much should be set for the degree of parallelism? Timeout? capacity settings?
                 DataStream dsOut = AsyncDataStream.orderedWait(adaptStream, asyncDbReq, 10000, TimeUnit.MILLISECONDS, 10)
                         .setParallelism(sideTableInfo.getParallelism());
 
@@ -526,7 +526,7 @@ public class SideSqlExec {
     }
 
     /**
-     * 判断维表的join 条件十分包含全部的等值条件(即是维表定义中的主键)
+     * Analyzing conditions are very join the dimension tables include all equivalent conditions (i.e., dimension table is the primary key definition
      * @return
      */
     private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias,  List<String> primaryKeys){

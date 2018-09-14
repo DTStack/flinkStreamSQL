@@ -24,7 +24,7 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 
 /**
- * 仅仅用来标记未命中的维表数据
+ * Only the data marked to dimension table miss
  * Date: 2018/8/28
  * Company: www.dtstack.com
  * @author xuchao

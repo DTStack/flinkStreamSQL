@@ -33,7 +33,6 @@ import org.apache.flink.table.api.java.StreamTableEnvironment;
 public interface IStreamSourceGener<T> {
 
     /**
-     * 获取输入源
      * @param sourceTableInfo
      * @param env
      * @param tableEnv

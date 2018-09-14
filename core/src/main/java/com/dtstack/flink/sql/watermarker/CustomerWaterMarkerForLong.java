@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 自定义watermark---用于eventtime
+ * Custom watermark --- for eventtime
  * Date: 2017/12/28
  * Company: www.dtstack.com
  * @author xuchao

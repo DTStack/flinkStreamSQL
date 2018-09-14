@@ -43,7 +43,7 @@ import java.util.Set;
 import static org.apache.calcite.sql.SqlKind.*;
 
 /**
- * 解析sql，获取维表的执行信息
+ * Parsing sql, obtain execution information dimension table
  * Date: 2018/7/24
  * Company: www.dtstack.com
  * @author xuchao
@@ -169,19 +169,19 @@ public class SideSQLParser {
 
 
     private void dealSelectResultWithJoinInfo(JoinInfo joinInfo, SqlSelect sqlNode, Queue<Object> queueInfo){
-        //SideJoinInfo重命名
+        //SideJoinInfo rename
         if(joinInfo.checkIsSide()){
             joinInfo.setSelectFields(sqlNode.getSelectList());
             joinInfo.setSelectNode(sqlNode);
             if(joinInfo.isRightIsSideTable()){
-                //判断left是不是一个简单表
+                //Analyzing left is not a simple table
                 if(joinInfo.getLeftNode().toString().contains("SELECT")){
                     queueInfo.offer(joinInfo.getLeftNode());
                 }
 
                 queueInfo.offer(joinInfo);
             }else{
-                //判断right是不是一个简单表
+                //Determining right is not a simple table
                 if(joinInfo.getRightNode().getKind() == SELECT){
                     queueInfo.offer(joinInfo.getLeftNode());
                 }
@@ -189,7 +189,7 @@ public class SideSQLParser {
                 queueInfo.offer(joinInfo);
             }
 
-            //更新from 节点
+            //Update from node
             SqlOperator operator = new SqlAsOperator();
             SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
             String joinLeftTableName = joinInfo.getLeftTableName();
