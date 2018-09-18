@@ -18,7 +18,7 @@
 
  
 
-package com.dtstack.flink.sql.source.kafka09;
+package com.dtstack.flink.sql.source.kafka;
 
 
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
