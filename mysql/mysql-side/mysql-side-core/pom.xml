@@ -3,21 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>sql.hbase</artifactId>
+        <artifactId>sql.side.mysql</artifactId>
         <groupId>com.dtstack.flinkx</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sql.side.hbase</artifactId>
-    <name>hbase-side</name>
-    <modules>
-        <module>hbase-all-side</module>
-        <module>hbase-async-side</module>
-        <module>hbase-side-core</module>
-    </modules>
-
-    <packaging>pom</packaging>
+    <artifactId>sql.side.mysql.core</artifactId>
 
 
 </project>
