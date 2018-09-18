@@ -1,50 +1,33 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>sql.elasticsearch</artifactId>
-        <groupId>com.dtstack.flinkx</groupId>
+        <artifactId>sql.kafka11</artifactId>
+        <groupId>com.dtstack.flink</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sql.sink.elasticsearch</artifactId>
-    <name>elasticsearch-sink</name>
+    <artifactId>sql.source.kafka11</artifactId>
+    <packaging>jar</packaging>
+
+    <name>kafka11-source</name>
+    <url>http://maven.apache.org</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <flink.version>1.4.0</flink.version>
+    </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.dtstack.flinkx</groupId>
-            <artifactId>sql.core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-connector-elasticsearch5_2.11</artifactId>
-            <version>1.4.0</version>
+            <artifactId>flink-connector-kafka-0.11_2.11</artifactId>
+            <version>${flink.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>1.1.7</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.1.7</version>
-        </dependency>
     </dependencies>
+
 
     <build>
         <plugins>
@@ -61,8 +44,7 @@
                         <configuration>
                             <artifactSet>
                                 <excludes>
-                                    <!--<exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>-->
-                                    <!--<exclude>org.slf4j:slf4j-api</exclude>-->
+                                    <exclude>org.slf4j</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>
@@ -93,14 +75,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/elasticsearchsink">
+                                <copy todir="${basedir}/../../plugins/kafkasource">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/elasticsearchsink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/elasticsearchsink/${project.name}.jar" />
+                                <move file="${basedir}/../../plugins/kafkasource/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../plugins/kafkasource/${project.name}.jar" />
                             </tasks>
                         </configuration>
                     </execution>
@@ -108,5 +90,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

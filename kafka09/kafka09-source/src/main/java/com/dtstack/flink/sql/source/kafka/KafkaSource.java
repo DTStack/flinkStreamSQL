@@ -18,10 +18,10 @@
 
  
 
-package com.dtstack.flink.sql.source.kafka09;
+package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.source.IStreamSourceGener;
-import com.dtstack.flink.sql.source.kafka09.table.Kafka09SourceTableInfo;
+import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -41,7 +41,7 @@ import java.util.Properties;
  * @author xuchao
  */
 
-public class Kafka09Source implements IStreamSourceGener<Table> {
+public class KafkaSource implements IStreamSourceGener<Table> {
 
     /**
      * Get kafka data source, you need to provide the data field names, data types
@@ -53,7 +53,7 @@ public class Kafka09Source implements IStreamSourceGener<Table> {
     @Override
 	public Table genStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
 
-        Kafka09SourceTableInfo kafka09SourceTableInfo = (Kafka09SourceTableInfo) sourceTableInfo;
+        KafkaSourceTableInfo kafka09SourceTableInfo = (KafkaSourceTableInfo) sourceTableInfo;
         String topicName = kafka09SourceTableInfo.getTopic();
 
         Properties props = new Properties();
