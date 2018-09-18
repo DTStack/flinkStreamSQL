@@ -18,7 +18,7 @@
 
  
 
-package com.dtstack.flink.sql.source.kafka09.table;
+package com.dtstack.flink.sql.source.kafka.table;
 
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
@@ -30,7 +30,7 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
  * @author xuchao
  */
 
-public class Kafka09SourceTableInfo extends SourceTableInfo {
+public class KafkaSourceTableInfo extends SourceTableInfo {
 
     //version
     private static final String CURR_TYPE = "kafka09";
@@ -52,7 +52,7 @@ public class Kafka09SourceTableInfo extends SourceTableInfo {
 
     private String offset;
 
-    public Kafka09SourceTableInfo(){
+    public KafkaSourceTableInfo(){
         super.setType(CURR_TYPE);
     }
 
