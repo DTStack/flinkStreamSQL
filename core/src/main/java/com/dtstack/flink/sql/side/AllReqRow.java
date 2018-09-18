@@ -16,26 +16,19 @@
  * limitations under the License.
  */
 
- 
 
-package com.dtstack.flink.sql.enums;
+
+package com.dtstack.flink.sql.side;
+
+import org.apache.calcite.interpreter.Row;
+import org.apache.flink.api.common.functions.RichFlatMapFunction;
 
 /**
  * Reason:
- * Date: 2018/8/2
+ * Date: 2018/9/18
  * Company: www.dtstack.com
  * @author xuchao
  */
-public enum ECacheType {
-    NONE, LRU, ALL;
 
-    public static boolean isValid(String type){
-        for(ECacheType tmpType : ECacheType.values()){
-            if(tmpType.name().equalsIgnoreCase(type)){
-                return true;
-            }
-        }
-
-        return false;
-    }
+public abstract class AllReqRow extends RichFlatMapFunction<Row, Row>{
 }

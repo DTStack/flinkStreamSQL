@@ -53,50 +53,24 @@ import java.util.Map;
 
 public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AsyncReqRow.class);
-
     private static final long serialVersionUID = 2098635244857937717L;
 
-    protected RowTypeInfo rowTypeInfo;
+    protected SideReqRow sideReqRow;
 
-    protected List<FieldInfo> outFieldInfoList;
-
-    protected List<String> equalFieldList = Lists.newArrayList();
-
-    protected List<Integer> equalValIndex = Lists.newArrayList();
-
-    protected String sqlCondition = "";
-
-    protected String sideSelectFields = "";
-
-    protected JoinType joinType;
-
-    //key:Returns the value of the position, returns the index values ​​in the input data
-    protected Map<Integer, Integer> inFieldIndex = Maps.newHashMap();
-
-    protected Map<Integer, Integer> sideFieldIndex = Maps.newHashMap();
-
-    protected SideTableInfo sideTableInfo;
-
-    protected AbsSideCache sideCache;
-
-    public AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
-                       SideTableInfo sideTableInfo){
-        this.rowTypeInfo = rowTypeInfo;
-        this.outFieldInfoList = outFieldInfoList;
-        this.joinType = joinInfo.getJoinType();
-        this.sideTableInfo = sideTableInfo;
-        parseSelectFields(joinInfo);
-        buildEqualInfo(joinInfo, sideTableInfo);
+    public AsyncReqRow(SideReqRow sideReqRow){
+        this.sideReqRow = sideReqRow;
     }
 
     private void initCache(){
+        SideTableInfo sideTableInfo = sideReqRow.getSideTableInfo();
         if(sideTableInfo.getCacheType() == null || ECacheType.NONE.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             return;
         }
 
+        AbsSideCache sideCache;
         if(ECacheType.LRU.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             sideCache = new LRUSideCache(sideTableInfo);
+            sideReqRow.setSideCache(sideCache);
         }else{
             throw new RuntimeException("not support side cache with type:" + sideTableInfo.getCacheType());
         }
@@ -105,101 +79,22 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> {
     }
 
     protected CacheObj getFromCache(String key){
-        return sideCache.getFromCache(key);
+        return sideReqRow.getSideCache().getFromCache(key);
     }
 
     protected void putCache(String key, CacheObj value){
-        sideCache.putCache(key, value);
+        sideReqRow.getSideCache().putCache(key, value);
     }
 
     protected boolean openCache(){
-        return sideCache != null;
+        return sideReqRow.getSideCache() != null;
     }
 
-    public void parseSelectFields(JoinInfo joinInfo){
-        String sideTableName = joinInfo.getSideTableName();
-        String nonSideTableName = joinInfo.getNonSideTable();
-        List<String> fields = Lists.newArrayList();
-
-        int sideIndex = 0;
-        for( int i=0; i<outFieldInfoList.size(); i++){
-            FieldInfo fieldInfo = outFieldInfoList.get(i);
-            if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
-                fields.add(fieldInfo.getFieldName());
-                sideFieldIndex.put(i, sideIndex);
-                sideIndex++;
-            }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
-                int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
-                inFieldIndex.put(i, nonSideIndex);
-            }else{
-                throw new RuntimeException("unknown table " + fieldInfo.getTable());
-            }
-        }
-
-        if(fields.size() == 0){
-            throw new RuntimeException("select non field from table " +  sideTableName);
-        }
-
-        sideSelectFields = String.join(",", fields);
-    }
-
-    public abstract void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo);
-
-    public void dealOneEqualCon(SqlNode sqlNode, String sideTableName){
-        if(sqlNode.getKind() != SqlKind.EQUALS){
-            throw new RuntimeException("not equal operator.");
-        }
-
-        SqlIdentifier left = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[0];
-        SqlIdentifier right = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[1];
-
-        String leftTableName = left.getComponent(0).getSimple();
-        String leftField = left.getComponent(1).getSimple();
-
-        String rightTableName = right.getComponent(0).getSimple();
-        String rightField = right.getComponent(1).getSimple();
-
-        if(leftTableName.equalsIgnoreCase(sideTableName)){
-            equalFieldList.add(leftField);
-            int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
-                String fieldName = rowTypeInfo.getFieldNames()[i];
-                if(fieldName.equalsIgnoreCase(rightField)){
-                    equalFieldIndex = i;
-                }
-            }
-            if(equalFieldIndex == -1){
-                throw new RuntimeException("can't find equal field " + rightField);
-            }
-
-            equalValIndex.add(equalFieldIndex);
-
-        }else if(rightTableName.equalsIgnoreCase(sideTableName)){
-
-            equalFieldList.add(rightField);
-            int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
-                String fieldName = rowTypeInfo.getFieldNames()[i];
-                if(fieldName.equalsIgnoreCase(leftField)){
-                    equalFieldIndex = i;
-                }
-            }
-            if(equalFieldIndex == -1){
-                throw new RuntimeException("can't find equal field " + rightField);
-            }
-
-            equalValIndex.add(equalFieldIndex);
-
-        }else{
-            throw new RuntimeException("resolve equalFieldList error:" + sqlNode.toString());
-        }
-
-    }
 
     protected abstract Row fillData(Row input, Object sideInput);
 
     protected void dealMissKey(Row input, ResultFuture<Row> resultFuture){
-        if(joinType == JoinType.LEFT){
+        if(sideReqRow.getJoinType() == JoinType.LEFT){
             //Reserved left table data
             Row row = fillData(input, null);
             resultFuture.complete(Collections.singleton(row));

@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -158,10 +159,12 @@ public class SideSqlExec {
                     adaptStream = adaptStream.keyBy(leftJoinColArr);
                 }
 
-                AsyncReqRow asyncDbReq = loadAsyncReq(sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
-                //TODO How much should be set for the degree of parallelism? Timeout? capacity settings?
-                DataStream dsOut = AsyncDataStream.orderedWait(adaptStream, asyncDbReq, 10000, TimeUnit.MILLISECONDS, 10)
-                        .setParallelism(sideTableInfo.getParallelism());
+                DataStream dsOut = null;
+                if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
+
+                }else{
+                    dsOut = LRUCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
+                }
 
                 HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
                 RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
@@ -359,17 +362,6 @@ public class SideSqlExec {
         return null;
     }
 
-    public AsyncReqRow loadAsyncReq(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,
-                                    JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String pathOfType = sideType + "side";
-        String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir);
-        DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
-        PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
-        String className = PluginUtil.getSqlSideClassName(sideType, "side");
-        return dtClassLoader.loadClass(className).asSubclass(AsyncReqRow.class)
-                .getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, SideTableInfo.class).newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
-    }
 
     public void setLocalSqlPluginPath(String localSqlPluginPath){
         this.localSqlPluginPath = localSqlPluginPath;

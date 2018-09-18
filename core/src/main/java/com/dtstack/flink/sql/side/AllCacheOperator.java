@@ -16,26 +16,30 @@
  * limitations under the License.
  */
 
- 
 
-package com.dtstack.flink.sql.enums;
+package com.dtstack.flink.sql.side;
+
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStream;
+
+import java.util.List;
 
 /**
- * Reason:
- * Date: 2018/8/2
+ * get plugin which implement from RichFlatMapFunction
+ * Date: 2018/9/18
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
-public enum ECacheType {
-    NONE, LRU, ALL;
 
-    public static boolean isValid(String type){
-        for(ECacheType tmpType : ECacheType.values()){
-            if(tmpType.name().equalsIgnoreCase(type)){
-                return true;
-            }
-        }
+public class AllCacheOperator {
 
-        return false;
+    private static void loadFlatMap(){
+
+    }
+
+    public static DataStream getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo, JoinInfo joinInfo,
+                                                   List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
+        return null;
     }
 }
