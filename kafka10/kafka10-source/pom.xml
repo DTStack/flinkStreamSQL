@@ -1,16 +1,33 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>sql.hbase</artifactId>
+        <artifactId>sql.kafka10</artifactId>
         <groupId>com.dtstack.flink</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sql.sink.hbase</artifactId>
-    <name>hbase-sink</name>
+    <artifactId>sql.source.kafka10</artifactId>
+    <packaging>jar</packaging>
+
+    <name>kafka10-source</name>
+    <url>http://maven.apache.org</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <flink.version>1.4.0</flink.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-kafka-0.10_2.11</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+    </dependencies>
+
 
     <build>
         <plugins>
@@ -27,7 +44,7 @@
                         <configuration>
                             <artifactSet>
                                 <excludes>
-                                    <exclude>org.apache.hadoop:hadoop-common</exclude>
+                                    <exclude>org.slf4j</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>
@@ -58,14 +75,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/hbasesink">
+                                <copy todir="${basedir}/../../plugins/kafkasource">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/hbasesink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/hbasesink/${project.name}.jar" />
+                                <move file="${basedir}/../../plugins/kafkasource/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../plugins/kafkasource/${project.name}.jar" />
                             </tasks>
                         </configuration>
                     </execution>
@@ -73,5 +90,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

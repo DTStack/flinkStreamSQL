@@ -51,7 +51,7 @@ public class SqlParser {
     }
 
     /**
-     * ------flink 支持的 sql 语法包括--------
+     * flink support sql syntax
      * CREATE TABLE sls_stream() with ();
      * CREATE (TABLE|SCALA) FUNCTION fcnName WITH com.dtstack.com;
      * insert into tb1 select * from tb2;
@@ -76,12 +76,9 @@ public class SqlParser {
         SqlTree sqlTree = new SqlTree();
 
         for(String childSql : sqlArr){
-
-
             if(Strings.isNullOrEmpty(childSql)){
                 continue;
             }
-
             boolean result = false;
             for(IParser sqlParser : sqlParserList){
                 if(!sqlParser.verify(childSql)){
@@ -99,7 +96,7 @@ public class SqlParser {
 
         //解析exec-sql
         if(sqlTree.getExecSqlList().size() == 0){
-            throw new RuntimeException("sql中没有可执行语句");
+            throw new RuntimeException("sql no executable statement");
         }
 
         for(InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()){

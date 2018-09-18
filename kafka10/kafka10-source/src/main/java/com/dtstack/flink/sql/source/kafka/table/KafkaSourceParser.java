@@ -18,7 +18,7 @@
 
  
 
-package com.dtstack.flink.sql.source.kafka09.table;
+package com.dtstack.flink.sql.source.kafka.table;
 
 import com.dtstack.flink.sql.table.AbsSourceParser;
 import com.dtstack.flink.sql.table.TableInfo;
@@ -28,24 +28,24 @@ import java.util.Map;
 
 /**
  * Reason:
- * Date: 2018/7/4
+ * Date: 2018/09/18
  * Company: www.dtstack.com
- * @author xuchao
+ * @author sishu.yss
  */
 
-public class Kafka09SourceParser extends AbsSourceParser {
+public class KafkaSourceParser extends AbsSourceParser {
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
 
-        Kafka09SourceTableInfo kafka09SourceTableInfo = new Kafka09SourceTableInfo();
-        kafka09SourceTableInfo.setName(tableName);
-        parseFieldsInfo(fieldsInfo, kafka09SourceTableInfo);
+        KafkaSourceTableInfo kafka10SourceTableInfo = new KafkaSourceTableInfo();
+        kafka10SourceTableInfo.setName(tableName);
+        parseFieldsInfo(fieldsInfo, kafka10SourceTableInfo);
 
-        kafka09SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(Kafka09SourceTableInfo.PARALLELISM_KEY.toLowerCase())));
-        kafka09SourceTableInfo.setBootstrapServers(MathUtil.getString(props.get(Kafka09SourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
-        kafka09SourceTableInfo.setGroupId(MathUtil.getString(props.get(Kafka09SourceTableInfo.GROUPID_KEY.toLowerCase())));
-        kafka09SourceTableInfo.setTopic(MathUtil.getString(props.get(Kafka09SourceTableInfo.TOPIC_KEY.toLowerCase())));
-        return kafka09SourceTableInfo;
+        kafka10SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
+        kafka10SourceTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
+        kafka10SourceTableInfo.setGroupId(MathUtil.getString(props.get(KafkaSourceTableInfo.GROUPID_KEY.toLowerCase())));
+        kafka10SourceTableInfo.setTopic(MathUtil.getString(props.get(KafkaSourceTableInfo.TOPIC_KEY.toLowerCase())));
+        return kafka10SourceTableInfo;
     }
 }

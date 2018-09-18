@@ -1,8 +1,7 @@
 target
 .idea/
 /.idea/*
-/target
-target
+target/
 .class
 .project
 .classpath
