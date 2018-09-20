@@ -75,8 +75,8 @@ public class PluginUtil {
     }
 
 
-    public static String getSqlSideClassName(String pluginTypeName, String type){
-        String pluginClassName = upperCaseFirstChar(pluginTypeName) + "AsyncReqRow";
+    public static String getSqlSideClassName(String pluginTypeName, String type, String operatorType){
+        String pluginClassName = upperCaseFirstChar(pluginTypeName) + operatorType + "ReqRow";
         return CLASS_PRE_STR  + "." + type.toLowerCase() + "." +  pluginTypeName + "." + pluginClassName;
     }
 

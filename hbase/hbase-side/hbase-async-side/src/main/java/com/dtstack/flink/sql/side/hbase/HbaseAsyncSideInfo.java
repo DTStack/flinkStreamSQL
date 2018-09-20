@@ -2,7 +2,7 @@ package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideReqRow;
+import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -22,13 +22,15 @@ import java.util.Map;
  * @author xuchao
  */
 
-public class HbaseSideReqRow extends SideReqRow {
+public class HbaseAsyncSideInfo extends SideInfo {
+
+    private static final long serialVersionUID = 257688427401088045L;
 
     private RowKeyBuilder rowKeyBuilder;
 
     private Map<String, String> colRefType;
 
-    public HbaseSideReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public HbaseAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 

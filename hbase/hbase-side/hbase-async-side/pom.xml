@@ -4,8 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>sql.side.hbase</artifactId>
-        <groupId>com.dtstack.flinkx</groupId>
+        <groupId>com.dtstack.flink</groupId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -15,7 +16,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.dtstack.flinkx</groupId>
+            <groupId>com.dtstack.flink</groupId>
             <artifactId>sql.side.hbase.core</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
@@ -73,14 +74,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/hbaseasyncside">
+                                <copy todir="${basedir}/../../../plugins/hbaseasyncside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/hbaseasyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/hbaseasyncside/${project.name}.jar" />
+                                <move file="${basedir}/../../../plugins/hbaseasyncside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../plugins/hbaseasyncside/${project.name}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

@@ -17,9 +17,13 @@
  */
 
 
-package com.dtstack.flink.sql.side;
+package com.dtstack.flink.sql.side.operator;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.side.AsyncReqRow;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.AsyncDataStream;
@@ -36,16 +40,18 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public class LRUCacheOperator {
+public class SideAsyncOperator {
+
+    private static final String PATH_FORMAT = "%sasyncside";
 
     private static AsyncReqRow loadAsyncReq(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,
-                                    JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
+                                            JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String pathOfType = sideType + "side";
+        String pathOfType = String.format(PATH_FORMAT, sideType);
         String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir);
         DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
         PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
-        String className = PluginUtil.getSqlSideClassName(sideType, "side");
+        String className = PluginUtil.getSqlSideClassName(sideType, "side", "Async");
         return dtClassLoader.loadClass(className).asSubclass(AsyncReqRow.class)
                 .getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, SideTableInfo.class).newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }

@@ -75,14 +75,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/kafkasource">
+                                <copy todir="${basedir}/../../plugins/kafka10source">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/kafkasource/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/kafkasource/${project.name}.jar" />
+                                <move file="${basedir}/../../plugins/kafka10source/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../plugins/kafka10source/${project.name}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

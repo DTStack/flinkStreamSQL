@@ -20,8 +20,10 @@
 
 package com.dtstack.flink.sql.parser;
 
+import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -70,9 +72,9 @@ public class CreateTableParser implements IParser {
         String[] strs = propsStr.trim().split("'\\s*,");
         Map<String, Object> propMap = Maps.newHashMap();
         for(int i=0; i<strs.length; i++){
-            String[] ss = strs[i].split("=");
-            String key = ss[0].trim();
-            String value = ss[1].trim().replaceAll("'", "").trim();
+            List<String> ss = DtStringUtil.splitIgnoreQuota(strs[i], '=');
+            String key = ss.get(0).trim();
+            String value = ss.get(1).trim().replaceAll("'", "").trim();
             propMap.put(key, value);
         }
 

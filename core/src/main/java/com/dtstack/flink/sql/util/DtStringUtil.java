@@ -21,10 +21,15 @@
 package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.enums.ColumnType;
+import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
+import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Reason:
@@ -34,6 +39,8 @@ import java.util.List;
  */
 
 public class DtStringUtil {
+
+    private static final Pattern NO_VERSION_PATTERN = Pattern.compile("([a-zA-Z]+).*");
 
     /**
      * Split the specified string delimiter --- ignored quotes delimiter
@@ -135,6 +142,69 @@ public class DtStringUtil {
         return result.toString();
     }
 
+    public static String getPluginTypeWithoutVersion(String engineType){
 
+        Matcher matcher = NO_VERSION_PATTERN.matcher(engineType);
+        if(!matcher.find()){
+            return engineType;
+        }
 
+        return matcher.group(1);
+    }
+
+    /**
+     * add specify params to dbUrl
+     * @param dbUrl
+     * @param addParams
+     * @param isForce true:replace exists param
+     * @return
+     */
+    public static String addJdbcParam(String dbUrl, Map<String, String> addParams, boolean isForce){
+
+        if(Strings.isNullOrEmpty(dbUrl)){
+            throw new RuntimeException("dburl can't be empty string, please check it.");
+        }
+
+        if(addParams == null || addParams.size() == 0){
+            return dbUrl;
+        }
+
+        String[] splits = dbUrl.split("\\?");
+        String preStr = splits[0];
+        Map<String, String> params = Maps.newHashMap();
+        if(splits.length > 1){
+            String existsParamStr = splits[1];
+            String[] existsParams = existsParamStr.split("&");
+            for(String oneParam : existsParams){
+                String[] kv = oneParam.split("=");
+                if(kv.length != 2){
+                    throw new RuntimeException("illegal dbUrl:" + dbUrl);
+                }
+
+                params.put(kv[0], kv[1]);
+            }
+        }
+
+        for(Map.Entry<String, String> addParam : addParams.entrySet()){
+            if(!isForce && params.containsKey(addParam.getKey())){
+                continue;
+            }
+
+            params.put(addParam.getKey(), addParam.getValue());
+        }
+
+        //rebuild dbURL
+        StringBuilder sb = new StringBuilder();
+        boolean isFirst = true;
+        for(Map.Entry<String, String> param : params.entrySet()){
+            if(!isFirst){
+                sb.append("&");
+            }
+
+            sb.append(param.getKey()).append("=").append(param.getValue());
+            isFirst = false;
+        }
+
+        return preStr + "?" + sb.toString();
+    }
 }

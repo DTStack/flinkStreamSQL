@@ -13,9 +13,9 @@
     <artifactId>sql.side.mysql</artifactId>
     <name>mysql-side</name>
     <modules>
+        <module>mysql-side-core</module>
         <module>mysql-async-side</module>
         <module>mysql-all-side</module>
-        <module>mysql-side-core</module>
     </modules>
 
     <packaging>pom</packaging>

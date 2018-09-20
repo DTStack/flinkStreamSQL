@@ -165,6 +165,61 @@ public class SideSqlExecTest {
             test(sql);
     }
 
+    @Test
+    public void testMysqlAllCache() throws Exception {
+        String sql = "CREATE TABLE MyTable(\n" +
+                "    channel STRING,\n" +
+                "    pv INT,\n" +
+                "    xctime bigint,\n" +
+                "    CHARACTER_LENGTH(channel) as timeLeng,\n" +
+                "    WATERMARK FOR xctime AS withOffset(xctime,1000)\n" +
+                " )WITH(\n" +
+                "    type='kafka09',\n" +
+                "    bootstrapServers='172.16.8.198:9092',\n" +
+                "    offsetReset='latest',\n" +
+                "    topic='nbTest1'\n" +
+                " );\n" +
+                "CREATE TABLE MyResult(\n" +
+                "    channel STRING,\n" +
+                "    pv INT\n" +
+                " )WITH(\n" +
+                "    type='mysql',\n" +
+                "    url='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',\n" +
+                "    userName='dtstack',\n" +
+                "    password='abc123',\n" +
+                "    tableName='pv'\n" +
+                " );\n" +
+                "create table sideTable(\n" +
+                "    channel String,\n" +
+                "    xccount int,\n" +
+                "    PRIMARY KEY(channel),\n" +
+                "    PERIOD FOR SYSTEM_TIME\n" +
+                " )WITH(\n" +
+                "    type='mysql',\n" +
+                "    url='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',\n" +
+                "    userName='dtstack',\n" +
+                "    password='abc123',\n" +
+                "    tableName='sidetest',\n" +
+                "    cache = 'ALL'\n" +
+                " );\n" +
+                "insert \n" +
+                "into\n" +
+                "    MyResult\n" +
+                "    select\n" +
+                "        a.channel,\n" +
+                "        b.xccount \n" +
+                "    from\n" +
+                "        MyTable a \n" +
+                "    join\n" +
+                "        sideTable b \n" +
+                "            on a.channel=b.channel \n" +
+                "    where\n" +
+                "        b.channel = 'xc' \n" +
+                "        and a.pv=10";
+
+        test(sql);
+    }
+
     public void test(String sql) throws Exception {
         List<String> paramList = Lists.newArrayList();
         paramList.add("-sql");
@@ -173,7 +228,7 @@ public class SideSqlExecTest {
         paramList.add("-name");
         paramList.add("xc");
         paramList.add("-localSqlPluginPath");
-        paramList.add("D:\\gitspace\\flink-sql-plugin\\plugins");
+        paramList.add("D:\\gitspace\\flinkStreamSQL\\plugins");
         paramList.add("-mode");
         paramList.add("local");
         paramList.add("-addjar");
