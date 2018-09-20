@@ -1,8 +1,26 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.dtstack.flink.sql.side.mysql;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideReqRow;
+import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.mysql.table.MysqlSideTableInfo;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -22,9 +40,11 @@ import java.util.List;
  * @author xuchao
  */
 
-public class MysqlSideReqRow extends SideReqRow {
+public class MysqlAsyncSideInfo extends SideInfo {
 
-    public MysqlSideReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    private static final long serialVersionUID = -5931494270201575201L;
+
+    public MysqlAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
@@ -59,34 +79,6 @@ public class MysqlSideReqRow extends SideReqRow {
 
         sqlCondition = sqlCondition.replace("${tableName}", mysqlSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
         System.out.println("---------side_exe_sql-----\n" + sqlCondition);
-    }
-
-    @Override
-    public void parseSelectFields(JoinInfo joinInfo){
-        String sideTableName = joinInfo.getSideTableName();
-        String nonSideTableName = joinInfo.getNonSideTable();
-        List<String> fields = Lists.newArrayList();
-
-        int sideIndex = 0;
-        for( int i=0; i<outFieldInfoList.size(); i++){
-            FieldInfo fieldInfo = outFieldInfoList.get(i);
-            if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
-                fields.add(fieldInfo.getFieldName());
-                sideFieldIndex.put(i, sideIndex);
-                sideIndex++;
-            }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
-                int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
-                inFieldIndex.put(i, nonSideIndex);
-            }else{
-                throw new RuntimeException("unknown table " + fieldInfo.getTable());
-            }
-        }
-
-        if(fields.size() == 0){
-            throw new RuntimeException("select non field from table " +  sideTableName);
-        }
-
-        sideSelectFields = String.join(",", fields);
     }
 
 

@@ -25,23 +25,12 @@ import com.dtstack.flink.sql.side.cache.AbsSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
 import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import org.apache.flink.types.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 /**
  * All interfaces inherit naming rules: type + "AsyncReqRow" such as == "MysqlAsyncReqRow
@@ -55,14 +44,14 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> {
 
     private static final long serialVersionUID = 2098635244857937717L;
 
-    protected SideReqRow sideReqRow;
+    protected SideInfo sideInfo;
 
-    public AsyncReqRow(SideReqRow sideReqRow){
-        this.sideReqRow = sideReqRow;
+    public AsyncReqRow(SideInfo sideInfo){
+        this.sideInfo = sideInfo;
     }
 
     private void initCache(){
-        SideTableInfo sideTableInfo = sideReqRow.getSideTableInfo();
+        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         if(sideTableInfo.getCacheType() == null || ECacheType.NONE.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             return;
         }
@@ -70,7 +59,7 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> {
         AbsSideCache sideCache;
         if(ECacheType.LRU.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             sideCache = new LRUSideCache(sideTableInfo);
-            sideReqRow.setSideCache(sideCache);
+            sideInfo.setSideCache(sideCache);
         }else{
             throw new RuntimeException("not support side cache with type:" + sideTableInfo.getCacheType());
         }
@@ -79,22 +68,22 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> {
     }
 
     protected CacheObj getFromCache(String key){
-        return sideReqRow.getSideCache().getFromCache(key);
+        return sideInfo.getSideCache().getFromCache(key);
     }
 
     protected void putCache(String key, CacheObj value){
-        sideReqRow.getSideCache().putCache(key, value);
+        sideInfo.getSideCache().putCache(key, value);
     }
 
     protected boolean openCache(){
-        return sideReqRow.getSideCache() != null;
+        return sideInfo.getSideCache() != null;
     }
 
 
     protected abstract Row fillData(Row input, Object sideInput);
 
     protected void dealMissKey(Row input, ResultFuture<Row> resultFuture){
-        if(sideReqRow.getJoinType() == JoinType.LEFT){
+        if(sideInfo.getJoinType() == JoinType.LEFT){
             //Reserved left table data
             Row row = fillData(input, null);
             resultFuture.complete(Collections.singleton(row));

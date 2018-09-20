@@ -25,7 +25,6 @@ import com.dtstack.flink.sql.side.AsyncReqRow;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideReqRow;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mysql.table.MysqlSideTableInfo;
@@ -36,10 +35,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.configuration.Configuration;
@@ -78,16 +73,15 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
 
 
     public MysqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(new MysqlSideReqRow(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
+        super(new MysqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
 
-    //配置暂时走默认配置
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         JsonObject mySQLClientConfig = new JsonObject();
-        MysqlSideTableInfo mysqlSideTableInfo = (MysqlSideTableInfo) sideReqRow.getSideTableInfo();
+        MysqlSideTableInfo mysqlSideTableInfo = (MysqlSideTableInfo) sideInfo.getSideTableInfo();
         mySQLClientConfig.put("url", mysqlSideTableInfo.getUrl())
                 .put("driver_class", MYSQL_DRIVER)
                 .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
@@ -98,7 +92,6 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         Vertx vertx = Vertx.vertx(vo);
-        //mySQLClient = JDBCClient.createShared(vertx, mySQLClientConfig, "MySQLPool");
         mySQLClient = JDBCClient.createNonShared(vertx, mySQLClientConfig);
     }
 
@@ -106,7 +99,7 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
 
         JsonArray inputParams = new JsonArray();
-        for(Integer conValIndex : sideReqRow.getEqualValIndex()){
+        for(Integer conValIndex : sideInfo.getEqualValIndex()){
             Object equalObj = input.getField(conValIndex);
             if(equalObj == null){
                 resultFuture.complete(null);
@@ -145,7 +138,7 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
             }
 
             final SQLConnection connection = conn.result();
-            String sqlCondition = sideReqRow.getSqlCondition();
+            String sqlCondition = sideInfo.getSqlCondition();
             connection.queryWithParams(sqlCondition, inputParams, rs -> {
                 if (rs.failed()) {
                     LOG.error("Cannot retrieve the data from the database");
@@ -189,8 +182,8 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
     @Override
     public Row fillData(Row input, Object line){
         JsonArray jsonArray = (JsonArray) line;
-        Row row = new Row(sideReqRow.getOutFieldInfoList().size());
-        for(Map.Entry<Integer, Integer> entry : sideReqRow.getInFieldIndex().entrySet()){
+        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
             Object obj = input.getField(entry.getValue());
             if(obj instanceof Timestamp){
                 obj = ((Timestamp)obj).getTime();
@@ -198,7 +191,7 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
             row.setField(entry.getKey(), obj);
         }
 
-        for(Map.Entry<Integer, Integer> entry : sideReqRow.getInFieldIndex().entrySet()){
+        for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
             if(jsonArray == null){
                 row.setField(entry.getKey(), null);
             }else{

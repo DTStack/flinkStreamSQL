@@ -14,7 +14,6 @@
     <modules>
         <module>mysql-sink</module>
         <module>mysql-side</module>
-        <module>mysql-all-side</module>
     </modules>
 
     <dependencies>

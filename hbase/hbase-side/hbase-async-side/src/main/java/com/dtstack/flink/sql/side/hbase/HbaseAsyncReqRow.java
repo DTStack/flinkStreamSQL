@@ -24,7 +24,6 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.AsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideReqRow;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.AbsRowKeyModeDealer;
@@ -34,11 +33,7 @@ import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.threadFactory.DTThreadFactory;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.types.Row;
@@ -78,7 +73,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
     private String[] colNames;
 
     public HbaseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(new HbaseSideReqRow(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
+        super(new HbaseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
 
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
         colNames = ((HbaseSideTableInfo)sideTableInfo).getColumnRealNames();
@@ -87,7 +82,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        SideTableInfo sideTableInfo = sideReqRow.getSideTableInfo();
+        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         ExecutorService executorService =new ThreadPoolExecutor(HBASE_WORKER_POOL_SIZE, HBASE_WORKER_POOL_SIZE,
                 0L, TimeUnit.MILLISECONDS,
@@ -107,32 +102,32 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
             throw new RuntimeException("create hbase connection fail:", e);
         }
 
-        HbaseSideReqRow hbaseSideReqRow = (HbaseSideReqRow) sideReqRow;
+        HbaseAsyncSideInfo hbaseAsyncSideInfo = (HbaseAsyncSideInfo) sideInfo;
         if(hbaseSideTableInfo.isPreRowKey()){
-            rowKeyMode = new PreRowKeyModeDealerDealer(hbaseSideReqRow.getColRefType(), colNames, hBaseClient,
-                    openCache(), sideReqRow.getJoinType(), sideReqRow.getOutFieldInfoList(),
-                    sideReqRow.getInFieldIndex(), sideReqRow.getSideFieldIndex());
+            rowKeyMode = new PreRowKeyModeDealerDealer(hbaseAsyncSideInfo.getColRefType(), colNames, hBaseClient,
+                    openCache(), sideInfo.getJoinType(), sideInfo.getOutFieldInfoList(),
+                    sideInfo.getInFieldIndex(), sideInfo.getSideFieldIndex());
         }else{
-            rowKeyMode = new RowKeyEqualModeDealer(hbaseSideReqRow.getColRefType(), colNames, hBaseClient,
-                    openCache(), sideReqRow.getJoinType(), sideReqRow.getOutFieldInfoList(),
-                    sideReqRow.getInFieldIndex(), sideReqRow.getSideFieldIndex());
+            rowKeyMode = new RowKeyEqualModeDealer(hbaseAsyncSideInfo.getColRefType(), colNames, hBaseClient,
+                    openCache(), sideInfo.getJoinType(), sideInfo.getOutFieldInfoList(),
+                    sideInfo.getInFieldIndex(), sideInfo.getSideFieldIndex());
         }
     }
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
         Map<String, Object> refData = Maps.newHashMap();
-        for (int i = 0; i < sideReqRow.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideReqRow.getEqualValIndex().get(i);
+        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
+            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.getField(conValIndex);
             if(equalObj == null){
                 resultFuture.complete(null);
             }
 
-            refData.put(sideReqRow.getEqualFieldList().get(i), equalObj);
+            refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
 
-        String rowKeyStr = ((HbaseSideReqRow)sideReqRow).getRowKeyBuilder().getRowKey(refData);
+        String rowKeyStr = ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
 
         //get from cache
         if(openCache()){
@@ -154,15 +149,15 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
             }
         }
 
-        rowKeyMode.asyncGetData(tableName, rowKeyStr, input, resultFuture, sideReqRow.getSideCache());
+        rowKeyMode.asyncGetData(tableName, rowKeyStr, input, resultFuture, sideInfo.getSideCache());
     }
 
     @Override
     protected Row fillData(Row input, Object sideInput){
 
         List<Object> sideInputList = (List<Object>) sideInput;
-        Row row = new Row(sideReqRow.getOutFieldInfoList().size());
-        for(Map.Entry<Integer, Integer> entry : sideReqRow.getInFieldIndex().entrySet()){
+        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
             Object obj = input.getField(entry.getValue());
             if(obj instanceof Timestamp){
                 obj = ((Timestamp)obj).getTime();
@@ -170,7 +165,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
             row.setField(entry.getKey(), obj);
         }
 
-        for(Map.Entry<Integer, Integer> entry : sideReqRow.getSideFieldIndex().entrySet()){
+        for(Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()){
             if(sideInputList == null){
                 row.setField(entry.getKey(), null);
             }else{

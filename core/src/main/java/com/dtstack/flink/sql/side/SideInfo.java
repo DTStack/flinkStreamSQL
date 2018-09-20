@@ -30,6 +30,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +41,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public abstract class SideReqRow {
+public abstract class SideInfo implements Serializable{
 
     protected RowTypeInfo rowTypeInfo;
 
@@ -56,17 +57,21 @@ public abstract class SideReqRow {
 
     protected JoinType joinType;
 
-    //key:Returns the value of the position, returns the index values ​​in the input data
+    //key:Returns the value of the position, value: the ref field index​in the input table
     protected Map<Integer, Integer> inFieldIndex = Maps.newHashMap();
 
+    //key:Returns the value of the position, value:  the ref field index​in the side table
     protected Map<Integer, Integer> sideFieldIndex = Maps.newHashMap();
+
+    //key:Returns the value of the position, value:  the ref field name​in the side table
+    protected Map<Integer, String> sideFieldNameIndex = Maps.newHashMap();
 
     protected SideTableInfo sideTableInfo;
 
     protected AbsSideCache sideCache;
 
-    public SideReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
-                       SideTableInfo sideTableInfo){
+    public SideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
+                    SideTableInfo sideTableInfo){
         this.rowTypeInfo = rowTypeInfo;
         this.outFieldInfoList = outFieldInfoList;
         this.joinType = joinInfo.getJoinType();
@@ -86,6 +91,7 @@ public abstract class SideReqRow {
             if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
                 fields.add(fieldInfo.getFieldName());
                 sideFieldIndex.put(i, sideIndex);
+                sideFieldNameIndex.put(i, fieldInfo.getFieldName());
                 sideIndex++;
             }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
                 int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
@@ -240,5 +246,13 @@ public abstract class SideReqRow {
 
     public void setSideCache(AbsSideCache sideCache) {
         this.sideCache = sideCache;
+    }
+
+    public Map<Integer, String> getSideFieldNameIndex() {
+        return sideFieldNameIndex;
+    }
+
+    public void setSideFieldNameIndex(Map<Integer, String> sideFieldNameIndex) {
+        this.sideFieldNameIndex = sideFieldNameIndex;
     }
 }

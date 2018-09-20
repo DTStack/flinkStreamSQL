@@ -20,9 +20,9 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.util.PluginUtil;
+import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
+import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -42,7 +42,6 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.HashBasedTable;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
-import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -51,7 +50,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -161,9 +159,9 @@ public class SideSqlExec {
 
                 DataStream dsOut = null;
                 if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
-
+                    dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
                 }else{
-                    dsOut = LRUCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
+                    dsOut = SideAsyncOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
                 }
 
                 HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
