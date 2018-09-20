@@ -16,7 +16,7 @@
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-elasticsearch5_2.11</artifactId>
-            <version>1.4.0</version>
+            <version>${flink.version}</version>
         </dependency>
 
         <dependency>
