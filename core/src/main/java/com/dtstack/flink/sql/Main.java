@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.parser.CreateFuncParser;
 import com.dtstack.flink.sql.parser.InsertSqlParser;
 import com.dtstack.flink.sql.side.SideSqlExec;
@@ -82,6 +83,8 @@ import java.util.concurrent.TimeUnit;
  */
 
 public class Main {
+
+    private static final String CLASS_FILE_NAME_FMT = "class_path_%d";
 
     private static final ObjectMapper objMapper = new ObjectMapper();
 
@@ -272,8 +275,9 @@ public class Main {
                 classPathSet.add( PluginUtil.getRemoteJarFilePath(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
             } else if(tableInfo instanceof SideTableInfo){
 
+                String sideOperator = ECacheType.ALL.name().equals(((SideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
                 sideTableMap.put(tableInfo.getName(), (SideTableInfo) tableInfo);
-                classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SideTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
+                classPathSet.add(PluginUtil.getRemoteSideJarFilePath(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
             }else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
@@ -281,6 +285,12 @@ public class Main {
 
         //The plug-in information corresponding to the table is loaded into the classPath env
         addEnvClassPath(env, classPathSet);
+        int i = 0;
+        for(URL url : classPathSet){
+            String classFileName = String.format(CLASS_FILE_NAME_FMT, i);
+            env.registerCachedFile(url.getPath(),  classFileName, true);
+            i++;
+        }
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException {
