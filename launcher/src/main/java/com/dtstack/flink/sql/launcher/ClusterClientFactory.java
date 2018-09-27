@@ -107,6 +107,7 @@ public class ClusterClientFactory {
                     }
 
                     YarnClient yarnClient = YarnClient.createYarnClient();
+                    haYarnConf(yarnConf);
                     yarnClient.init(yarnConf);
                     yarnClient.start();
                     ApplicationId applicationId = null;
@@ -138,16 +139,12 @@ public class ClusterClientFactory {
 
                     }
 
-                    if(org.apache.commons.lang3.StringUtils.isEmpty(applicationId.toString())) {
+                    if(StringUtils.isEmpty(applicationId.toString())) {
                         throw new RuntimeException("No flink session found on yarn cluster.");
                     }
 
-                    AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, ".", yarnClient, false);
-                    Field confField = AbstractYarnClusterDescriptor.class.getDeclaredField("conf");
-                    confField.setAccessible(true);
-                    haYarnConf(yarnConf);
-                    confField.set(clusterDescriptor, yarnConf);
 
+                    AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, ".", yarnClient, false);
                     ClusterClient clusterClient = clusterDescriptor.retrieve(applicationId);
                     clusterClient.setDetached(true);
                     return clusterClient;
