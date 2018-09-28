@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.table.AbsSideTableParser;
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.util.PluginUtil;
@@ -36,14 +37,11 @@ public class StreamSideFactory {
 
     private static final String CURR_TYPE = "side";
 
-    private static final String SIDE_DIR_TMPL = "%s%sside";
-
     public static AbsTableParser getSqlParser(String pluginType, String sqlRootDir, String cacheType) throws Exception {
 
-        cacheType = cacheType == null ? "async" : cacheType;
-        String sideDir = String.format(SIDE_DIR_TMPL, pluginType, cacheType);
+        String sideOperator = ECacheType.ALL.name().equals(cacheType) ? "all" : "async";
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String pluginJarPath = PluginUtil.getJarFileDirPath(sideDir, sqlRootDir);
+        String pluginJarPath = PluginUtil.getSideJarFileDirPath(pluginType, sideOperator, "side", sqlRootDir);
 
         DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
         PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);

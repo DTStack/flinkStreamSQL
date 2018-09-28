@@ -63,6 +63,17 @@ public class PluginUtil {
         return jarPath;
     }
 
+    public static String getSideJarFileDirPath(String pluginType, String sideOperator, String tableType, String sqlRootDir) throws MalformedURLException {
+        String dirName = sqlRootDir + SP + pluginType + sideOperator + tableType.toLowerCase();
+        File jarFile = new File(dirName);
+
+        if(!jarFile.exists()){
+            throw new RuntimeException(String.format("path %s not exists!!!", dirName));
+        }
+
+        return dirName;
+    }
+
     public static String getGenerClassName(String pluginTypeName, String type) throws IOException {
         String pluginClassName = upperCaseFirstChar(pluginTypeName) + upperCaseFirstChar(type);
         return CLASS_PRE_STR  + "." + type.toLowerCase() + "." + pluginTypeName + "." + pluginClassName;
@@ -94,9 +105,15 @@ public class PluginUtil {
         return properties;
     }
 
-    public static URL getRemoteJarFilePath(String pluginType, String tableType,String remoteSqlRootDir) throws MalformedURLException {
+    public static URL getRemoteJarFilePath(String pluginType, String tableType, String remoteSqlRootDir) throws MalformedURLException {
         String dirName = pluginType + tableType.toLowerCase();
         String jarName = String.format("%s-%s.jar", pluginType, tableType.toLowerCase());
+        return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
+    }
+
+    public static URL getRemoteSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir) throws MalformedURLException {
+        String dirName = pluginType + sideOperator + tableType.toLowerCase();
+        String jarName = String.format("%s-%s-%s.jar", pluginType, sideOperator, tableType.toLowerCase());
         return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
     }
 
