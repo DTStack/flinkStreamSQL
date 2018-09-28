@@ -20,8 +20,10 @@
 
 package com.dtstack.flink.sql.table;
 
+import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.ETableType;
 import com.dtstack.flink.sql.parser.CreateTableParser;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.StreamSideFactory;
 import com.dtstack.flink.sql.sink.StreamSinkFactory;
 import com.dtstack.flink.sql.source.StreamSourceFactory;
@@ -77,7 +79,8 @@ public class TableInfoParserFactory {
             }else{
                 absTableParser = sideTableInfoMap.get(type);
                 if(absTableParser == null){
-                    absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot);
+                    String cacheType = MathUtil.getString(props.get(SideTableInfo.CACHE_KEY));
+                    absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType);
                     sideTableInfoMap.put(type, absTableParser);
                 }
             }

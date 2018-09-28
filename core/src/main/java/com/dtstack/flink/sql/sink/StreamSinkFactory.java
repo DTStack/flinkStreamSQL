@@ -23,7 +23,9 @@ package com.dtstack.flink.sql.sink;
 import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
+import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.table.sinks.TableSink;
 
 /**
@@ -37,14 +39,23 @@ public class StreamSinkFactory {
 
     public static String CURR_TYPE = "sink";
 
-    public static AbsTableParser getSqlParser(String resultType, String sqlRootDir) throws Exception {
-        String parserType = resultType + CURR_TYPE.substring(0, 1).toUpperCase() + CURR_TYPE.substring(1);
+    private static final String DIR_NAME_FORMAT = "%ssink";
+
+    public static AbsTableParser getSqlParser(String pluginType, String sqlRootDir) throws Exception {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String pluginJarPath = PluginUtil.getJarFileDirPath(resultType + CURR_TYPE, sqlRootDir);
+
+        if(!(classLoader instanceof DtClassLoader)){
+            throw new RuntimeException("it's not a correct classLoader instance, it's type must be DtClassLoader!");
+        }
+
         DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
+
+        String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), sqlRootDir);
+
         PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
-        String className = PluginUtil.getSqlParserClassName(resultType, CURR_TYPE);
+        String className = PluginUtil.getSqlParserClassName(pluginType, CURR_TYPE);
         Class<?> targetParser = dtClassLoader.loadClass(className);
+
         if(!AbsTableParser.class.isAssignableFrom(targetParser)){
             throw new RuntimeException("class " + targetParser.getName() + " not subClass of AbsTableParser");
         }
@@ -59,13 +70,16 @@ public class StreamSinkFactory {
             throw new RuntimeException("it's not a correct classLoader instance, it's type must be DtClassLoader!");
         }
 
-        String resultType = targetTableInfo.getType();
-        String pluginJarDirPath = PluginUtil.getJarFileDirPath(resultType + CURR_TYPE, localSqlRootDir);
-        String className = PluginUtil.getGenerClassName(resultType, CURR_TYPE);
-
         DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
+
+        String pluginType = targetTableInfo.getType();
+        String pluginJarDirPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), localSqlRootDir);
+
         PluginUtil.addPluginJar(pluginJarDirPath, dtClassLoader);
+
+        String className = PluginUtil.getGenerClassName(pluginType, CURR_TYPE);
         Class<?> sinkClass = dtClassLoader.loadClass(className);
+
         if(!IStreamSinkGener.class.isAssignableFrom(sinkClass)){
             throw new RuntimeException("class " + sinkClass + " not subClass of IStreamSinkGener");
         }

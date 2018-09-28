@@ -45,7 +45,7 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     public static final String PARTITIONED_JOIN_KEY = "partitionedJoin";
 
-    private String cacheType = "none";//None or LRU
+    private String cacheType = "none";//None or LRU or ALL
 
     private int cacheSize = 10000;
 

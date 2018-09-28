@@ -38,14 +38,18 @@
 
 ```
 mvn clean package -Dmaven.test.skip
+打包结束后，项目根目录下会产生plugins目录，plugins目录下存放编译好的数据同步插件包,在lib目下存放job提交的包
 ```
-
-打包结束后，项目根目录下会产生plugins目录，plugins目录下存放编译好的数据同步插件包
-
 
 ### 1.4 启动
 
-#### 1.4.1 命令行参数选项
+#### 1.4.1 启动命令
+
+```
+sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack/150_flinkplugin/sqlplugin   -localSqlPluginPath D:\gitspace\flinkStreamSQL\plugins   -mode yarn -flinkconf D:\flink_home\kudu150etc  -yarnconf D:\hadoop\etc\hadoopkudu -confProp {\"time.characteristic\":\"EventTime\",\"sql.checkpoint.interval\":10000}
+```
+
+#### 1.4.2 命令行参数选项
 
 * **model**
 	* 描述：执行模式，也就是flink集群的工作模式
