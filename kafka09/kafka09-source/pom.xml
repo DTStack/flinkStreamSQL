@@ -2,7 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>sql.kafka09</artifactId>
-        <groupId>com.dtstack.flinkx</groupId>
+        <groupId>com.dtstack.flink</groupId>
         <version>1.0-SNAPSHOT</version>
         <!--<relativePath>../pom.xml</relativePath>-->
     </parent>
@@ -20,19 +20,6 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.dtstack.flinkx</groupId>
-            <artifactId>sql.core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.flink</groupId>

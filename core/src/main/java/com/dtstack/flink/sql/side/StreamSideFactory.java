@@ -26,7 +26,7 @@ import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.util.PluginUtil;
 
 /**
- * 流处理
+ * get specify side parser
  * Date: 2018/7/25
  * Company: www.dtstack.com
  * @author xuchao
@@ -36,12 +36,19 @@ public class StreamSideFactory {
 
     private static final String CURR_TYPE = "side";
 
-    public static AbsTableParser getSqlParser(String resultType, String sqlRootDir) throws Exception {
+    private static final String SIDE_DIR_TMPL = "%s%sside";
+
+    public static AbsTableParser getSqlParser(String pluginType, String sqlRootDir, String cacheType) throws Exception {
+
+        cacheType = cacheType == null ? "async" : cacheType;
+        String sideDir = String.format(SIDE_DIR_TMPL, pluginType, cacheType);
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String pluginJarPath = PluginUtil.getJarFileDirPath(resultType + CURR_TYPE, sqlRootDir);
+        String pluginJarPath = PluginUtil.getJarFileDirPath(sideDir, sqlRootDir);
+
         DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
         PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
-        String className = PluginUtil.getSqlParserClassName(resultType, CURR_TYPE);
+        String className = PluginUtil.getSqlParserClassName(pluginType, CURR_TYPE);
+
         Class<?> sideParser = dtClassLoader.loadClass(className);
         if(!AbsSideTableParser.class.isAssignableFrom(sideParser)){
             throw new RuntimeException("class " + sideParser.getName() + " not subClass of AbsSideTableParser");

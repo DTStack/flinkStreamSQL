@@ -27,7 +27,7 @@ package com.dtstack.flink.sql.enums;
  * @author xuchao
  */
 public enum ECacheType {
-    NONE, LRU;
+    NONE, LRU, ALL;
 
     public static boolean isValid(String type){
         for(ECacheType tmpType : ECacheType.values()){
