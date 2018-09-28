@@ -38,6 +38,7 @@
 
 ```
 mvn clean package -Dmaven.test.skip
+
 打包结束后，项目根目录下会产生plugins目录，plugins目录下存放编译好的数据同步插件包,在lib目下存放job提交的包
 ```
 
@@ -113,7 +114,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 ## 2 结构
 ### 2.1 源表插件
-* [kafka09 源表插件](docs/kafka09Source.md)
+* [kafka 源表插件](docs/kafkaSource.md)
 
 ### 2.2 结果表插件
 * [elasticsearch 结果表插件](docs/elasticsearchSink.md)
