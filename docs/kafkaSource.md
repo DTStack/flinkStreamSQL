@@ -16,7 +16,7 @@ CREATE TABLE tableName(
 ```
 
 ## 2.支持的版本
-  kafka09  
+  kafka09,kafka10,kafka11  
 
 ## 3.表结构定义
  
