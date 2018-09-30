@@ -88,7 +88,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * **confProp**
     * 描述：一些参数设置
     * 格式: json
-    * 必选：否
+    * 必选：是 （如无参数填写空json即可）
     * 默认值：无
     * 可选参数:
         * sql.env.parallelism: 默认并行度设置
