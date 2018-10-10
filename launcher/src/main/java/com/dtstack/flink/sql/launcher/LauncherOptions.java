@@ -26,23 +26,115 @@ package com.dtstack.flink.sql.launcher;
  */
 public class LauncherOptions {
 
-    public static final String OPTION_MODE = "mode";
+    private  String mode;
 
-    public static final String OPTION_NAME = "name";
+    private  String name;
 
-    public static final String OPTION_SQL = "sql";
+    private  String sql;
 
-    public static final String OPTION_FLINK_CONF_DIR = "flinkconf";
+    private  String flinkconf;
 
-    public static final String OPTION_YARN_CONF_DIR = "yarnconf";
+    private  String yarnconf;
 
-    public static final String OPTION_LOCAL_SQL_PLUGIN_PATH = "localSqlPluginPath";
+    private  String localSqlPluginPath;
 
-    public static final String OPTION_REMOTE_SQL_PLUGIN_PATH = "remoteSqlPluginPath";
+    private  String remoteSqlPluginPath ;
 
-    public static final String OPTION_ADDJAR = "addjar";
+    private  String addjar;
 
-    public static final String OPTION_CONF_PROP = "confProp";
+    private  String confProp;
+
+    private  String savePointPath;
+
+    private  String allowNonRestoredState = "false";
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getSql() {
+        return sql;
+    }
+
+    public void setSql(String sql) {
+        this.sql = sql;
+    }
+
+    public String getFlinkconf() {
+        return flinkconf;
+    }
+
+    public void setFlinkconf(String flinkconf) {
+        this.flinkconf = flinkconf;
+    }
+
+    public String getYarnconf() {
+        return yarnconf;
+    }
+
+    public void setYarnconf(String yarnconf) {
+        this.yarnconf = yarnconf;
+    }
+
+    public String getLocalSqlPluginPath() {
+        return localSqlPluginPath;
+    }
+
+    public void setLocalSqlPluginPath(String localSqlPluginPath) {
+        this.localSqlPluginPath = localSqlPluginPath;
+    }
+
+    public String getRemoteSqlPluginPath() {
+        return remoteSqlPluginPath;
+    }
+
+    public void setRemoteSqlPluginPath(String remoteSqlPluginPath) {
+        this.remoteSqlPluginPath = remoteSqlPluginPath;
+    }
+
+    public String getAddjar() {
+        return addjar;
+    }
+
+    public void setAddjar(String addjar) {
+        this.addjar = addjar;
+    }
+
+    public String getConfProp() {
+        return confProp;
+    }
+
+    public void setConfProp(String confProp) {
+        this.confProp = confProp;
+    }
+
+    public String getSavePointPath() {
+        return savePointPath;
+    }
+
+    public void setSavePointPath(String savePointPath) {
+        this.savePointPath = savePointPath;
+    }
+
+    public String getAllowNonRestoredState() {
+        return allowNonRestoredState;
+    }
+
+    public void setAllowNonRestoredState(String allowNonRestoredState) {
+        this.allowNonRestoredState = allowNonRestoredState;
+    }
 
 
 }
