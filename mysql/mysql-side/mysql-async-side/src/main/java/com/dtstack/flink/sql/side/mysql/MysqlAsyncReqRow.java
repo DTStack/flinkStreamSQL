@@ -191,7 +191,7 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
             row.setField(entry.getKey(), obj);
         }
 
-        for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
+        for(Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()){
             if(jsonArray == null){
                 row.setField(entry.getKey(), null);
             }else{

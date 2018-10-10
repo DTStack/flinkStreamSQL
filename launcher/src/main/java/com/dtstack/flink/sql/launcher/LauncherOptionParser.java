@@ -105,6 +105,7 @@ public class LauncherOptionParser {
                 Preconditions.checkNotNull(remotePlugin);
                 properties.setRemoteSqlPluginPath(remotePlugin);
             }
+
             String name = Preconditions.checkNotNull(cl.getOptionValue(OPTION_NAME));
             properties.setName(name);
             String addJar = cl.getOptionValue(OPTION_ADDJAR);
@@ -153,6 +154,11 @@ public class LauncherOptionParser {
                     || OPTION_YARN_CONF_DIR.equalsIgnoreCase(key)){
                 continue;
             }
+
+            if(one.getValue() == null){
+                continue;
+            }
+
             args.add("-" + key);
             args.add(one.getValue().toString());
         }
