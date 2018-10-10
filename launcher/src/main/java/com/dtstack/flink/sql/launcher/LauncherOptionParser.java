@@ -155,6 +155,11 @@ public class LauncherOptionParser {
                     || OPTION_YARN_CONF_DIR.equalsIgnoreCase(key)){
                 continue;
             }
+
+            if(one.getValue() == null){
+                continue;
+            }
+
             args.add("-" + key);
             args.add(one.getValue().toString());
         }
