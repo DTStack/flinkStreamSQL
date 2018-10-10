@@ -22,15 +22,14 @@ package com.dtstack.flink.sql.launcher;
 
 import avro.shaded.com.google.common.collect.Lists;
 import com.dtstack.flink.sql.Main;
+import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.PackagedProgram;
-
 import java.io.File;
 import java.util.List;
-
-import static com.dtstack.flink.sql.launcher.ClusterMode.MODE_LOCAL;
-import static com.dtstack.flink.sql.launcher.LauncherOptions.OPTION_LOCAL_SQL_PLUGIN_PATH;
-import static com.dtstack.flink.sql.launcher.LauncherOptions.OPTION_MODE;
+import com.dtstack.flink.sql.ClusterMode;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 
 /**
  * Date: 2017/2/20
@@ -51,18 +50,21 @@ public class LauncherMain {
 
     public static void main(String[] args) throws Exception {
         LauncherOptionParser optionParser = new LauncherOptionParser(args);
-        String mode = (String) optionParser.getVal(OPTION_MODE);
+        LauncherOptions launcherOptions = optionParser.getLauncherOptions();
+        String mode = launcherOptions.getMode();
         List<String> argList = optionParser.getProgramExeArgList();
-
-        if(mode.equals(MODE_LOCAL)) {
+        if(mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[argList.size()]);
             Main.main(localArgs);
         } else {
-            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(optionParser.getProperties());
-            String pluginRoot = (String) optionParser.getVal(OPTION_LOCAL_SQL_PLUGIN_PATH);
+            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
+            String pluginRoot = launcherOptions.getLocalSqlPluginPath();
             File jarFile = new File(getLocalCoreJarPath(pluginRoot));
             String[] remoteArgs = argList.toArray(new String[argList.size()]);
             PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
+            if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
+                program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
+            }
             clusterClient.run(program, 1);
             clusterClient.shutdown();
         }
