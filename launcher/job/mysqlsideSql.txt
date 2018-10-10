@@ -1,0 +1,52 @@
+CREATE TABLE MyTable(
+    channel STRING,
+    pv INT,
+    xctime bigint,
+    CHARACTER_LENGTH(channel) as timeLeng,
+    WATERMARK FOR xctime AS withOffset(xctime,1000)
+ )WITH(
+    type='kafka09',
+    bootstrapServers='172.16.8.198:9092',
+    offsetReset='latest',
+    topic='nbTest1'
+ );
+CREATE TABLE MyResult(
+    channel STRING,
+    pv INT
+ )WITH(
+    type='mysql',
+    url='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',
+    userName='dtstack',
+    password='abc123',
+    tableName='pv'
+ );
+
+create table sideTable(
+    channel String,
+    xccount int,
+    PRIMARY KEY(channel),
+    PERIOD FOR SYSTEM_TIME
+ )WITH(
+    type='mysql',
+    url='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',
+    userName='dtstack',
+    password='abc123',
+    tableName='sidetest',
+    cache = 'LRU',
+    cacheTTLMs='10000'
+ );
+
+insert
+into
+    MyResult
+    select
+        a.channel,
+        b.xccount
+    from
+        MyTable a
+    join
+        sideTable b
+            on a.channel=b.channel
+    where
+        b.channel = 'xc'
+        and a.pv=10;
