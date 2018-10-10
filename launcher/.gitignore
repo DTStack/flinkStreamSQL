@@ -9,3 +9,4 @@ target/
 *.iml
 plugins/
 lib/
+dependency-reduced-pom.xml
