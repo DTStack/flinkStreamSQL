@@ -105,6 +105,9 @@ public class Main {
         options.addOption("confProp", true, "env properties");
         options.addOption("mode", true, "deploy mode");
 
+        options.addOption("savePointPath", true, "Savepoint restore path");
+        options.addOption("allowNonRestoredState", true, "Flag indicating whether non restored state is allowed if the savepoint");
+
         CommandLineParser parser = new DefaultParser();
         CommandLine cl = parser.parse(options, args);
         String sql = cl.getOptionValue("sql");

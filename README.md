@@ -120,7 +120,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * **allowNonRestoredState**
 	* 描述：指示保存点是否允许非还原状态的标志
 	* 必选：否
-	* 默认值：false	
+	* 默认值：false
 
 ## 2 结构
 ### 2.1 源表插件
