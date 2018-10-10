@@ -111,6 +111,16 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 描述：Hadoop配置文件（包括hdfs和yarn）所在的目录（单机模式下不需要），如/hadoop/etc/hadoop
 	* 必选：否
 	* 默认值：无
+	
+* **savePointPath**
+	* 描述：任务恢复点的路径
+	* 必选：否
+	* 默认值：无	
+	
+* **allowNonRestoredState**
+	* 描述：指示保存点是否允许非还原状态的标志
+	* 必选：否
+	* 默认值：false	
 
 ## 2 结构
 ### 2.1 源表插件
