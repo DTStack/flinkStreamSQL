@@ -1,5 +1,7 @@
 ## 1.格式：
 ```
+数据现在支持json格式{"xx":"bb","cc":"dd"}
+
 CREATE TABLE tableName(
     colName colType,
     ...
