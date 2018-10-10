@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.launcher;
+package com.dtstack.flink.sql;
 
 /**
  * This class defines three running mode of FlinkX
@@ -24,12 +24,14 @@ package com.dtstack.flink.sql.launcher;
  * Company: www.dtstack.com
  * @author huyifan.zju@163.com
  */
-public class ClusterMode {
+public enum ClusterMode {
 
-    public static final String MODE_LOCAL = "local";
+    local(0),standalone(1),yarn(2),yarnPer(3);
 
-    public static final String MODE_STANDALONE = "standalone";
+    private int type;
 
-    public static final String MODE_YARN = "yarn";
+    ClusterMode(int type){
+        this.type = type;
+    }
 
 }
