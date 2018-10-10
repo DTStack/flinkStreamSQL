@@ -33,7 +33,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-
+import com.dtstack.flink.sql.ClusterMode;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.lang.reflect.Field;
@@ -42,10 +42,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
-import static com.dtstack.flink.sql.launcher.LauncherOptions.*;
 
 /**
  * The Factory of ClusterClient
@@ -55,18 +53,18 @@ import static com.dtstack.flink.sql.launcher.LauncherOptions.*;
  */
 public class ClusterClientFactory {
 
-    public static ClusterClient createClusterClient(Properties props) {
-        String clientType = props.getProperty(OPTION_MODE);
-        if(clientType.equals(ClusterMode.MODE_STANDALONE)) {
-            return createStandaloneClient(props);
-        } else if(clientType.equals(ClusterMode.MODE_YARN)) {
-            return createYarnClient(props);
+    public static ClusterClient createClusterClient(LauncherOptions launcherOptions) {
+        String mode = launcherOptions.getMode();
+        if(mode.equals(ClusterMode.standalone.name())) {
+            return createStandaloneClient(launcherOptions);
+        } else if(mode.equals(ClusterMode.yarn.name())) {
+            return createYarnClient(launcherOptions);
         }
         throw new IllegalArgumentException("Unsupported cluster client type: ");
     }
 
-    public static StandaloneClusterClient createStandaloneClient(Properties props) {
-        String flinkConfDir = props.getProperty(LauncherOptions.OPTION_FLINK_CONF_DIR);
+    public static StandaloneClusterClient createStandaloneClient(LauncherOptions launcherOptions) {
+        String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
         StandaloneClusterDescriptor descriptor = new StandaloneClusterDescriptor(config);
         StandaloneClusterClient clusterClient = descriptor.retrieve(null);
@@ -74,10 +72,10 @@ public class ClusterClientFactory {
         return clusterClient;
     }
 
-    public static YarnClusterClient createYarnClient(Properties props) {
-        String flinkConfDir = props.getProperty(LauncherOptions.OPTION_FLINK_CONF_DIR);
+    public static YarnClusterClient createYarnClient(LauncherOptions launcherOptions) {
+        String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
-        String yarnConfDir = props.getProperty(LauncherOptions.OPTION_YARN_CONF_DIR);
+        String yarnConfDir =launcherOptions.getYarnconf();
         org.apache.hadoop.conf.Configuration yarnConf = new YarnConfiguration();
         if(StringUtils.isNotBlank(yarnConfDir)) {
             try {
