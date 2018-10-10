@@ -88,8 +88,6 @@ public class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
-    private static final String LOCAL_MODE = "local";
-
     private static final int failureRate = 3;
 
     private static final int failureInterval = 6; //min
@@ -135,7 +133,7 @@ public class Main {
         Thread.currentThread().setContextClassLoader(dtClassLoader);
 
         URLClassLoader parentClassloader;
-        if(!LOCAL_MODE.equals(deployMode)){
+        if(!ClusterMode.local.name().equals(deployMode)){
             parentClassloader = (URLClassLoader) threadClassLoader.getParent();
         }else{
             parentClassloader = dtClassLoader;
@@ -286,7 +284,7 @@ public class Main {
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException {
-        StreamExecutionEnvironment env = !LOCAL_MODE.equals(deployMode) ?
+        StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
 
