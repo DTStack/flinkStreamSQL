@@ -1,5 +1,7 @@
 ## 1.格式：
 ```
+数据现在支持json格式{"xx":"bb","cc":"dd"}
+
 CREATE TABLE tableName(
     colName colType,
     ...
@@ -16,7 +18,7 @@ CREATE TABLE tableName(
 ```
 
 ## 2.支持的版本
-  kafka09  
+  kafka09,kafka10,kafka11  
 
 ## 3.表结构定义
  

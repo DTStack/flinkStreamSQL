@@ -11,11 +11,12 @@
 
 # 后续开发计划
   * 增加全局缓存功能
-  * sql增加临时表功能
-  * 增加redis维表功能
-  * 增加mongodb维表功能
+  * 增加临时表功能
+  * 增加redis维表,结果表功能
+  * 增加mongodb维表，结果表功能
   * 增加oracle维表，结果表功能
   * 增加SQlServer维表，结果表功能
+  * 增加kafka结果表功能
 
 ## 1 快速起步
 ### 1.1 运行模式
@@ -37,14 +38,19 @@
 
 ```
 mvn clean package -Dmaven.test.skip
+
+打包结束后，项目根目录下会产生plugins目录，plugins目录下存放编译好的数据同步插件包,在lib目下存放job提交的包
 ```
-
-打包结束后，项目根目录下会产生plugins目录，plugins目录下存放编译好的数据同步插件包
-
 
 ### 1.4 启动
 
-#### 1.4.1 命令行参数选项
+#### 1.4.1 启动命令
+
+```
+sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack/150_flinkplugin/sqlplugin   -localSqlPluginPath D:\gitspace\flinkStreamSQL\plugins   -mode yarn -flinkconf D:\flink_home\kudu150etc  -yarnconf D:\hadoop\etc\hadoopkudu -confProp {\"time.characteristic\":\"EventTime\",\"sql.checkpoint.interval\":10000}
+```
+
+#### 1.4.2 命令行参数选项
 
 * **model**
 	* 描述：执行模式，也就是flink集群的工作模式
@@ -82,7 +88,7 @@ mvn clean package -Dmaven.test.skip
 * **confProp**
     * 描述：一些参数设置
     * 格式: json
-    * 必选：否
+    * 必选：是 （如无参数填写空json即可）
     * 默认值：无
     * 可选参数:
         * sql.env.parallelism: 默认并行度设置
@@ -108,7 +114,7 @@ mvn clean package -Dmaven.test.skip
 
 ## 2 结构
 ### 2.1 源表插件
-* [kafka09 源表插件](docs/kafka09Source.md)
+* [kafka 源表插件](docs/kafkaSource.md)
 
 ### 2.2 结果表插件
 * [elasticsearch 结果表插件](docs/elasticsearchSink.md)
