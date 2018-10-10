@@ -22,33 +22,27 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.deployment.ClusterRetrieveException;
 import org.apache.flink.client.deployment.StandaloneClusterDescriptor;
 import org.apache.flink.client.program.ClusterClient;
-import org.apache.flink.client.program.StandaloneClusterClient;
 import org.apache.flink.client.program.rest.RestClusterClient;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
-import org.apache.flink.yarn.YarnClusterClient;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-
 import java.io.File;
 import java.io.FilenameFilter;
-import java.lang.reflect.Field;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
-
-import static com.dtstack.flink.sql.launcher.LauncherOptions.*;
+import com.dtstack.flink.sql.ClusterMode;
 
 /**
  * The Factory of ClusterClient
@@ -58,18 +52,18 @@ import static com.dtstack.flink.sql.launcher.LauncherOptions.*;
  */
 public class ClusterClientFactory {
 
-    public static ClusterClient createClusterClient(Properties props) throws ClusterRetrieveException {
-        String clientType = props.getProperty(OPTION_MODE);
-        if(clientType.equals(ClusterMode.MODE_STANDALONE)) {
-            return createStandaloneClient(props);
-        } else if(clientType.equals(ClusterMode.MODE_YARN)) {
-            return createYarnClient(props);
+    public static ClusterClient createClusterClient(LauncherOptions launcherOptions) throws ClusterRetrieveException {
+        String mode = launcherOptions.getMode();
+        if(mode.equals(ClusterMode.standalone.name())) {
+            return createStandaloneClient(launcherOptions);
+        } else if(mode.equals(ClusterMode.yarn.name())) {
+            return createYarnClient(launcherOptions);
         }
         throw new IllegalArgumentException("Unsupported cluster client type: ");
     }
 
-    public static RestClusterClient createStandaloneClient(Properties props) throws ClusterRetrieveException {
-        String flinkConfDir = props.getProperty(LauncherOptions.OPTION_FLINK_CONF_DIR);
+    public static RestClusterClient createStandaloneClient(LauncherOptions launcherOptions) throws ClusterRetrieveException {
+        String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
         StandaloneClusterDescriptor descriptor = new StandaloneClusterDescriptor(config);
         RestClusterClient clusterClient = descriptor.retrieve(null);
@@ -77,10 +71,10 @@ public class ClusterClientFactory {
         return clusterClient;
     }
 
-    public static ClusterClient createYarnClient(Properties props) {
-        String flinkConfDir = props.getProperty(LauncherOptions.OPTION_FLINK_CONF_DIR);
+    public static ClusterClient createYarnClient(LauncherOptions launcherOptions) {
+        String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
-        String yarnConfDir = props.getProperty(LauncherOptions.OPTION_YARN_CONF_DIR);
+        String yarnConfDir = launcherOptions.getYarnconf();
         YarnConfiguration yarnConf = new YarnConfiguration();
         if(StringUtils.isNotBlank(yarnConfDir)) {
             try {
