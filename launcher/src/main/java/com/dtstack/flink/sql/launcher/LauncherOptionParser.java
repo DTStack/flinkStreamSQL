@@ -37,7 +37,7 @@ import com.dtstack.flink.sql.ClusterMode;
  * The Parser of Launcher commandline options
  *
  * Company: www.dtstack.com
- * @author huyifan.zju@163.com
+ * @author sishu.yss
  */
 public class LauncherOptionParser {
 
