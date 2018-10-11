@@ -3,17 +3,15 @@ package com.dtstack.flink.sql.side.mysql;
 import com.dtstack.flink.sql.side.AllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.mysql.table.MysqlSideTableInfo;
-import com.dtstack.flink.sql.threadFactory.DTThreadFactory;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
-import org.apache.flink.configuration.Configuration;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -28,10 +26,6 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -59,14 +53,16 @@ public class MysqlAllReqRow extends AllReqRow{
         super(new MysqlAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
-
     @Override
     protected Row fillData(Row input, Object sideInput) {
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
             Object obj = input.getField(entry.getValue());
-            if(obj instanceof Timestamp){
+            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
+
+            //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
+            if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
                 obj = ((Timestamp)obj).getTime();
             }
             row.setField(entry.getKey(), obj);
