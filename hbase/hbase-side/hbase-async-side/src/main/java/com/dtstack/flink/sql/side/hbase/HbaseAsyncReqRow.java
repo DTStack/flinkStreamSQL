@@ -36,6 +36,7 @@ import com.stumbleupon.async.Deferred;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
@@ -159,9 +160,12 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
             Object obj = input.getField(entry.getValue());
-            if(obj instanceof Timestamp){
+            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
+
+            if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
                 obj = ((Timestamp)obj).getTime();
             }
+
             row.setField(entry.getKey(), obj);
         }
 
