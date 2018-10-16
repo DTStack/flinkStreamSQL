@@ -22,6 +22,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.deployment.ClusterRetrieveException;
 import org.apache.flink.client.deployment.StandaloneClusterDescriptor;
 import org.apache.flink.client.program.ClusterClient;
+import org.apache.flink.client.program.StandaloneClusterClient;
 import org.apache.flink.client.program.rest.RestClusterClient;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
@@ -52,7 +53,7 @@ import com.dtstack.flink.sql.ClusterMode;
  */
 public class ClusterClientFactory {
 
-    public static ClusterClient createClusterClient(LauncherOptions launcherOptions) throws ClusterRetrieveException {
+    public static ClusterClient createClusterClient(LauncherOptions launcherOptions) throws Exception {
         String mode = launcherOptions.getMode();
         if(mode.equals(ClusterMode.standalone.name())) {
             return createStandaloneClient(launcherOptions);
@@ -62,11 +63,10 @@ public class ClusterClientFactory {
         throw new IllegalArgumentException("Unsupported cluster client type: ");
     }
 
-    public static RestClusterClient createStandaloneClient(LauncherOptions launcherOptions) throws ClusterRetrieveException {
+    public static ClusterClient createStandaloneClient(LauncherOptions launcherOptions) throws Exception {
         String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
-        StandaloneClusterDescriptor descriptor = new StandaloneClusterDescriptor(config);
-        RestClusterClient clusterClient = descriptor.retrieve(null);
+        StandaloneClusterClient clusterClient = new StandaloneClusterClient(config);
         clusterClient.setDetached(true);
         return clusterClient;
     }
