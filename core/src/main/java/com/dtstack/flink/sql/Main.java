@@ -58,6 +58,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.sinks.TableSink;
+import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -260,7 +261,7 @@ public class Main {
                 String fields = String.join(",", typeInfo.getFieldNames());
 
                 if(waterMarkerAssigner.checkNeedAssignWaterMarker(sourceTableInfo)){
-                    adaptStream = waterMarkerAssigner.assignWaterMarker(adaptStream, typeInfo, sourceTableInfo.getEventTimeField(), sourceTableInfo.getMaxOutOrderness());
+                    adaptStream = waterMarkerAssigner.assignWaterMarker(adaptStream, typeInfo, sourceTableInfo);
                     fields += ",ROWTIME.ROWTIME";
                 }else{
                     fields += ",PROCTIME.PROCTIME";

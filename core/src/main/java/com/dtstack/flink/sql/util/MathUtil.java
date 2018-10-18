@@ -20,6 +20,8 @@
 
 package com.dtstack.flink.sql.util;
 
+import java.math.BigDecimal;
+
 /**
  * Date: 2017/4/21
  * Company: www.dtstack.com
@@ -51,8 +53,14 @@ public class MathUtil {
 
         if(obj instanceof String){
             return Integer.valueOf((String) obj);
-        }else if(obj instanceof Integer){
+        } else if (obj instanceof Integer){
             return (Integer) obj;
+        } else if (obj instanceof Long){
+            return ((Long)obj).intValue();
+        } else if(obj instanceof Double){
+            return ((Double)obj).intValue();
+        } else if(obj instanceof BigDecimal){
+            return ((BigDecimal)obj).intValue();
         }
 
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Integer." );

@@ -48,7 +48,11 @@ public class WaterMarkerAssigner {
         return true;
     }
 
-    public DataStream assignWaterMarker(DataStream<Row> dataStream, RowTypeInfo typeInfo, String eventTimeFieldName, int maxOutOfOrderness){
+    public DataStream assignWaterMarker(DataStream<Row> dataStream, RowTypeInfo typeInfo, SourceTableInfo sourceTableInfo){
+
+        String eventTimeFieldName = sourceTableInfo.getEventTimeField();
+
+        int maxOutOrderness = sourceTableInfo.getMaxOutOrderness();
 
         String[] fieldNames = typeInfo.getFieldNames();
         TypeInformation<?>[] fieldTypes = typeInfo.getFieldTypes();
@@ -69,15 +73,17 @@ public class WaterMarkerAssigner {
 
         TypeInformation fieldType = fieldTypes[pos];
 
-        BoundedOutOfOrdernessTimestampExtractor waterMarker = null;
+        AbsCustomerWaterMarker waterMarker = null;
         if(fieldType.getTypeClass().getTypeName().equalsIgnoreCase("java.sql.Timestamp")){
-            waterMarker = new CustomerWaterMarkerForTimeStamp(Time.milliseconds(maxOutOfOrderness), pos);
+            waterMarker = new CustomerWaterMarkerForTimeStamp(Time.milliseconds(maxOutOrderness), pos);
         }else if(fieldType.getTypeClass().getTypeName().equalsIgnoreCase("java.lang.Long")){
-            waterMarker = new CustomerWaterMarkerForLong(Time.milliseconds(maxOutOfOrderness), pos);
+            waterMarker = new CustomerWaterMarkerForLong(Time.milliseconds(maxOutOrderness), pos);
         }else{
             throw new IllegalArgumentException("not support type of " + fieldType + ", current only support(timestamp, long).");
         }
 
+        String fromTag = "Source:" + sourceTableInfo.getName();
+        waterMarker.setFromSourceTag(fromTag);
         return dataStream.assignTimestampsAndWatermarks(waterMarker);
     }
 }
