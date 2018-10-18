@@ -133,6 +133,7 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         RichSinkFunction richSinkFunction = createJdbcSinkFunc();
         DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
+        streamSink.name(tableName);
         if(parallelism > 0){
             streamSink.setParallelism(parallelism);
         }

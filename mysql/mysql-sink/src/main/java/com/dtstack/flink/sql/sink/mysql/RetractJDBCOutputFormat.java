@@ -38,10 +38,14 @@
 
 package com.dtstack.flink.sql.sink.mysql;
 
+import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.Counter;
+import org.apache.flink.metrics.Meter;
+import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +81,10 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	private int batchCount = 0;
 	
 	public int[] typesArray;
+
+	private transient Counter outRecords;
+
+	private transient Meter outRecordsRate;
 	
 	public RetractJDBCOutputFormat() {
 	}
@@ -97,11 +105,17 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 		try {
 			establishConnection();
 			upload = dbConn.prepareStatement(insertQuery);
+			initMetric();
 		} catch (SQLException sqe) {
 			throw new IllegalArgumentException("open() failed.", sqe);
 		} catch (ClassNotFoundException cnfe) {
 			throw new IllegalArgumentException("JDBC driver class not found.", cnfe);
 		}
+	}
+
+	private void initMetric(){
+		outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
+		outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
 	}
 	
 	private void establishConnection() throws SQLException, ClassNotFoundException {
@@ -140,6 +154,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 		try {
 			if(retract){
 				insertWrite(row);
+				outRecords.inc();
 			}else{
 				//do nothing
 			}
@@ -150,6 +165,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 
 
 	private void insertWrite(Row row) throws SQLException {
+
 		updatePreparedStmt(row, upload);
 		upload.addBatch();
 		batchCount++;
