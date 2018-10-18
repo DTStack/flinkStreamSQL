@@ -52,7 +52,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 #### 1.4.2 命令行参数选项
 
-* **model**
+* **mode**
 	* 描述：执行模式，也就是flink集群的工作模式
 		* local: 本地模式
 		* standalone: 独立部署模式的flink集群
