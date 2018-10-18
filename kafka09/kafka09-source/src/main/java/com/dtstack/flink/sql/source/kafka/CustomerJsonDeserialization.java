@@ -21,9 +21,14 @@
 package com.dtstack.flink.sql.source.kafka;
 
 
+import org.apache.flink.api.common.accumulators.LongCounter;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.metrics.Counter;
+import org.apache.flink.metrics.Meter;
+import org.apache.flink.metrics.MeterView;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.types.Row;
@@ -46,8 +51,24 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    public static final String DIRTY_DATA_METRICS_COUNTER = "dirtyData";
+
+    public static final String KAFKA_SOURCE_IN_METRIC_COUNTER = "kafkaSourceIn";
+
+    public static final String KAFKA_SOURCE_IN_RATE_METRIC_METRE = "kafkaSourceInRate";
+
+    public static final String KAFKA_SOURCE_IN_BYTES_METRIC_COUNTER = "kafkaSourceInBytes";
+
+    public static final String KAFKA_SOURCE_IN_BYTES_RATE_METRIC_METRE = "kafkaSourceInBytesRate";
+
+    public static final String KAFKA_SOURCE_IN_RESOLVE_METRIC_COUNTER = "kafkaSourceInResolve";
+
+    public static final String KAFKA_SOURCE_IN_RESOLVE_RATE_METRIC_METRE = "kafkaSourceInResolveRate";
+
     /** Type information describing the result type. */
     private final TypeInformation<Row> typeInfo;
+
+    private transient RuntimeContext runtimeContext;
 
     /** Field names to parse. Indices match fieldTypes indices. */
     private final String[] fieldNames;
@@ -57,6 +78,25 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
 
     /** Flag indicating whether to fail on a missing field. */
     private boolean failOnMissingField;
+
+    private transient Counter dirtyDataCounter;
+
+    //tps ransactions Per Second
+    private transient Counter kafkaInRecord;
+
+    private transient Meter kafkaInRate;
+
+    //rps Record Per Second: deserialize data and out record num
+    private transient Counter kafkaInResolveRecord;
+
+    private transient Meter kafkaInResolveRate;
+
+    private transient Counter kafkaInBytes;
+
+    private transient Meter kafkaInBytesRate;
+
+    //FIXME just for test
+    private LongCounter myCounter;
 
     public CustomerJsonDeserialization(TypeInformation<Row> typeInfo){
         this.typeInfo = typeInfo;
@@ -69,6 +109,9 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
     @Override
     public Row deserialize(byte[] message) throws IOException {
         try {
+            myCounter.add(1);
+            kafkaInRecord.inc();
+            kafkaInBytes.inc(message.length);
             JsonNode root = objectMapper.readTree(message);
             Row row = new Row(fieldNames.length);
             for (int i = 0; i < fieldNames.length; i++) {
@@ -88,9 +131,12 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
                 }
             }
 
+            kafkaInResolveRecord.inc();
             return row;
         } catch (Throwable t) {
-            throw new IOException("Failed to deserialize JSON object.", t);
+            //add metric of dirty data
+            dirtyDataCounter.inc();
+            return new Row(fieldNames.length);
         }
     }
 
@@ -110,5 +156,29 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
 
         return null;
 
+    }
+
+    public RuntimeContext getRuntimeContext() {
+        return runtimeContext;
+    }
+
+    public void setRuntimeContext(RuntimeContext runtimeContext) {
+        this.runtimeContext = runtimeContext;
+    }
+
+    public void initMetric(){
+        dirtyDataCounter = runtimeContext.getMetricGroup().counter(DIRTY_DATA_METRICS_COUNTER);
+
+        kafkaInRecord = runtimeContext.getMetricGroup().counter(KAFKA_SOURCE_IN_METRIC_COUNTER);
+        kafkaInRate = runtimeContext.getMetricGroup().meter( KAFKA_SOURCE_IN_RATE_METRIC_METRE, new MeterView(kafkaInRecord, 20));
+
+        kafkaInBytes = runtimeContext.getMetricGroup().counter(KAFKA_SOURCE_IN_BYTES_METRIC_COUNTER);
+        kafkaInBytesRate = runtimeContext.getMetricGroup().meter( KAFKA_SOURCE_IN_BYTES_RATE_METRIC_METRE, new MeterView(kafkaInBytes, 20));
+
+        kafkaInResolveRecord = runtimeContext.getMetricGroup().counter(KAFKA_SOURCE_IN_RESOLVE_METRIC_COUNTER);
+        kafkaInResolveRate = runtimeContext.getMetricGroup().meter(KAFKA_SOURCE_IN_RESOLVE_RATE_METRIC_METRE, new MeterView(kafkaInResolveRecord, 20));
+
+        //FIXME
+        myCounter = runtimeContext.getLongCounter("kafkaSourceTotalIn");
     }
 }
