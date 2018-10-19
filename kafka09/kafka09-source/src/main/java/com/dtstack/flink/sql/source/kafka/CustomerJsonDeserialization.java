@@ -21,14 +21,9 @@
 package com.dtstack.flink.sql.source.kafka;
 
 
-import com.dtstack.flink.sql.metric.MetricConstant;
-import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
+import com.dtstack.flink.sql.source.AbsDeserialization;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.metrics.Counter;
-import org.apache.flink.metrics.Meter;
-import org.apache.flink.metrics.MeterView;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.types.Row;
@@ -45,16 +40,16 @@ import java.util.Iterator;
  * @author xuchao
  */
 
-public class CustomerJsonDeserialization extends AbstractDeserializationSchema<Row> {
+public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
+
+    private static final long serialVersionUID = -2706012724306826506L;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /** Type information describing the result type. */
     private final TypeInformation<Row> typeInfo;
-
-    private transient RuntimeContext runtimeContext;
 
     /** Field names to parse. Indices match fieldTypes indices. */
     private final String[] fieldNames;
@@ -64,22 +59,6 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
 
     /** Flag indicating whether to fail on a missing field. */
     private boolean failOnMissingField;
-
-    private transient Counter dirtyDataCounter;
-
-    //tps ransactions Per Second
-    private transient Counter numInRecord;
-
-    private transient Meter numInRate;
-
-    //rps Record Per Second: deserialize data and out record num
-    private transient Counter numInResolveRecord;
-
-    private transient Meter numInResolveRate;
-
-    private transient Counter numInBytes;
-
-    private transient Meter numInBytesRate;
 
     public CustomerJsonDeserialization(TypeInformation<Row> typeInfo){
         this.typeInfo = typeInfo;
@@ -140,24 +119,4 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
 
     }
 
-    public RuntimeContext getRuntimeContext() {
-        return runtimeContext;
-    }
-
-    public void setRuntimeContext(RuntimeContext runtimeContext) {
-        this.runtimeContext = runtimeContext;
-    }
-
-    public void initMetric(){
-        dirtyDataCounter = runtimeContext.getMetricGroup().counter(MetricConstant.DT_DIRTY_DATA_COUNTER);
-
-        numInRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_IN_COUNTER);
-        numInRate = runtimeContext.getMetricGroup().meter( MetricConstant.DT_NUM_RECORDS_IN_RATE, new MeterView(numInRecord, 20));
-
-        numInBytes = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_BYTES_IN_COUNTER);
-        numInBytesRate = runtimeContext.getMetricGroup().meter(MetricConstant.DT_NUM_BYTES_IN_RATE , new MeterView(numInBytes, 20));
-
-        numInResolveRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_COUNTER);
-        numInResolveRate = runtimeContext.getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_RATE, new MeterView(numInResolveRecord, 20));
-    }
 }
