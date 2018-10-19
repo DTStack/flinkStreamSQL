@@ -1,6 +1,7 @@
 package com.dtstack.flink.sql.watermarker;
 
 import com.dtstack.flink.sql.metric.EventDelayGauge;
+import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.common.functions.IterationRuntimeContext;
 import org.apache.flink.api.common.functions.RichFunction;
 import org.apache.flink.api.common.functions.RuntimeContext;
@@ -17,7 +18,6 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 
 public abstract class AbsCustomerWaterMarker<T> extends BoundedOutOfOrdernessTimestampExtractor<T> implements RichFunction {
 
-    private static final String EVENT_DELAY_GAUGE = "eventDelay";
 
     private static final long serialVersionUID = 1L;
 
@@ -65,7 +65,7 @@ public abstract class AbsCustomerWaterMarker<T> extends BoundedOutOfOrdernessTim
         this.runtimeContext = t;
         eventDelayGauge = new EventDelayGauge();
         t.getMetricGroup().getAllVariables().put("<source_tag>", fromSourceTag);
-        t.getMetricGroup().gauge(EVENT_DELAY_GAUGE, eventDelayGauge);
+        t.getMetricGroup().gauge(MetricConstant.DT_EVENT_DELAY_GAUGE, eventDelayGauge);
     }
 
     public void setFromSourceTag(String fromSourceTag) {
