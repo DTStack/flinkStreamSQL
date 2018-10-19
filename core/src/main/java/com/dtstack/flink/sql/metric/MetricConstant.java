@@ -46,4 +46,6 @@ public class MetricConstant {
     public static final String DT_NUM_RECORDS_OUT = "dtNumRecordsOut";
 
     public static final String DT_NUM_RECORDS_OUT_RATE = "dtNumRecordsOutRate";
+
+    public static final String DT_EVENT_DELAY_GAUGE = "dtEventDelay";
 }
