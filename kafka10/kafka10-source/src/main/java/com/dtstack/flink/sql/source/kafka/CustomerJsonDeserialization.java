@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.source.kafka;
 
 
+import com.dtstack.flink.sql.source.AbsDeserialization;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -40,7 +41,7 @@ import java.util.Iterator;
  * @author sishu.yss
  */
 
-public class CustomerJsonDeserialization extends AbstractDeserializationSchema<Row> {
+public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
 
@@ -69,6 +70,9 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
     @Override
     public Row deserialize(byte[] message) throws IOException {
         try {
+            numInRecord.inc();
+            numInBytes.inc(message.length);
+
             JsonNode root = objectMapper.readTree(message);
             Row row = new Row(fieldNames.length);
             for (int i = 0; i < fieldNames.length; i++) {
@@ -88,9 +92,12 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
                 }
             }
 
+            numInResolveRecord.inc();
             return row;
         } catch (Throwable t) {
-            throw new IOException("Failed to deserialize JSON object.", t);
+            //add metric of dirty data
+            dirtyDataCounter.inc();
+            return new Row(fieldNames.length);
         }
     }
 

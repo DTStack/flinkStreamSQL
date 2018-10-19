@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.source.kafka;
 
 
+import com.dtstack.flink.sql.source.AbsDeserialization;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -40,7 +41,7 @@ import java.util.Iterator;
  * @author sishu.yss
  */
 
-public class CustomerJsonDeserialization extends AbstractDeserializationSchema<Row> {
+public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
 

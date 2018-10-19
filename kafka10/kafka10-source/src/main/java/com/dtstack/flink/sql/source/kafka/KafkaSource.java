@@ -67,7 +67,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }
 
         TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka010SourceTableInfo.getFields());
-        FlinkKafkaConsumer010<Row> kafkaSrc = new FlinkKafkaConsumer010(topicName,
+        FlinkKafkaConsumer010<Row> kafkaSrc = new CustomerKafka010Consumer(topicName,
                 new CustomerJsonDeserialization(typeInformation), props);
 
         //earliest,latest

@@ -19,25 +19,27 @@
 package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
 import org.apache.flink.types.Row;
+
 
 import java.util.Properties;
 
 /**
  * Reason:
- * Date: 2018/10/12
+ * Date: 2018/10/19
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public class CustomerKafka09Consumer extends FlinkKafkaConsumer09<Row> {
+public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
 
-    private static final long serialVersionUID = 4451177393982291909L;
+    private static final long serialVersionUID = -2265366268827807739L;
 
     private AbsDeserialization customerJsonDeserialization;
 
-    public CustomerKafka09Consumer(String topic, AbsDeserialization valueDeserializer, Properties props) {
+    public CustomerKafka011Consumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
         super(topic, valueDeserializer, props);
         this.customerJsonDeserialization = valueDeserializer;
     }
