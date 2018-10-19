@@ -19,8 +19,6 @@ public class HbaseAllSideInfo extends SideInfo {
 
     private RowKeyBuilder rowKeyBuilder;
 
-    private Map<String, String> colRefType;
-
     public HbaseAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
@@ -32,15 +30,7 @@ public class HbaseAllSideInfo extends SideInfo {
             throw new RuntimeException("Primary key dimension table must be filled");
         }
 
-        HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0));
-
-        colRefType = Maps.newHashMap();
-        for(int i=0; i<hbaseSideTableInfo.getColumnRealNames().length; i++){
-            String realColName = hbaseSideTableInfo.getColumnRealNames()[i];
-            String colType = hbaseSideTableInfo.getFieldTypes()[i];
-            colRefType.put(realColName, colType);
-        }
 
         String sideTableName = joinInfo.getSideTableName();
         SqlNode conditionNode = joinInfo.getCondition();
@@ -65,11 +55,4 @@ public class HbaseAllSideInfo extends SideInfo {
         this.rowKeyBuilder = rowKeyBuilder;
     }
 
-    public Map<String, String> getColRefType() {
-        return colRefType;
-    }
-
-    public void setColRefType(Map<String, String> colRefType) {
-        this.colRefType = colRefType;
-    }
 }
