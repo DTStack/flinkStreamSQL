@@ -28,6 +28,7 @@
                             <artifactSet>
                                 <excludes>
                                     <exclude>org.apache.hadoop:hadoop-common</exclude>
+                                    <exclude>org.slf4j:slf4j-log4j12</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>
