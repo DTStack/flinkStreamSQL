@@ -28,7 +28,10 @@
                         <configuration>
                             <artifactSet>
                                 <excludes>
-
+                                    <exclude>org.slf4j:slf4j-log4j12</exclude>
+                                    <exclude>org.apache.hadoop:hadoop-common</exclude>
+                                    <exclude>org.apache.hadoop:hadoop-auth</exclude>
+                                    <exclude>org.apache.hadoop:hadoop-mapreduce-client-core</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>
