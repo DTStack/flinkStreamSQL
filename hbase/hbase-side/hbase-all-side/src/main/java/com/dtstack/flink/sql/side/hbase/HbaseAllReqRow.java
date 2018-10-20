@@ -2,6 +2,7 @@ package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -21,6 +22,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class HbaseAllReqRow extends AllReqRow {
 
@@ -50,7 +52,7 @@ public class HbaseAllReqRow extends AllReqRow {
             row.setField(entry.getKey(), obj);
         }
 
-        for(Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()){
+        for(Map.Entry<Integer, String> entry : sideInfo.getSideFieldNameIndex().entrySet()){
             if(sideInputList == null){
                 row.setField(entry.getKey(), null);
             }else{
@@ -112,17 +114,18 @@ public class HbaseAllReqRow extends AllReqRow {
             conn = ConnectionFactory.createConnection(conf);
             table = conn.getTable(TableName.valueOf(tableName));
             resultScanner = table.getScanner(new Scan());
-            List<String> rows = new LinkedList<>();
             for (Result r : resultScanner) {
-                for (Cell cell : r.listCells()){
-                    rows.add(cell.getRow().toString());
+                Map<String, Object> kv = new HashedMap();
+                for (Cell cell : r.listCells())
+                {
+                    String family = Bytes.toString(CellUtil.cloneFamily(cell));
+                    String qualifier = Bytes.toString(CellUtil.cloneQualifier(cell));
+                    String value = Bytes.toString(CellUtil.cloneValue(cell));
+                    StringBuilder key = new StringBuilder();
+                    key.append(family).append(":").append(qualifier);
+                    kv.put(key.toString(), value);
                 }
-            }
-            //根据表，rowkey查询值
-            for (int i=0; i < rows.size(); i++){
-                Get get = new Get(Bytes.toBytes(rows.get(i)));
-                Result result = table.get(get);
-                tmpCache.put(rows.get(i), result2Map(result));
+                tmpCache.put(new String(r.getRow()), kv);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -135,20 +138,5 @@ public class HbaseAllReqRow extends AllReqRow {
                 e.printStackTrace();
             }
         }
-    }
-
-    private static Map<String, Object> result2Map(Result result) {
-        Map<String, Object> ret = new HashMap<String, Object>();
-        if (result != null && result.listCells() != null) {
-            for (Cell cell : result.listCells()) {
-                String family = Bytes.toString(CellUtil.cloneFamily(cell));
-                String qualifier = Bytes.toString(CellUtil.cloneQualifier(cell));
-                String value = Bytes.toString(CellUtil.cloneValue(cell));
-                StringBuilder key = new StringBuilder();
-                key.append(family).append(":").append(qualifier);
-                ret.put(key.toString(), value);
-            }
-        }
-        return ret;
     }
 }
