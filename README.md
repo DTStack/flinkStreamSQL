@@ -138,6 +138,10 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 ## 3 样例
 
 ```
+
+CREATE (scala|table) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun
+
+
 CREATE TABLE MyTable(
     name string,
     channel STRING,
