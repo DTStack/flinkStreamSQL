@@ -19,11 +19,8 @@
 package com.dtstack.flink.sql.launcher;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.flink.client.deployment.ClusterRetrieveException;
-import org.apache.flink.client.deployment.StandaloneClusterDescriptor;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.StandaloneClusterClient;
-import org.apache.flink.client.program.rest.RestClusterClient;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
@@ -37,6 +34,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -48,6 +46,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import com.dtstack.flink.sql.ClusterMode;
+import org.apache.hadoop.yarn.exceptions.YarnException;
+import java.io.IOException;
 
 /**
  * The Factory of ClusterClient
@@ -61,8 +61,8 @@ public class ClusterClientFactory {
         String mode = launcherOptions.getMode();
         if(mode.equals(ClusterMode.standalone.name())) {
             return createStandaloneClient(launcherOptions);
-        } else if(mode.equals(ClusterMode.yarn.name())) {
-            return createYarnClient(launcherOptions);
+        } else if(mode.equals(ClusterMode.yarn.name()) || mode.equals(ClusterMode.yarnPer.name())) {
+            return createYarnClient(launcherOptions,mode);
         }
         throw new IllegalArgumentException("Unsupported cluster client type: ");
     }
@@ -79,7 +79,7 @@ public class ClusterClientFactory {
         return clusterClient;
     }
 
-    public static ClusterClient createYarnClient(LauncherOptions launcherOptions) {
+    public static ClusterClient createYarnClient(LauncherOptions launcherOptions,String mode) {
         String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
         String yarnConfDir = launcherOptions.getYarnconf();
@@ -112,39 +112,16 @@ public class ClusterClientFactory {
                     haYarnConf(yarnConf);
                     yarnClient.init(yarnConf);
                     yarnClient.start();
+
                     ApplicationId applicationId = null;
-
-                    Set<String> set = new HashSet<>();
-                    set.add("Apache Flink");
-                    EnumSet<YarnApplicationState> enumSet = EnumSet.noneOf(YarnApplicationState.class);
-                    enumSet.add(YarnApplicationState.RUNNING);
-                    List<ApplicationReport> reportList = yarnClient.getApplications(set, enumSet);
-
-                    int maxMemory = -1;
-                    int maxCores = -1;
-                    for(ApplicationReport report : reportList) {
-                        if(!report.getName().startsWith("Flink session")){
-                            continue;
-                        }
-
-                        if(!report.getYarnApplicationState().equals(YarnApplicationState.RUNNING)) {
-                            continue;
-                        }
-
-                        int thisMemory = report.getApplicationResourceUsageReport().getNeededResources().getMemory();
-                        int thisCores = report.getApplicationResourceUsageReport().getNeededResources().getVirtualCores();
-                        if(thisMemory > maxMemory || thisMemory == maxMemory && thisCores > maxCores) {
-                            maxMemory = thisMemory;
-                            maxCores = thisCores;
-                            applicationId = report.getApplicationId();
-                        }
-
+                    if(mode.equals(ClusterMode.yarn.name())) {//on yarn cluster mode
+                        applicationId = getYarnClusterApplicationId(yarnClient);
+                    } else {//on yarn job mode
+                        applicationId = createApplication(yarnClient);
                     }
+                    System.out.println("applicationId="+applicationId.toString());
 
-                    if(StringUtils.isEmpty(applicationId.toString())) {
-                        throw new RuntimeException("No flink session found on yarn cluster.");
-                    }
-
+                    yarnClient.stop();
 
                     AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, ".", yarnClient, false);
                     ClusterClient clusterClient = clusterDescriptor.retrieve(applicationId);
@@ -159,6 +136,46 @@ public class ClusterClientFactory {
 
 
         throw new UnsupportedOperationException("Haven't been developed yet!");
+    }
+
+    private static ApplicationId createApplication(YarnClient yarnClient)throws IOException, YarnException {
+        YarnClientApplication app = yarnClient.createApplication();
+        return app.getApplicationSubmissionContext().getApplicationId();
+    }
+    private static ApplicationId getYarnClusterApplicationId(YarnClient yarnClient) throws Exception{
+        ApplicationId applicationId = null;
+
+        Set<String> set = new HashSet<>();
+        set.add("Apache Flink");
+        EnumSet<YarnApplicationState> enumSet = EnumSet.noneOf(YarnApplicationState.class);
+        enumSet.add(YarnApplicationState.RUNNING);
+        List<ApplicationReport> reportList = yarnClient.getApplications(set, enumSet);
+
+        int maxMemory = -1;
+        int maxCores = -1;
+        for(ApplicationReport report : reportList) {
+            if(!report.getName().startsWith("Flink session")){
+                continue;
+            }
+
+            if(!report.getYarnApplicationState().equals(YarnApplicationState.RUNNING)) {
+                continue;
+            }
+
+            int thisMemory = report.getApplicationResourceUsageReport().getNeededResources().getMemory();
+            int thisCores = report.getApplicationResourceUsageReport().getNeededResources().getVirtualCores();
+            if(thisMemory > maxMemory || thisMemory == maxMemory && thisCores > maxCores) {
+                maxMemory = thisMemory;
+                maxCores = thisCores;
+                applicationId = report.getApplicationId();
+            }
+
+        }
+
+        if(StringUtils.isEmpty(applicationId.toString())) {
+            throw new RuntimeException("No flink session found on yarn cluster.");
+        }
+        return applicationId;
     }
 
     /**
