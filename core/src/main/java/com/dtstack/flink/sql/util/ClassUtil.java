@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.util;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 
@@ -35,6 +36,8 @@ public class ClassUtil {
         switch (str.toLowerCase()) {
             case "boolean":
                 return Boolean.class;
+
+            case "integer":
             case "int":
                 return Integer.class;
 
@@ -42,18 +45,15 @@ public class ClassUtil {
                 return Long.class;
 
             case "tinyint":
-            case "byte":
                 return Byte.class;
 
-            case "short":
             case "smallint":
                 return Short.class;
 
-            case "char":
             case "varchar":
-            case "string":
                 return String.class;
 
+            case "real":
             case "float":
                 return Float.class;
 
@@ -65,6 +65,9 @@ public class ClassUtil {
 
             case "timestamp":
                 return Timestamp.class;
+
+            case "DECIMAL":
+                return BigDecimal.class;
 
         }
 
