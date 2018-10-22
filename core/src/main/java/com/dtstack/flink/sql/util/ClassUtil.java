@@ -66,7 +66,7 @@ public class ClassUtil {
             case "timestamp":
                 return Timestamp.class;
 
-            case "DECIMAL":
+            case "decimal":
                 return BigDecimal.class;
 
         }
