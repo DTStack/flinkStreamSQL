@@ -30,11 +30,20 @@ public class HbaseAllReqRow extends AllReqRow {
 
     private String tableName;
 
+    private Map<String, String> aliasNameInversion;
+
     private AtomicReference<Map<String, Map<String, Object>>> cacheRef = new AtomicReference<>();
 
     public HbaseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new HbaseAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
+
+        HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
+        Map<String, String> aliasNameRef = hbaseSideTableInfo.getAliasNameRef();
+        aliasNameInversion = new HashMap<>();
+        for(Map.Entry<String, String> entry : aliasNameRef.entrySet()){
+            aliasNameInversion.put(entry.getValue(), entry.getKey());
+        }
     }
 
     @Override
@@ -52,11 +61,12 @@ public class HbaseAllReqRow extends AllReqRow {
             row.setField(entry.getKey(), obj);
         }
 
-        for(Map.Entry<Integer, String> entry : sideInfo.getSideFieldNameIndex().entrySet()){
+        for(Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()){
             if(sideInputList == null){
                 row.setField(entry.getKey(), null);
             }else{
-                row.setField(entry.getKey(), sideInputList.get(entry.getValue()));
+                String key = sideInfo.getSideFieldNameIndex().get(entry.getKey());
+                row.setField(entry.getKey(), sideInputList.get(key));
             }
         }
 
@@ -97,9 +107,26 @@ public class HbaseAllReqRow extends AllReqRow {
 
         String rowKeyStr = ((HbaseAllSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
 
-        Object cacheList = cacheRef.get().get(rowKeyStr);
-        Row row = fillData(value, cacheList);
-        out.collect(row);
+        Map<String, Object> cacheList = null;
+
+        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
+        if (hbaseSideTableInfo.isPreRowKey())
+        {
+            for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()){
+                if (entry.getKey().startsWith(rowKeyStr))
+                {
+                    cacheList = cacheRef.get().get(entry.getKey());
+                    Row row = fillData(value, cacheList);
+                    out.collect(row);
+                }
+            }
+        } else {
+            cacheList = cacheRef.get().get(rowKeyStr);
+            Row row = fillData(value, cacheList);
+            out.collect(row);
+        }
+
     }
 
     private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
@@ -123,7 +150,8 @@ public class HbaseAllReqRow extends AllReqRow {
                     String value = Bytes.toString(CellUtil.cloneValue(cell));
                     StringBuilder key = new StringBuilder();
                     key.append(family).append(":").append(qualifier);
-                    kv.put(key.toString(), value);
+
+                    kv.put(aliasNameInversion.get(key.toString().toUpperCase()), value);
                 }
                 tmpCache.put(new String(r.getRow()), kv);
             }
