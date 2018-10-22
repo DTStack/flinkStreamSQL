@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -101,6 +102,11 @@ public class SideSqlExec {
                     Table table = tableEnv.sql(aliasInfo.getName());
                     tableEnv.registerTable(aliasInfo.getAlias(), table);
                     localTableCache.put(aliasInfo.getAlias(), table);
+                } else if (pollSqlNode.getKind() == WITH_ITEM) {
+                    SqlWithItem sqlWithItem = (SqlWithItem) pollSqlNode;
+                    String TableAlias = sqlWithItem.name.toString();
+                    Table table = tableEnv.sqlQuery(sqlWithItem.query.toString());
+                    tableEnv.registerTable(TableAlias, table);
                 }
 
             }else if (pollObj instanceof JoinInfo){
