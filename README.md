@@ -139,9 +139,9 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 ```
 CREATE TABLE MyTable(
-    name string,
-    channel STRING,
-    pv INT,
+    name varchar,
+    channel varchar,
+    pv int,
     xctime bigint,
     CHARACTER_LENGTH(channel) AS timeLeng
  )WITH(
@@ -154,8 +154,8 @@ CREATE TABLE MyTable(
  );
 
 CREATE TABLE MyResult(
-    channel VARCHAR,
-    pv VARCHAR
+    channel varchar,
+    pv varchar
  )WITH(
     type ='mysql',
     url ='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',
@@ -166,8 +166,8 @@ CREATE TABLE MyResult(
  );
 
 CREATE TABLE workerinfo(
-    cast(logtime as TIMESTAMP)AS rtime,
-    cast(logtime)AS rtime
+    cast(logtime as TIMESTAMP) AS rtime,
+    cast(logtime) AS rtime
  )WITH(
     type ='hbase',
     zookeeperQuorum ='rdos1:2181',
@@ -178,8 +178,8 @@ CREATE TABLE workerinfo(
  );
 
 CREATE TABLE sideTable(
-    cf:name String as name,
-    cf:info String as info,
+    cf:name varchar as name,
+    cf:info varchar as info,
     PRIMARY KEY(name),
     PERIOD FOR SYSTEM_TIME
  )WITH(
