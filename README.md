@@ -83,6 +83,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 * **addjar**
     * 描述：扩展jar路径,当前主要是UDF定义的jar；
+    * 格式：json \[\"udf.jar\"\]
     * 必选：否
     * 默认值：无
     
