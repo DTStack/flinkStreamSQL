@@ -48,4 +48,10 @@ public class MetricConstant {
     public static final String DT_NUM_RECORDS_OUT_RATE = "dtNumRecordsOutRate";
 
     public static final String DT_EVENT_DELAY_GAUGE = "dtEventDelay";
+
+    public static final String DT_TOPIC_PARTITION_LAG_GAUGE = "dtTopicPartitionLag";
+
+    public static final String DT_TOPIC_GROUP = "topic";
+
+    public static final String DT_PARTITION_GROUP = "partition";
 }

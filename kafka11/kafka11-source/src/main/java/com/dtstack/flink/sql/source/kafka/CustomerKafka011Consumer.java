@@ -19,10 +19,20 @@
 package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
+import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
+import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
+import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
+import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
+import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.types.Row;
+import org.apache.flink.util.SerializedValue;
 
 
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -37,11 +47,11 @@ public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
 
     private static final long serialVersionUID = -2265366268827807739L;
 
-    private AbsDeserialization customerJsonDeserialization;
+    private CustomerJsonDeserialization customerJsonDeserialization;
 
     public CustomerKafka011Consumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
         super(topic, valueDeserializer, props);
-        this.customerJsonDeserialization = valueDeserializer;
+        this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
     }
 
     @Override
@@ -49,5 +59,12 @@ public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
         customerJsonDeserialization.setRuntimeContext(getRuntimeContext());
         customerJsonDeserialization.initMetric();
         super.run(sourceContext);
+    }
+
+    @Override
+    protected AbstractFetcher<Row, ?> createFetcher(SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
+        AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext, assignedPartitionsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, runtimeContext, offsetCommitMode, consumerMetricGroup, useMetrics);
+        customerJsonDeserialization.setFetcher(fetcher);
+        return fetcher;
     }
 }
