@@ -176,7 +176,6 @@ public class ClusterClientFactory {
                 .collect(Collectors.toSet());
 
         String home = "hdfs:///tmp/flink/apps";
-        //String home = "hdfs://test-cluster/tmp/flink/apps";
         return new YarnClusterConfiguration(
                 flinkConf,
                 yarnConf,
