@@ -27,6 +27,9 @@ import org.apache.flink.client.program.PackagedProgram;
 import java.io.File;
 import java.util.List;
 import com.dtstack.flink.sql.ClusterMode;
+import org.apache.flink.client.program.PackagedProgramUtils;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.table.shaded.org.apache.commons.lang.StringUtils;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.table.shaded.org.apache.commons.lang.BooleanUtils;
@@ -64,8 +67,13 @@ public class LauncherMain {
             if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
                 program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
             }
+            //final JobGraph jobGraph;
+            //jobGraph = PackagedProgramUtils.createJobGraph(program, new Configuration(), 1);
+            //clusterClient.runDetached(jobGraph,null);
             clusterClient.run(program, 1);
             clusterClient.shutdown();
+
+            System.exit(0);
         }
     }
 }
