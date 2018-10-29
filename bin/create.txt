@@ -1,0 +1,35 @@
+CREATE TABLE MyTable(
+    name string,
+    channel STRING,
+    pv INT,
+    xctime bigint,
+    CHARACTER_LENGTH(channel) AS timeLeng
+ )WITH(
+    type ='kafka10',
+    bootstrapServers ='10.148.9.92:9092',
+    zookeeperQuorum ='10.148.9.92:2181/kafka_test_1.0',
+    offsetReset ='latest',
+    topic ='flume_sink_test',
+    parallelism ='1'
+ );
+
+CREATE TABLE MyResult(
+    channel VARCHAR,
+    name VARCHAR
+ )WITH(
+    type ='mysql',
+    url ='jdbc:mysql://10.9.14.120:3306/test?charset=utf8&useSSL=true',
+    userName ='test',
+    password ='test123',
+    tableName ='MyResult',
+    parallelism ='1'
+ );
+
+insert
+into
+    MyResult
+select
+    channel,
+    name
+from
+    MyTable;
