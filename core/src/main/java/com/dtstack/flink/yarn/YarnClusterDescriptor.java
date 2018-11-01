@@ -71,7 +71,7 @@ public class YarnClusterDescriptor
             final JobParameter appConf,
             ApplicationId yarnAppId,
             String jobName,
-            Iterable<Path> userProvidedJars)
+            Iterable<Path> userProvidedJars)throws Exception
     {
         super(clusterConf.flinkConfiguration(), clusterConf.yarnConf(), clusterConf.appRootDir(), yarnClient, false);
         this.jobName = jobName;
@@ -80,7 +80,12 @@ public class YarnClusterDescriptor
         this.appConf = appConf;
         this.yarnAppId = yarnAppId;
         this.userProvidedJars = userProvidedJars;
-        this.homedir = new Path(clusterConf.appRootDir(), yarnAppId.toString());
+        if(clusterConf.appRootDir().isEmpty()){
+            FileSystem fs = FileSystem.get(clusterConf.yarnConf());
+            this.homedir = new Path(fs.getHomeDirectory(),"flink/"+yarnAppId.toString());
+        }else {
+            this.homedir = new Path(clusterConf.appRootDir(), yarnAppId.toString());
+        }
     }
 
     @Override

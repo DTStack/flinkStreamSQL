@@ -175,11 +175,10 @@ public class ClusterClientFactory {
                 .map(x -> new Path(new File(flinkConfDir, x).toURI()))
                 .collect(Collectors.toSet());
 
-        String home = "hdfs:///tmp/flink/apps";
         return new YarnClusterConfiguration(
                 flinkConf,
                 yarnConf,
-                home,
+                "",
                 flinkJar,
                 resourcesToLocalize);
     }
