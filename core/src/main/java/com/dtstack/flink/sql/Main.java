@@ -22,20 +22,20 @@ package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.parser.CreateFuncParser;
-import com.dtstack.flink.sql.parser.InsertSqlParser;
+import com.dtstack.flink.sql.parser.*;
 import com.dtstack.flink.sql.side.SideSqlExec;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
-import com.dtstack.flink.sql.parser.SqlParser;
-import com.dtstack.flink.sql.parser.SqlTree;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.dtstack.flink.sql.sink.StreamSinkFactory;
 import com.dtstack.flink.sql.source.StreamSourceFactory;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.dtstack.flink.sql.util.FlinkUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -171,6 +171,10 @@ public class Main {
         SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
 
+        for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
+            sideSqlExec.registerTmpTable(result, sideTableMap, tableEnv, registerTableCache);
+        }
+
         for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
             if(LOG.isInfoEnabled()){
                 LOG.info("exe-sql:\n" + result.getExecSql());
@@ -178,18 +182,29 @@ public class Main {
 
             boolean isSide = false;
 
-            for(String tableName : result.getSourceTableList()){
-                if(sideTableMap.containsKey(tableName)){
-                    isSide = true;
-                    break;
-                }
-            }
+            for (String tableName : result.getTargetTableList()) {
+                if (sqlTree.getTmpTableMap().containsKey(tableName)) {
+                    CreateTmpTableParser.SqlParserResult tmp = sqlTree.getTmpTableMap().get(tableName);
+                    String realSql = DtStringUtil.replaceIgnoreQuota(result.getExecSql(), "`", "");
+                    SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql).parseStmt();
+                    String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
+                    tmp.setExecSql(tmpSql);
+                    sideSqlExec.registerTmpTable(tmp, sideTableMap, tableEnv, registerTableCache);
+                } else {
+                    for(String sourceTable : result.getSourceTableList()){
+                        if(sideTableMap.containsKey(sourceTable)){
+                            isSide = true;
+                            break;
+                        }
+                    }
 
-            if(isSide){
-                //sql-dimensional table contains the dimension table of execution
-                sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache);
-            }else{
-                tableEnv.sqlUpdate(result.getExecSql());
+                    if(isSide){
+                        //sql-dimensional table contains the dimension table of execution
+                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache);
+                    }else{
+                        tableEnv.sqlUpdate(result.getExecSql());
+                    }
+                }
             }
         }
 
