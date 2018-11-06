@@ -84,6 +84,7 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
         jdbcFormatBuild.setInsertQuery(sql);
         jdbcFormatBuild.setBatchInterval(batchInterval);
         jdbcFormatBuild.setSqlTypes(sqlTypes);
+        jdbcFormatBuild.setTableName(tableName);
         RetractJDBCOutputFormat outputFormat = jdbcFormatBuild.finish();
 
         OutputFormatSinkFunction outputFormatSinkFunc = new OutputFormatSinkFunction(outputFormat);
