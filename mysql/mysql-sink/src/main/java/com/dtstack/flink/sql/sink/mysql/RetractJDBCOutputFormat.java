@@ -69,6 +69,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	private String drivername;
 	private String dbURL;
 	private String insertQuery;
+	private String tableName;
 	private int batchInterval = 5000;
 	
 	private Connection dbConn;
@@ -96,7 +97,12 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	public void open(int taskNumber, int numTasks) throws IOException {
 		try {
 			establishConnection();
-			upload = dbConn.prepareStatement(insertQuery);
+			if (dbConn.getMetaData().getTables(null, null, tableName, null).next()){
+				upload = dbConn.prepareStatement(insertQuery);
+			} else {
+				throw new SQLException("Table " + tableName +" doesn't exist");
+			}
+
 		} catch (SQLException sqe) {
 			throw new IllegalArgumentException("open() failed.", sqe);
 		} catch (ClassNotFoundException cnfe) {
@@ -323,6 +329,11 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 		
 		public JDBCOutputFormatBuilder setSqlTypes(int[] typesArray) {
 			format.typesArray = typesArray;
+			return this;
+		}
+
+		public JDBCOutputFormatBuilder setTableName(String tableName) {
+			format.tableName = tableName;
 			return this;
 		}
 		
