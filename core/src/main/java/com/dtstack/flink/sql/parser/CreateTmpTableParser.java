@@ -136,6 +136,20 @@ public class CreateTmpTableParser implements IParser {
                     sqlParseResult.addSourceTable(identifierNode.toString());
                 }
                 break;
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall)sqlNode).getOperands()[0];
+                SqlNode unionRight = ((SqlBasicCall)sqlNode).getOperands()[1];
+                if(unionLeft.getKind() == IDENTIFIER){
+                    sqlParseResult.addSourceTable(unionLeft.toString());
+                }else{
+                    parseNode(unionLeft, sqlParseResult);
+                }
+                if(unionRight.getKind() == IDENTIFIER){
+                    sqlParseResult.addSourceTable(unionRight.toString());
+                }else{
+                    parseNode(unionRight, sqlParseResult);
+                }
+                break;
             default:
                 //do nothing
                 break;
