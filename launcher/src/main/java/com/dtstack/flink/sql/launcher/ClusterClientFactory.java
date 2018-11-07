@@ -23,14 +23,13 @@ import com.dtstack.flink.yarn.JobParameter;
 import com.dtstack.flink.yarn.YarnClusterConfiguration;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
+import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.StandaloneClusterClient;
-import org.apache.flink.configuration.ConfigConstants;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.GlobalConfiguration;
-import org.apache.flink.configuration.JobManagerOptions;
+import org.apache.flink.configuration.*;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.runtime.akka.AkkaUtils;
+import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.util.LeaderConnectionInfo;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
@@ -45,12 +44,10 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.util.*;
-
 import com.dtstack.flink.sql.ClusterMode;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -259,4 +256,103 @@ public class ClusterClientFactory {
         return yarnConf;
     }
 
+    public static void startJob(LauncherOptions launcherOptions, JobGraph jobGraph) {
+        String flinkConfDir = launcherOptions.getFlinkconf();
+        Configuration flinkConf = GlobalConfiguration.loadConfiguration(flinkConfDir);
+        String yarnConfDir = launcherOptions.getYarnconf();
+        YarnConfiguration yarnConf;
+        if(StringUtils.isNotBlank(yarnConfDir)) {
+            try {
+                flinkConf.setString(ConfigConstants.PATH_HADOOP_CONFIG, yarnConfDir);
+                FileSystem.initialize(flinkConf);
+
+                File dir = new File(yarnConfDir);
+                if(dir.exists() && dir.isDirectory()) {
+                    yarnConf = loadYarnConfiguration(yarnConfDir);
+
+                    YarnClient yarnClient = YarnClient.createYarnClient();
+                    haYarnConf(yarnConf);
+                    yarnClient.init(yarnConf);
+                    yarnClient.start();
+
+                    String confProp = launcherOptions.getConfProp();
+                    confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
+                    LOG.info("confProp= {}", confProp);
+                    Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
+
+                    YarnClusterConfiguration clusterConf = getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir);
+                    //jobmanager+taskmanager param
+                    JobParameter jobParam = new JobParameter(confProperties);
+
+                    AbstractYarnClusterDescriptor clusterDescriptor = createDescriptor(jobParam,clusterConf,flinkConf, yarnConf, ".", yarnClient,launcherOptions.getName());
+                    ClusterSpecification clusterSpecification = createClusterSpecification(jobParam);
+                    ClusterClient client = clusterDescriptor.deployJobCluster(clusterSpecification,jobGraph,true);
+
+                    System.out.println("applicationId="+client.getClusterId());
+                    LOG.info("applicationId= {}  has deployed!", client.getClusterId());
+
+                    yarnClient.stop();
+                    client.shutdown();
+                }
+            } catch(Exception e) {
+                LOG.error("createYarnClient ERROR:{}");
+                throw new RuntimeException(e);
+            }
+        }
+    }
+    private static AbstractYarnClusterDescriptor createDescriptor(
+            JobParameter jobParam,
+            YarnClusterConfiguration clusterConf,
+            Configuration configuration,
+            YarnConfiguration yarnConfiguration,
+            String configurationDirectory,
+            YarnClient yarnClient,
+            String jobName) {
+
+        AbstractYarnClusterDescriptor yarnClusterDescriptor = new YarnClusterDescriptor(
+                configuration,
+                yarnConfiguration,
+                configurationDirectory,
+                yarnClient,
+                false);
+
+        if (clusterConf.flinkJar() != null) {
+            yarnClusterDescriptor.setLocalJarPath(clusterConf.flinkJar());
+        }
+
+        List<File> shipFiles = new ArrayList<>();
+        // path to directory to ship
+        if(clusterConf.resourcesToLocalize() != null) {
+            for (Path shipPath : clusterConf.resourcesToLocalize()) {  //主要是 flink.jar log4g.proporties 和 flink.yaml 三个文件
+                File shipDir = new File(shipPath.toString());
+                if (shipDir.isDirectory()) {
+                    shipFiles.add(shipDir);
+                } else {
+                    LOG.warn("Ship directory is not a directory. Ignoring it.");
+                }
+            }
+        }
+        yarnClusterDescriptor.addShipFiles(shipFiles);
+
+        // queue
+        if (jobParam.getQueue() != null) {
+            yarnClusterDescriptor.setQueue(jobParam.getQueue());
+        }
+
+        if (jobName != null) {
+            yarnClusterDescriptor.setName(jobName);
+        }
+
+        yarnClusterDescriptor.setDetachedMode(true);
+        return yarnClusterDescriptor;
+    }
+
+    private static ClusterSpecification createClusterSpecification(JobParameter appConf) {
+        return new ClusterSpecification.ClusterSpecificationBuilder()
+                .setMasterMemoryMB(appConf.getJobManagerMemoryMb())
+                .setTaskManagerMemoryMB(appConf.getTaskManagerMemoryMb())
+                .setNumberTaskManagers(appConf.getTaskManagerCount())
+                .setSlotsPerTaskManager(appConf.getTaskManagerSlots())
+                .createClusterSpecification();
+    }
 }

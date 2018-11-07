@@ -51,7 +51,7 @@ public class YarnClusterDescriptor
 {
     private static final String APPLICATION_TYPE = "58_FLINK";
     private static final Logger LOG = LoggerFactory.getLogger(YarnClusterDescriptor.class);
-    private static final int MAX_ATTEMPT = 10;
+    private static final int MAX_ATTEMPT = 1;
     private static final long DEPLOY_TIMEOUT_MS = 600 * 1000;
     private static final long RETRY_DELAY_MS = 250;
     private static final ScheduledExecutorService YARN_POLL_EXECUTOR = Executors.newSingleThreadScheduledExecutor();
@@ -322,19 +322,7 @@ public class YarnClusterDescriptor
     public ClusterClient<ApplicationId> deployJobCluster(ClusterSpecification clusterSpecification, JobGraph jobGraph, boolean detached)
             throws ClusterDeploymentException
     {
-        // this is required because the slots are allocated lazily
-        jobGraph.setAllowQueuedScheduling(true);
-
-        try {
-            return deployInternal(
-                    clusterSpecification,
-                    "Flink per-job cluster",
-                    getYarnJobClusterEntrypoint(),
-                    jobGraph,
-                    detached);
-        } catch (Exception e) {
-            throw new ClusterDeploymentException("Could not deploy Yarn job cluster.", e);
-        }
+        throw new UnsupportedOperationException("this method have't support!");
     }
 
     private final class PollDeploymentStatus

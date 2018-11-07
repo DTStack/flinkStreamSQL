@@ -27,10 +27,13 @@ import org.apache.flink.client.program.PackagedProgram;
 import java.io.File;
 import java.util.List;
 import com.dtstack.flink.sql.ClusterMode;
+import org.apache.flink.client.program.PackagedProgramUtils;
+import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.table.shaded.org.apache.commons.lang.StringUtils;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.table.shaded.org.apache.commons.lang.BooleanUtils;
-
+import org.apache.flink.configuration.Configuration;
 /**
  * Date: 2017/2/20
  * Company: www.dtstack.com
@@ -56,7 +59,6 @@ public class LauncherMain {
             String[] localArgs = argList.toArray(new String[argList.size()]);
             Main.main(localArgs);
         } else {
-            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
             String pluginRoot = launcherOptions.getLocalSqlPluginPath();
             File jarFile = new File(getLocalCoreJarPath(pluginRoot));
             String[] remoteArgs = argList.toArray(new String[argList.size()]);
@@ -64,8 +66,10 @@ public class LauncherMain {
             if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
                 program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
             }
-            clusterClient.run(program, 1);
-            clusterClient.shutdown();
+            final Configuration configuration = GlobalConfiguration.loadConfiguration(launcherOptions.getFlinkconf());
+            final JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program,configuration, 1);
+
+            ClusterClientFactory.startJob(launcherOptions,jobGraph);
 
             System.exit(0);
         }
