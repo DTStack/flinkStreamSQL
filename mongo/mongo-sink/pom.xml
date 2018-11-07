@@ -13,15 +13,6 @@
 
     <name>mongo-sink</name>
     <url>http://maven.apache.org</url>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-jdbc</artifactId>
-            <version>${flink.version}</version>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
             <plugin>
