@@ -42,13 +42,15 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.util.*;
 
 import com.dtstack.flink.sql.ClusterMode;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -62,7 +64,7 @@ import static java.util.Objects.requireNonNull;
  * @author huyifan.zju@163.com
  */
 public class ClusterClientFactory {
-
+    private static final Logger LOG = LoggerFactory.getLogger(ClusterClientFactory.class);
     public static ClusterClient createClusterClient(LauncherOptions launcherOptions) throws Exception {
         String mode = launcherOptions.getMode();
         if(mode.equals(ClusterMode.standalone.name())) {
@@ -107,6 +109,7 @@ public class ClusterClientFactory {
                     String confProp = launcherOptions.getConfProp();
                     confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
                     System.out.println("confProp="+confProp);
+                    LOG.info("confProp= {}", confProp);
                     Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
                     ApplicationId applicationId = null;
@@ -114,16 +117,17 @@ public class ClusterClientFactory {
                     if(mode.equals(ClusterMode.yarn.name())) {//on yarn cluster mode
                         applicationId = getYarnClusterApplicationId(yarnClient);
                         System.out.println("applicationId="+applicationId.toString());
-
+                        LOG.info("applicationId= {}", applicationId.toString());
                         AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(
                                 flinkConf, yarnConf, ".", yarnClient, false);
                         clusterClient = clusterDescriptor.retrieve(applicationId);
 
                         System.out.println("applicationId="+applicationId.toString()+" has retrieve!");
+                        LOG.info("applicationId= {}  has retrieve!", applicationId.toString());
                     } else {//on yarn per-job mode
                         applicationId = createApplication(yarnClient);
                         System.out.println("applicationId="+applicationId.toString());
-
+                        LOG.info("applicationId= {}", applicationId.toString());
                         YarnClusterConfiguration clusterConf = getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir);
                         //jobmanager+taskmanager param
                         JobParameter appConf = new JobParameter(confProperties);
@@ -133,12 +137,14 @@ public class ClusterClientFactory {
                         clusterClient = clusterDescriptor.deploy();
 
                         System.out.println("applicationId="+applicationId.toString()+" has deploy!");
+                        LOG.info("applicationId= {}  has deployed!", applicationId.toString());
                     }
                     clusterClient.setDetached(true);
                     yarnClient.stop();
                     return clusterClient;
                 }
             } catch(Exception e) {
+                LOG.error("createYarnClient ERROR:{}");
                 throw new RuntimeException(e);
             }
         }
