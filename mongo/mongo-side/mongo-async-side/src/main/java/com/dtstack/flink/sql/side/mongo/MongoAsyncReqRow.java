@@ -64,9 +64,9 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoAsyncReqRow.class);
 
-    private transient SQLClient MongoClient;
+    private transient SQLClient mongoClient;
 
-    private final static String Mongo_DRIVER = "com.Mongo.jdbc.Driver";
+    private final static String mongo_driver = "com.Mongo.jdbc.Driver";
 
     private final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 10;
 
@@ -83,19 +83,19 @@ public class MongoAsyncReqRow extends AsyncReqRow {
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        JsonObject MongoClientConfig = new JsonObject();
-        MongoSideTableInfo MongoSideTableInfo = (MongoSideTableInfo) sideInfo.getSideTableInfo();
-        MongoClientConfig.put("url", MongoSideTableInfo.getUrl())
-                .put("driver_class", Mongo_DRIVER)
+        JsonObject mongoClientConfig = new JsonObject();
+        MongoSideTableInfo mongoSideTableInfo = (MongoSideTableInfo) sideInfo.getSideTableInfo();
+        mongoClientConfig.put("url", mongoSideTableInfo.getUrl())
+                .put("driver_class", mongo_driver)
                 .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
-                .put("user", MongoSideTableInfo.getUserName())
-                .put("password", MongoSideTableInfo.getPassword());
+                .put("user", mongoSideTableInfo.getUserName())
+                .put("password", mongoSideTableInfo.getPassword());
 
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         Vertx vertx = Vertx.vertx(vo);
-        MongoClient = JDBCClient.createNonShared(vertx, MongoClientConfig);
+        mongoClient = JDBCClient.createNonShared(vertx, mongoClientConfig);
     }
 
     @Override
@@ -133,7 +133,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             }
         }
 
-        MongoClient.getConnection(conn -> {
+        mongoClient.getConnection(conn -> {
             if (conn.failed()) {
                 //Treatment failures
                 resultFuture.completeExceptionally(conn.cause());
@@ -211,7 +211,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        MongoClient.close();
+        mongoClient.close();
     }
 
     public String buildCacheKey(JsonArray jsonArray){
