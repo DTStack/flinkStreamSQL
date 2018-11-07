@@ -73,6 +73,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	private String drivername;
 	private String dbURL;
 	private String insertQuery;
+	private String tableName;
 	private int batchInterval = 5000;
 	
 	private Connection dbConn;
@@ -85,7 +86,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	private transient Counter outRecords;
 
 	private transient Meter outRecordsRate;
-	
+
 	public RetractJDBCOutputFormat() {
 	}
 	
@@ -106,6 +107,12 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 			establishConnection();
 			upload = dbConn.prepareStatement(insertQuery);
 			initMetric();
+			if (dbConn.getMetaData().getTables(null, null, tableName, null).next()){
+				upload = dbConn.prepareStatement(insertQuery);
+			} else {
+				throw new SQLException("Table " + tableName +" doesn't exist");
+			}
+
 		} catch (SQLException sqe) {
 			throw new IllegalArgumentException("open() failed.", sqe);
 		} catch (ClassNotFoundException cnfe) {
@@ -117,7 +124,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 		outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
 		outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
 	}
-	
+
 	private void establishConnection() throws SQLException, ClassNotFoundException {
 		Class.forName(drivername);
 		if (username == null) {
@@ -341,7 +348,12 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 			format.typesArray = typesArray;
 			return this;
 		}
-		
+
+		public JDBCOutputFormatBuilder setTableName(String tableName) {
+			format.tableName = tableName;
+			return this;
+		}
+
 		/**
 		 * Finalizes the configuration and checks validity.
 		 * 
