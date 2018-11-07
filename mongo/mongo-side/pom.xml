@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>sql.mongo</artifactId>
+        <groupId>com.dtstack.flink</groupId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>sql.side.mongo</artifactId>
+    <name>mongo-side</name>
+    <modules>
+        <module>mongo-side-core</module>
+        <module>mongo-async-side</module>
+        <module>mongo-all-side</module>
+    </modules>
+
+    <packaging>pom</packaging>
+
+</project>
