@@ -27,6 +27,8 @@ import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 
+import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
+
 /**
  * Reason:
  * Date: 2018/11/6
@@ -36,18 +38,30 @@ import java.util.Map;
 
 public class MongoSinkParser extends AbsTableParser {
 
+    private static final String CURR_TYPE = "mongo";
+
+    public static final String ADDRESS_KEY = "address";
+
+    public static final String TABLE_NAME_KEY = "tableName";
+
+    public static final String USER_NAME_KEY = "userName";
+
+    public static final String PASSWORD_KEY = "password";
+
+    public static final String DATABASE_KEY = "database";
+
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         MongoTableInfo MongoTableInfo = new MongoTableInfo();
         MongoTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, MongoTableInfo);
 
-        MongoTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(MongoTableInfo.PARALLELISM_KEY.toLowerCase())));
-        MongoTableInfo.setAddress(MathUtil.getString(props.get(MongoTableInfo.ADDRESS_KEY.toLowerCase())));
-        MongoTableInfo.setTableName(MathUtil.getString(props.get(MongoTableInfo.TABLE_NAME_KEY.toLowerCase())));
-        MongoTableInfo.setDatabase(MathUtil.getString(props.get(MongoTableInfo.DATABASE_KEY.toLowerCase())));
-        MongoTableInfo.setUserName(MathUtil.getString(props.get(MongoTableInfo.USER_NAME_KEY.toLowerCase())));
-        MongoTableInfo.setPassword(MathUtil.getString(props.get(MongoTableInfo.PASSWORD_KEY.toLowerCase())));
+        MongoTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
+        MongoTableInfo.setAddress(MathUtil.getString(props.get(ADDRESS_KEY.toLowerCase())));
+        MongoTableInfo.setTableName(MathUtil.getString(props.get(TABLE_NAME_KEY.toLowerCase())));
+        MongoTableInfo.setDatabase(MathUtil.getString(props.get(DATABASE_KEY.toLowerCase())));
+        MongoTableInfo.setUserName(MathUtil.getString(props.get(USER_NAME_KEY.toLowerCase())));
+        MongoTableInfo.setPassword(MathUtil.getString(props.get(PASSWORD_KEY.toLowerCase())));
 
         return MongoTableInfo;
     }

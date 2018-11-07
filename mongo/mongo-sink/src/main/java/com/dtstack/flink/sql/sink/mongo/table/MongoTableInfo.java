@@ -34,16 +34,6 @@ public class MongoTableInfo extends TargetTableInfo {
 
     private static final String CURR_TYPE = "mongo";
 
-    public static final String ADDRESS_KEY = "address";
-
-    public static final String TABLE_NAME_KEY = "tableName";
-
-    public static final String USER_NAME_KEY = "userName";
-
-    public static final String PASSWORD_KEY = "password";
-
-    public static final String DATABASE_KEY = "database";
-
     public MongoTableInfo() {
         setType(CURR_TYPE);
     }
