@@ -16,11 +16,9 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.side.mongo.table;
 
-import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.table.AbsSideTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
@@ -29,17 +27,27 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
+
 /**
  * Reason:
  * Date: 2018/11/6
  *
  * @author xuqianjin
  */
-
-
 public class MongoSideParser extends AbsSideTableParser {
 
     private final static String SIDE_SIGN_KEY = "sideSignKey";
+
+    public static final String ADDRESS_KEY = "address";
+
+    public static final String TABLE_NAME_KEY = "tableName";
+
+    public static final String USER_NAME_KEY = "userName";
+
+    public static final String PASSWORD_KEY = "password";
+
+    public static final String DATABASE_KEY = "database";
 
     private final static Pattern SIDE_TABLE_SIGN = Pattern.compile("(?i)^PERIOD\\s+FOR\\s+SYSTEM_TIME$");
 
@@ -50,20 +58,22 @@ public class MongoSideParser extends AbsSideTableParser {
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        MongoSideTableInfo MongoTableInfo = new MongoSideTableInfo();
-        MongoTableInfo.setName(tableName);
-        parseFieldsInfo(fieldsInfo, MongoTableInfo);
+        MongoSideTableInfo mongoSideTableInfo = new MongoSideTableInfo();
+        mongoSideTableInfo.setName(tableName);
+        parseFieldsInfo(fieldsInfo, mongoSideTableInfo);
 
-        parseCacheProp(MongoTableInfo, props);
-        MongoTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(MongoSideTableInfo.PARALLELISM_KEY.toLowerCase())));
-        MongoTableInfo.setUrl(MathUtil.getString(props.get(MongoSideTableInfo.URL_KEY.toLowerCase())));
-        MongoTableInfo.setTableName(MathUtil.getString(props.get(MongoSideTableInfo.TABLE_NAME_KEY.toLowerCase())));
-        MongoTableInfo.setUserName(MathUtil.getString(props.get(MongoSideTableInfo.USER_NAME_KEY.toLowerCase())));
-        MongoTableInfo.setPassword(MathUtil.getString(props.get(MongoSideTableInfo.PASSWORD_KEY.toLowerCase())));
+        parseCacheProp(mongoSideTableInfo, props);
 
-        return MongoTableInfo;
+        mongoSideTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
+        mongoSideTableInfo.setAddress(MathUtil.getString(props.get(ADDRESS_KEY.toLowerCase())));
+        mongoSideTableInfo.setTableName(MathUtil.getString(props.get(TABLE_NAME_KEY.toLowerCase())));
+        mongoSideTableInfo.setDatabase(MathUtil.getString(props.get(DATABASE_KEY.toLowerCase())));
+        mongoSideTableInfo.setUserName(MathUtil.getString(props.get(USER_NAME_KEY.toLowerCase())));
+        mongoSideTableInfo.setPassword(MathUtil.getString(props.get(PASSWORD_KEY.toLowerCase())));
+
+        return mongoSideTableInfo;
     }
 
-    private static void dealSideSign(Matcher matcher, TableInfo tableInfo){
+    private static void dealSideSign(Matcher matcher, TableInfo tableInfo) {
     }
 }

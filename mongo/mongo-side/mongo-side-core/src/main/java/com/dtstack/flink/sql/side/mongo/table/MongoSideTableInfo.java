@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.side.mongo.table;
 
@@ -29,36 +28,25 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
  *
  * @author xuqianjin
  */
-
-
 public class MongoSideTableInfo extends SideTableInfo {
 
     private static final long serialVersionUID = -1L;
 
-    private static final String CURR_TYPE = "Mongo";
+    private static final String CURR_TYPE = "mongo";
 
-    public static final String URL_KEY = "url";
-
-    public static final String TABLE_NAME_KEY = "tableName";
-
-    public static final String USER_NAME_KEY = "userName";
-
-    public static final String PASSWORD_KEY = "password";
-
-    public MongoSideTableInfo(){
+    public MongoSideTableInfo() {
         setType(CURR_TYPE);
     }
 
     @Override
     public boolean check() {
-        Preconditions.checkNotNull(url, "Mongo of URL is required");
-        Preconditions.checkNotNull(tableName, "Mongo of tableName is required");
-        Preconditions.checkNotNull(userName, "Mongo of userName is required");
-        Preconditions.checkNotNull(password, "Mongo of password is required");
+        Preconditions.checkNotNull(address, "Mongo field of ADDRESS is required");
+        Preconditions.checkNotNull(database, "Mongo field of database is required");
+        Preconditions.checkNotNull(tableName, "Mongo field of tableName is required");
         return true;
     }
 
-    private String url;
+    private String address;
 
     private String tableName;
 
@@ -66,12 +54,14 @@ public class MongoSideTableInfo extends SideTableInfo {
 
     private String password;
 
-    public String getUrl() {
-        return url;
+    private String database;
+
+    public String getAddress() {
+        return address;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     public String getTableName() {
@@ -96,5 +86,13 @@ public class MongoSideTableInfo extends SideTableInfo {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getDatabase() {
+        return database;
+    }
+
+    public void setDatabase(String database) {
+        this.database = database;
     }
 }
