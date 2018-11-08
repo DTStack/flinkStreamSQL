@@ -41,8 +41,8 @@ hbase2.0
 ## 5.样例：
 ```
 CREATE TABLE MyResult(
-    cf:channel STRING,
-    cf:pv BIGINT
+    cf:channel varchar,
+    cf:pv varchar
  )WITH(
     type ='hbase',
     zookeeperQuorum ='rdos1:2181',
