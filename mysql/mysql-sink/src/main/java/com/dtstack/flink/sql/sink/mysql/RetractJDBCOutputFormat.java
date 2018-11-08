@@ -62,7 +62,7 @@ import java.sql.SQLException;
 public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	private static final long serialVersionUID = 1L;
 	
-	private static final Logger LOG = LoggerFactory.getLogger(org.apache.flink.api.java.io.jdbc.JDBCOutputFormat.class);
+	private static final Logger LOG = LoggerFactory.getLogger(RetractJDBCOutputFormat.class);
 	
 	private String username;
 	private String password;
