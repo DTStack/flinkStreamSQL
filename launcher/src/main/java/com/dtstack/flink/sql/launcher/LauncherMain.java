@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.Main;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.PackagedProgram;
 import java.io.File;
+import java.net.URL;
 import java.util.List;
 import com.dtstack.flink.sql.ClusterMode;
 import org.apache.flink.client.program.PackagedProgramUtils;
@@ -62,13 +63,19 @@ public class LauncherMain {
             String pluginRoot = launcherOptions.getLocalSqlPluginPath();
             File jarFile = new File(getLocalCoreJarPath(pluginRoot));
             String[] remoteArgs = argList.toArray(new String[argList.size()]);
-            PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
+            List list = Lists.newArrayList();
+            //list.add(new URL("file://"+launcherOptions.getRemoteSqlPluginPath()+"/kafka09source/kafka09-source.jar"));
+            list.add(new URL("file://"+launcherOptions.getRemoteSqlPluginPath()+"/kafka10source/kafka10-source.jar"));
+            //list.add(new URL("file://"+launcherOptions.getRemoteSqlPluginPath()+"/kafka11source/kafka11-source.jar"));
+            list.add(new URL("file://"+launcherOptions.getRemoteSqlPluginPath()+"/mysqlsink/mysql-sink.jar"));
+            list.add(new URL("file://"+launcherOptions.getRemoteSqlPluginPath()+"/mysqlallside/mysql-all-side.jar"));
+            list.add(new URL("file://"+launcherOptions.getRemoteSqlPluginPath()+"/mysqlasyncside/mysql-async-side.jar"));
+            PackagedProgram program = new PackagedProgram(jarFile, list, remoteArgs);
             if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
                 program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
             }
-            final Configuration configuration = GlobalConfiguration.loadConfiguration(launcherOptions.getFlinkconf());
-            final JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program,configuration, 1);
 
+            final JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, new Configuration(), 1);
             ClusterClientFactory.startJob(launcherOptions,jobGraph);
 
             System.exit(0);
