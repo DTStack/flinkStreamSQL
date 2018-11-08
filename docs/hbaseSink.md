@@ -41,7 +41,7 @@ hbase2.0
 ## 5.样例：
 ```
 CREATE TABLE MyResult(
-    cf:channel STRING,
+    cf:channel varchar,
     cf:pv BIGINT
  )WITH(
     type ='hbase',
