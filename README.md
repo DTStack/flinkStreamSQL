@@ -18,6 +18,7 @@
   * 增加oracle维表，结果表功能
   * 增加SQlServer维表，结果表功能
   * 增加kafka结果表功能
+  * 增加SQL支持CEP
 
 ## 1 快速起步
 ### 1.1 运行模式
@@ -149,7 +150,7 @@ CREATE TABLE MyTable(
     channel varchar,
     pv int,
     xctime bigint,
-    CHARACTER_LENGTH(channel) AS timeLeng
+    CHARACTER_LENGTH(channel) AS timeLeng //自定义的函数
  )WITH(
     type ='kafka09',
     bootstrapServers ='172.16.8.198:9092',
@@ -187,7 +188,7 @@ CREATE TABLE sideTable(
     cf:name varchar as name,
     cf:info varchar as info,
     PRIMARY KEY(name),
-    PERIOD FOR SYSTEM_TIME
+    PERIOD FOR SYSTEM_TIME //维表标识
  )WITH(
     type ='hbase',
     zookeeperQuorum ='rdos1:2181',
