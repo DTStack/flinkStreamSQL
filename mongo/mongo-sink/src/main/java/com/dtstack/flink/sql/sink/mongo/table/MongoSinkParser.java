@@ -19,9 +19,7 @@
 
 package com.dtstack.flink.sql.sink.mongo.table;
 
-import com.dtstack.flink.sql.sink.mongo.table.MongoTableInfo;
 import com.dtstack.flink.sql.table.AbsTableParser;
-import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 

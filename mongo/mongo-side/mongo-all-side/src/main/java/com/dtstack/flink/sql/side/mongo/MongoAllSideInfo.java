@@ -34,14 +34,13 @@ import java.util.List;
 
 /**
  * Reason:
- * Date: 2018/9/19
- * Company: www.dtstack.com
- * @author xuchao
+ * Date: 2018/11/6
+ *
+ * @author xuqianjin
  */
-
 public class MongoAllSideInfo extends SideInfo{
 
-    private static final long serialVersionUID = -5858335638589472158L;
+    private static final long serialVersionUID = -1696860430075523841L;
 
     public MongoAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
