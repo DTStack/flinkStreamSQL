@@ -64,9 +64,9 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoAsyncReqRow.class);
 
-    private transient SQLClient MongoClient;
+    private transient SQLClient mongoClient;
 
-    private final static String Mongo_DRIVER = "com.mongo.jdbc.Driver";
+    private final static String mongo_driver = "com.Mongo.jdbc.Driver";
 
     private final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 10;
 
@@ -152,55 +152,34 @@ public class MongoAsyncReqRow extends AsyncReqRow {
                 return;
             }
         }
+        mongoClient.getConnection(conn -> {
+            if (conn.failed()) {
+                //Treatment failures
+                resultFuture.completeExceptionally(conn.cause());
+                return;
+            }
 
+            final SQLConnection connection = conn.result();
+            String sqlCondition = sideInfo.getSqlCondition();
+            connection.queryWithParams(sqlCondition, inputParams, rs -> {
+                if (rs.failed()) {
+                    LOG.error("Cannot retrieve the data from the database");
+                    LOG.error("", rs.cause());
+                    resultFuture.complete(null);
+                    return;
+                }
 
-//        MongoClient.getConnection(conn -> {
-//            if (conn.failed()) {
-//                //Treatment failures
-//                resultFuture.completeExceptionally(conn.cause());
-//                return;
-//            }
-//
-//            final SQLConnection connection = conn.result();
-//            String sqlCondition = sideInfo.getSqlCondition();
-//            connection.queryWithParams(sqlCondition, inputParams, rs -> {
-//                if (rs.failed()) {
-//                    LOG.error("Cannot retrieve the data from the database");
-//                    LOG.error("", rs.cause());
-//                    resultFuture.complete(null);
-//                    return;
-//                }
-//
-//                List<JsonArray> cacheContent = Lists.newArrayList();
-//
-//                int resultSize = rs.result().getResults().size();
-//                if (resultSize > 0) {
-//                    for (JsonArray line : rs.result().getResults()) {
-//                        Row row = fillData(input, line);
-//                        if (openCache()) {
-//                            cacheContent.add(line);
-//                        }
-//                        resultFuture.complete(Collections.singleton(row));
-//                    }
-//
-//                    if (openCache()) {
-//                        putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
-//                    }
-//                } else {
-//                    dealMissKey(input, resultFuture);
-//                    if (openCache()) {
-//                        putCache(key, CacheMissVal.getMissKeyObj());
-//                    }
-//                }
-//
-//                // and close the connection
-//                connection.close(done -> {
-//                    if (done.failed()) {
-//                        throw new RuntimeException(done.cause());
-//                    }
-//                });
-//            });
-//        });
+                List<JsonArray> cacheContent = Lists.newArrayList();
+
+                int resultSize = rs.result().getResults().size();
+                if(resultSize > 0){
+                    for (JsonArray line : rs.result().getResults()) {
+                        Row row = fillData(input, line);
+                        if(openCache()){
+                            cacheContent.add(line);
+                        }
+                        resultFuture.complete(Collections.singleton(row));
+                    }
     }
 
     @Override
@@ -232,7 +211,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        MongoClient.close();
+        mongoClient.close();
     }
 
     public String buildCacheKey(JsonArray jsonArray) {
