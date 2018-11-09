@@ -284,7 +284,7 @@ public class ClusterClientFactory {
                     //jobmanager+taskmanager param
                     JobParameter jobParam = new JobParameter(confProperties);
 
-                    AbstractYarnClusterDescriptor clusterDescriptor = createDescriptor(jobParam,clusterConf,flinkConf, yarnConf, ".", yarnClient,launcherOptions.getName());
+                    AbstractYarnClusterDescriptor clusterDescriptor = createDescriptor(jobParam,clusterConf,flinkConf, yarnConf, flinkConfDir, yarnClient,launcherOptions.getName());
                     ClusterSpecification clusterSpecification = createClusterSpecification(jobParam);
                     ClusterClient client = clusterDescriptor.deployJobCluster(clusterSpecification,jobGraph,true);
 
