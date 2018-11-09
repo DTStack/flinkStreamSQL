@@ -14,6 +14,7 @@
     <module>hbase</module>
     <module>elasticsearch5</module>
     <module>mongo</module>
+    <module>redis5</module>
     <module>launcher</module>
   </modules>
   <packaging>pom</packaging>
