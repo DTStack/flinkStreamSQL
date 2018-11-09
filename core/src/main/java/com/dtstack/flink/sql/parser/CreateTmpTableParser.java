@@ -16,70 +16,93 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.parser;
 
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlInsert;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 
-/**
- * 解析flink sql
- * sql 只支持 insert 开头的
- * Date: 2018/6/22
- * Company: www.dtstack.com
- * @author xuchao
- */
+public class CreateTmpTableParser implements IParser {
 
-public class InsertSqlParser implements IParser {
+    //select table tableName as select
+    private static final String PATTERN_STR = "(?i)create\\s+view\\s+([^\\s]+)\\s+as\\s+select\\s+(.*)";
+
+    private static final String EMPTY_STR = "(?i)^\\screate\\s+view\\s+(\\S+)\\s*\\((.+)\\)$";
+
+    private static final Pattern NONEMPTYVIEW = Pattern.compile(PATTERN_STR);
+
+    private static final Pattern EMPTYVIEW = Pattern.compile(EMPTY_STR);
+
+    public static CreateTmpTableParser newInstance(){
+        return new CreateTmpTableParser();
+    }
 
     @Override
     public boolean verify(String sql) {
-        return StringUtils.isNotBlank(sql) && sql.trim().toLowerCase().startsWith("insert");
-    }
-
-    public static InsertSqlParser newInstance(){
-        InsertSqlParser parser = new InsertSqlParser();
-        return parser;
+        if (Pattern.compile(EMPTY_STR).matcher(sql).find()){
+            return true;
+        }
+        return NONEMPTYVIEW.matcher(sql).find();
     }
 
     @Override
     public void parseSql(String sql, SqlTree sqlTree) {
-        SqlParser sqlParser = SqlParser.create(sql);
-        SqlNode sqlNode = null;
-        try {
-            sqlNode = sqlParser.parseStmt();
-        } catch (SqlParseException e) {
-            throw new RuntimeException("", e);
+        if (NONEMPTYVIEW.matcher(sql).find()){
+            Matcher matcher = NONEMPTYVIEW.matcher(sql);
+            String tableName = null;
+            String selectSql = null;
+            if(matcher.find()) {
+                tableName = matcher.group(1).toUpperCase();
+                selectSql = "select " + matcher.group(2);
+            }
+
+            SqlParser sqlParser = SqlParser.create(selectSql);
+            SqlNode sqlNode = null;
+            try {
+                sqlNode = sqlParser.parseStmt();
+            } catch (SqlParseException e) {
+                throw new RuntimeException("", e);
+            }
+
+            CreateTmpTableParser.SqlParserResult sqlParseResult = new CreateTmpTableParser.SqlParserResult();
+            parseNode(sqlNode, sqlParseResult);
+
+            sqlParseResult.setTableName(tableName);
+            sqlParseResult.setExecSql(selectSql.toUpperCase());
+            sqlTree.addTmpSql(sqlParseResult);
+            sqlTree.addTmplTableInfo(tableName, sqlParseResult);
+        } else {
+            if (EMPTYVIEW.matcher(sql).find())
+            {
+                Matcher matcher = EMPTYVIEW.matcher(sql);
+                String tableName = null;
+                String fieldsInfoStr = null;
+                if (matcher.find()){
+                    tableName = matcher.group(1).toUpperCase();
+                    fieldsInfoStr = matcher.group(2);
+                }
+                CreateTmpTableParser.SqlParserResult sqlParseResult = new CreateTmpTableParser.SqlParserResult();
+                sqlParseResult.setFieldsInfoStr(fieldsInfoStr);
+                sqlParseResult.setTableName(tableName);
+                sqlTree.addTmplTableInfo(tableName, sqlParseResult);
+            }
+
         }
 
-        SqlParseResult sqlParseResult = new SqlParseResult();
-        parseNode(sqlNode, sqlParseResult);
-        sqlParseResult.setExecSql(sqlNode.toString());
-        sqlTree.addExecSql(sqlParseResult);
     }
 
-    private static void parseNode(SqlNode sqlNode, SqlParseResult sqlParseResult){
+    private static void parseNode(SqlNode sqlNode, CreateTmpTableParser.SqlParserResult sqlParseResult){
         SqlKind sqlKind = sqlNode.getKind();
         switch (sqlKind){
-            case INSERT:
-                SqlNode sqlTarget = ((SqlInsert)sqlNode).getTargetTable();
-                SqlNode sqlSource = ((SqlInsert)sqlNode).getSource();
-                sqlParseResult.addTargetTable(sqlTarget.toString());
-                parseNode(sqlSource, sqlParseResult);
-                break;
             case SELECT:
                 SqlNode sqlFrom = ((SqlSelect)sqlNode).getFrom();
                 if(sqlFrom.getKind() == IDENTIFIER){
@@ -133,28 +156,21 @@ public class InsertSqlParser implements IParser {
         }
     }
 
-    public static class SqlParseResult {
+    public static class SqlParserResult {
+        private String tableName;
 
-        private List<String> sourceTableList = Lists.newArrayList();
-
-        private List<String> targetTableList = Lists.newArrayList();
+        private String fieldsInfoStr;
 
         private String execSql;
 
-        public void addSourceTable(String sourceTable){
-            sourceTableList.add(sourceTable);
+        private List<String> sourceTableList = Lists.newArrayList();
+
+        public String getTableName() {
+            return tableName;
         }
 
-        public void addTargetTable(String targetTable){
-            targetTableList.add(targetTable);
-        }
-
-        public List<String> getSourceTableList() {
-            return sourceTableList;
-        }
-
-        public List<String> getTargetTableList() {
-            return targetTableList;
+        public void setTableName(String tableName) {
+            this.tableName = tableName;
         }
 
         public String getExecSql() {
@@ -164,5 +180,22 @@ public class InsertSqlParser implements IParser {
         public void setExecSql(String execSql) {
             this.execSql = execSql;
         }
+
+        public String getFieldsInfoStr() {
+            return fieldsInfoStr;
+        }
+
+        public void setFieldsInfoStr(String fieldsInfoStr) {
+            this.fieldsInfoStr = fieldsInfoStr;
+        }
+
+        public void addSourceTable(String sourceTable){
+            sourceTableList.add(sourceTable);
+        }
+
+        public List<String> getSourceTableList() {
+            return sourceTableList;
+        }
+
     }
 }

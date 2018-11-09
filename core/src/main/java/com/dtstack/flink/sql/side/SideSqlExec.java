@@ -21,8 +21,10 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.parser.CreateTmpTableParser;
 import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
+import com.dtstack.flink.sql.util.ClassUtil;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -46,10 +48,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -63,6 +62,8 @@ import static org.apache.calcite.sql.SqlKind.*;
 public class SideSqlExec {
 
     private String localSqlPluginPath = null;
+
+    private String tmpFields = null;
 
     private SideSQLParser sideSQLParser = new SideSQLParser();
 
@@ -105,79 +106,7 @@ public class SideSqlExec {
 
             }else if (pollObj instanceof JoinInfo){
                 preIsSideJoin = true;
-                JoinInfo joinInfo = (JoinInfo) pollObj;
-
-                JoinScope joinScope = new JoinScope();
-                JoinScope.ScopeChild leftScopeChild = new JoinScope.ScopeChild();
-                leftScopeChild.setAlias(joinInfo.getLeftTableAlias());
-                leftScopeChild.setTableName(joinInfo.getLeftTableName());
-
-                Table leftTable = getTableFromCache(localTableCache, joinInfo.getLeftTableAlias(), joinInfo.getLeftTableName());
-                RowTypeInfo leftTypeInfo = new RowTypeInfo(leftTable.getSchema().getTypes(), leftTable.getSchema().getColumnNames());
-                leftScopeChild.setRowTypeInfo(leftTypeInfo);
-
-                JoinScope.ScopeChild rightScopeChild = new JoinScope.ScopeChild();
-                rightScopeChild.setAlias(joinInfo.getRightTableAlias());
-                rightScopeChild.setTableName(joinInfo.getRightTableName());
-                SideTableInfo sideTableInfo = sideTableMap.get(joinInfo.getRightTableName());
-                if(sideTableInfo == null){
-                    sideTableInfo = sideTableMap.get(joinInfo.getRightTableName());
-                }
-
-                if(sideTableInfo == null){
-                    throw new RuntimeException("can't not find side table:" + joinInfo.getRightTableName());
-                }
-
-                if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo.getPrimaryKeys())){
-                    throw new RuntimeException("ON condition must contain all equal fields!!!");
-                }
-
-                rightScopeChild.setRowTypeInfo(sideTableInfo.getRowTypeInfo());
-
-                joinScope.addScope(leftScopeChild);
-                joinScope.addScope(rightScopeChild);
-
-                //获取两个表的所有字段
-                List<FieldInfo> sideJoinFieldInfo = ParserJoinField.getRowTypeInfo(joinInfo.getSelectNode(), joinScope, true);
-
-                String leftTableAlias = joinInfo.getLeftTableAlias();
-                Table targetTable = localTableCache.get(leftTableAlias);
-                if(targetTable == null){
-                    targetTable = localTableCache.get(joinInfo.getLeftTableName());
-                }
-
-                RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getTypes(), targetTable.getSchema().getColumnNames());
-                DataStream adaptStream = tableEnv.toAppendStream(targetTable, org.apache.flink.types.Row.class);
-
-                //join side table before keyby ===> Reducing the size of each dimension table cache of async
-                if(sideTableInfo.isPartitionedJoin()){
-                    List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias());
-                    String[] leftJoinColArr = new String[leftJoinColList.size()];
-                    leftJoinColArr = leftJoinColList.toArray(leftJoinColArr);
-                    adaptStream = adaptStream.keyBy(leftJoinColArr);
-                }
-
-                DataStream dsOut = null;
-                if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
-                    dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
-                }else{
-                    dsOut = SideAsyncOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
-                }
-
-                HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
-                RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
-                dsOut.getTransformation().setOutputType(sideOutTypeInfo);
-                String targetTableName = joinInfo.getNewTableName();
-                String targetTableAlias = joinInfo.getNewTableAlias();
-
-                FieldReplaceInfo replaceInfo = new FieldReplaceInfo();
-                replaceInfo.setMappingTable(mappingTable);
-                replaceInfo.setTargetTableName(targetTableName);
-                replaceInfo.setTargetTableAlias(targetTableAlias);
-
-                replaceInfoList.add(replaceInfo);
-
-                tableEnv.registerDataStream(joinInfo.getNewTableName(), dsOut, String.join(",", sideOutTypeInfo.getFieldNames()));
+                jionFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
             }
         }
 
@@ -563,4 +492,170 @@ public class SideSqlExec {
 
         return conditionFields;
     }
+
+    public void registerTmpTable(CreateTmpTableParser.SqlParserResult result,
+                                 Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
+                                 Map<String, Table> tableCache)
+            throws Exception {
+
+        if(localSqlPluginPath == null){
+            throw new RuntimeException("need to set localSqlPluginPath");
+        }
+
+        Map<String, Table> localTableCache = Maps.newHashMap(tableCache);
+        Queue<Object> exeQueue = sideSQLParser.getExeQueue(result.getExecSql(), sideTableMap.keySet());
+        Object pollObj = null;
+
+        //need clean
+        boolean preIsSideJoin = false;
+        List<FieldReplaceInfo> replaceInfoList = Lists.newArrayList();
+
+        while((pollObj = exeQueue.poll()) != null){
+
+            if(pollObj instanceof SqlNode){
+                SqlNode pollSqlNode = (SqlNode) pollObj;
+
+                if(preIsSideJoin){
+                    preIsSideJoin = false;
+                    for(FieldReplaceInfo replaceInfo : replaceInfoList){
+                        replaceFieldName(pollSqlNode, replaceInfo.getMappingTable(), replaceInfo.getTargetTableName(), replaceInfo.getTargetTableAlias());
+                    }
+                }
+
+                if(pollSqlNode.getKind() == INSERT){
+                    tableEnv.sqlUpdate(pollSqlNode.toString());
+                }else if(pollSqlNode.getKind() == AS){
+                    AliasInfo aliasInfo = parseASNode(pollSqlNode);
+                    Table table = tableEnv.sql(aliasInfo.getName());
+                    tableEnv.registerTable(aliasInfo.getAlias(), table);
+                    localTableCache.put(aliasInfo.getAlias(), table);
+                } else if (pollSqlNode.getKind() == SELECT){
+                    Table table = tableEnv.sqlQuery(pollObj.toString());
+                    if (result.getFieldsInfoStr() == null){
+                        tableEnv.registerTable(result.getTableName(), table);
+                    } else {
+                        if (checkFieldsInfo(result, table)){
+                            table = table.as(tmpFields);
+                            tableEnv.registerTable(result.getTableName(), table);
+                        } else {
+                            throw new RuntimeException("Fields mismatch");
+                        }
+                    }
+
+                }
+
+            }else if (pollObj instanceof JoinInfo){
+                preIsSideJoin = true;
+                jionFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
+            }
+        }
+    }
+    private void jionFun(Object pollObj, Map<String, Table> localTableCache,
+                         Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
+                         List<FieldReplaceInfo> replaceInfoList) throws Exception{
+        JoinInfo joinInfo = (JoinInfo) pollObj;
+
+        JoinScope joinScope = new JoinScope();
+        JoinScope.ScopeChild leftScopeChild = new JoinScope.ScopeChild();
+        leftScopeChild.setAlias(joinInfo.getLeftTableAlias());
+        leftScopeChild.setTableName(joinInfo.getLeftTableName());
+
+        Table leftTable = getTableFromCache(localTableCache, joinInfo.getLeftTableAlias(), joinInfo.getLeftTableName());
+        RowTypeInfo leftTypeInfo = new RowTypeInfo(leftTable.getSchema().getTypes(), leftTable.getSchema().getColumnNames());
+        leftScopeChild.setRowTypeInfo(leftTypeInfo);
+
+        JoinScope.ScopeChild rightScopeChild = new JoinScope.ScopeChild();
+        rightScopeChild.setAlias(joinInfo.getRightTableAlias());
+        rightScopeChild.setTableName(joinInfo.getRightTableName());
+        SideTableInfo sideTableInfo = sideTableMap.get(joinInfo.getRightTableName());
+        if(sideTableInfo == null){
+            sideTableInfo = sideTableMap.get(joinInfo.getRightTableAlias());
+        }
+
+        if(sideTableInfo == null){
+            throw new RuntimeException("can't not find side table:" + joinInfo.getRightTableName());
+        }
+
+        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo.getPrimaryKeys())){
+            throw new RuntimeException("ON condition must contain all equal fields!!!");
+        }
+
+        rightScopeChild.setRowTypeInfo(sideTableInfo.getRowTypeInfo());
+
+        joinScope.addScope(leftScopeChild);
+        joinScope.addScope(rightScopeChild);
+
+        //获取两个表的所有字段
+        List<FieldInfo> sideJoinFieldInfo = ParserJoinField.getRowTypeInfo(joinInfo.getSelectNode(), joinScope, true);
+
+        String leftTableAlias = joinInfo.getLeftTableAlias();
+        Table targetTable = localTableCache.get(leftTableAlias);
+        if(targetTable == null){
+            targetTable = localTableCache.get(joinInfo.getLeftTableName());
+        }
+
+        RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getTypes(), targetTable.getSchema().getColumnNames());
+        DataStream adaptStream = tableEnv.toAppendStream(targetTable, org.apache.flink.types.Row.class);
+
+        //join side table before keyby ===> Reducing the size of each dimension table cache of async
+        if(sideTableInfo.isPartitionedJoin()){
+            List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias());
+            String[] leftJoinColArr = new String[leftJoinColList.size()];
+            leftJoinColArr = leftJoinColList.toArray(leftJoinColArr);
+            adaptStream = adaptStream.keyBy(leftJoinColArr);
+        }
+
+        DataStream dsOut = null;
+        if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
+            dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
+        }else{
+            dsOut = SideAsyncOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
+        }
+
+        HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
+        RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
+        dsOut.getTransformation().setOutputType(sideOutTypeInfo);
+        String targetTableName = joinInfo.getNewTableName();
+        String targetTableAlias = joinInfo.getNewTableAlias();
+
+        FieldReplaceInfo replaceInfo = new FieldReplaceInfo();
+        replaceInfo.setMappingTable(mappingTable);
+        replaceInfo.setTargetTableName(targetTableName);
+        replaceInfo.setTargetTableAlias(targetTableAlias);
+
+        replaceInfoList.add(replaceInfo);
+
+        if (!tableEnv.isRegistered(joinInfo.getNewTableName())){
+            tableEnv.registerDataStream(joinInfo.getNewTableName(), dsOut, String.join(",", sideOutTypeInfo.getFieldNames()));
+        }
+    }
+
+    private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table){
+        List<String> fieldNames = new LinkedList<>();
+        String fieldsInfo = result.getFieldsInfoStr();
+        String[] fields = fieldsInfo.split(",");
+        for (int i=0; i < fields.length; i++)
+        {
+            String[] filed = fields[i].split("\\s");
+            if (filed.length < 2 || fields.length != table.getSchema().getColumnNames().length){
+                return false;
+            } else {
+                String[] filedNameArr = new String[filed.length - 1];
+                System.arraycopy(filed, 0, filedNameArr, 0, filed.length - 1);
+                String fieldName = String.join(" ", filedNameArr);
+                fieldNames.add(fieldName.toUpperCase());
+                String fieldType = filed[filed.length - 1 ].trim();
+                Class fieldClass = ClassUtil.stringConvertClass(fieldType);
+                Class tableField = table.getSchema().getType(i).get().getTypeClass();
+                if (fieldClass == tableField){
+                    continue;
+                } else {
+                    return false;
+                }
+            }
+        }
+        tmpFields = String.join(",", fieldNames);
+        return true;
+    }
+
 }
