@@ -21,22 +21,23 @@ package com.dtstack.flink.sql.side.mongo;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.AsyncReqRow;
-import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
+import com.mongodb.BasicDBObject;
+import com.mongodb.Block;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
+import com.mongodb.async.SingleResultCallback;
+import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClientSettings;
 import com.mongodb.async.client.MongoClients;
+import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.connection.ClusterSettings;
-import io.vertx.core.json.JsonArray;
-import io.vertx.ext.sql.SQLClient;
-import io.vertx.ext.sql.SQLConnection;
-import io.vertx.core.json.JsonArray;
+import com.mongodb.connection.ConnectionPoolSettings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
@@ -44,14 +45,17 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Reason:
@@ -64,33 +68,26 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoAsyncReqRow.class);
 
-    private transient SQLClient MongoClient;
-
-    private final static String Mongo_DRIVER = "com.mongo.jdbc.Driver";
-
-    private final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 10;
-
-    private final static int DEFAULT_VERTX_WORKER_POOL_SIZE = 20;
-
     private final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = 20;
 
-    private com.mongodb.async.client.MongoClient mongoClient;
+    private transient MongoClient mongoClient;
 
     private MongoDatabase db;
+
+    private MongoSideTableInfo MongoSideTableInfo;
 
     public MongoAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new MongoAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
-
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
+        MongoSideTableInfo = (MongoSideTableInfo) sideInfo.getSideTableInfo();
         connMongoDB();
     }
 
     public void connMongoDB() throws Exception {
-        MongoSideTableInfo MongoSideTableInfo = (MongoSideTableInfo) sideInfo.getSideTableInfo();
         MongoCredential mongoCredential;
         String[] servers = MongoSideTableInfo.getAddress().split(",");
         String host;
@@ -104,13 +101,21 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             lists.add(new ServerAddress(host, port));
         }
         ClusterSettings clusterSettings = ClusterSettings.builder().hosts(lists).build();
+        ConnectionPoolSettings connectionPoolSettings = ConnectionPoolSettings.builder()
+                .maxSize(DEFAULT_MAX_DB_CONN_POOL_SIZE)
+                .build();
         if (!StringUtils.isEmpty(MongoSideTableInfo.getUserName()) || !StringUtils.isEmpty(MongoSideTableInfo.getPassword())) {
             mongoCredential = MongoCredential.createCredential(MongoSideTableInfo.getUserName(), MongoSideTableInfo.getDatabase(),
                     MongoSideTableInfo.getPassword().toCharArray());
-            MongoClientSettings settings = MongoClientSettings.builder().credential(mongoCredential).clusterSettings(clusterSettings).build();
+            MongoClientSettings settings = MongoClientSettings.builder().credential(mongoCredential)
+                    .clusterSettings(clusterSettings)
+                    .connectionPoolSettings(connectionPoolSettings)
+                    .build();
             mongoClient = MongoClients.create(settings);
         } else {
-            MongoClientSettings settings = MongoClientSettings.builder().clusterSettings(clusterSettings).build();
+            MongoClientSettings settings = MongoClientSettings.builder().clusterSettings(clusterSettings)
+                    .connectionPoolSettings(connectionPoolSettings)
+                    .build();
             mongoClient = MongoClients.create(settings);
         }
         db = mongoClient.getDatabase(MongoSideTableInfo.getDatabase());
@@ -119,19 +124,16 @@ public class MongoAsyncReqRow extends AsyncReqRow {
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
 
-        JsonArray inputParams = new JsonArray();
-        for (Integer conValIndex : sideInfo.getEqualValIndex()) {
+        BasicDBObject basicDBObject = new BasicDBObject();
+        for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
+            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
                 resultFuture.complete(null);
             }
-
-            inputParams.add(equalObj);
+            basicDBObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
-
-        String key = buildCacheKey(inputParams);
-        System.out.println("inputParams:" + inputParams);
-        System.out.println("key:" + key);
+        String key = buildCacheKey(basicDBObject.values());
         if (openCache()) {
             CacheObj val = getFromCache(key);
             if (val != null) {
@@ -152,59 +154,39 @@ public class MongoAsyncReqRow extends AsyncReqRow {
                 return;
             }
         }
-
-//        MongoClient.getConnection(conn -> {
-//            if (conn.failed()) {
-//                //Treatment failures
-//                resultFuture.completeExceptionally(conn.cause());
-//                return;
-//            }
-//
-//            final SQLConnection connection = conn.result();
-//            String sqlCondition = sideInfo.getSqlCondition();
-//            connection.queryWithParams(sqlCondition, inputParams, rs -> {
-//                if (rs.failed()) {
-//                    LOG.error("Cannot retrieve the data from the database");
-//                    LOG.error("", rs.cause());
-//                    resultFuture.complete(null);
-//                    return;
-//                }
-//
-//                List<JsonArray> cacheContent = Lists.newArrayList();
-//
-//                int resultSize = rs.result().getResults().size();
-//                if (resultSize > 0) {
-//                    for (JsonArray line : rs.result().getResults()) {
-//                        Row row = fillData(input, line);
-//                        if (openCache()) {
-//                            cacheContent.add(line);
-//                        }
-//                        resultFuture.complete(Collections.singleton(row));
-//                    }
-//
-//                    if (openCache()) {
-//                        putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
-//                    }
-//                } else {
-//                    dealMissKey(input, resultFuture);
-//                    if (openCache()) {
-//                        putCache(key, CacheMissVal.getMissKeyObj());
-//                    }
-//                }
-//
-//                // and close the connection
-//                connection.close(done -> {
-//                    if (done.failed()) {
-//                        throw new RuntimeException(done.cause());
-//                    }
-//                });
-//            });
-//        });
+        AtomicInteger atomicInteger = new AtomicInteger(0);
+        MongoCollection dbCollection = db.getCollection(MongoSideTableInfo.getTableName(), Document.class);
+        List<Document> cacheContent = Lists.newArrayList();
+        Block<Document> printDocumentBlock = new Block<Document>() {
+            @Override
+            public void apply(final Document document) {
+                atomicInteger.incrementAndGet();
+                Row row = fillData(input, document);
+                if (openCache()) {
+                    cacheContent.add(document);
+                }
+                resultFuture.complete(Collections.singleton(row));
+            }
+        };
+        SingleResultCallback<Void> callbackWhenFinished = new SingleResultCallback<Void>() {
+            @Override
+            public void onResult(final Void result, final Throwable t) {
+                if (atomicInteger.get() <= 0) {
+                    LOG.warn("Cannot retrieve the data from the database");
+                    resultFuture.complete(null);
+                } else {
+                    if (openCache()) {
+                        putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
+                    }
+                }
+            }
+        };
+        dbCollection.find(basicDBObject).forEach(printDocumentBlock, callbackWhenFinished);
     }
 
     @Override
     public Row fillData(Row input, Object line) {
-        JsonArray jsonArray = (JsonArray) line;
+        Document doc = (Document) line;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
             Object obj = input.getField(entry.getValue());
@@ -218,10 +200,10 @@ public class MongoAsyncReqRow extends AsyncReqRow {
         }
 
         for (Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()) {
-            if (jsonArray == null) {
+            if (doc == null) {
                 row.setField(entry.getKey(), null);
             } else {
-                row.setField(entry.getKey(), jsonArray.getValue(entry.getValue()));
+                row.setField(entry.getKey(), doc.get(sideInfo.getSideFieldNameIndex().get(entry.getKey())));
             }
         }
 
@@ -240,9 +222,9 @@ public class MongoAsyncReqRow extends AsyncReqRow {
         }
     }
 
-    public String buildCacheKey(JsonArray jsonArray) {
+    public String buildCacheKey(Collection collection) {
         StringBuilder sb = new StringBuilder();
-        for (Object ele : jsonArray.getList()) {
+        for (Object ele : collection) {
             sb.append(ele.toString())
                     .append("_");
         }
