@@ -133,7 +133,6 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             }
             basicDBObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
-
         String key = buildCacheKey(basicDBObject.values());
         if (openCache()) {
             CacheObj val = getFromCache(key);
@@ -155,7 +154,6 @@ public class MongoAsyncReqRow extends AsyncReqRow {
                 return;
             }
         }
-
         AtomicInteger atomicInteger = new AtomicInteger(0);
         MongoCollection dbCollection = db.getCollection(MongoSideTableInfo.getTableName(), Document.class);
         List<Document> cacheContent = Lists.newArrayList();
@@ -183,7 +181,6 @@ public class MongoAsyncReqRow extends AsyncReqRow {
                 }
             }
         };
-
         dbCollection.find(basicDBObject).forEach(printDocumentBlock, callbackWhenFinished);
     }
 

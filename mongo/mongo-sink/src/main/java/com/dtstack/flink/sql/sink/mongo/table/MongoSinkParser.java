@@ -50,17 +50,17 @@ public class MongoSinkParser extends AbsTableParser {
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        MongoTableInfo MongoTableInfo = new MongoTableInfo();
-        MongoTableInfo.setName(tableName);
-        parseFieldsInfo(fieldsInfo, MongoTableInfo);
+        MongoTableInfo mongoTableInfo = new MongoTableInfo();
+        mongoTableInfo.setName(tableName);
+        parseFieldsInfo(fieldsInfo, mongoTableInfo);
 
-        MongoTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
-        MongoTableInfo.setAddress(MathUtil.getString(props.get(ADDRESS_KEY.toLowerCase())));
-        MongoTableInfo.setTableName(MathUtil.getString(props.get(TABLE_NAME_KEY.toLowerCase())));
-        MongoTableInfo.setDatabase(MathUtil.getString(props.get(DATABASE_KEY.toLowerCase())));
-        MongoTableInfo.setUserName(MathUtil.getString(props.get(USER_NAME_KEY.toLowerCase())));
-        MongoTableInfo.setPassword(MathUtil.getString(props.get(PASSWORD_KEY.toLowerCase())));
+        mongoTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
+        mongoTableInfo.setAddress(MathUtil.getString(props.get(ADDRESS_KEY.toLowerCase())));
+        mongoTableInfo.setTableName(MathUtil.getString(props.get(TABLE_NAME_KEY.toLowerCase())));
+        mongoTableInfo.setDatabase(MathUtil.getString(props.get(DATABASE_KEY.toLowerCase())));
+        mongoTableInfo.setUserName(MathUtil.getString(props.get(USER_NAME_KEY.toLowerCase())));
+        mongoTableInfo.setPassword(MathUtil.getString(props.get(PASSWORD_KEY.toLowerCase())));
 
-        return MongoTableInfo;
+        return mongoTableInfo;
     }
 }
