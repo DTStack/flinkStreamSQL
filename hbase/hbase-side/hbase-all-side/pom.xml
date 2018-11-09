@@ -13,6 +13,20 @@
     <artifactId>sql.side.all.hbase</artifactId>
     <name>hbase-all-side</name>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.hbase.core</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-client</artifactId>
+            <version>1.3.1</version>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -28,7 +42,6 @@
                         <configuration>
                             <artifactSet>
                                 <excludes>
-                                    <exclude>org.slf4j:slf4j-log4j12</exclude>
                                     <exclude>org.apache.hadoop:hadoop-common</exclude>
                                     <exclude>org.apache.hadoop:hadoop-auth</exclude>
                                     <exclude>org.apache.hadoop:hadoop-mapreduce-client-core</exclude>

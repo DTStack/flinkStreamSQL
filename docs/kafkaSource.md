@@ -44,8 +44,8 @@ CREATE TABLE tableName(
 ## 5.样例：
 ```
 CREATE TABLE MyTable(
-    name string,
-    channel STRING,
+    name varchar,
+    channel varchar,
     pv INT,
     xctime bigint,
     CHARACTER_LENGTH(channel) AS timeLeng
