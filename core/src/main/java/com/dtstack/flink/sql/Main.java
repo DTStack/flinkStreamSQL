@@ -99,6 +99,8 @@ public class Main {
 
     private static final int delayInterval = 10; //sec
 
+    public static final List<URL> urlList = new ArrayList<>();
+
     public static void main(String[] args) throws Exception {
 
         Options options = new Options();
@@ -293,6 +295,7 @@ public class Main {
         for(URL url : classPathSet){
             String classFileName = String.format(CLASS_FILE_NAME_FMT, i);
             env.registerCachedFile(url.getPath(),  classFileName, true);
+            urlList.add(url);
             i++;
         }
     }
