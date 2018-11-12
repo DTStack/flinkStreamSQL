@@ -115,7 +115,8 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
                 tmpFieldsType[i] = Types.DOUBLE;
             }else if(fieldType.equals(Timestamp.class.getName())){
                 tmpFieldsType[i] = Types.TIMESTAMP;
-            }else{
+            }
+            else{
                 throw new RuntimeException("no support field type for sql. the input type:" + fieldType);
             }
         }

@@ -72,7 +72,8 @@ public class SqlParser {
                 .replaceAll("\n", " ")
                 .replace("\t", " ")
                 // 替换 /*  */ 注释
-                .replaceAll( "//.*|(\"(?:\\\\[^\"]|\\\\\"|.)*?\")|(?s)/\\*.*?\\*/", " ").trim();
+//                .replaceAll( "//.*|(\"(?:\\\\[^\"]|\\\\\"|.)*?\")|(?s)/\\*.*?\\*/", " ")
+                .trim();
 
         List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SQL_DELIMITER);
         SqlTree sqlTree = new SqlTree();

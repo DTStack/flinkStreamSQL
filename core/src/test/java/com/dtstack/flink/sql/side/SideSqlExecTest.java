@@ -25,8 +25,6 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Charsets;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.junit.Test;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.List;
 
@@ -55,7 +53,7 @@ public class SideSqlExecTest {
                 "tstamp timestamp) " +
                 "with (" +
                 " type = 'kafka09',bootstrapServers = 'kudu1:9092',zookeeperQuorum = '172.16.8.107:2181/kafka', offsetReset = 'latest',topic = 'tranflow_input',parallelism = '1' " +
-                ");"
+                "); "
 
                 + "CREATE table sink(" +
                 "start_tstamp timestamp, " +
@@ -65,7 +63,7 @@ public class SideSqlExecTest {
                 "end_total float ) " +
                 "with (" +
                 " type = 'mysql',url = 'jdbc:mysql://172.16.8.104:3306/bank_test?charset=utf8',userName = 'dtstack',password = 'abc123',tableName = 'max_deposit_acct_base',cache = 'LRU',cacheSize = '10000',cacheTTLMs = '60000',parallelism = '1' " +
-                ");"
+                "); "
 
                 + "insert into sink " +
                 "select * from source " +
@@ -85,7 +83,9 @@ public class SideSqlExecTest {
                 ;
 
         test(sqlContext);
+
     }
+
 
     @Test
     public void testRunSideSql() throws Exception {
@@ -276,7 +276,7 @@ public class SideSqlExecTest {
         paramList.add("-name");
         paramList.add("xc");
         paramList.add("-localSqlPluginPath");
-        paramList.add("/Users/meitu/code/github/flinkStreamSQL/plugins");
+        paramList.add("/Users/meitu/code/github/mysql_flinkStreamSQL/plugins");
         paramList.add("-mode");
         paramList.add("local");
         paramList.add("-addjar");

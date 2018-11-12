@@ -29,6 +29,7 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 import java.util.List;
 
 import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
+import static org.apache.calcite.sql.SqlKind.MATCH_RECOGNIZE;
 
 /**
  * 解析flink sql
