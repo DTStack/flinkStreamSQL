@@ -6,14 +6,13 @@
  
 # 已支持
   * 源表：kafka 0.9，1.x版本
-  * 维表：mysql，hbase
-  * 结果表：mysql，hbase，elasticsearch5.x
+  * 维表：mysql，hbase，mongo
+  * 结果表：mysql，hbase，elasticsearch5.x，mongo
 
 # 后续开发计划
   * 增加全局缓存功能
   * 增加临时表功能
   * 增加redis维表,结果表功能
-  * 增加mongodb维表，结果表功能
   * 增加oracle维表，结果表功能
   * 增加SQlServer维表，结果表功能
   * 增加kafka结果表功能
@@ -130,10 +129,12 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [elasticsearch 结果表插件](docs/elasticsearchSink.md)
 * [hbase 结果表插件](docs/hbaseSink.md)
 * [mysql 结果表插件](docs/mysqlSink.md)
+* [mongo 结果表插件](docs/mongoSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
 * [mysql 维表插件](docs/mysqlSide.md)
+* [mongo 维表插件](docs/mongoSide.md)
 	
 ## 3 样例
 
