@@ -39,6 +39,54 @@ import java.util.List;
 
 public class SideSqlExecTest {
 
+    /**
+     * 参考阿里Blink的cep sql语法，文档https://help.aliyun.com/document_detail/73845.html?spm=a2c4g.11186623.6.637.5cba27efFHjOSs
+     * @throws Exception
+     */
+    @Test
+    public void testCepSql() throws Exception {
+        List<String> paramList = Lists.newArrayList();
+        paramList.add("-sql");
+
+        String sqlContext = "CREATE table source(" +
+                "name varchar, " +
+                "price float, " +
+                "tax float, " +
+                "tstamp timestamp) " +
+                "with (" +
+                " type = 'kafka09',bootstrapServers = 'kudu1:9092',zookeeperQuorum = '172.16.8.107:2181/kafka', offsetReset = 'latest',topic = 'tranflow_input',parallelism = '1' " +
+                ");"
+
+                + "CREATE table sink(" +
+                "start_tstamp timestamp, " +
+                "bottom_tstamp timestamp, " +
+                "end_tstamp timestamp, " +
+                "bottom_total float, " +
+                "end_total float ) " +
+                "with (" +
+                " type = 'mysql',url = 'jdbc:mysql://172.16.8.104:3306/bank_test?charset=utf8',userName = 'dtstack',password = 'abc123',tableName = 'max_deposit_acct_base',cache = 'LRU',cacheSize = '10000',cacheTTLMs = '60000',parallelism = '1' " +
+                ");"
+
+                + "insert into sink " +
+                "select * from source " +
+                "MATCH_RECOGNIZE (\n" +
+                "  MEASURES\n" +
+                "    STRT.tstamp AS start_tstamp,\n" +
+                "    LAST(DOWN.tstamp) AS bottom_tstamp,\n" +
+                "    LAST(UP.tstamp) AS end_tstamp,\n" +
+                "    FIRST(DOWN.price + DOWN.tax + 1) AS bottom_total,\n" +
+                "    FIRST(UP.price + UP.tax) AS end_total" +
+                "  ONE ROW PER MATCH\n" +
+                "  PATTERN (STRT DOWN+ UP+)\n" +
+                "  DEFINE\n" +
+                "    DOWN AS DOWN.price < PREV(DOWN.price),\n" +
+                "    UP AS UP.price > PREV(UP.price) AND UP.tax > LAST(DOWN.tax)\n" +
+                ") AS T"
+                ;
+
+        test(sqlContext);
+    }
+
     @Test
     public void testRunSideSql() throws Exception {
         //String runParam = "-sql CREATE+TABLE+MyTable(channel+STRING%2c+pv+INT%2c+xctime+bigint%2c+timeLeng+as+CHARACTER_LENGTH(channel)%2c++WATERMARK+FOR+xctime+AS+withOffset(xctime%2c+1000))+WITH+(+type%3d%27kafka09%27%2c+bootstrapServers%3d%27172.16.8.198%3a9092%27%2c+offsetReset%3d%27latest%27%2ctopic%3d%27nbTest1%27)%3bCREATE+TABLE+MyResult(channel+STRING%2c+pv+INT)+WITH+(+type%3d%27mysql%27%2c+url%3d%27jdbc%3amysql%3a%2f%2f172.16.8.104%3a3306%2ftest%3fcharset%3dutf8%27%2cuserName%3d%27dtstack%27%2cpassword%3d%27abc123%27%2c+tableName%3d%27pv%27)%3bcreate+table+sideTable(channel+String%2c+count+int%2c+PERIOD+FOR+SYSTEM_TIME)+WITH+(+type%3d%27mysql%27%2c+url%3d%27jdbc%3amysql%3a%2f%2f172.16.8.104%3a3306%2ftest%3fcharset%3dutf8%27%2cuserName%3d%27dtstack%27%2cpassword%3d%27abc123%27%2c+tableName%3d%27pv%27)%3binsert+into+MyResult+select+a.channel%2cb.pv+from+MyTable+a+join+sideTable+b+on+a.channel%3db.channel%3b -name xc -localSqlPluginPath D:\\gitspace\\flink-sql-plugin\\plugins -mode local -remoteSqlPluginPath /opt/dtstack/flinkplugin -confProp %7b%22time.characteristic%22%3a%22EventTime%22%7d -addjar %5b%22D%3a%5c%5cgitspace%5c%5crdos-execution-engine%5c%5c..%5c%5ctmp140%5c%5cflink14Test-1.0-SNAPSHOT.jar%22%5d";
