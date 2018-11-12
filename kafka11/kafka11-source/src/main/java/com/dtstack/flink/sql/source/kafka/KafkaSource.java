@@ -43,6 +43,8 @@ import java.util.Properties;
 
 public class KafkaSource implements IStreamSourceGener<Table> {
 
+    private static final String SOURCE_OPERATOR_NAME_TPL = "${topic}_${table}";
+
     /**
      * Get kafka data source, you need to provide the data field names, data types
      * If you do not specify auto.offset.reset, the default use groupoffset
@@ -78,6 +80,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }
 
         String fields = StringUtils.join(kafka011SourceTableInfo.getFields(), ",");
-        return tableEnv.fromDataStream(env.addSource(kafkaSrc, typeInformation), fields);
+        String sourceOperatorName = SOURCE_OPERATOR_NAME_TPL.replace("${topic}", topicName).replace("${table}", sourceTableInfo.getName());
+        return tableEnv.fromDataStream(env.addSource(kafkaSrc, sourceOperatorName, typeInformation), fields);
     }
 }
