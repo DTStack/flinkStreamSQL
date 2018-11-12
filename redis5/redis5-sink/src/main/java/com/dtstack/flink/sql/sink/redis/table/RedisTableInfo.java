@@ -81,7 +81,7 @@ public class RedisTableInfo extends TargetTableInfo {
     public boolean check() {
         Preconditions.checkNotNull(url, "redis field of URL is required");
         Preconditions.checkNotNull(database, "redis field of database is required");
-        Preconditions.checkNotNull(password, "redis field of password is required");
+        //Preconditions.checkNotNull(password, "redis field of password is required");
         return true;
     }
 
