@@ -32,6 +32,7 @@ import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
 
@@ -95,7 +96,6 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
      * @param fieldTypeArray
      */
     protected void buildSqlTypes(List<Class> fieldTypeArray){
-
         int[] tmpFieldsType = new int[fieldTypeArray.size()];
         for(int i=0; i<fieldTypeArray.size(); i++){
             String fieldType = fieldTypeArray.get(i).getName();
@@ -113,6 +113,8 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
                 tmpFieldsType[i] = Types.BINARY;
             }else if(fieldType.equals(Float.class.getName()) || fieldType.equals(Double.class.getName())){
                 tmpFieldsType[i] = Types.DOUBLE;
+            }else if(fieldType.equals(Timestamp.class.getName())){
+                tmpFieldsType[i] = Types.TIMESTAMP;
             }else{
                 throw new RuntimeException("no support field type for sql. the input type:" + fieldType);
             }

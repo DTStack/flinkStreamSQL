@@ -276,7 +276,7 @@ public class SideSqlExecTest {
         paramList.add("-name");
         paramList.add("xc");
         paramList.add("-localSqlPluginPath");
-        paramList.add("D:\\gitspace\\flinkStreamSQL\\plugins");
+        paramList.add("/Users/meitu/code/github/flinkStreamSQL/plugins");
         paramList.add("-mode");
         paramList.add("local");
         paramList.add("-addjar");
