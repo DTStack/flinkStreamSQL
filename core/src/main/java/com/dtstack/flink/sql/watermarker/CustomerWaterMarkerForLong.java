@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * @author xuchao
  */
 
-public class CustomerWaterMarkerForLong extends BoundedOutOfOrdernessTimestampExtractor<Row> {
+public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForLong.class);
 
@@ -55,6 +55,7 @@ public class CustomerWaterMarkerForLong extends BoundedOutOfOrdernessTimestampEx
         try{
             Long eveTime = MathUtil.getLongVal(row.getField(pos));
             lastTime = eveTime;
+            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - eveTime)/1000));
             return eveTime;
         }catch (Exception e){
             logger.error("", e);
