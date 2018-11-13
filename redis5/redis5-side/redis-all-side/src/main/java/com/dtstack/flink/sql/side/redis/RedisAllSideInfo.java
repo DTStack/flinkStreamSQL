@@ -18,5 +18,21 @@
 
 package com.dtstack.flink.sql.side.redis;
 
-public class RedisAllSideInfo {
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+
+import java.util.List;
+
+public class RedisAllSideInfo extends SideInfo {
+    public RedisAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+    }
+
+    @Override
+    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
+
+    }
 }
