@@ -23,6 +23,8 @@ import com.dtstack.flink.yarn.JobParameter;
 import com.dtstack.flink.yarn.YarnClusterConfiguration;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
+import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
+import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.StandaloneClusterClient;
@@ -31,6 +33,7 @@ import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.runtime.akka.AkkaUtils;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.util.LeaderConnectionInfo;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.fs.Path;
@@ -62,6 +65,8 @@ import static java.util.Objects.requireNonNull;
  */
 public class ClusterClientFactory {
     private static final Logger LOG = LoggerFactory.getLogger(ClusterClientFactory.class);
+    private static final ObjectMapper objMapper = new ObjectMapper();
+
     public static ClusterClient createClusterClient(LauncherOptions launcherOptions) throws Exception {
         String mode = launcherOptions.getMode();
         if(mode.equals(ClusterMode.standalone.name())) {
@@ -172,11 +177,21 @@ public class ClusterClientFactory {
 
     public static YarnClusterConfiguration getYarnClusterConfiguration(Configuration flinkConf,YarnConfiguration yarnConf,String flinkConfDir)
     {
+        return getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir,null);
+    }
+    public static YarnClusterConfiguration getYarnClusterConfiguration(Configuration flinkConf,YarnConfiguration yarnConf,String flinkConfDir,List<String> udfJarList)
+    {
         Path flinkJar = new Path(getFlinkJarFile(flinkConfDir).toURI());
-        @SuppressWarnings("ConstantConditions") final Set<Path> resourcesToLocalize = Stream
-                .of("flink-conf.yaml", "log4j.properties")
-                .map(x -> new Path(new File(flinkConfDir, x).toURI()))
+
+        final Set<Path> resourcesToLocalize = Stream
+                .of("../lib")
+                .map(x -> new Path(flinkConfDir, x))
                 .collect(Collectors.toSet());
+        if(!udfJarList.isEmpty()){
+            for (String udfJar:udfJarList){
+                resourcesToLocalize.add(new Path(udfJar));
+            }
+        }
 
         return new YarnClusterConfiguration(
                 flinkConf,
@@ -280,8 +295,14 @@ public class ClusterClientFactory {
                     LOG.info("confProp= {}", confProp);
                     Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
-                    YarnClusterConfiguration clusterConf = getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir);
-                    //jobmanager+taskmanager param
+                    String addJarListStr = launcherOptions.getAddjar();
+                    List<String> addJarFileList = Lists.newArrayList();
+                    if(!Strings.isNullOrEmpty(addJarListStr)){
+                        addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
+                        addJarFileList = objMapper.readValue(addJarListStr, List.class);
+                    }
+
+                    YarnClusterConfiguration clusterConf = getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir,addJarFileList);
                     JobParameter jobParam = new JobParameter(confProperties);
 
                     AbstractYarnClusterDescriptor clusterDescriptor = createDescriptor(jobParam,clusterConf,flinkConf, yarnConf, flinkConfDir, yarnClient,launcherOptions.getName());
@@ -323,13 +344,8 @@ public class ClusterClientFactory {
         List<File> shipFiles = new ArrayList<>();
         // path to directory to ship
         if(clusterConf.resourcesToLocalize() != null) {
-            for (Path shipPath : clusterConf.resourcesToLocalize()) {  //主要是 flink.jar log4g.proporties 和 flink.yaml 三个文件
-                File shipDir = new File(shipPath.toString());
-                if (shipDir.isDirectory()) {
-                    shipFiles.add(shipDir);
-                } else {
-                    LOG.warn("Ship directory is not a directory. Ignoring it.");
-                }
+            for (Path shipPath : clusterConf.resourcesToLocalize()) {
+                shipFiles.add(new File(shipPath.toString()));
             }
         }
         yarnClusterDescriptor.addShipFiles(shipFiles);

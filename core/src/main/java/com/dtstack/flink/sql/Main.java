@@ -142,12 +142,13 @@ public class Main {
         DtClassLoader dtClassLoader = new DtClassLoader(new URL[]{}, threadClassLoader);
         Thread.currentThread().setContextClassLoader(dtClassLoader);
 
-        URLClassLoader parentClassloader;
+        /*URLClassLoader parentClassloader;
         if(!LOCAL_MODE.equals(deployMode)){
             parentClassloader = (URLClassLoader) threadClassLoader.getParent();
         }else{
             parentClassloader = dtClassLoader;
-        }
+        }*/
+        URLClassLoader parentClassloader = dtClassLoader;
 
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
