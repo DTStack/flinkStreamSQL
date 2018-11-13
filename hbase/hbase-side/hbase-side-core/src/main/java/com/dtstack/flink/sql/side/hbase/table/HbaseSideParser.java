@@ -56,6 +56,8 @@ public class HbaseSideParser extends AbsSideTableParser {
 
     public static final String PRE_ROW_KEY = "preRowKey";
 
+    public static final String CACHE = "cache";
+
 
     static {
         keyPatternMap.put(SIDE_SIGN_KEY, SIDE_TABLE_SIGN);
@@ -76,6 +78,7 @@ public class HbaseSideParser extends AbsSideTableParser {
         hbaseTableInfo.setHost((String) props.get(HBASE_ZOOKEEPER_QUORUM.toLowerCase()));
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         hbaseTableInfo.setPreRowKey(MathUtil.getBoolean(props.get(PRE_ROW_KEY.toLowerCase()), false));
+        hbaseTableInfo.setCacheType((String) props.get(CACHE));
         return hbaseTableInfo;
     }
 

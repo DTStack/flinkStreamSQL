@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -42,6 +43,8 @@ import java.util.Properties;
  */
 
 public class KafkaSource implements IStreamSourceGener<Table> {
+
+    private static final String SOURCE_OPERATOR_NAME_TPL = "${topic}_${table}";
 
     /**
      * Get kafka data source, you need to provide the data field names, data types
@@ -67,7 +70,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }
 
         TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka09SourceTableInfo.getFields());
-        FlinkKafkaConsumer09<Row> kafkaSrc = new FlinkKafkaConsumer09(topicName,
+        FlinkKafkaConsumer09<Row> kafkaSrc = new CustomerKafka09Consumer(topicName,
                 new CustomerJsonDeserialization(typeInformation), props);
 
         //earliest,latest
@@ -78,6 +81,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }
 
         String fields = StringUtils.join(kafka09SourceTableInfo.getFields(), ",");
-        return tableEnv.fromDataStream(env.addSource(kafkaSrc, typeInformation), fields);
+        String sourceOperatorName = SOURCE_OPERATOR_NAME_TPL.replace("${topic}", topicName).replace("${table}", sourceTableInfo.getName());
+        return tableEnv.fromDataStream(env.addSource(kafkaSrc, sourceOperatorName, typeInformation), fields);
     }
 }

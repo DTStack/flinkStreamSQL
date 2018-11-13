@@ -57,7 +57,7 @@
 ## 5.样例
 ```
 create table sideTable(
-    channel String,
+    channel varchar,
     xccount int,
     PRIMARY KEY(channel),
     PERIOD FOR SYSTEM_TIME
