@@ -44,10 +44,11 @@ public class LauncherMain {
 
     private static String SP = File.separator;
 
-
     private static String getLocalCoreJarPath(String localSqlRootJar){
         return localSqlRootJar + SP + CORE_JAR;
     }
+
+    private static final int DEFAULT_PARALLELISM = 1;
 
     public static void main(String[] args) throws Exception {
         LauncherOptionParser optionParser = new LauncherOptionParser(args);
@@ -57,7 +58,7 @@ public class LauncherMain {
         if(mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[argList.size()]);
             Main.main(localArgs);
-        } else {
+        } else if (mode.equals(ClusterMode.standalone.name()) || mode.equals(ClusterMode.yarn.name())){
             String pluginRoot = launcherOptions.getLocalSqlPluginPath();
             File jarFile = new File(getLocalCoreJarPath(pluginRoot));
             String[] remoteArgs = argList.toArray(new String[argList.size()]);
@@ -66,7 +67,21 @@ public class LauncherMain {
                 program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
             }
 
-            final JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, new Configuration(), 1);
+            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
+            clusterClient.run(program, DEFAULT_PARALLELISM);
+            clusterClient.shutdown();
+
+            System.exit(0);
+        } else if(mode.equals(ClusterMode.yarnPer.name())){
+            String pluginRoot = launcherOptions.getLocalSqlPluginPath();
+            File jarFile = new File(getLocalCoreJarPath(pluginRoot));
+            String[] remoteArgs = argList.toArray(new String[argList.size()]);
+            PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
+            if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
+                program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
+            }
+
+            final JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, new Configuration(), DEFAULT_PARALLELISM);
             jobGraph.setClasspaths(Main.urlList);
             ClusterClientFactory.startJob(launcherOptions,jobGraph);
 
