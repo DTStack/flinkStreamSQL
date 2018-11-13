@@ -40,7 +40,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-public class RedisAllReqRow extends AllReqRow {
+public class RedisAllReqRow extends AllReqRow{
+
+    private static final long serialVersionUID = 7578879189085344807L;
 
     private static final Logger LOG = LoggerFactory.getLogger(RedisAllReqRow.class);
 
