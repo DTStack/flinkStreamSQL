@@ -211,15 +211,6 @@ public class RedisAllReqRow extends AllReqRow{
         }
     }
 
-    private void toCache(Map<String, String> keyValue, Map<String, List<Map<String, Object>>> tmpCache) {
-        Set<String> setKey = keyValue.keySet();
-        for (String key : setKey){
-            String[] keys = key.split(":");
-            String newKey = keys[0] + keys[1] + keys[2];
-        }
-
-    }
-
     private Jedis getJedis(String url, String password, String database){
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
         String[] nodes = url.split(",");

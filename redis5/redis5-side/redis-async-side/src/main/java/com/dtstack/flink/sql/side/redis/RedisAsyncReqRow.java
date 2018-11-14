@@ -37,6 +37,7 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class RedisAsyncReqRow extends AsyncReqRow {
 
@@ -60,7 +61,15 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         super.open(parameters);
         redisSideTableInfo = (RedisSideTableInfo) sideInfo.getSideTableInfo();
         StringBuilder uri = new StringBuilder();
-        // TODO: 2018/11/13 根据redis模式，拼接uri
+        String url = redisSideTableInfo.getUrl();
+        String password = redisSideTableInfo.getPassword();
+        String database = redisSideTableInfo.getDatabase();
+        if (url.split(",").length > 1){
+            uri.append("redis-sentinel://").append(password).append("@")
+                    .append(url).append("/").append(database).append("#").append(url.split(",")[0]);
+        } else {
+            uri.append("redis://").append(password).append("@").append(url).append("/").append(database);
+        }
         redisClient = RedisClient.create(uri.toString());
         connection = redisClient.connect();
         async = connection.async();
@@ -117,12 +126,8 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                     dealMissKey(input, resultFuture);
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){
-
-                    for(Object jsonArray : (List)val.getContent()){
-                        Row row = fillData(input, jsonArray);
-                        resultFuture.complete(Collections.singleton(row));
-                    }
-
+                    Row row = fillData(input, val.getContent());
+                    resultFuture.complete(Collections.singleton(row));
                 }else{
                     throw new RuntimeException("not support cache obj type " + val.getType());
                 }
@@ -130,14 +135,24 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             }
         }
 
-        // TODO: 2018/11/13 异步实现并缓存
-        Map<String, String> keyValue = Maps.newConcurrentMap();
-        List<String> keyList = async.keys(key).get();
-        for (String aKey : keyList){
-            keyValue.put(aKey, async.get(aKey).get());
-        }
-        Row row = fillData(input, keyValue);
-        resultFuture.complete(Collections.singleton(row));
+        async.keys(key).whenComplete((value, e)-> {
+            for (String newKey : value){
+                String[] splitKey = newKey.split(":");
+                Map<String, String> keyValue = Maps.newConcurrentMap();
+                keyValue.put(splitKey[1], splitKey[2]);
+                async.get(newKey).thenAccept(new Consumer<String>() {
+                    @Override
+                    public void accept(String s) {
+                        keyValue.put(splitKey[3], s);
+                    }
+                });
+                Row row = fillData(input, keyValue);
+                resultFuture.complete(Collections.singleton(row));
+                if(openCache()){
+                    putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
+                }
+            }
+        });
 
     }
 
@@ -152,8 +167,12 @@ public class RedisAsyncReqRow extends AsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        connection.close();
-        redisClient.shutdown();
+        if (connection != null){
+            connection.close();
+        }
+        if (redisClient != null){
+            redisClient.shutdown();
+        }
     }
 
 }
