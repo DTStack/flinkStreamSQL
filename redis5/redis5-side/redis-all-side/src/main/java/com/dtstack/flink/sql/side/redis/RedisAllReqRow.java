@@ -29,10 +29,7 @@ import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisSentinelPool;
+import redis.clients.jedis.*;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -48,7 +45,7 @@ public class RedisAllReqRow extends AllReqRow{
 
     private static final int CONN_RETRY_NUM = 3;
 
-    private static final int TIMEOUT = 1000;
+    private static final int TIMEOUT = 10000;
 
     private JedisPool pool;
 
@@ -178,7 +175,7 @@ public class RedisAllReqRow extends AllReqRow{
             List<String> newPerKeys = new LinkedList<>();
             for (String key : keys){
                 String[] splitKey = key.split(":");
-                String newKey = splitKey[0] + splitKey[1] + splitKey[2];
+                String newKey = splitKey[0] + ":" + splitKey[1] + ":" + splitKey[2];
                 newPerKeys.add(newKey);
             }
             List<String> list = newPerKeys.stream().distinct().collect(Collectors.toList());
@@ -212,7 +209,7 @@ public class RedisAllReqRow extends AllReqRow{
     }
 
     private Jedis getJedis(String url, String password, String database){
-        GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
+        JedisPoolConfig poolConfig = new JedisPoolConfig();
         String[] nodes = url.split(",");
         if (nodes.length > 1){
             //cluster

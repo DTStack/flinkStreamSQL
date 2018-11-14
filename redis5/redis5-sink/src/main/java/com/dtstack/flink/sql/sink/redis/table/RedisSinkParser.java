@@ -28,10 +28,12 @@ public class RedisSinkParser extends AbsTableParser {
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         RedisTableInfo redisTableInfo = new RedisTableInfo();
+        redisTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, redisTableInfo);
         redisTableInfo.setUrl(MathUtil.getString(props.get(RedisTableInfo.URL_KEY)));
         redisTableInfo.setDatabase(MathUtil.getString(props.get(RedisTableInfo.DATABASE_KEY)));
         redisTableInfo.setPassword(MathUtil.getString(props.get(RedisTableInfo.PASSWORD_KEY)));
+        redisTableInfo.setTablename(MathUtil.getString(props.get(RedisTableInfo.TABLENAME_KEY)));
         if (props.get(RedisTableInfo.TIMEOUT) != null){
             redisTableInfo.setTimeout(Integer.parseInt(MathUtil.getString(props.get(RedisTableInfo.TIMEOUT))));
         }

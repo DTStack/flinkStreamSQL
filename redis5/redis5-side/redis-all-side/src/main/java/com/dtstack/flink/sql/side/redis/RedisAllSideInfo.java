@@ -22,7 +22,11 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -36,6 +40,18 @@ public class RedisAllSideInfo extends SideInfo {
 
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
+        String sideTableName = joinInfo.getSideTableName();
+        SqlNode conditionNode = joinInfo.getCondition();
 
+        List<SqlNode> sqlNodeList = Lists.newArrayList();
+        if(conditionNode.getKind() == SqlKind.AND){
+            sqlNodeList.addAll(Lists.newArrayList(((SqlBasicCall)conditionNode).getOperands()));
+        }else{
+            sqlNodeList.add(conditionNode);
+        }
+
+        for(SqlNode sqlNode : sqlNodeList){
+            dealOneEqualCon(sqlNode, sideTableName);
+        }
     }
 }

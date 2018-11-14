@@ -31,6 +31,8 @@ public class RedisTableInfo extends TargetTableInfo {
 
     public static final String PASSWORD_KEY = "password";
 
+    public static final String TABLENAME_KEY = "tablename";
+
     public static final String TIMEOUT = "timeout";
 
     public RedisTableInfo(){
@@ -40,6 +42,8 @@ public class RedisTableInfo extends TargetTableInfo {
     private String url;
 
     private String database;
+
+    private String tableName;
 
     private String password;
 
@@ -81,7 +85,7 @@ public class RedisTableInfo extends TargetTableInfo {
     public boolean check() {
         Preconditions.checkNotNull(url, "redis field of URL is required");
         Preconditions.checkNotNull(database, "redis field of database is required");
-        //Preconditions.checkNotNull(password, "redis field of password is required");
+        Preconditions.checkNotNull(password, "redis field of password is required");
         return true;
     }
 
@@ -90,4 +94,11 @@ public class RedisTableInfo extends TargetTableInfo {
         return super.getType().toLowerCase();
     }
 
+    public String getTablename() {
+        return tableName;
+    }
+
+    public void setTablename(String tablename) {
+        this.tableName = tablename;
+    }
 }

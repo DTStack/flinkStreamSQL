@@ -44,6 +44,8 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     protected String database;
 
+    protected String tableName;
+
     protected String password;
 
     protected List<String> primaryKeys;
@@ -60,6 +62,7 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.url = redisTableInfo.getUrl();
         this.database = redisTableInfo.getDatabase();
         this.password = redisTableInfo.getPassword();
+        this.tableName = redisTableInfo.getTablename();
         this.primaryKeys = targetTableInfo.getPrimaryKeys();
         return this;
     }
@@ -74,6 +77,7 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         RedisOutputFormat.RedisOutputFormatBuilder builder = RedisOutputFormat.buildRedisOutputFormat();
         builder.setUrl(this.url)
                 .setDatabase(this.database)
+                .setTableName(this.tableName)
                 .setPassword(this.password)
                 .setFieldNames(this.fieldNames)
                 .setFieldTypes(this.fieldTypes)

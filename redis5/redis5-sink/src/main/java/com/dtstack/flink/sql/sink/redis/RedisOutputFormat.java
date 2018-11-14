@@ -35,6 +35,8 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
 
     private String database;
 
+    private String tableName;
+
     private String password;
 
     protected String[] fieldNames;
@@ -104,7 +106,7 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
 
         for (String primaryKey : primaryKeys){
             for (int i=0; i<fieldNames.length; i++){
-                if (fieldNames[i] == primaryKey){
+                if (fieldNames[i].equals(primaryKey)){
                     map.put(primaryKey, i);
                 }
             }
@@ -114,7 +116,7 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
         for (String primaryKey : primaryKeys){
             StringBuilder primaryKV = new StringBuilder();
             int index = map.get(primaryKey).intValue();
-            primaryKV.append(primaryKey).append(":").append((String) record.getField(index));
+            primaryKV.append(primaryKey).append(":").append(row.getField(index));
             kvList.add(primaryKV.toString());
         }
 
@@ -122,10 +124,9 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
 
 
         for (int i = 0; i < fieldNames.length; i++) {
-            //key 表名：主键名：主键值：列名
             StringBuilder key = new StringBuilder();
-            key.append(perKey).append(fieldNames[i]);
-            jedis.append(key.toString(), (String) record.getField(i));
+            key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
+            jedis.append(key.toString(), (String) row.getField(i));
         }
     }
 
@@ -161,6 +162,11 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
             return this;
         }
 
+        public RedisOutputFormatBuilder setTableName(String tableName){
+            redisOutputFormat.tableName = tableName;
+            return this;
+        }
+
         public RedisOutputFormatBuilder setPassword(String password){
             redisOutputFormat.password = password;
             return this;
@@ -193,6 +199,10 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
 
             if (redisOutputFormat.database == null){
                 throw new IllegalArgumentException("No database supplied.");
+            }
+
+            if (redisOutputFormat.tableName == null){
+                throw new IllegalArgumentException("No tablename supplied.");
             }
 
             if (redisOutputFormat.password == null){
