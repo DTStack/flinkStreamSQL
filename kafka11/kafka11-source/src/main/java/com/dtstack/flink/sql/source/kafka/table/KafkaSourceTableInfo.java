@@ -23,6 +23,10 @@ package com.dtstack.flink.sql.source.kafka.table;
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Reason:
  * Date: 2018/09/18
@@ -35,86 +39,37 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
     //version
     private static final String CURR_TYPE = "kafka11";
 
-    public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
-
-    public static final String TOPIC_KEY = "topic";
-
-    public static final String GROUPID_KEY = "groupId";
-
-    private String bootstrapServers;
-
-    private String topic;
-
-    private String groupId;
-
-    //latest, earliest
-    private String offsetReset = "latest";
-
-    private String offset;
-
     public KafkaSourceTableInfo(){
         super.setType(CURR_TYPE);
     }
 
+    public static Map<String,String> kafkaParam = new HashMap<String,String>();
 
-    public String getBootstrapServers() {
-        return bootstrapServers;
+    public void addKafkaParam(String key,String value){
+        kafkaParam.put(key,value);
     }
 
-    public void setBootstrapServers(String bootstrapServers) {
-        this.bootstrapServers = bootstrapServers;
+    public String getKafkaParam(String key){
+        return kafkaParam.get(key);
     }
 
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
-
-    public String getOffsetReset() {
-        return offsetReset;
-    }
-
-    public void setOffsetReset(String offsetReset) {
-        if(offsetReset == null){
-            return;
-        }
-
-        this.offsetReset = offsetReset;
-    }
-
-    public String getOffset() {
-        return offset;
-    }
-
-    public void setOffset(String offset) {
-        this.offset = offset;
+    public Set<String> getKafkaParamKeys(){
+        return kafkaParam.keySet();
     }
 
     @Override
     public boolean check() {
-        Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
-        Preconditions.checkNotNull(topic, "kafka of topic is required");
-        Preconditions.checkNotNull(groupId, "kafka of groupId is required");
-        Preconditions.checkState(offsetReset.equalsIgnoreCase("latest")
-                || offsetReset.equalsIgnoreCase("latest"), "kafka of offsetReset set fail");
+        Preconditions.checkNotNull(kafkaParam.get("bootstrap.servers"), "kafka of bootstrapServers is required");
+        Preconditions.checkNotNull(kafkaParam.get("topic"), "kafka of topic is required");
+        Preconditions.checkNotNull(kafkaParam.get("groupId"), "kafka of groupId is required");
+        Preconditions.checkState(kafkaParam.get("auto.offset.reset").toString().equalsIgnoreCase("latest")
+                || kafkaParam.get("auto.offset.reset").toString().equalsIgnoreCase("earliest"), "kafka of offsetReset set fail");
 
         return false;
     }
 
     @Override
     public String getType() {
-//        return super.getType() + SOURCE_SUFFIX;
         return super.getType();
     }
 }

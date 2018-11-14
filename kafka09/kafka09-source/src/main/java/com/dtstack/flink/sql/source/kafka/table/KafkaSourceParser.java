@@ -41,11 +41,13 @@ public class KafkaSourceParser extends AbsSourceParser {
         KafkaSourceTableInfo kafka09SourceTableInfo = new KafkaSourceTableInfo();
         kafka09SourceTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, kafka09SourceTableInfo);
-
         kafka09SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
-        kafka09SourceTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
-        kafka09SourceTableInfo.setGroupId(MathUtil.getString(props.get(KafkaSourceTableInfo.GROUPID_KEY.toLowerCase())));
-        kafka09SourceTableInfo.setTopic(MathUtil.getString(props.get(KafkaSourceTableInfo.TOPIC_KEY.toLowerCase())));
+
+        for (String key:props.keySet()) {
+            if (!key.isEmpty() && key.startsWith("kafka.")) {
+                kafka09SourceTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
+            }
+        }
         return kafka09SourceTableInfo;
     }
 }

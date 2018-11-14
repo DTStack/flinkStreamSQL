@@ -57,12 +57,13 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 	public Table genStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
 
         KafkaSourceTableInfo kafka09SourceTableInfo = (KafkaSourceTableInfo) sourceTableInfo;
-        String topicName = kafka09SourceTableInfo.getTopic();
+        String topicName = kafka09SourceTableInfo.getKafkaParam("topic");
+        String offsetReset = kafka09SourceTableInfo.getKafkaParam("auto.offset.reset");
 
         Properties props = new Properties();
-        props.setProperty("bootstrap.servers", kafka09SourceTableInfo.getBootstrapServers());
-        props.setProperty("auto.offset.reset", kafka09SourceTableInfo.getOffsetReset());
-        //TODO props.setProperty("zookeeper.connect", kafka09SourceTableInfo.)
+        for (String key:kafka09SourceTableInfo.getKafkaParamKeys()) {
+            props.setProperty(key, kafka09SourceTableInfo.getKafkaParam(key));
+        }
 
         TypeInformation[] types = new TypeInformation[kafka09SourceTableInfo.getFields().length];
         for(int i = 0; i< kafka09SourceTableInfo.getFieldClasses().length; i++){
@@ -74,7 +75,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
                 new CustomerJsonDeserialization(typeInformation), props);
 
         //earliest,latest
-        if("earliest".equalsIgnoreCase(kafka09SourceTableInfo.getOffsetReset())){
+        if("earliest".equalsIgnoreCase(offsetReset)){
             kafkaSrc.setStartFromEarliest();
         }else{
             kafkaSrc.setStartFromLatest();

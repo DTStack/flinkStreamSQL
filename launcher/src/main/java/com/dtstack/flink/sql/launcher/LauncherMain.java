@@ -33,6 +33,8 @@ import org.apache.flink.table.shaded.org.apache.commons.lang.StringUtils;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.table.shaded.org.apache.commons.lang.BooleanUtils;
 import org.apache.flink.configuration.Configuration;
+import org.json.JSONObject;
+
 /**
  * Date: 2017/2/20
  * Company: www.dtstack.com
@@ -85,6 +87,25 @@ public class LauncherMain {
             jobGraph.setClasspaths(Main.urlList);
             ClusterClientFactory.startJob(launcherOptions,jobGraph);
 
+            System.exit(0);
+        } else if(mode.equals(ClusterMode.compile.name())){
+            String pluginRoot = launcherOptions.getLocalSqlPluginPath();
+            File jarFile = new File(getLocalCoreJarPath(pluginRoot));
+            String[] remoteArgs = argList.toArray(new String[argList.size()]);
+            PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
+            if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
+                program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
+            }
+            JSONObject result = new JSONObject();
+            try {
+                PackagedProgramUtils.createJobGraph(program, new Configuration(), DEFAULT_PARALLELISM);
+                result.put("resultStatus","Success");
+            }catch (Exception e){
+                result.put("resultStatus","Failed");
+                result.put("detail",e.getCause());
+            }finally {
+                System.out.println(result.toString());
+            }
             System.exit(0);
         }
     }

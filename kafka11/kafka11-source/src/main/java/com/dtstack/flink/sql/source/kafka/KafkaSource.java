@@ -28,6 +28,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
@@ -54,12 +55,13 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 	public Table genStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
 
         KafkaSourceTableInfo kafka011SourceTableInfo = (KafkaSourceTableInfo) sourceTableInfo;
-        String topicName = kafka011SourceTableInfo.getTopic();
+        String topicName = kafka011SourceTableInfo.getKafkaParam("topic");
+        String offsetReset = kafka011SourceTableInfo.getKafkaParam("auto.offset.reset");
 
         Properties props = new Properties();
-        props.setProperty("bootstrap.servers", kafka011SourceTableInfo.getBootstrapServers());
-        props.setProperty("auto.offset.reset", kafka011SourceTableInfo.getOffsetReset());
-        //TODO props.setProperty("zookeeper.connect", kafka09SourceTableInfo.)
+        for (String key:kafka011SourceTableInfo.getKafkaParamKeys()) {
+            props.setProperty(key, kafka011SourceTableInfo.getKafkaParam(key));
+        }
 
         TypeInformation[] types = new TypeInformation[kafka011SourceTableInfo.getFields().length];
         for(int i = 0; i< kafka011SourceTableInfo.getFieldClasses().length; i++){
@@ -71,7 +73,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
                 new CustomerJsonDeserialization(typeInformation), props);
 
         //earliest,latest
-        if("earliest".equalsIgnoreCase(kafka011SourceTableInfo.getOffsetReset())){
+        if("earliest".equalsIgnoreCase(offsetReset)){
             kafkaSrc.setStartFromEarliest();
         }else{
             kafkaSrc.setStartFromLatest();
