@@ -161,7 +161,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         String tableName = redisSideTableInfo.getTableName();
         StringBuilder preKey =  new StringBuilder();
         preKey.append(tableName).append(":").append(kv);
-        return preKey.toString();
+        return preKey.toString().toLowerCase();
     }
 
     @Override

@@ -40,8 +40,6 @@ public class RedisAsyncSideInfo extends SideInfo {
 
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
-        RedisSideTableInfo redisSideTableInfo = (RedisSideTableInfo) sideTableInfo;
-
         String sideTableName = joinInfo.getSideTableName();
 
         SqlNode conditionNode = joinInfo.getCondition();

@@ -33,13 +33,13 @@ public class RedisSideTableInfo extends SideTableInfo {
 
     public static final String DATABASE_KEY = "database";
 
-    public static final String TABLE_KEY = "table";
+    public static final String TABLE_KEY = "tablename";
 
     private String url;
 
     private String database;
 
-    private String table;
+    private String tableName;
 
     private String password;
 
@@ -52,7 +52,8 @@ public class RedisSideTableInfo extends SideTableInfo {
     public boolean check() {
         Preconditions.checkNotNull(url, "redis of URL is required");
         Preconditions.checkNotNull(database, "redis of database is required");
-        //Preconditions.checkNotNull(password, "redis of password is required");
+        Preconditions.checkNotNull(tableName, "redis of tablename is required");
+        Preconditions.checkNotNull(password, "redis of password is required");
         return true;
     }
 
@@ -73,11 +74,11 @@ public class RedisSideTableInfo extends SideTableInfo {
     }
 
     public String getTableName(){
-        return table;
+        return tableName;
     }
 
     public void setTableName(String table){
-        this.table = table;
+        this.tableName = table;
     }
 
     public String getPassword() {
