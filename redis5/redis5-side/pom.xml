@@ -9,6 +9,8 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
+    <artifactId>sql.side.redis</artifactId>
+    <name>redis-side</name>
     <dependencies>
         <dependency>
             <groupId>com.dtstack.flink</groupId>
@@ -22,8 +24,6 @@
         </dependency>
     </dependencies>
 
-    <artifactId>sql.side.redis</artifactId>
-    <name>redis-side</name>
 
     <modules>
         <module>redis-side-core</module>
