@@ -126,7 +126,7 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
         for (int i = 0; i < fieldNames.length; i++) {
             StringBuilder key = new StringBuilder();
             key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
-            jedis.append(key.toString(), (String) row.getField(i));
+            jedis.set(key.toString(), (String) row.getField(i));
         }
     }
 
