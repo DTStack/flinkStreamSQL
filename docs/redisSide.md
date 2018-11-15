@@ -25,7 +25,7 @@
 |----|---|
 | tableName | 注册到flink的表名称(可选填;不填默认和redis对应的表名称相同)|
 | colName | 列名称，维表列名格式 表名:主键名:主键值:列名]|
-| colType | 列类型，当前只支持varchart|
+| colType | 列类型，当前只支持varchar|
 | PERIOD FOR SYSTEM_TIME | 关键字表明该定义的表为维表信息|
   
 ## 3.参数
