@@ -37,4 +37,4 @@ JAR_DIR=$SQL_HOME/lib/*
 CLASS_NAME=com.dtstack.flink.sql.launcher.LauncherMain
 
 echo "sql submit ..."
-nohup $JAVA_RUN -cp $JAR_DIR $CLASS_NAME $@ &
+$JAVA_RUN -cp $JAR_DIR $CLASS_NAME $@ &

@@ -60,7 +60,7 @@ public class SideAsyncOperator {
                                             List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
         AsyncReqRow asyncDbReq = loadAsyncReq(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
         //TODO How much should be set for the degree of parallelism? Timeout? capacity settings?
-        return AsyncDataStream.orderedWait(inputStream, asyncDbReq, 10000, TimeUnit.MILLISECONDS, 10)
+        return AsyncDataStream.orderedWait(inputStream, asyncDbReq, 100000, TimeUnit.MILLISECONDS, 2)
                 .setParallelism(sideTableInfo.getParallelism());
     }
 }
