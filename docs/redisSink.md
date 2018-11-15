@@ -25,7 +25,7 @@ redis5.0
 |----|---|
 | tableName | 在 sql 中使用的名称;即注册到flink-table-env上的名称
 | colName | 列名称，redis中存储为 表名:主键名:主键值:列名]|
-| colType | 列类型，当前只支持varchart|
+| colType | 列类型，当前只支持varchar|
 | PRIMARY KEY(keyInfo) | 结果表主键定义;多个列之间用逗号隔开|
 
 ## 4.参数：
