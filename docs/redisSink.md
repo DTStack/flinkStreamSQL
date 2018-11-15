@@ -5,8 +5,8 @@ CREATE TABLE tableName(
     ...
     colNameX colType
  )WITH(
-    type ='mysql',
-    url ='redisUrl',
+    type ='redis',
+    url = 'ip:port',
     database ='dbName',
     password ='pwd',
     tableName ='tableName',
