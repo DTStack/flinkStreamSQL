@@ -22,7 +22,10 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
+import io.lettuce.core.KeyScanCursor;
+import io.lettuce.core.KeyValue;
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisFuture;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -37,7 +40,9 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class RedisAsyncReqRow extends AsyncReqRow {
 
@@ -90,12 +95,12 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             row.setField(entry.getKey(), obj);
         }
 
-        // TODO: 2018/11/13 插入维表数据
         for(Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()){
             if(keyValue == null){
                 row.setField(entry.getKey(), null);
             }else{
-                row.setField(entry.getKey(), keyValue.get(entry.getValue()));
+                String key = sideInfo.getSideFieldNameIndex().get(entry.getKey());
+                row.setField(entry.getKey(), keyValue.get(key));
             }
         }
 
@@ -135,24 +140,36 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             }
         }
 
-        async.keys(key).whenComplete((value, e)-> {
-            for (String newKey : value){
-                String[] splitKey = newKey.split(":");
-                Map<String, String> keyValue = Maps.newConcurrentMap();
-                keyValue.put(splitKey[1], splitKey[2]);
-                async.get(newKey).thenAccept(new Consumer<String>() {
-                    @Override
-                    public void accept(String s) {
-                        keyValue.put(splitKey[3], s);
+        Map<String, String> keyValue = Maps.newHashMap();
+        List<String> value = async.keys(key + ":*").get();
+        String[] values = value.toArray(new String[value.size()]);
+        RedisFuture<List<KeyValue<String, String>>> future =  async.mget(values);
+        while (future.isDone()){
+            try {
+                List<KeyValue<String, String>> kvList = future.get();
+                if (kvList.size() != 0){
+                    for (int i=0; i<kvList.size(); i++){
+                        String[] splitKeys = kvList.get(i).getKey().split(":");
+                        keyValue.put(splitKeys[1], splitKeys[2]);
+                        keyValue.put(splitKeys[3], kvList.get(i).getValue());
                     }
-                });
-                Row row = fillData(input, keyValue);
-                resultFuture.complete(Collections.singleton(row));
-                if(openCache()){
-                    putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
+                    Row row = fillData(input, keyValue);
+                    resultFuture.complete(Collections.singleton(row));
+                    if(openCache()){
+                        putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
+                    }
+                } else {
+                    dealMissKey(input, resultFuture);
+                    if(openCache()){
+                        putCache(key, CacheMissVal.getMissKeyObj());
+                    }
                 }
+            } catch (InterruptedException e1) {
+                e1.printStackTrace();
+            } catch (ExecutionException e1) {
+                e1.printStackTrace();
             }
-        });
+        }
 
     }
 
@@ -161,7 +178,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         String tableName = redisSideTableInfo.getTableName();
         StringBuilder preKey =  new StringBuilder();
         preKey.append(tableName).append(":").append(kv);
-        return preKey.toString().toLowerCase();
+        return preKey.toString();
     }
 
     @Override
