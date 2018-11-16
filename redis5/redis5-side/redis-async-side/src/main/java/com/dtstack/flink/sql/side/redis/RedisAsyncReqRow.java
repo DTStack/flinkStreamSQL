@@ -144,14 +144,14 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         List<String> value = async.keys(key + ":*").get();
         String[] values = value.toArray(new String[value.size()]);
         RedisFuture<List<KeyValue<String, String>>> future =  async.mget(values);
-        if (future.isDone()){
-            try {
-                List<KeyValue<String, String>> kvList = future.get();
-                if (kvList.size() != 0){
-                    for (int i=0; i<kvList.size(); i++){
-                        String[] splitKeys = kvList.get(i).getKey().split(":");
+        future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
+            @Override
+            public void accept(List<KeyValue<String, String>> keyValues) {
+                if (keyValues.size() != 0){
+                    for (int i=0; i<keyValues.size(); i++){
+                        String[] splitKeys = keyValues.get(i).getKey().split(":");
                         keyValue.put(splitKeys[1], splitKeys[2]);
-                        keyValue.put(splitKeys[3], kvList.get(i).getValue());
+                        keyValue.put(splitKeys[3], keyValues.get(i).getValue());
                     }
                     Row row = fillData(input, keyValue);
                     resultFuture.complete(Collections.singleton(row));
@@ -164,13 +164,8 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                         putCache(key, CacheMissVal.getMissKeyObj());
                     }
                 }
-            } catch (InterruptedException e1) {
-                e1.printStackTrace();
-            } catch (ExecutionException e1) {
-                e1.printStackTrace();
             }
-        }
-
+        });
     }
 
     private String buildCacheKey(List<String> keyData) {
