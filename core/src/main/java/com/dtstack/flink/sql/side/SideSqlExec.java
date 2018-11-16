@@ -374,7 +374,6 @@ public class SideSqlExec {
                 || selectNode.getKind() == OR
                 || selectNode.getKind() == AND
                 || selectNode.getKind() == COUNT
-                || selectNode.getKind() == SUM
                 || selectNode.getKind() == SUM0
                 || selectNode.getKind() == LEAD
                 || selectNode.getKind() == LAG
