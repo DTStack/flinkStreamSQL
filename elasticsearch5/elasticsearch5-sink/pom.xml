@@ -47,8 +47,8 @@
                         <configuration>
                             <artifactSet>
                                 <excludes>
-                                    <!--<exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>-->
-                                    <!--<exclude>org.slf4j:slf4j-api</exclude>-->
+                                    <exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>
+                                    <exclude>org.slf4j:slf4j-api</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>
