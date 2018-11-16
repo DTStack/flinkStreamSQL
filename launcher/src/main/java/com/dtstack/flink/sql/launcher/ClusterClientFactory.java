@@ -18,6 +18,8 @@
 
 package com.dtstack.flink.sql.launcher;
 
+import com.dtstack.flink.sql.launcher.perjob.FLinkPerJobResourceUtil;
+import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.deployment.ClusterRetrieveException;
 import org.apache.flink.client.deployment.ClusterSpecification;
@@ -45,12 +47,14 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -71,7 +75,10 @@ public class ClusterClientFactory {
             return createStandaloneClient(launcherOptions);
         } else if(mode.equals(ClusterMode.yarn.name())) {
             return createYarnClient(launcherOptions);
+        } else if(mode.equals(ClusterMode.yarnPer.name())){
+            return createPerJobModeYarnClient(launcherOptions);
         }
+
         throw new IllegalArgumentException("Unsupported cluster client type: ");
     }
 
@@ -170,6 +177,15 @@ public class ClusterClientFactory {
 
 
         throw new UnsupportedOperationException("Haven't been developed yet!");
+    }
+
+    public static ClusterClient createPerJobModeYarnClient(LauncherOptions launcherOptions) throws IOException {
+
+        Properties confProperties = PluginUtil.jsonStrToObject(launcherOptions.getConfProp(), Properties.class);
+        ClusterSpecification clusterSpecification = FLinkPerJobResourceUtil.createClusterSpecification(confProperties);
+
+        //TODO
+        return null;
     }
 
     /**

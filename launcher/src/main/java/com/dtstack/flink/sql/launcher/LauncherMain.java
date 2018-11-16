@@ -55,7 +55,7 @@ public class LauncherMain {
         if(mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[argList.size()]);
             Main.main(localArgs);
-        } else {
+        } else{
             ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
             String pluginRoot = launcherOptions.getLocalSqlPluginPath();
             File jarFile = new File(getLocalCoreJarPath(pluginRoot));
