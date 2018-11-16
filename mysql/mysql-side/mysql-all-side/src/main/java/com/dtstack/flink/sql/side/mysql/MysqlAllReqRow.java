@@ -71,7 +71,6 @@ public class MysqlAllReqRow extends AllReqRow{
         super(new MysqlAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
-
     @Override
     protected Row fillData(Row input, Object sideInput) {
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
