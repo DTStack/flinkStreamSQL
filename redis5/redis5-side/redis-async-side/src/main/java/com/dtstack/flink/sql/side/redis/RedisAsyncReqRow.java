@@ -144,7 +144,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         List<String> value = async.keys(key + ":*").get();
         String[] values = value.toArray(new String[value.size()]);
         RedisFuture<List<KeyValue<String, String>>> future =  async.mget(values);
-        while (future.isDone()){
+        if (future.isDone()){
             try {
                 List<KeyValue<String, String>> kvList = future.get();
                 if (kvList.size() != 0){
