@@ -65,6 +65,8 @@ public class LauncherOptionParser {
 
     public static final String OPTION_ALLOW_NON_RESTORED_STATE = "allowNonRestoredState";
 
+    public static final String OPTION_FLINK_JAR_PATH = "flinkJarPath";
+
     private Options options = new Options();
 
     private BasicParser parser = new BasicParser();
@@ -84,6 +86,7 @@ public class LauncherOptionParser {
 
         options.addOption(OPTION_SAVE_POINT_PATH, true, "Savepoint restore path");
         options.addOption(OPTION_ALLOW_NON_RESTORED_STATE, true, "Flag indicating whether non restored state is allowed if the savepoint");
+        options.addOption(OPTION_FLINK_JAR_PATH, true, "flink jar path for submit of perjob mode");
 
         try {
             CommandLine cl = parser.parse(options, args);
@@ -137,6 +140,11 @@ public class LauncherOptionParser {
                 properties.setAllowNonRestoredState(allow_non);
             }
 
+            String flinkJarPath = cl.getOptionValue(OPTION_FLINK_JAR_PATH);
+            if(StringUtils.isNotBlank(flinkJarPath)){
+                properties.setFlinkJarPath(flinkJarPath);
+            }
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -152,7 +160,8 @@ public class LauncherOptionParser {
         for(Map.Entry<String, Object> one : mapConf.entrySet()){
             String key = one.getKey();
             if(OPTION_FLINK_CONF_DIR.equalsIgnoreCase(key)
-                    || OPTION_YARN_CONF_DIR.equalsIgnoreCase(key)){
+                    || OPTION_YARN_CONF_DIR.equalsIgnoreCase(key)
+                    || OPTION_FLINK_JAR_PATH.equalsIgnoreCase(key)){
                 continue;
             }
 

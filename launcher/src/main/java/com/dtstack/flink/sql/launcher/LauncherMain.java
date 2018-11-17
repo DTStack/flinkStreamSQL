@@ -22,11 +22,16 @@ package com.dtstack.flink.sql.launcher;
 
 import avro.shaded.com.google.common.collect.Lists;
 import com.dtstack.flink.sql.Main;
+import com.dtstack.flink.sql.launcher.perjob.PerJobSubmitter;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.PackagedProgram;
 import java.io.File;
 import java.util.List;
 import com.dtstack.flink.sql.ClusterMode;
+import org.apache.flink.client.program.PackagedProgramUtils;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.table.shaded.org.apache.commons.lang.StringUtils;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.table.shaded.org.apache.commons.lang.BooleanUtils;
@@ -55,17 +60,29 @@ public class LauncherMain {
         if(mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[argList.size()]);
             Main.main(localArgs);
-        } else{
+            return;
+        }
+
+        String pluginRoot = launcherOptions.getLocalSqlPluginPath();
+        File jarFile = new File(getLocalCoreJarPath(pluginRoot));
+        String[] remoteArgs = argList.toArray(new String[argList.size()]);
+        PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
+
+        if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
+            program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
+        }
+
+        if(mode.equals(ClusterMode.yarnPer.name())){
+            String flinkConfDir = launcherOptions.getFlinkconf();
+            Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
+            JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1);
+            PerJobSubmitter.submit(launcherOptions, jobGraph);
+        } else {
             ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
-            String pluginRoot = launcherOptions.getLocalSqlPluginPath();
-            File jarFile = new File(getLocalCoreJarPath(pluginRoot));
-            String[] remoteArgs = argList.toArray(new String[argList.size()]);
-            PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
-            if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
-                program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
-            }
             clusterClient.run(program, 1);
             clusterClient.shutdown();
         }
+
+        System.out.println("---submit end----");
     }
 }
