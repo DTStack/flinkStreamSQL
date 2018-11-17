@@ -18,10 +18,9 @@
 
 package com.dtstack.flink.sql.launcher.perjob;
 
+import com.dtstack.flink.sql.launcher.YarnConfLoader;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.HighAvailabilityOptions;
-import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.hadoop.shaded.com.google.common.base.Strings;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
@@ -68,18 +67,19 @@ public class PerJobClusterClientBuilder {
             throw new RuntimeException("parameters of yarn is required");
         }
 
+        yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
+        yarnClient = YarnClient.createYarnClient();
+        yarnClient.init(yarnConf);
+        yarnClient.start();
+
+        System.out.println("----init yarn success ----");
     }
 
-    public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(Properties properties, String flinkJarPath,
-                                                                       String jobmanagerArchiveFsDir, String queue) throws MalformedURLException {
+    public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(Properties confProp, String flinkJarPath, String queue) throws MalformedURLException {
         Configuration newConf = new Configuration();
+        newConf.addAllToProperties(confProp);
 
-        if(properties.containsKey(HighAvailabilityOptions.HA_CLUSTER_ID)){
-            newConf.setString(HighAvailabilityOptions.HA_CLUSTER_ID, properties.getProperty(HighAvailabilityOptions.HA_CLUSTER_ID.key()));
-        }
-
-        perJobMetricConfigConfig(newConf, properties);
-
+        //perJobMetricConfigConfig(newConf, properties);
         AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(newConf, yarnConf, ".");
 
         if (StringUtils.isNotBlank(flinkJarPath)) {
@@ -88,10 +88,6 @@ public class PerJobClusterClientBuilder {
                 throw new RuntimeException("The Flink jar path is not exist");
             }
 
-        }
-
-        if(StringUtils.isNotBlank(jobmanagerArchiveFsDir)){
-            newConf.setString(JobManagerOptions.ARCHIVE_DIR, jobmanagerArchiveFsDir);
         }
 
         List<URL> classpaths = new ArrayList<>();
@@ -118,6 +114,7 @@ public class PerJobClusterClientBuilder {
         return clusterDescriptor;
     }
 
+    //FIXME need?
     private void perJobMetricConfigConfig(Configuration configuration, Properties properties){
         if(!properties.containsKey(DEFAULT_GATEWAY_CLASS)){
             return;
@@ -131,7 +128,7 @@ public class PerJobClusterClientBuilder {
         configuration.setString(PROMGATEWAY_DELETEONSHUTDOWN_KEY, properties.getProperty(PROMGATEWAY_DELETEONSHUTDOWN_KEY));
     }
 
-    public AbstractYarnClusterDescriptor getClusterDescriptor(
+    private AbstractYarnClusterDescriptor getClusterDescriptor(
             Configuration configuration,
             YarnConfiguration yarnConfiguration,
             String configurationDirectory) {
