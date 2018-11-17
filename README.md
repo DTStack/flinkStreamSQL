@@ -52,8 +52,9 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * **model**
 	* 描述：执行模式，也就是flink集群的工作模式
 		* local: 本地模式
-		* standalone: 独立部署模式的flink集群
-		* yarn: yarn模式的flink集群
+		* standalone: 提交到独立部署模式的flink集群
+		* yarn: 提交到yarn模式的flink集群(即提交到已有flink集群)
+		* yarnPer: yarn per_job模式提交(即创建新flink application)
 	* 必选：否
 	* 默认值：local
 	
@@ -118,6 +119,16 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 描述：指示保存点是否允许非还原状态的标志
 	* 必选：否
 	* 默认值：false
+	
+* **flinkJarPath**
+	* 描述：per_job 模式提交需要指定本地的flink jar存放路径
+	* 必选：否
+	* 默认值：false	
+
+* **queue**
+	* 描述：per_job 模式下指定的yarn queue
+	* 必选：否
+	* 默认值：false	
 
 ## 2 结构
 ### 2.1 源表插件
