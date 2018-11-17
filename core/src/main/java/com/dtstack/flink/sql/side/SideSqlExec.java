@@ -106,7 +106,7 @@ public class SideSqlExec {
 
             }else if (pollObj instanceof JoinInfo){
                 preIsSideJoin = true;
-                jionFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
+                joinFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
             }
         }
 
@@ -545,11 +545,11 @@ public class SideSqlExec {
 
             }else if (pollObj instanceof JoinInfo){
                 preIsSideJoin = true;
-                jionFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
+                joinFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
             }
         }
     }
-    private void jionFun(Object pollObj, Map<String, Table> localTableCache,
+    private void joinFun(Object pollObj, Map<String, Table> localTableCache,
                          Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
                          List<FieldReplaceInfo> replaceInfoList) throws Exception{
         JoinInfo joinInfo = (JoinInfo) pollObj;
