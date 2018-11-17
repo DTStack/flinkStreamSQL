@@ -77,7 +77,8 @@ public class PerJobClusterClientBuilder {
 
     public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(Properties confProp, String flinkJarPath, String queue) throws MalformedURLException {
         Configuration newConf = new Configuration();
-        newConf.addAllToProperties(confProp);
+        //newConf.addAllToProperties(confProp);
+        confProp.forEach((key, val) -> newConf.setString(key.toString(), val.toString()) );
 
         //perJobMetricConfigConfig(newConf, properties);
         AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(newConf, yarnConf, ".");
