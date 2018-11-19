@@ -38,7 +38,7 @@ CREATE TABLE tableName(
 |bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
 |zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||
 |topic | 需要读取的 topic 名称|是||
-|offsetReset | 读取的topic 的offset初始位置[latest\|earliest]|否|latest|
+|offsetReset | 读取的topic 的offset初始位置[latest\|earliest\|指定offset值({"0":12312,"1":12321,"2":12312},{"partition_no":offset_value})]|否|latest|
 |parallelism | 并行度设置|否|1|
   
 ## 5.样例：
