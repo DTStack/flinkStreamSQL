@@ -21,12 +21,18 @@
 package com.dtstack.flink.sql.launcher;
 
 import avro.shaded.com.google.common.collect.Lists;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import com.dtstack.flink.sql.Main;
 import com.dtstack.flink.sql.launcher.perjob.PerJobSubmitter;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.PackagedProgram;
-import java.io.File;
+
+import java.io.*;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+
 import com.dtstack.flink.sql.ClusterMode;
 import org.apache.flink.client.program.PackagedProgramUtils;
 import org.apache.flink.configuration.Configuration;
@@ -53,6 +59,9 @@ public class LauncherMain {
     }
 
     public static void main(String[] args) throws Exception {
+        if (args.length==1 && args[0].endsWith(".json")){
+            args = parseJson(args);
+        }
         LauncherOptionParser optionParser = new LauncherOptionParser(args);
         LauncherOptions launcherOptions = optionParser.getLauncherOptions();
         String mode = launcherOptions.getMode();
@@ -84,5 +93,39 @@ public class LauncherMain {
         }
 
         System.out.println("---submit end----");
+    }
+
+    private static String[] parseJson(String[] args) {
+        BufferedReader reader = null;
+        String lastStr = "";
+        try{
+            FileInputStream fileInputStream = new FileInputStream(args[0]);
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+            reader = new BufferedReader(inputStreamReader);
+            String tempString = null;
+            while((tempString = reader.readLine()) != null){
+                lastStr += tempString;
+            }
+            reader.close();
+        }catch(IOException e){
+            e.printStackTrace();
+        }finally{
+            if(reader != null){
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        Map<String, Object> map = JSON.parseObject(lastStr, new TypeReference<Map<String, Object>>(){} );
+        List<String> list = new LinkedList<>();
+
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            list.add("-" + entry.getKey());
+            list.add(entry.getValue().toString());
+        }
+        String[] array = list.toArray(new String[list.size()]);
+        return array;
     }
 }
