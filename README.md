@@ -98,6 +98,11 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
         * sql.max.concurrent.checkpoints: 最大并发生成checkpoint数
         * sql.checkpoint.cleanup.mode: 默认是不会将checkpoint存储到外部存储,[true(任务cancel之后会删除外部存储)|false(外部存储需要手动删除)]
         * flinkCheckpointDataURI: 设置checkpoint的外部存储路径,根据实际的需求设定文件路径,hdfs://, file://
+        * jobmanager.memory.mb: per_job模式下指定jobmanager的内存大小(单位MB, 默认值:768)
+        * taskmanager.memory.mb: per_job模式下指定taskmanager的内存大小(单位MB, 默认值:768)
+        * taskmanager.num: per_job模式下指定taskmanager的实例数(默认1)
+        * taskmanager.slots：per_job模式下指定每个taskmanager对应的slot数量(默认1)
+        * [prometheus 相关参数](docs/prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	
 * **flinkconf**
@@ -146,8 +151,33 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [mysql 维表插件](docs/mysqlSide.md)
 * [mongo 维表插件](docs/mongoSide.md)
 * [redis 维表插件](docs/redisSide.md)
+
+## 3 性能指标(新增)
+
+### kafka插件
+* 业务延迟： flink_taskmanager_job_task_operator_dtEventDelay(单位s)  
+   数据本身的时间和进入flink的当前时间的差值.
+  
+* 各个输入源的脏数据：flink_taskmanager_job_task_operator_dtDirtyData  
+  从kafka获取的数据解析失败的视为脏数据  
+
+* 各Source的数据输入TPS: flink_taskmanager_job_task_operator_dtNumRecordsInRate  
+  kafka接受的记录数(未解析前)/s
+
+* 各Source的数据输入RPS: flink_taskmanager_job_task_operator_dtNumRecordsInResolveRate  
+  kafka接受的记录数(解析后)/s
+  
+* 各Source的数据输入BPS: flink_taskmanager_job_task_operator_dtNumBytesInRate  
+  kafka接受的字节数/s
+
+* Kafka作为输入源的各个分区的延迟数: flink_taskmanager_job_task_operator_topic_partition_dtTopicPartitionLag  
+  当前kafka10,kafka11有采集该指标
+
+* 各个输出源RPS: flink_taskmanager_job_task_operator_dtNumRecordsOutRate  
+  写入的外部记录数/s
+      
 	
-## 3 样例
+## 4 样例
 
 ```
 CREATE TABLE MyTable(
