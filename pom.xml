@@ -13,6 +13,7 @@
     <module>mysql</module>
     <module>hbase</module>
     <module>elasticsearch5</module>
+    <module>mongo</module>
     <module>launcher</module>
   </modules>
   <packaging>pom</packaging>
@@ -22,7 +23,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <flink.version>1.5.3</flink.version>
+    <flink.version>1.5.4</flink.version>
   </properties>
 
   <build>

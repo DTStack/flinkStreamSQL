@@ -2,15 +2,14 @@
 | ------ | ----- |
 | boolean    | Boolean |
 | int        | Integer |
+| integer| Integer |
 | bigint     | Long |
 | tinyint    | Byte |
-| byte       | Byte |
-| short | Short | 
 | smallint | Short|
-| char | String|
 | varchar | String |
-| string | String|
+| real | Float |
 | float  | Float|
 | double | Double|
 | date   | Date |
 | timestamp | Timestamp |
+| decimal |BigDecimal|

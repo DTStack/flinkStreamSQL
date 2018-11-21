@@ -20,15 +20,13 @@
 
 package com.dtstack.flink.sql.watermarker;
 
-import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
+import com.dtstack.flink.sql.util.MathUtil;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 
 /**
  * Custom watermark --- for eventtime
@@ -37,7 +35,7 @@ import java.text.SimpleDateFormat;
  * @author xuchao
  */
 
-public class CustomerWaterMarkerForTimeStamp extends BoundedOutOfOrdernessTimestampExtractor<Row> {
+public class CustomerWaterMarkerForTimeStamp extends AbsCustomerWaterMarker<Row> {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForTimeStamp.class);
 
@@ -46,6 +44,7 @@ public class CustomerWaterMarkerForTimeStamp extends BoundedOutOfOrdernessTimest
     private int pos;
 
     private long lastTime = 0;
+
 
     public CustomerWaterMarkerForTimeStamp(Time maxOutOfOrderness, int pos) {
         super(maxOutOfOrderness);
@@ -57,10 +56,14 @@ public class CustomerWaterMarkerForTimeStamp extends BoundedOutOfOrdernessTimest
         try {
             Timestamp time = (Timestamp) row.getField(pos);
             lastTime = time.getTime();
+
+            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - time.getTime())/1000));
             return time.getTime();
         } catch (RuntimeException e) {
             logger.error("", e);
         }
         return lastTime;
     }
+
+
 }

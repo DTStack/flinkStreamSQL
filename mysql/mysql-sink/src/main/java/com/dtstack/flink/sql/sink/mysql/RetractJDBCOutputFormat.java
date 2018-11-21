@@ -38,10 +38,14 @@
 
 package com.dtstack.flink.sql.sink.mysql;
 
+import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.Counter;
+import org.apache.flink.metrics.Meter;
+import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,13 +66,14 @@ import java.sql.SQLException;
 public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	private static final long serialVersionUID = 1L;
 	
-	private static final Logger LOG = LoggerFactory.getLogger(org.apache.flink.api.java.io.jdbc.JDBCOutputFormat.class);
+	private static final Logger LOG = LoggerFactory.getLogger(RetractJDBCOutputFormat.class);
 	
 	private String username;
 	private String password;
 	private String drivername;
 	private String dbURL;
 	private String insertQuery;
+	private String tableName;
 	private int batchInterval = 5000;
 	
 	private Connection dbConn;
@@ -77,7 +82,11 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	private int batchCount = 0;
 	
 	public int[] typesArray;
-	
+
+	private transient Counter outRecords;
+
+	private transient Meter outRecordsRate;
+
 	public RetractJDBCOutputFormat() {
 	}
 	
@@ -97,13 +106,25 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 		try {
 			establishConnection();
 			upload = dbConn.prepareStatement(insertQuery);
+			initMetric();
+			if (dbConn.getMetaData().getTables(null, null, tableName, null).next()){
+				upload = dbConn.prepareStatement(insertQuery);
+			} else {
+				throw new SQLException("Table " + tableName +" doesn't exist");
+			}
+
 		} catch (SQLException sqe) {
 			throw new IllegalArgumentException("open() failed.", sqe);
 		} catch (ClassNotFoundException cnfe) {
 			throw new IllegalArgumentException("JDBC driver class not found.", cnfe);
 		}
 	}
-	
+
+	private void initMetric(){
+		outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
+		outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
+	}
+
 	private void establishConnection() throws SQLException, ClassNotFoundException {
 		Class.forName(drivername);
 		if (username == null) {
@@ -140,6 +161,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 		try {
 			if(retract){
 				insertWrite(row);
+				outRecords.inc();
 			}else{
 				//do nothing
 			}
@@ -150,6 +172,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 
 
 	private void insertWrite(Row row) throws SQLException {
+
 		updatePreparedStmt(row, upload);
 		upload.addBatch();
 		batchCount++;
@@ -325,7 +348,12 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 			format.typesArray = typesArray;
 			return this;
 		}
-		
+
+		public JDBCOutputFormatBuilder setTableName(String tableName) {
+			format.tableName = tableName;
+			return this;
+		}
+
 		/**
 		 * Finalizes the configuration and checks validity.
 		 * 

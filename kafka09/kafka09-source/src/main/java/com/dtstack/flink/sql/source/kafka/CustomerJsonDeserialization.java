@@ -16,33 +16,46 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.source.kafka;
 
 
-import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
+import com.dtstack.flink.sql.source.AbsDeserialization;
+import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
+import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.internals.SubscriptionState;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Iterator;
+import java.util.Set;
+
+import static com.dtstack.flink.sql.metric.MetricConstant.*;
 
 /**
  * json string parsing custom
- * Date: 2017/5/28
+ * Date: 2018/09/18
  * Company: www.dtstack.com
- * @author xuchao
+ * @author sishu.yss
  */
 
-public class CustomerJsonDeserialization extends AbstractDeserializationSchema<Row> {
+public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
-    private static final Logger logger = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
+
+    private static final long serialVersionUID = 2385115520960444192L;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -58,6 +71,10 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
     /** Flag indicating whether to fail on a missing field. */
     private boolean failOnMissingField;
 
+    private AbstractFetcher<Row, ?> fetcher;
+
+    private boolean firstMsg = true;
+
     public CustomerJsonDeserialization(TypeInformation<Row> typeInfo){
         this.typeInfo = typeInfo;
 
@@ -68,7 +85,21 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
 
     @Override
     public Row deserialize(byte[] message) throws IOException {
+
+        if(firstMsg){
+            try {
+                registerPtMetric(fetcher);
+            } catch (Exception e) {
+                LOG.error("register topic partition metric error.", e);
+            }
+
+            firstMsg = false;
+        }
+
         try {
+            numInRecord.inc();
+            numInBytes.inc(message.length);
+
             JsonNode root = objectMapper.readTree(message);
             Row row = new Row(fieldNames.length);
             for (int i = 0; i < fieldNames.length; i++) {
@@ -88,9 +119,12 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
                 }
             }
 
+            numInResolveRecord.inc();
             return row;
         } catch (Throwable t) {
-            throw new IOException("Failed to deserialize JSON object.", t);
+            //add metric of dirty data
+            dirtyDataCounter.inc();
+            return new Row(fieldNames.length);
         }
     }
 
@@ -110,5 +144,49 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
 
         return null;
 
+    }
+
+    public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
+        this.fetcher = fetcher;
+    }
+
+
+    protected void registerPtMetric(AbstractFetcher<Row, ?> fetcher) throws Exception {
+
+        Field consumerThreadField = fetcher.getClass().getSuperclass().getDeclaredField("consumerThread");
+        consumerThreadField.setAccessible(true);
+        KafkaConsumerThread consumerThread = (KafkaConsumerThread) consumerThreadField.get(fetcher);
+
+        Field hasAssignedPartitionsField = consumerThread.getClass().getDeclaredField("hasAssignedPartitions");
+        hasAssignedPartitionsField.setAccessible(true);
+
+        //wait until assignedPartitions
+
+        boolean hasAssignedPartitions = (boolean) hasAssignedPartitionsField.get(consumerThread);
+
+        if(!hasAssignedPartitions){
+            throw new RuntimeException("wait 50 secs, but not assignedPartitions");
+        }
+
+        Field consumerField = consumerThread.getClass().getDeclaredField("consumer");
+        consumerField.setAccessible(true);
+
+        KafkaConsumer kafkaConsumer = (KafkaConsumer) consumerField.get(consumerThread);
+        Field subscriptionStateField = kafkaConsumer.getClass().getDeclaredField("subscriptions");
+        subscriptionStateField.setAccessible(true);
+
+        //topic partitions lag
+        SubscriptionState subscriptionState = (SubscriptionState) subscriptionStateField.get(kafkaConsumer);
+        Set<TopicPartition> assignedPartitions = subscriptionState.assignedPartitions();
+        for(TopicPartition topicPartition : assignedPartitions){
+            MetricGroup metricGroup = getRuntimeContext().getMetricGroup().addGroup(DT_TOPIC_GROUP, topicPartition.topic())
+                    .addGroup(DT_PARTITION_GROUP, topicPartition.partition() + "");
+            metricGroup.gauge(DT_TOPIC_PARTITION_LAG_GAUGE, new KafkaTopicPartitionLagMetric(subscriptionState, topicPartition));
+        }
+
+    }
+
+    private static String partitionLagMetricName(TopicPartition tp) {
+        return tp + ".records-lag";
     }
 }
