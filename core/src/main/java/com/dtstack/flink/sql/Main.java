@@ -59,6 +59,9 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +79,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Date: 2018/6/26
@@ -111,7 +117,7 @@ public class Main {
         options.addOption("remoteSqlPluginPath", true, "remote sql plugin path");
         options.addOption("confProp", true, "env properties");
         options.addOption("mode", true, "deploy mode");
-
+        options.addOption("yarnconf", true, "yarn conf");
         options.addOption("savePointPath", true, "Savepoint restore path");
         options.addOption("allowNonRestoredState", true, "Flag indicating whether non restored state is allowed if the savepoint");
 
@@ -124,6 +130,7 @@ public class Main {
         String remoteSqlPluginPath = cl.getOptionValue("remoteSqlPluginPath");
         String deployMode = cl.getOptionValue("mode");
         String confProp = cl.getOptionValue("confProp");
+        String yarnConfDir = cl.getOptionValue("yarnconf");
 
         Preconditions.checkNotNull(sql, "parameters of sql is required");
         Preconditions.checkNotNull(name, "parameters of name is required");
@@ -132,21 +139,19 @@ public class Main {
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
 
-       /* List<String> addJarFileHdfsList = Lists.newArrayList();
+        List<String> addJarFileList;
         List<String> addJarFileLocalList = Lists.newArrayList();
-        //hdfsjar-->localjar
-        if(!Strings.isNullOrEmpty(addJarListStr)){
-            addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
-            addJarFileHdfsList = objMapper.readValue(addJarListStr, List.class);
-
-            for (String hdfsJar:addJarFileHdfsList) {
-                addJarFileLocalList.add(null);
-            }
-        }*/
-        List<String> addJarFileList = Lists.newArrayList();
         if(!Strings.isNullOrEmpty(addJarListStr)){
             addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
             addJarFileList = objMapper.readValue(addJarListStr, List.class);
+
+            for (String jar:addJarFileList) {
+                if (jar.startsWith("hdfs") || jar.startsWith("viewfs")){
+                    addJarFileLocalList.add(copyToLocalFile(jar,yarnConfDir));
+                } else {
+                    addJarFileLocalList.add(jar);
+                }
+            }
         }
 
         ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
@@ -164,7 +169,7 @@ public class Main {
         SqlTree sqlTree = SqlParser.parseSql(sql);
 
         //Get External jar to load
-        for(String addJarPath : addJarFileList){
+        for(String addJarPath : addJarFileLocalList){
             File tmpFile = new File(addJarPath);
             jarURList.add(tmpFile.toURI().toURL());
         }
@@ -212,6 +217,32 @@ public class Main {
         env.execute(name);
     }
 
+    private static String TMP_FILE_PATH = "/tmp/.flink/";
+    private static String copyToLocalFile(String jar,String yarnConfDir) throws IOException {
+        FileSystem fs = FileSystem.get(loadYarnConfiguration(yarnConfDir));
+        Path sourcePath = new Path(jar);
+        Path destPath = new Path(TMP_FILE_PATH,sourcePath.getName());
+        fs.copyToLocalFile(sourcePath,destPath);
+        return destPath.toString();
+    }
+
+    private static YarnConfiguration loadYarnConfiguration(String yarnConfDir)
+    {
+        org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration();
+        hadoopConf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+
+        Stream.of("yarn-site.xml", "core-site.xml", "hdfs-site.xml").forEach(file -> {
+            File site = new File(requireNonNull(yarnConfDir, "ENV HADOOP_CONF_DIR is not setting"), file);
+            if (site.exists() && site.isFile()) {
+                hadoopConf.addResource(new org.apache.hadoop.fs.Path(site.toURI()));
+            }
+            else {
+                throw new RuntimeException(site + " not exists");
+            }
+        });
+
+        return new YarnConfiguration(hadoopConf);
+    }
     /**
      * This part is just to add classpath for the jar when reading remote execution, and will not submit jar from a local
      * @param env

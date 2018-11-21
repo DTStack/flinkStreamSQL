@@ -148,8 +148,7 @@ public class LauncherOptionParser {
         List<String> args = Lists.newArrayList();
         for(Map.Entry<String, Object> one : mapConf.entrySet()){
             String key = one.getKey();
-            if(OPTION_FLINK_CONF_DIR.equalsIgnoreCase(key)
-                    || OPTION_YARN_CONF_DIR.equalsIgnoreCase(key)){
+            if(OPTION_FLINK_CONF_DIR.equalsIgnoreCase(key)){
                 continue;
             }
 
