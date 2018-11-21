@@ -4,6 +4,7 @@
 >  >  * 自定义create view 语法
 >  >  * 自定义create function 语法
 >  >  * 实现了流与维表的join
+>  >  * 支持原生FLinkSQL所有的语法
  
 # 已支持
   * 源表：kafka 0.9，1.x版本
@@ -14,6 +15,8 @@
   * 增加oracle维表，结果表功能
   * 增加SQlServer维表，结果表功能
   * 增加kafka结果表功能
+  * 增加SQL支持CEP
+  * 维表快照
 
 ## 1 快速起步
 ### 1.1 运行模式
@@ -26,7 +29,7 @@
 ### 1.2 执行环境
 
 * Java: JDK8及以上
-* Flink集群: 1.4（单机模式不需要安装Flink集群）
+* Flink集群: 1.4,1.5（单机模式不需要安装Flink集群）
 * 操作系统：理论上不限
 
 ### 1.3 打包
@@ -44,12 +47,12 @@ mvn clean package -Dmaven.test.skip
 #### 1.4.1 启动命令
 
 ```
-sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack/150_flinkplugin/sqlplugin   -localSqlPluginPath D:\gitspace\flinkStreamSQL\plugins   -mode yarn -flinkconf D:\flink_home\kudu150etc  -yarnconf D:\hadoop\etc\hadoopkudu -confProp {\"time.characteristic\":\"EventTime\",\"sql.checkpoint.interval\":10000}
+sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack/150_flinkplugin/sqlplugin   -localSqlPluginPath D:\gitspace\flinkStreamSQL\plugins   -addjar \["udf.jar\"\] -mode yarn -flinkconf D:\flink_home\kudu150etc  -yarnconf D:\hadoop\etc\hadoopkudu -confProp \{\"time.characteristic\":\"EventTime\",\"sql.checkpoint.interval\":10000\}
 ```
 
 #### 1.4.2 命令行参数选项
 
-* **model**
+* **mode**
 	* 描述：执行模式，也就是flink集群的工作模式
 		* local: 本地模式
 		* standalone: 提交到独立部署模式的flink集群
@@ -80,6 +83,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 * **addjar**
     * 描述：扩展jar路径,当前主要是UDF定义的jar；
+    * 格式：json
     * 必选：否
     * 默认值：无
     
@@ -180,12 +184,16 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 ## 4 样例
 
 ```
+
+CREATE (scala|table) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun
+
+
 CREATE TABLE MyTable(
     name varchar,
     channel varchar,
     pv int,
     xctime bigint,
-    CHARACTER_LENGTH(channel) AS timeLeng
+    CHARACTER_LENGTH(channel) AS timeLeng //自定义的函数
  )WITH(
     type ='kafka09',
     bootstrapServers ='172.16.8.198:9092',
@@ -223,7 +231,7 @@ CREATE TABLE sideTable(
     cf:name varchar as name,
     cf:info varchar as info,
     PRIMARY KEY(name),
-    PERIOD FOR SYSTEM_TIME
+    PERIOD FOR SYSTEM_TIME //维表标识
  )WITH(
     type ='hbase',
     zookeeperQuorum ='rdos1:2181',
