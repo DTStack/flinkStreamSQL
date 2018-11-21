@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 
 import java.util.List;
@@ -69,15 +70,16 @@ public class CreateTableParser implements IParser {
     }
 
     private Map parseProp(String propsStr){
-        String[] strs = propsStr.trim().split("'\\s*,");
+        List<String> list = DtStringUtil.splitIgnoreQuota(propsStr.trim(), ',');
         Map<String, Object> propMap = Maps.newHashMap();
-        for(int i=0; i<strs.length; i++){
-            List<String> ss = DtStringUtil.splitIgnoreQuota(strs[i], '=');
-            String key = ss.get(0).trim();
-            String value = ss.get(1).trim().replaceAll("'", "").trim();
-            propMap.put(key, value);
+        if (CollectionUtils.isNotEmpty(list)){
+            for(int i=0; i<list.size(); i++){
+                List<String> ss = DtStringUtil.splitIgnoreQuota(list.get(i), '=');
+                String key = ss.get(0).trim();
+                String value = ss.get(1).trim().replaceAll("'", "").trim();
+                propMap.put(key, value);
+            }
         }
-
         return propMap;
     }
 
