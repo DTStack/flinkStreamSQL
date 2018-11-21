@@ -41,22 +41,19 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.util.*;
 import com.dtstack.flink.sql.ClusterMode;
-import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.IOException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
+import java.net.URL;
 import static java.util.Objects.requireNonNull;
-
+import com.dtstack.flink.sql.Main;
 /**
  * The Factory of ClusterClient
  *
@@ -154,14 +151,12 @@ public class ClusterClientFactory {
                     LOG.info("confProp= {}", confProp);
                     Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
-                    String addJarListStr = launcherOptions.getAddjar();
-                    List<String> addJarFileList = Lists.newArrayList();
-                    if(!Strings.isNullOrEmpty(addJarListStr)){
-                        addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
-                        addJarFileList = objMapper.readValue(addJarListStr, List.class);
+                    if(Main.urlList != null) {
+                        for (URL url : Main.urlList) {
+                            jobGraph.addJar(new org.apache.flink.core.fs.Path(url.toString()));
+                        }
                     }
-
-                    YarnClusterConfiguration clusterConf = getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir,addJarFileList);
+                    YarnClusterConfiguration clusterConf = getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir);
                     JobParameter jobParam = new JobParameter(confProperties);
 
                     AbstractYarnClusterDescriptor clusterDescriptor = createDescriptor(jobParam,clusterConf,flinkConf, yarnConf, flinkConfDir, yarnClient,launcherOptions.getName());
@@ -201,22 +196,12 @@ public class ClusterClientFactory {
 
     public static YarnClusterConfiguration getYarnClusterConfiguration(Configuration flinkConf,YarnConfiguration yarnConf,String flinkConfDir)
     {
-        return getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir,null);
-    }
-
-    public static YarnClusterConfiguration getYarnClusterConfiguration(Configuration flinkConf,YarnConfiguration yarnConf,String flinkConfDir,List<String> udfJarList)
-    {
         Path flinkJar = new Path(getFlinkJarFile(flinkConfDir).toURI());
 
         final Set<Path> resourcesToLocalize = Stream
                 .of("../lib")
                 .map(x -> new Path(flinkConfDir, x))
                 .collect(Collectors.toSet());
-        if(!udfJarList.isEmpty()){
-            for (String udfJar:udfJarList){
-                resourcesToLocalize.add(new Path(udfJar));
-            }
-        }
 
         return new YarnClusterConfiguration(
                 flinkConf,
@@ -230,7 +215,7 @@ public class ClusterClientFactory {
     private static File getFlinkJarFile(String flinkConfDir)
     {
         String errorMessage = "error not search " + FLINK_DIST + "*.jar";
-        File[] files = requireNonNull(new File(flinkConfDir, "/../lib").listFiles(), errorMessage);
+        File[] files = requireNonNull(new File(flinkConfDir, "../lib").listFiles(), errorMessage);
         Optional<File> file = Arrays.stream(files)
                 .filter(f -> f.getName().startsWith(FLINK_DIST)).findFirst();
         return file.orElseThrow(() -> new IllegalArgumentException(errorMessage));

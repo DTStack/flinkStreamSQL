@@ -132,6 +132,17 @@ public class Main {
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
 
+       /* List<String> addJarFileHdfsList = Lists.newArrayList();
+        List<String> addJarFileLocalList = Lists.newArrayList();
+        //hdfsjar-->localjar
+        if(!Strings.isNullOrEmpty(addJarListStr)){
+            addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
+            addJarFileHdfsList = objMapper.readValue(addJarListStr, List.class);
+
+            for (String hdfsJar:addJarFileHdfsList) {
+                addJarFileLocalList.add(null);
+            }
+        }*/
         List<String> addJarFileList = Lists.newArrayList();
         if(!Strings.isNullOrEmpty(addJarListStr)){
             addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
@@ -142,12 +153,6 @@ public class Main {
         DtClassLoader dtClassLoader = new DtClassLoader(new URL[]{}, threadClassLoader);
         Thread.currentThread().setContextClassLoader(dtClassLoader);
 
-        /*URLClassLoader parentClassloader;
-        if(!LOCAL_MODE.equals(deployMode)){
-            parentClassloader = (URLClassLoader) threadClassLoader.getParent();
-        }else{
-            parentClassloader = dtClassLoader;
-        }*/
         URLClassLoader parentClassloader = dtClassLoader;
 
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
@@ -163,14 +168,15 @@ public class Main {
             File tmpFile = new File(addJarPath);
             jarURList.add(tmpFile.toURI().toURL());
         }
-
+        urlList.addAll(jarURList);
         Map<String, SideTableInfo> sideTableMap = Maps.newHashMap();
         Map<String, Table> registerTableCache = Maps.newHashMap();
 
         //register udf
         registerUDF(sqlTree, jarURList, parentClassloader, tableEnv);
         //register table schema
-        registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, sideTableMap, registerTableCache);
+        //registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, sideTableMap, registerTableCache);
+        registerTable(sqlTree, env, tableEnv, localSqlPluginPath, localSqlPluginPath, sideTableMap, registerTableCache);
 
         SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
@@ -296,9 +302,9 @@ public class Main {
         for(URL url : classPathSet){
             String classFileName = String.format(CLASS_FILE_NAME_FMT, i);
             env.registerCachedFile(url.getPath(),  classFileName, true);
-            urlList.add(url);
             i++;
         }
+        urlList.addAll(classPathSet);
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException {

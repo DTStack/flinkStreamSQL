@@ -84,7 +84,6 @@ public class LauncherMain {
             }
 
             final JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, new Configuration(), DEFAULT_PARALLELISM);
-            jobGraph.setClasspaths(Main.urlList);
             ClusterClientFactory.startJob(launcherOptions,jobGraph);
 
             System.exit(0);
