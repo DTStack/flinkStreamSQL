@@ -85,10 +85,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
     public void open(Configuration parameters) throws Exception {
         SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        ExecutorService executorService =new ThreadPoolExecutor(HBASE_WORKER_POOL_SIZE, HBASE_WORKER_POOL_SIZE,
-                0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-aysnc"));
-        hBaseClient = new HBaseClient(hbaseSideTableInfo.getHost(), hbaseSideTableInfo.getParent(), executorService);
+        hBaseClient = new HBaseClient(hbaseSideTableInfo.getHost(), hbaseSideTableInfo.getParent());
 
         try {
             Deferred deferred = hBaseClient.ensureTableExists(tableName)
