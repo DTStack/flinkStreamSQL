@@ -31,17 +31,17 @@ import java.util.Properties;
  */
 public class FLinkPerJobResourceUtil {
 
-    public final static int MIN_JM_MEMORY = 1024; // the minimum memory should be higher than the min heap cutoff
-    public final static int MIN_TM_MEMORY = 1024;
+    public final static int MIN_JM_MEMORY = 768; // the minimum memory should be higher than the min heap cutoff
+    public final static int MIN_TM_MEMORY = 768;
 
     public final static String JOBMANAGER_MEMORY_MB = "jobmanager.memory.mb";
     public final static String TASKMANAGER_MEMORY_MB = "taskmanager.memory.mb";
-    public final static String CONTAINER = "container";
-    public final static String SLOTS = "slots";
+    public final static String NUMBER_TASK_MANAGERS = "taskmanager.num";
+    public final static String SLOTS_PER_TASKMANAGER = "taskmanager.slots";
 
     public static ClusterSpecification createClusterSpecification(Properties confProperties) {
-        int jobmanagerMemoryMb = 1024;
-        int taskmanagerMemoryMb = 1024;
+        int jobmanagerMemoryMb = 768;
+        int taskmanagerMemoryMb = 768;
         int numberTaskManagers = 1;
         int slotsPerTaskManager = 1;
 
@@ -60,12 +60,12 @@ public class FLinkPerJobResourceUtil {
                 }
             }
 
-            if (confProperties.containsKey(CONTAINER)){
-                numberTaskManagers = MathUtil.getIntegerVal(confProperties.get(CONTAINER));
+            if (confProperties.containsKey(NUMBER_TASK_MANAGERS)){
+                numberTaskManagers = MathUtil.getIntegerVal(confProperties.get(NUMBER_TASK_MANAGERS));
             }
 
-            if (confProperties.containsKey(SLOTS)){
-                slotsPerTaskManager = MathUtil.getIntegerVal(confProperties.get(SLOTS));
+            if (confProperties.containsKey(SLOTS_PER_TASKMANAGER)){
+                slotsPerTaskManager = MathUtil.getIntegerVal(confProperties.get(SLOTS_PER_TASKMANAGER));
             }
         }
 

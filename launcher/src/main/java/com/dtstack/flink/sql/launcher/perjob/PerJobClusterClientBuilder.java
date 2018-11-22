@@ -44,20 +44,6 @@ import java.util.Properties;
 
 public class PerJobClusterClientBuilder {
 
-    public static final String DEFAULT_GATEWAY_CLASS = "org.apache.flink.metrics.prometheus.PrometheusPushGatewayReporter";
-
-    public static final String PROMGATEWAY_CLASS_KEY = "metrics.reporter.promgateway.class";
-
-    public static final String PROMGATEWAY_HOST_KEY = "metrics.reporter.promgateway.host";
-
-    public static final String PROMGATEWAY_PORT_KEY = "metrics.reporter.promgateway.port";
-
-    public static final String PROMGATEWAY_JOBNAME_KEY = "metrics.reporter.promgateway.jobName";
-
-    public static final String PROMGATEWAY_RANDOMJOBNAMESUFFIX_KEY = "metrics.reporter.promgateway.randomJobNameSuffix";
-
-    public static final String PROMGATEWAY_DELETEONSHUTDOWN_KEY = "metrics.reporter.promgateway.deleteOnShutdown";
-
     private YarnClient yarnClient;
 
     private YarnConfiguration yarnConf;
@@ -77,9 +63,8 @@ public class PerJobClusterClientBuilder {
 
     public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(Properties confProp, String flinkJarPath, String queue) throws MalformedURLException {
         Configuration newConf = new Configuration();
-        newConf.addAllToProperties(confProp);
+        confProp.forEach((key, val) -> newConf.setString(key.toString(), val.toString()) );
 
-        //perJobMetricConfigConfig(newConf, properties);
         AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(newConf, yarnConf, ".");
 
         if (StringUtils.isNotBlank(flinkJarPath)) {
@@ -112,20 +97,6 @@ public class PerJobClusterClientBuilder {
             clusterDescriptor.setQueue(queue);
         }
         return clusterDescriptor;
-    }
-
-    //FIXME need?
-    private void perJobMetricConfigConfig(Configuration configuration, Properties properties){
-        if(!properties.containsKey(DEFAULT_GATEWAY_CLASS)){
-            return;
-        }
-
-        configuration.setString(PROMGATEWAY_CLASS_KEY, properties.getProperty(PROMGATEWAY_CLASS_KEY));
-        configuration.setString(PROMGATEWAY_HOST_KEY,  properties.getProperty(PROMGATEWAY_HOST_KEY));
-        configuration.setString(PROMGATEWAY_PORT_KEY, properties.getProperty(PROMGATEWAY_PORT_KEY));
-        configuration.setString(PROMGATEWAY_JOBNAME_KEY, properties.getProperty(PROMGATEWAY_JOBNAME_KEY));
-        configuration.setString(PROMGATEWAY_RANDOMJOBNAMESUFFIX_KEY, properties.getProperty(PROMGATEWAY_RANDOMJOBNAMESUFFIX_KEY));
-        configuration.setString(PROMGATEWAY_DELETEONSHUTDOWN_KEY, properties.getProperty(PROMGATEWAY_DELETEONSHUTDOWN_KEY));
     }
 
     private AbstractYarnClusterDescriptor getClusterDescriptor(
