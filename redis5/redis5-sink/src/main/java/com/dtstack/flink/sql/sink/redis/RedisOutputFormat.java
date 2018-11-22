@@ -39,6 +39,16 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
 
     private String password;
 
+    private int redisType;
+
+    private String maxTotal;
+
+    private String maxIdle;
+
+    private String minIdle;
+
+    private String masterName;
+
     protected String[] fieldNames;
 
     protected TypeInformation<?>[] fieldTypes;
@@ -52,6 +62,8 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
     private Jedis jedis;
 
     private JedisSentinelPool jedisSentinelPool;
+
+    private JedisCluster jedisCluster;
 
     private GenericObjectPoolConfig poolConfig;
 
@@ -67,26 +79,48 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
         establishConnection();
     }
 
+    private GenericObjectPoolConfig setPoolConfig(String maxTotal, String maxIdle, String minIdle){
+        GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+        if (maxTotal != null){
+            config.setMaxTotal(Integer.parseInt(maxTotal));
+        }
+        if (maxIdle != null){
+            config.setMaxIdle(Integer.parseInt(maxIdle));
+        }
+        if (minIdle != null){
+            config.setMinIdle(Integer.parseInt(minIdle));
+        }
+        return config;
+    }
+
     private void establishConnection() {
-        poolConfig = new GenericObjectPoolConfig();
+        poolConfig = setPoolConfig(maxTotal, maxIdle, minIdle);
         String[] nodes = url.split(",");
-        if (nodes.length > 1){
-            //cluster
-            Set<HostAndPort> addresses = new HashSet<>();
-            Set<String> ipPorts = new HashSet<>();
-            for (String ipPort : nodes) {
-                ipPorts.add(ipPort);
-                String[] ipPortPair = ipPort.split(":");
-                addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
-            }
-            jedisSentinelPool = new JedisSentinelPool("Master", ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
-            jedis = jedisSentinelPool.getResource();
-        } else {
-            String[] ipPortPair = nodes[0].split(":");
-            String ip = ipPortPair[0];
-            String port = ipPortPair[1];
-            pool = new JedisPool(poolConfig, ip, Integer.parseInt(port), timeout, password, Integer.parseInt(database));
-            jedis = pool.getResource();
+        String[] firstIpPort = nodes[0].split(":");
+        String firstIp = firstIpPort[0];
+        String firstPort = firstIpPort[1];
+        Set<HostAndPort> addresses = new HashSet<>();
+        Set<String> ipPorts = new HashSet<>();
+        for (String ipPort : nodes) {
+            ipPorts.add(ipPort);
+            String[] ipPortPair = ipPort.split(":");
+            addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
+        }
+
+        switch (redisType){
+            //单机
+            case 1:
+                pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
+                jedis = pool.getResource();
+                break;
+            //哨兵
+            case 2:
+                jedisSentinelPool = new JedisSentinelPool(masterName, ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
+                jedis = jedisSentinelPool.getResource();
+                break;
+            //集群
+            case 3:
+                jedisCluster = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
         }
     }
 
@@ -126,7 +160,12 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
         for (int i = 0; i < fieldNames.length; i++) {
             StringBuilder key = new StringBuilder();
             key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
-            jedis.set(key.toString(), (String) row.getField(i));
+            if (redisType != 3){
+                jedis.set(key.toString(), (String) row.getField(i));
+            } else {
+                jedisCluster.set(key.toString(), (String) row.getField(i));
+            }
+
         }
     }
 
@@ -192,21 +231,38 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
             return this;
         }
 
+        public RedisOutputFormatBuilder setRedisType(int redisType){
+            redisOutputFormat.redisType = redisType;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setMaxTotal(String maxTotal){
+            redisOutputFormat.maxTotal = maxTotal;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setMaxIdle(String maxIdle){
+            redisOutputFormat.maxIdle = maxIdle;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setMinIdle(String minIdle){
+            redisOutputFormat.minIdle = minIdle;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setMasterName(String masterName){
+            redisOutputFormat.masterName = masterName;
+            return this;
+        }
+
         public RedisOutputFormat finish(){
             if (redisOutputFormat.url == null){
                 throw new IllegalArgumentException("No URL supplied.");
             }
 
-            if (redisOutputFormat.database == null){
-                throw new IllegalArgumentException("No database supplied.");
-            }
-
             if (redisOutputFormat.tableName == null){
                 throw new IllegalArgumentException("No tablename supplied.");
-            }
-
-            if (redisOutputFormat.password == null){
-                throw new IllegalArgumentException("No password supplied.");
             }
 
             return redisOutputFormat;
