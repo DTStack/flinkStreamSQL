@@ -47,7 +47,14 @@ public class RedisSideParser extends AbsSideTableParser {
         redisSideTableInfo.setPassword(MathUtil.getString(props.get(RedisSideTableInfo.PASSWORD_KEY)));
         redisSideTableInfo.setDatabase(MathUtil.getString(props.get(RedisSideTableInfo.DATABASE_KEY)));
         redisSideTableInfo.setTableName(MathUtil.getString(props.get(RedisSideTableInfo.TABLE_KEY)));
-
+        if (props.get(RedisSideTableInfo.TIMEOUT) != null){
+         redisSideTableInfo.setTimeout(MathUtil.getIntegerVal(props.get(RedisSideTableInfo.TIMEOUT)));
+        }
+        redisSideTableInfo.setMaxTotal(MathUtil.getString(props.get(RedisSideTableInfo.MAXTOTAL)));
+        redisSideTableInfo.setMaxIdle(MathUtil.getString(props.get(RedisSideTableInfo.MAXIDLE)));
+        redisSideTableInfo.setMinIdle(MathUtil.getString(props.get(RedisSideTableInfo.MINIDLE)));
+        redisSideTableInfo.setMasterName(MathUtil.getString(props.get(RedisSideTableInfo.MASTER_NAME)));
+        redisSideTableInfo.setRedisType(MathUtil.getIntegerVal(RedisSideTableInfo.REDIS_TYPE));
         return redisSideTableInfo;
     }
 

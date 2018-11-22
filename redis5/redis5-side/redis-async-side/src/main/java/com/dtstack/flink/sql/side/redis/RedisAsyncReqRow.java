@@ -22,12 +22,14 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
-import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.KeyValue;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.async.RedisAsyncCommands;
+import io.lettuce.core.api.async.RedisKeyAsyncCommands;
+import io.lettuce.core.api.async.RedisStringAsyncCommands;
+import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
@@ -40,9 +42,7 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class RedisAsyncReqRow extends AsyncReqRow {
 
@@ -52,7 +52,11 @@ public class RedisAsyncReqRow extends AsyncReqRow {
 
     private StatefulRedisConnection<String, String> connection;
 
-    private RedisAsyncCommands<String, String> async;
+    private RedisClusterClient clusterClient;
+
+    private StatefulRedisClusterConnection<String, String> clusterConnection;
+
+    private RedisKeyAsyncCommands<String, String> async;
 
     private RedisSideTableInfo redisSideTableInfo;
 
@@ -65,19 +69,42 @@ public class RedisAsyncReqRow extends AsyncReqRow {
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         redisSideTableInfo = (RedisSideTableInfo) sideInfo.getSideTableInfo();
-        StringBuilder uri = new StringBuilder();
+        buildRedisClient(redisSideTableInfo);
+    }
+
+    private void buildRedisClient(RedisSideTableInfo tableInfo){
         String url = redisSideTableInfo.getUrl();
         String password = redisSideTableInfo.getPassword();
-        String database = redisSideTableInfo.getDatabase();
-        if (url.split(",").length > 1){
-            uri.append("redis-sentinel://").append(password).append("@")
-                    .append(url).append("/").append(database).append("#").append(url.split(",")[0]);
-        } else {
-            uri.append("redis://").append(password).append("@").append(url).append("/").append(database);
+        if (password != null){
+            password = password + "@";
         }
-        redisClient = RedisClient.create(uri.toString());
-        connection = redisClient.connect();
-        async = connection.async();
+        String database = redisSideTableInfo.getDatabase();
+        if (database == null){
+            database = "0";
+        }
+        switch (tableInfo.getRedisType()){
+            case 1:
+                StringBuilder redisUri = new StringBuilder();
+                redisUri.append("redis://").append(password).append(url).append("/").append(database);
+                redisClient = RedisClient.create(redisUri.toString());
+                connection = redisClient.connect();
+                async = connection.async();
+                break;
+            case 2:
+                StringBuilder sentinelUri = new StringBuilder();
+                sentinelUri.append("redis-sentinel://").append(password)
+                        .append(url).append("/").append(database).append("#").append(redisSideTableInfo.getMasterName());
+                redisClient = RedisClient.create(sentinelUri.toString());
+                connection = redisClient.connect();
+                async = connection.async();
+                break;
+            case 3:
+                StringBuilder clusterUri = new StringBuilder();
+                clusterUri.append("redis://").append(password).append(url);
+                clusterClient = RedisClusterClient.create(clusterUri.toString());
+                clusterConnection = clusterClient.connect();
+                async = clusterConnection.async();
+        }
     }
 
     @Override
@@ -143,7 +170,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         Map<String, String> keyValue = Maps.newHashMap();
         List<String> value = async.keys(key + ":*").get();
         String[] values = value.toArray(new String[value.size()]);
-        RedisFuture<List<KeyValue<String, String>>> future =  async.mget(values);
+        RedisFuture<List<KeyValue<String, String>>> future =  ((RedisStringAsyncCommands) async).mget(values);
         future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
             @Override
             public void accept(List<KeyValue<String, String>> keyValues) {
@@ -184,6 +211,12 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         }
         if (redisClient != null){
             redisClient.shutdown();
+        }
+        if (clusterConnection != null){
+            clusterConnection.close();
+        }
+        if (clusterClient != null){
+            clusterClient.shutdown();
         }
     }
 

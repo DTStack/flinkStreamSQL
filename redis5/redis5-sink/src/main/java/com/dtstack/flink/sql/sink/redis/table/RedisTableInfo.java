@@ -57,7 +57,7 @@ public class RedisTableInfo extends TargetTableInfo {
 
     private String password;
 
-    private int timeout = 1000;
+    private int timeout;
 
     private String maxTotal;
 
