@@ -4,6 +4,7 @@
 >  >  * 自定义create view 语法
 >  >  * 自定义create function 语法
 >  >  * 实现了流与维表的join
+>  >  * 支持原生FLinkSQL所有的语法
  
 # 已支持
   * 源表：kafka 0.9，1.x版本
@@ -14,6 +15,8 @@
   * 增加oracle维表，结果表功能
   * 增加SQlServer维表，结果表功能
   * 增加kafka结果表功能
+  * 增加SQL支持CEP
+  * 维表快照
 
 ## 1 快速起步
 ### 1.1 运行模式
@@ -26,7 +29,7 @@
 ### 1.2 执行环境
 
 * Java: JDK8及以上
-* Flink集群: 1.4（单机模式不需要安装Flink集群）
+* Flink集群: 1.4,1.5（单机模式不需要安装Flink集群）
 * 操作系统：理论上不限
 
 ### 1.3 打包
@@ -44,16 +47,17 @@ mvn clean package -Dmaven.test.skip
 #### 1.4.1 启动命令
 
 ```
-sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack/150_flinkplugin/sqlplugin   -localSqlPluginPath D:\gitspace\flinkStreamSQL\plugins   -mode yarn -flinkconf D:\flink_home\kudu150etc  -yarnconf D:\hadoop\etc\hadoopkudu -confProp {\"time.characteristic\":\"EventTime\",\"sql.checkpoint.interval\":10000}
+sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack/150_flinkplugin/sqlplugin   -localSqlPluginPath D:\gitspace\flinkStreamSQL\plugins   -addjar \["udf.jar\"\] -mode yarn -flinkconf D:\flink_home\kudu150etc  -yarnconf D:\hadoop\etc\hadoopkudu -confProp \{\"time.characteristic\":\"EventTime\",\"sql.checkpoint.interval\":10000\}
 ```
 
 #### 1.4.2 命令行参数选项
 
-* **model**
+* **mode**
 	* 描述：执行模式，也就是flink集群的工作模式
 		* local: 本地模式
-		* standalone: 独立部署模式的flink集群
-		* yarn: yarn模式的flink集群
+		* standalone: 提交到独立部署模式的flink集群
+		* yarn: 提交到yarn模式的flink集群(即提交到已有flink集群)
+		* yarnPer: yarn per_job模式提交(即创建新flink application)
 	* 必选：否
 	* 默认值：local
 	
@@ -79,6 +83,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 * **addjar**
     * 描述：扩展jar路径,当前主要是UDF定义的jar；
+    * 格式：json
     * 必选：否
     * 默认值：无
     
@@ -97,6 +102,11 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
         * sql.max.concurrent.checkpoints: 最大并发生成checkpoint数
         * sql.checkpoint.cleanup.mode: 默认是不会将checkpoint存储到外部存储,[true(任务cancel之后会删除外部存储)|false(外部存储需要手动删除)]
         * flinkCheckpointDataURI: 设置checkpoint的外部存储路径,根据实际的需求设定文件路径,hdfs://, file://
+        * jobmanager.memory.mb: per_job模式下指定jobmanager的内存大小(单位MB, 默认值:768)
+        * taskmanager.memory.mb: per_job模式下指定taskmanager的内存大小(单位MB, 默认值:768)
+        * taskmanager.num: per_job模式下指定taskmanager的实例数(默认1)
+        * taskmanager.slots：per_job模式下指定每个taskmanager对应的slot数量(默认1)
+        * [prometheus 相关参数](docs/prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	
 * **flinkconf**
@@ -118,6 +128,16 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 描述：指示保存点是否允许非还原状态的标志
 	* 必选：否
 	* 默认值：false
+	
+* **flinkJarPath**
+	* 描述：per_job 模式提交需要指定本地的flink jar存放路径
+	* 必选：否
+	* 默认值：false	
+
+* **queue**
+	* 描述：per_job 模式下指定的yarn queue
+	* 必选：否
+	* 默认值：false	
 
 ## 2 结构
 ### 2.1 源表插件
@@ -135,16 +155,45 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [mysql 维表插件](docs/mysqlSide.md)
 * [mongo 维表插件](docs/mongoSide.md)
 * [redis 维表插件](docs/redisSide.md)
+
+## 3 性能指标(新增)
+
+### kafka插件
+* 业务延迟： flink_taskmanager_job_task_operator_dtEventDelay(单位s)  
+   数据本身的时间和进入flink的当前时间的差值.
+  
+* 各个输入源的脏数据：flink_taskmanager_job_task_operator_dtDirtyData  
+  从kafka获取的数据解析失败的视为脏数据  
+
+* 各Source的数据输入TPS: flink_taskmanager_job_task_operator_dtNumRecordsInRate  
+  kafka接受的记录数(未解析前)/s
+
+* 各Source的数据输入RPS: flink_taskmanager_job_task_operator_dtNumRecordsInResolveRate  
+  kafka接受的记录数(解析后)/s
+  
+* 各Source的数据输入BPS: flink_taskmanager_job_task_operator_dtNumBytesInRate  
+  kafka接受的字节数/s
+
+* Kafka作为输入源的各个分区的延迟数: flink_taskmanager_job_task_operator_topic_partition_dtTopicPartitionLag  
+  当前kafka10,kafka11有采集该指标
+
+* 各个输出源RPS: flink_taskmanager_job_task_operator_dtNumRecordsOutRate  
+  写入的外部记录数/s
+      
 	
-## 3 样例
+## 4 样例
 
 ```
+
+CREATE (scala|table) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun
+
+
 CREATE TABLE MyTable(
     name varchar,
     channel varchar,
     pv int,
     xctime bigint,
-    CHARACTER_LENGTH(channel) AS timeLeng
+    CHARACTER_LENGTH(channel) AS timeLeng //自定义的函数
  )WITH(
     type ='kafka09',
     bootstrapServers ='172.16.8.198:9092',
@@ -182,7 +231,7 @@ CREATE TABLE sideTable(
     cf:name varchar as name,
     cf:info varchar as info,
     PRIMARY KEY(name),
-    PERIOD FOR SYSTEM_TIME
+    PERIOD FOR SYSTEM_TIME //维表标识
  )WITH(
     type ='hbase',
     zookeeperQuorum ='rdos1:2181',
