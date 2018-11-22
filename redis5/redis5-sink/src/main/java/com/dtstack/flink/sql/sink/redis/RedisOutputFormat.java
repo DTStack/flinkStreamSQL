@@ -30,6 +30,7 @@ import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
 import redis.clients.jedis.*;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 
@@ -63,11 +64,9 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
 
     private JedisPool pool;
 
-    private Jedis jedis;
+    private JedisCommands jedis;
 
     private JedisSentinelPool jedisSentinelPool;
-
-    private JedisCluster jedisCluster;
 
     private GenericObjectPoolConfig poolConfig;
 
@@ -120,6 +119,9 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
             String[] ipPortPair = ipPort.split(":");
             addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
         }
+        if (timeout == 0){
+            timeout = 10000;
+        }
 
         switch (redisType){
             //单机
@@ -134,7 +136,7 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
                 break;
             //集群
             case 3:
-                jedisCluster = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
+                jedis = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
         }
     }
 
@@ -174,11 +176,7 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
         for (int i = 0; i < fieldNames.length; i++) {
             StringBuilder key = new StringBuilder();
             key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
-            if (redisType != 3){
-                jedis.set(key.toString(), (String) row.getField(i));
-            } else {
-                jedisCluster.set(key.toString(), (String) row.getField(i));
-            }
+            jedis.set(key.toString(), (String) row.getField(i));
         }
         outRecords.inc();
     }
@@ -190,6 +188,11 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
         }
         if (pool != null) {
             pool.close();
+        }
+        if (jedis != null){
+            if (jedis instanceof Closeable){
+                ((Closeable) jedis).close();
+            }
         }
 
     }

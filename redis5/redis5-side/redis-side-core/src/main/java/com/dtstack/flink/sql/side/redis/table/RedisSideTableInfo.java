@@ -35,6 +35,18 @@ public class RedisSideTableInfo extends SideTableInfo {
 
     public static final String TABLE_KEY = "tablename";
 
+    public static final String TIMEOUT = "timeout";
+
+    public static final String MAXTOTAL = "maxTotal";
+
+    public static final String MAXIDLE = "maxIdle";
+
+    public static final String MINIDLE = "minIdle";
+
+    public static final String REDIS_TYPE = "redisType";
+
+    public static final String MASTER_NAME = "masterName";
+
     private String url;
 
     private String database;
@@ -42,6 +54,18 @@ public class RedisSideTableInfo extends SideTableInfo {
     private String tableName;
 
     private String password;
+
+    private int timeout;
+
+    private String maxTotal;
+
+    private String maxIdle;
+
+    private String minIdle;
+
+    private int redisType;
+
+    private String masterName;
 
     public RedisSideTableInfo(){
         setType(CURR_TYPE);
@@ -51,9 +75,8 @@ public class RedisSideTableInfo extends SideTableInfo {
     @Override
     public boolean check() {
         Preconditions.checkNotNull(url, "redis of URL is required");
-        Preconditions.checkNotNull(database, "redis of database is required");
         Preconditions.checkNotNull(tableName, "redis of tablename is required");
-        Preconditions.checkNotNull(password, "redis of password is required");
+        Preconditions.checkNotNull(redisType, "redis of type is required");
         return true;
     }
 
@@ -87,5 +110,53 @@ public class RedisSideTableInfo extends SideTableInfo {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
+    }
+
+    public String getMaxTotal() {
+        return maxTotal;
+    }
+
+    public void setMaxTotal(String maxTotal) {
+        this.maxTotal = maxTotal;
+    }
+
+    public String getMaxIdle() {
+        return maxIdle;
+    }
+
+    public void setMaxIdle(String maxIdle) {
+        this.maxIdle = maxIdle;
+    }
+
+    public String getMinIdle() {
+        return minIdle;
+    }
+
+    public void setMinIdle(String minIdle) {
+        this.minIdle = minIdle;
+    }
+
+    public int getRedisType() {
+        return redisType;
+    }
+
+    public void setRedisType(int redisType) {
+        this.redisType = redisType;
+    }
+
+    public String getMasterName() {
+        return masterName;
+    }
+
+    public void setMasterName(String masterName) {
+        this.masterName = masterName;
     }
 }

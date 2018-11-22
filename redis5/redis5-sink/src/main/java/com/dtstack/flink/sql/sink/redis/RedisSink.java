@@ -79,6 +79,7 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.maxIdle = redisTableInfo.getMaxIdle();
         this.minIdle = redisTableInfo.getMinIdle();
         this.masterName = redisTableInfo.getMasterName();
+        this.timeout = redisTableInfo.getTimeout();
         return this;
     }
 
