@@ -63,7 +63,12 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseAsyncReqRow.class);
 
-    private static final int HBASE_WORKER_POOL_SIZE = 10;
+    //match to the rule of netty3
+    private static final int DEFAULT_BOSS_THREADS = 1;
+
+    private static final int DEFAULT_IO_THREADS = Runtime.getRuntime().availableProcessors() * 2;
+
+    private static final int DEFAULT_POOL_SIZE = DEFAULT_IO_THREADS + DEFAULT_BOSS_THREADS;
 
     private transient HBaseClient hBaseClient;
 
@@ -85,7 +90,11 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
     public void open(Configuration parameters) throws Exception {
         SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        hBaseClient = new HBaseClient(hbaseSideTableInfo.getHost(), hbaseSideTableInfo.getParent());
+        ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
+                0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-aysnc"));
+
+        hBaseClient = new HBaseClient(hbaseSideTableInfo.getHost(), hbaseSideTableInfo.getParent(), executorService);
 
         try {
             Deferred deferred = hBaseClient.ensureTableExists(tableName)
