@@ -18,11 +18,15 @@
 
 package com.dtstack.flink.sql.sink.redis;
 
+import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.Counter;
+import org.apache.flink.metrics.Meter;
+import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
 import redis.clients.jedis.*;
 
@@ -67,6 +71,10 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
 
     private GenericObjectPoolConfig poolConfig;
 
+    private transient Counter outRecords;
+
+    private transient Meter outRecordsRate;
+
     private RedisOutputFormat(){
     }
     @Override
@@ -77,6 +85,7 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         establishConnection();
+        initMetric();
     }
 
     private GenericObjectPoolConfig setPoolConfig(String maxTotal, String maxIdle, String minIdle){
@@ -91,6 +100,11 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
             config.setMinIdle(Integer.parseInt(minIdle));
         }
         return config;
+    }
+
+    private void initMetric(){
+        outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
+        outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
     }
 
     private void establishConnection() {
@@ -165,8 +179,8 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
             } else {
                 jedisCluster.set(key.toString(), (String) row.getField(i));
             }
-
         }
+        outRecords.inc();
     }
 
     @Override
