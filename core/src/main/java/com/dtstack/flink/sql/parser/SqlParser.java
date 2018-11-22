@@ -22,7 +22,7 @@ package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.enums.ETableType;
 import com.dtstack.flink.sql.table.TableInfo;
-import com.dtstack.flink.sql.table.TableInfoParserFactory;
+import com.dtstack.flink.sql.table.TableInfoParser;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
@@ -75,7 +75,7 @@ public class SqlParser {
 
         List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SQL_DELIMITER);
         SqlTree sqlTree = new SqlTree();
-
+        TableInfoParser tableInfoParser = new TableInfoParser();
         for(String childSql : sqlArr){
             if(Strings.isNullOrEmpty(childSql)){
                 continue;
@@ -112,7 +112,7 @@ public class SqlParser {
                         throw new RuntimeException("can't find table " + tableName);
                     }
 
-                    TableInfo tableInfo = TableInfoParserFactory.parseWithTableType(ETableType.SOURCE.getType(),
+                    TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
                             createTableResult, LOCAL_SQL_PLUGIN_ROOT);
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }
@@ -125,7 +125,7 @@ public class SqlParser {
                         throw new RuntimeException("can't find table " + tableName);
                     }
 
-                    TableInfo tableInfo = TableInfoParserFactory.parseWithTableType(ETableType.SINK.getType(),
+                    TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SINK.getType(),
                             createTableResult, LOCAL_SQL_PLUGIN_ROOT);
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }
@@ -141,7 +141,7 @@ public class SqlParser {
                         throw new RuntimeException("can't find table " + tableName);
                     }
 
-                    TableInfo tableInfo = TableInfoParserFactory.parseWithTableType(ETableType.SOURCE.getType(),
+                    TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
                             createTableResult, LOCAL_SQL_PLUGIN_ROOT);
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }

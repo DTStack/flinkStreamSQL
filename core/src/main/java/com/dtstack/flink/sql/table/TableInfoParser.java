@@ -42,7 +42,7 @@ import java.util.regex.Pattern;
  * @author xuchao
  */
 
-public class TableInfoParserFactory {
+public class TableInfoParser {
 
     private final static String TYPE_KEY = "type";
 
@@ -50,14 +50,14 @@ public class TableInfoParserFactory {
 
     private final static Pattern SIDE_PATTERN = Pattern.compile(SIDE_TABLE_SIGN);
 
-    private static Map<String, AbsTableParser> sourceTableInfoMap = Maps.newConcurrentMap();
+    private  Map<String, AbsTableParser> sourceTableInfoMap = Maps.newConcurrentMap();
 
-    private static Map<String, AbsTableParser> targetTableInfoMap = Maps.newConcurrentMap();
+    private  Map<String, AbsTableParser> targetTableInfoMap = Maps.newConcurrentMap();
 
-    private static Map<String, AbsTableParser> sideTableInfoMap = Maps.newConcurrentMap();
+    private  Map<String, AbsTableParser> sideTableInfoMap = Maps.newConcurrentMap();
 
     //Parsing loaded plugin
-    public static TableInfo parseWithTableType(int tableType, CreateTableParser.SqlParserResult parserResult,
+    public TableInfo parseWithTableType(int tableType, CreateTableParser.SqlParserResult parserResult,
                                                String localPluginRoot) throws Exception {
         AbsTableParser absTableParser = null;
         Map<String, Object> props = parserResult.getPropMap();
