@@ -113,7 +113,9 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
                 tmpFieldsType[i] = Types.CHAR;
             }else if(fieldType.equals(Byte.class.getName())){
                 tmpFieldsType[i] = Types.BINARY;
-            }else if(fieldType.equals(Float.class.getName()) || fieldType.equals(Double.class.getName())){
+            }else if(fieldType.equals(Float.class.getName())){
+                tmpFieldsType[i] = Types.FLOAT;
+            }else if(fieldType.equals(Double.class.getName())){
                 tmpFieldsType[i] = Types.DOUBLE;
             }else if (fieldType.equals(Timestamp.class.getName())){
                 tmpFieldsType[i] = Types.TIMESTAMP;
