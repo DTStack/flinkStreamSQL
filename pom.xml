@@ -16,6 +16,7 @@
     <module>mongo</module>
     <module>redis5</module>
     <module>launcher</module>
+    <module>rdb</module>
   </modules>
   <packaging>pom</packaging>
 
