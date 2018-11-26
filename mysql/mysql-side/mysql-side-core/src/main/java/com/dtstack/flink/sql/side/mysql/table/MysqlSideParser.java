@@ -37,15 +37,6 @@ import java.util.regex.Pattern;
 
 public class MysqlSideParser extends AbsSideTableParser {
 
-    private final static String SIDE_SIGN_KEY = "sideSignKey";
-
-    private final static Pattern SIDE_TABLE_SIGN = Pattern.compile("(?i)^PERIOD\\s+FOR\\s+SYSTEM_TIME$");
-
-    static {
-        keyPatternMap.put(SIDE_SIGN_KEY, SIDE_TABLE_SIGN);
-        keyHandlerMap.put(SIDE_SIGN_KEY, MysqlSideParser::dealSideSign);
-    }
-
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         MysqlSideTableInfo mysqlTableInfo = new MysqlSideTableInfo();
@@ -60,8 +51,5 @@ public class MysqlSideParser extends AbsSideTableParser {
         mysqlTableInfo.setPassword(MathUtil.getString(props.get(MysqlSideTableInfo.PASSWORD_KEY.toLowerCase())));
 
         return mysqlTableInfo;
-    }
-
-    private static void dealSideSign(Matcher matcher, TableInfo tableInfo){
     }
 }

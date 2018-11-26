@@ -44,10 +44,6 @@ public class HbaseSideParser extends AbsSideTableParser {
 
     private final static Pattern FIELD_PATTERN = Pattern.compile("(?i)(.*)\\s+AS\\s+(\\w+)$");
 
-    private final static String SIDE_SIGN_KEY = "sideSignKey";
-
-    private final static Pattern SIDE_TABLE_SIGN = Pattern.compile("(?i)^PERIOD\\s+FOR\\s+SYSTEM_TIME$");
-
     public static final String HBASE_ZOOKEEPER_QUORUM = "zookeeperQuorum";
 
     public static final String ZOOKEEPER_PARENT = "zookeeperParent";
@@ -60,9 +56,6 @@ public class HbaseSideParser extends AbsSideTableParser {
 
 
     static {
-        keyPatternMap.put(SIDE_SIGN_KEY, SIDE_TABLE_SIGN);
-        keyHandlerMap.put(SIDE_SIGN_KEY, HbaseSideParser::dealSideSign);
-
         keyPatternMap.put(FIELD_KEY, FIELD_PATTERN);
         keyHandlerMap.put(FIELD_KEY, HbaseSideParser::dealField);
     }
@@ -82,9 +75,6 @@ public class HbaseSideParser extends AbsSideTableParser {
         return hbaseTableInfo;
     }
 
-    private static void dealSideSign(Matcher matcher, TableInfo tableInfo){
-        //FIXME 暂时不适用该标识--仅仅只是作为一个标识适用
-    }
 
     /**
      * hbase 维表的字段定义需要特殊处理
