@@ -15,9 +15,27 @@
     <name>sqlserver-side</name>
     <packaging>pom</packaging>
 
+    <properties>
+        <rdb.side.version>1.0-SNAPSHOT</rdb.side.version>
+    </properties>
+
+
     <modules>
         <module>sqlserver-side-core</module>
         <module>sqlserver-all-side</module>
-        <module>sqlserver-side-core</module>
+        <module>sqlserver-async-side</module>
     </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.rdb</artifactId>
+            <version>${rdb.side.version}</version>
+        </dependency>
+
+
+    </dependencies>
+
+
+
 </project>

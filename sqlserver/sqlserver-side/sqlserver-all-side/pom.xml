@@ -14,11 +14,15 @@
     <name>sqlserver-all-side</name>
     <packaging>jar</packaging>
 
+    <properties>
+        <sql.side.sqlserver.core.version>1.0-SNAPSHOT</sql.side.sqlserver.core.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.dtstack.flink</groupId>
             <artifactId>sql.side.sqlserver.core</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${sql.side.sqlserver.core.version}</version>
         </dependency>
     </dependencies>
 
@@ -68,14 +72,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../../plugins/sqlserverallside">
+                                <copy todir="${basedir}/../../../plugins/sqlserverallside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../../plugins/sqlserverallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../../plugins/sqlserverallside/${project.name}.jar"/>
+                                <move file="${basedir}/../../../plugins/sqlserverallside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../plugins/sqlserverallside/${project.name}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
