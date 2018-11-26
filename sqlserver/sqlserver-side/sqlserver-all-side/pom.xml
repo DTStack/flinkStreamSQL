@@ -6,13 +6,12 @@
         <artifactId>sql.side.sqlserver</artifactId>
         <groupId>com.dtstack.flink</groupId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>sql.side.all.sqlserver</artifactId>
-    <name>sqlserver-all-side</name>
     <version>1.0-SNAPSHOT</version>
+    <name>sqlserver-all-side</name>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -84,4 +83,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

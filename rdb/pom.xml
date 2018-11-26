@@ -12,7 +12,8 @@
     <artifactId>sql.rdb</artifactId>
     <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>sqlserver</module>
+        <module>rdb-side</module>
+        <module>rdb-sink</module>
     </modules>
     <packaging>pom</packaging>
 
