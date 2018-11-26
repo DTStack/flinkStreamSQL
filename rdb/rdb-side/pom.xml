@@ -14,4 +14,27 @@
     <name>rdb-side</name>
     <packaging>jar</packaging>
 
+    <properties>
+        <vertx.version>3.5.2</vertx.version>
+    </properties>
+
+
+    <dependencies>
+        <!--异步数据库连接-->
+        <!--需要提取到对应的插件-->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-jdbc-client</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+
+    </dependencies>
+
+
 </project>
