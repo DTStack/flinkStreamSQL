@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.sink.mongo;
 
+import com.dtstack.flink.sql.metric.MetricConstant;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
@@ -31,6 +32,9 @@ import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.Counter;
+import org.apache.flink.metrics.Meter;
+import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -64,6 +68,10 @@ public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
 
     private static String PK = "_ID";
 
+    private transient Counter outRecords;
+
+    private transient Meter outRecordsRate;
+
     public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
 
     @Override
@@ -73,6 +81,7 @@ public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         establishConnection();
+        initMetric();
     }
 
     @Override
@@ -107,6 +116,7 @@ public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
         } else {
             dbCollection.insertOne(doc);
         }
+        outRecords.inc();
     }
 
     @Override
@@ -145,6 +155,11 @@ public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
         } catch (Exception e) {
             throw new IllegalArgumentException("[connMongoDB]:" + e.getMessage());
         }
+    }
+
+    private void initMetric() {
+        outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
+        outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
     }
 
     private MongoOutputFormat() {
