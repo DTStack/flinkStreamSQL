@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,19 +6,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
- 
-
-package com.dtstack.flink.sql.sink.mysql;
+package com.dtstack.flink.sql.sink.rdb;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -38,11 +35,12 @@ import java.sql.Types;
 import java.util.List;
 
 /**
- * Date: 2017/2/27
+ * Reason:
+ * Date: 2018/11/27
  * Company: www.dtstack.com
- * @author xuchao
+ *
+ * @author maqi
  */
-
 public abstract class DBSink implements RetractStreamTableSink<Row> {
 
     protected String driverName;
@@ -69,10 +67,10 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
 
     private int parallelism = -1;
 
-    public RichSinkFunction createJdbcSinkFunc(){
+    public RichSinkFunction createJdbcSinkFunc() {
 
-        if(driverName == null || dbURL == null || userName == null
-                || password == null || sqlTypes == null || tableName == null){
+        if (driverName == null || dbURL == null || userName == null
+                || password == null || sqlTypes == null || tableName == null) {
             throw new RuntimeException("any of params in(driverName, dbURL, userName, password, type, tableName) " +
                     " must not be null. please check it!!!");
         }
@@ -95,34 +93,35 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
     /**
      * By now specified class type conversion.
      * FIXME Follow-up has added a new type of time needs to be modified
+     *
      * @param fieldTypeArray
      */
-    protected void buildSqlTypes(List<Class> fieldTypeArray){
+    protected void buildSqlTypes(List<Class> fieldTypeArray) {
 
         int[] tmpFieldsType = new int[fieldTypeArray.size()];
-        for(int i=0; i<fieldTypeArray.size(); i++){
+        for (int i = 0; i < fieldTypeArray.size(); i++) {
             String fieldType = fieldTypeArray.get(i).getName();
-            if(fieldType.equals(Integer.class.getName())){
+            if (fieldType.equals(Integer.class.getName())) {
                 tmpFieldsType[i] = Types.INTEGER;
-            }else if(fieldType.equals(Long.class.getName())){
+            } else if (fieldType.equals(Long.class.getName())) {
                 tmpFieldsType[i] = Types.BIGINT;
-            }else if(fieldType.equals(Byte.class.getName())){
+            } else if (fieldType.equals(Byte.class.getName())) {
                 tmpFieldsType[i] = Types.TINYINT;
-            }else if(fieldType.equals(Short.class.getName())){
+            } else if (fieldType.equals(Short.class.getName())) {
                 tmpFieldsType[i] = Types.SMALLINT;
-            }else if(fieldType.equals(String.class.getName())){
+            } else if (fieldType.equals(String.class.getName())) {
                 tmpFieldsType[i] = Types.CHAR;
-            }else if(fieldType.equals(Byte.class.getName())){
+            } else if (fieldType.equals(Byte.class.getName())) {
                 tmpFieldsType[i] = Types.BINARY;
-            }else if(fieldType.equals(Float.class.getName())){
+            } else if (fieldType.equals(Float.class.getName())) {
                 tmpFieldsType[i] = Types.FLOAT;
-            }else if(fieldType.equals(Double.class.getName())){
+            } else if (fieldType.equals(Double.class.getName())) {
                 tmpFieldsType[i] = Types.DOUBLE;
-            }else if(fieldType.equals(Timestamp.class.getName())){
+            } else if (fieldType.equals(Timestamp.class.getName())) {
                 tmpFieldsType[i] = Types.TIMESTAMP;
-            }else if(fieldType.equals(BigDecimal.class.getName())){
+            } else if (fieldType.equals(BigDecimal.class.getName())) {
                 tmpFieldsType[i] = Types.DECIMAL;
-            }else{
+            } else {
                 throw new RuntimeException("no support field type for sql. the input type:" + fieldType);
             }
         }
@@ -132,6 +131,7 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
 
     /**
      * Set the default frequency submit updated every submission
+     *
      * @param batchInterval
      */
     public void setBatchInterval(int batchInterval) {
@@ -143,7 +143,7 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
         RichSinkFunction richSinkFunction = createJdbcSinkFunc();
         DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
         streamSink.name(tableName);
-        if(parallelism > 0){
+        if (parallelism > 0) {
             streamSink.setParallelism(parallelism);
         }
     }
@@ -176,11 +176,15 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
     }
 
 
-    public void setParallelism(int parallelism){
+    public void setParallelism(int parallelism) {
         this.parallelism = parallelism;
     }
 
-    public void buildSql(String tableName, List<String> fields){
-        throw new RuntimeException("you need to overwrite this method in your own class.");
-    }
+    /**
+     * you need to implements  this method in your own class.
+     *
+     * @param tableName
+     * @param fields
+     */
+    public abstract void buildSql(String tableName, List<String> fields);
 }
