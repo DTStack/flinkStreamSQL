@@ -16,40 +16,39 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.sink.mysql;
 
 
-import com.dtstack.flink.sql.sink.IStreamSinkGener;
-import com.dtstack.flink.sql.sink.mysql.table.MysqlTableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.sink.rdb.RdbSink;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
  * Date: 2017/2/27
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public class MysqlSink extends DBSink implements IStreamSinkGener<MysqlSink> {
+public class MysqlSink extends RdbSink {
 
-    public MysqlSink(){
+    private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
+
+    public MysqlSink() {
     }
 
     @Override
-    public void buildSql(String tableName, List<String> fields){
+    public void buildSql(String tableName, List<String> fields) {
         buildInsertSql(tableName, fields);
     }
 
-    private void buildInsertSql(String tableName, List<String> fields){
+    private void buildInsertSql(String tableName, List<String> fields) {
         String sqlTmp = "replace into " + tableName + " (${fields}) values (${placeholder})";
         String fieldsStr = "";
         String placeholder = "";
 
-        for(String fieldName : fields){
+        for (String fieldName : fields) {
             fieldsStr += ",`" + fieldName + "`";
             placeholder += ",?";
         }
@@ -61,38 +60,10 @@ public class MysqlSink extends DBSink implements IStreamSinkGener<MysqlSink> {
         this.sql = sqlTmp;
     }
 
+
     @Override
-    public MysqlSink genStreamSink(TargetTableInfo targetTableInfo) {
-
-        MysqlTableInfo mysqlTableInfo = (MysqlTableInfo) targetTableInfo;
-
-        String tmpDbURL = mysqlTableInfo.getUrl();
-        String tmpUserName = mysqlTableInfo.getUserName();
-        String tmpPassword = mysqlTableInfo.getPassword();
-        String tmpTableName = mysqlTableInfo.getTableName();
-
-        Integer tmpSqlBatchSize = mysqlTableInfo.getBatchSize();
-        if(tmpSqlBatchSize != null){
-            setBatchInterval(tmpSqlBatchSize);
-        }
-
-        Integer tmpSinkParallelism = mysqlTableInfo.getParallelism();
-        if(tmpSinkParallelism != null){
-            setParallelism(tmpSinkParallelism);
-        }
-
-        List<String> fields = Arrays.asList(mysqlTableInfo.getFields());
-        List<Class> fieldTypeArray = Arrays.asList(mysqlTableInfo.getFieldClasses());
-
-        this.driverName = "com.mysql.jdbc.Driver";
-        this.dbURL = tmpDbURL;
-        this.userName = tmpUserName;
-        this.password = tmpPassword;
-        this.tableName = tmpTableName;
-        this.primaryKeys = mysqlTableInfo.getPrimaryKeys();
-        buildSql(tableName, fields);
-        buildSqlTypes(fieldTypeArray);
-        return this;
+    public String getDriverName() {
+        return MYSQL_DRIVER;
     }
 
 }

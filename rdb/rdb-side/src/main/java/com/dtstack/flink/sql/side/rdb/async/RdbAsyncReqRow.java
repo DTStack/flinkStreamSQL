@@ -58,10 +58,6 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         super(new RdbAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
-//    @Override
-//    public  void open(Configuration parameters) throws Exception{
-//        super.open(parameters);
-//    }
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
@@ -176,7 +172,10 @@ public class RdbAsyncReqRow extends AsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        rdbSQLClient.close();
+        if (rdbSQLClient != null) {
+            rdbSQLClient.close();
+        }
+
     }
 
     public String buildCacheKey(JsonArray jsonArray) {
