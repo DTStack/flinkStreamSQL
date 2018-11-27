@@ -54,11 +54,7 @@ public abstract class RdbAllReqRow extends AllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(RdbAllReqRow.class);
 
-    //private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
-
     private static final int CONN_RETRY_NUM = 3;
-
-    private static final int FETCH_SIZE = 1000;
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
@@ -195,7 +191,7 @@ public abstract class RdbAllReqRow extends AllReqRow {
             //load data from table
             String sql = sideInfo.getSqlCondition();
             Statement statement = connection.createStatement();
-            statement.setFetchSize(FETCH_SIZE);
+            statement.setFetchSize(getFetchSize());
             ResultSet resultSet = statement.executeQuery(sql);
             String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
             while (resultSet.next()) {
@@ -216,4 +212,9 @@ public abstract class RdbAllReqRow extends AllReqRow {
             }
         }
     }
+
+    public int getFetchSize(){
+        return 1000;
+    }
+
 }
