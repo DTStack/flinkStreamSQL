@@ -67,4 +67,9 @@ public class MysqlAllReqRow extends RdbAllReqRow {
             throw new RuntimeException("", e);
         }
     }
+
+    @Override
+    public  int getFetchSize(){
+        return Integer.MIN_VALUE;
+    }
 }

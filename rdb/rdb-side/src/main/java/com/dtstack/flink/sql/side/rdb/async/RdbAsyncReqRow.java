@@ -105,8 +105,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             String sqlCondition = sideInfo.getSqlCondition();
             connection.queryWithParams(sqlCondition, inputParams, rs -> {
                 if (rs.failed()) {
-                    LOG.error("Cannot retrieve the data from the database");
-                    LOG.error("", rs.cause());
+                    LOG.error("Cannot retrieve the data from the database", rs.cause());
                     resultFuture.complete(null);
                     return;
                 }
