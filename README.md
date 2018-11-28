@@ -5,6 +5,8 @@
 >  >  * 自定义create function 语法
 >  >  * 实现了流与维表的join
 >  >  * 支持原生FLinkSQL所有的语法
+>  >  * 扩展了输入和输出的性能指标到promethus
+
  
 # 已支持
   * 源表：kafka 0.9，1.x版本
