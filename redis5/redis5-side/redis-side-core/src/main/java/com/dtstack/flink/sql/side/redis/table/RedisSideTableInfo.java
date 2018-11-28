@@ -43,7 +43,7 @@ public class RedisSideTableInfo extends SideTableInfo {
 
     public static final String MINIDLE = "minIdle";
 
-    public static final String REDIS_TYPE = "redisType";
+    public static final String REDIS_TYPE = "redistype";
 
     public static final String MASTER_NAME = "masterName";
 
@@ -63,7 +63,7 @@ public class RedisSideTableInfo extends SideTableInfo {
 
     private String minIdle;
 
-    private int redisType;
+    private String redisType;
 
     private String masterName;
 
@@ -145,10 +145,10 @@ public class RedisSideTableInfo extends SideTableInfo {
     }
 
     public int getRedisType() {
-        return redisType;
+        return Integer.parseInt(redisType);
     }
 
-    public void setRedisType(int redisType) {
+    public void setRedisType(String redisType) {
         this.redisType = redisType;
     }
 

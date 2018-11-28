@@ -137,8 +137,8 @@ public class RedisTableInfo extends TargetTableInfo {
         return redisType;
     }
 
-    public void setRedisType(int redisType) {
-        this.redisType = redisType;
+    public void setRedisType(String redisType) {
+        this.redisType = Integer.parseInt(redisType);
     }
 
     public String getMasterName() {
