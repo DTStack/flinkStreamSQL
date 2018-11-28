@@ -33,20 +33,20 @@ public class RedisSideParser extends AbsSideTableParser {
         redisSideTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, redisSideTableInfo);
         parseCacheProp(redisSideTableInfo, props);
-        redisSideTableInfo.setUrl(MathUtil.getString(props.get(RedisSideTableInfo.URL_KEY)));
-        redisSideTableInfo.setPassword(MathUtil.getString(props.get(RedisSideTableInfo.PASSWORD_KEY)));
-        redisSideTableInfo.setDatabase(MathUtil.getString(props.get(RedisSideTableInfo.DATABASE_KEY)));
-        redisSideTableInfo.setTableName(MathUtil.getString(props.get(RedisSideTableInfo.TABLE_KEY)));
+        redisSideTableInfo.setUrl(MathUtil.getString(props.get(RedisSideTableInfo.URL_KEY.toLowerCase())));
+        redisSideTableInfo.setPassword(MathUtil.getString(props.get(RedisSideTableInfo.PASSWORD_KEY.toLowerCase())));
+        redisSideTableInfo.setDatabase(MathUtil.getString(props.get(RedisSideTableInfo.DATABASE_KEY.toLowerCase())));
+        redisSideTableInfo.setTableName(MathUtil.getString(props.get(RedisSideTableInfo.TABLE_KEY.toLowerCase())));
 
         if (props.get(RedisSideTableInfo.TIMEOUT) != null){
-            redisSideTableInfo.setTimeout(MathUtil.getIntegerVal(props.get(RedisSideTableInfo.TIMEOUT)));
+            redisSideTableInfo.setTimeout(MathUtil.getIntegerVal(props.get(RedisSideTableInfo.TIMEOUT.toLowerCase())));
         }
 
-        redisSideTableInfo.setMaxTotal(MathUtil.getString(props.get(RedisSideTableInfo.MAXTOTAL)));
-        redisSideTableInfo.setMaxIdle(MathUtil.getString(props.get(RedisSideTableInfo.MAXIDLE)));
-        redisSideTableInfo.setMinIdle(MathUtil.getString(props.get(RedisSideTableInfo.MINIDLE)));
-        redisSideTableInfo.setMasterName(MathUtil.getString(props.get(RedisSideTableInfo.MASTER_NAME)));
-        redisSideTableInfo.setRedisType(MathUtil.getIntegerVal(RedisSideTableInfo.REDIS_TYPE));
+        redisSideTableInfo.setMaxTotal(MathUtil.getString(props.get(RedisSideTableInfo.MAXTOTAL.toLowerCase())));
+        redisSideTableInfo.setMaxIdle(MathUtil.getString(props.get(RedisSideTableInfo.MAXIDLE.toLowerCase())));
+        redisSideTableInfo.setMinIdle(MathUtil.getString(props.get(RedisSideTableInfo.MINIDLE.toLowerCase())));
+        redisSideTableInfo.setMasterName(MathUtil.getString(props.get(RedisSideTableInfo.MASTER_NAME.toLowerCase())));
+        redisSideTableInfo.setRedisType(MathUtil.getString(props.get(RedisSideTableInfo.REDIS_TYPE.toLowerCase())));
 
         return redisSideTableInfo;
     }
