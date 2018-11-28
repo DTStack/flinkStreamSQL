@@ -42,6 +42,7 @@ public class KafkaSourceParser extends AbsSourceParser {
         kafka11SourceTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, kafka11SourceTableInfo);
         kafka11SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
+        kafka11SourceTableInfo.setSourceDataType(props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE).toString());
 
         for (String key:props.keySet()) {
             if (!key.isEmpty() && key.startsWith("kafka.")) {

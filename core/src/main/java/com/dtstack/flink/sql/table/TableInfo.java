@@ -35,6 +35,8 @@ public abstract class TableInfo {
 
     public static final String PARALLELISM_KEY = "parallelism";
 
+    public static final String SOURCE_DATA_TYPE = "sourcedatatype";
+
     private String name;
 
     private String type;
@@ -54,6 +56,8 @@ public abstract class TableInfo {
     private List<String> primaryKeys;
 
     private Integer parallelism = 1;
+
+    private String sourceDataType = "json";
 
     public String[] getFieldTypes() {
         return fieldTypes;
@@ -107,6 +111,14 @@ public abstract class TableInfo {
         }
 
         this.parallelism = parallelism;
+    }
+
+    public String getSourceDataType() {
+        return sourceDataType;
+    }
+
+    public void setSourceDataType(String sourceDataType) {
+        this.sourceDataType = sourceDataType;
     }
 
     public void addField(String fieldName){

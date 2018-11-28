@@ -71,8 +71,18 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }
 
         TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka09SourceTableInfo.getFields());
-        FlinkKafkaConsumer09<Row> kafkaSrc = new CustomerKafka09Consumer(topicName,
-                new CustomerJsonDeserialization(typeInformation), props);
+
+        FlinkKafkaConsumer09<Row> kafkaSrc;
+        String fields;
+        if("json".equalsIgnoreCase(kafka09SourceTableInfo.getSourceDataType())){
+            kafkaSrc = new CustomerKafka09Consumer(topicName,
+                    new CustomerJsonDeserialization(typeInformation), props);
+            fields = StringUtils.join(kafka09SourceTableInfo.getFields(), ",");
+        }else{
+            kafkaSrc = new FlinkKafkaConsumer09(topicName,
+                    new CustomerCommonDeserialization(),props);
+            fields = StringUtils.join(CustomerCommonDeserialization.KAFKA_COLUMNS, ",");
+        }
 
         //earliest,latest
         if("earliest".equalsIgnoreCase(offsetReset)){
@@ -81,8 +91,8 @@ public class KafkaSource implements IStreamSourceGener<Table> {
             kafkaSrc.setStartFromLatest();
         }
 
-        String fields = StringUtils.join(kafka09SourceTableInfo.getFields(), ",");
-        String sourceOperatorName = SOURCE_OPERATOR_NAME_TPL.replace("${topic}", topicName).replace("${table}", sourceTableInfo.getName());
-        return tableEnv.fromDataStream(env.addSource(kafkaSrc, sourceOperatorName, typeInformation), fields);
+
+
+        return tableEnv.fromDataStream(env.addSource(kafkaSrc, typeInformation), fields);
     }
 }

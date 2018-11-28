@@ -69,8 +69,18 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }
 
         TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka011SourceTableInfo.getFields());
-        FlinkKafkaConsumer011<Row> kafkaSrc = new CustomerKafka011Consumer(topicName,
-                new CustomerJsonDeserialization(typeInformation), props);
+
+        FlinkKafkaConsumer011<Row> kafkaSrc;
+        String fields;
+        if("json".equalsIgnoreCase(kafka011SourceTableInfo.getSourceDataType())){
+            kafkaSrc = new CustomerKafka011Consumer(topicName,
+                    new CustomerJsonDeserialization(typeInformation), props);
+            fields = StringUtils.join(kafka011SourceTableInfo.getFields(), ",");
+        }else{
+            kafkaSrc = new FlinkKafkaConsumer011(topicName,
+                    new CustomerCommonDeserialization(),props);
+            fields = StringUtils.join(CustomerCommonDeserialization.KAFKA_COLUMNS, ",");
+        }
 
         //earliest,latest
         if("earliest".equalsIgnoreCase(offsetReset)){
@@ -79,7 +89,6 @@ public class KafkaSource implements IStreamSourceGener<Table> {
             kafkaSrc.setStartFromLatest();
         }
 
-        String fields = StringUtils.join(kafka011SourceTableInfo.getFields(), ",");
         return tableEnv.fromDataStream(env.addSource(kafkaSrc, typeInformation), fields);
     }
 }

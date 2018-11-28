@@ -65,6 +65,8 @@ public class LauncherOptionParser {
 
     public static final String OPTION_ALLOW_NON_RESTORED_STATE = "allowNonRestoredState";
 
+    public static final String HADOOP_USER_NAME = "hadoop_user_name";
+
     private Options options = new Options();
 
     private BasicParser parser = new BasicParser();
@@ -81,7 +83,7 @@ public class LauncherOptionParser {
         options.addOption(OPTION_ADDJAR, true, "sql ext jar,eg udf jar");
         options.addOption(OPTION_CONF_PROP, true, "sql ref prop,eg specify event time");
         options.addOption(OPTION_YARN_CONF_DIR, true, "Yarn and hadoop configuration directory");
-
+        options.addOption(HADOOP_USER_NAME, true, "hadoop user");
         options.addOption(OPTION_SAVE_POINT_PATH, true, "Savepoint restore path");
         options.addOption(OPTION_ALLOW_NON_RESTORED_STATE, true, "Flag indicating whether non restored state is allowed if the savepoint");
 

@@ -28,6 +28,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
@@ -69,8 +70,18 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }
 
         TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka010SourceTableInfo.getFields());
-        FlinkKafkaConsumer010<Row> kafkaSrc = new CustomerKafka010Consumer(topicName,
-                new CustomerJsonDeserialization(typeInformation), props);
+
+        FlinkKafkaConsumer010<Row> kafkaSrc;
+        String fields;
+        if("json".equalsIgnoreCase(kafka010SourceTableInfo.getSourceDataType())){
+            kafkaSrc = new CustomerKafka010Consumer(topicName,
+                    new CustomerJsonDeserialization(typeInformation), props);
+            fields = StringUtils.join(kafka010SourceTableInfo.getFields(), ",");
+        }else{
+            kafkaSrc = new FlinkKafkaConsumer010(topicName,
+                    new CustomerCommonDeserialization(),props);
+            fields = StringUtils.join(CustomerCommonDeserialization.KAFKA_COLUMNS, ",");
+        }
 
         //earliest,latest
         if("earliest".equalsIgnoreCase(offsetReset)){
@@ -79,7 +90,6 @@ public class KafkaSource implements IStreamSourceGener<Table> {
             kafkaSrc.setStartFromLatest();
         }
 
-        String fields = StringUtils.join(kafka010SourceTableInfo.getFields(), ",");
         return tableEnv.fromDataStream(env.addSource(kafkaSrc, typeInformation), fields);
     }
 }
