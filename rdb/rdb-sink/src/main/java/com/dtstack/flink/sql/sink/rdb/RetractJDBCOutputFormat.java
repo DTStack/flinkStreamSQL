@@ -18,23 +18,18 @@
 
 package com.dtstack.flink.sql.sink.rdb;
 
-import com.dtstack.flink.sql.metric.MetricConstant;
-import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.metrics.Counter;
-import org.apache.flink.metrics.Meter;
-import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import com.dtstack.flink.sql.metric.MetricOutputFormat;
 
 /**
  * OutputFormat to write tuples into a database.
@@ -43,7 +38,7 @@ import java.sql.SQLException;
  * @see Tuple
  * @see DriverManager
  */
-public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
+public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(RetractJDBCOutputFormat.class);
@@ -63,11 +58,8 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 
     public int[] typesArray;
 
-    private transient Counter outRecords;
-
-    private transient Meter outRecordsRate;
-
     public RetractJDBCOutputFormat() {
+
     }
 
     @Override
@@ -98,11 +90,6 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
         } catch (ClassNotFoundException cnfe) {
             throw new IllegalArgumentException("JDBC driver class not found.", cnfe);
         }
-    }
-
-    private void initMetric() {
-        outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
-        outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
     }
 
     private void establishConnection() throws SQLException, ClassNotFoundException {

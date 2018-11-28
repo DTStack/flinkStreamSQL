@@ -20,14 +20,10 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.metric.MetricConstant;
+import com.dtstack.flink.sql.metric.MetricOutputFormat;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.metrics.Counter;
-import org.apache.flink.metrics.Meter;
-import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -38,7 +34,6 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -48,7 +43,7 @@ import java.util.List;
  * author: jingzhen@dtstack.com
  * date: 2017-6-29
  */
-public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
+public class HbaseOutputFormat extends MetricOutputFormat {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseOutputFormat.class);
 
@@ -65,10 +60,6 @@ public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
     private transient org.apache.hadoop.conf.Configuration conf;
     private transient Connection conn;
     private transient Table table;
-
-    private transient Counter outRecords;
-
-    private transient Meter outRecordsRate;
 
     public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     public final SimpleDateFormat FIELD_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -144,11 +135,6 @@ public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
         table.put(put);
         outRecords.inc();
 
-    }
-
-    private void initMetric() {
-        outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
-        outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
     }
 
     @Override
