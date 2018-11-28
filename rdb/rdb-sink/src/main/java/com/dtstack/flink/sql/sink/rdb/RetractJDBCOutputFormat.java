@@ -29,7 +29,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import com.dtstack.flink.sql.metric.MetricOutputFormat;
+import com.dtstack.flink.sql.sink.MetricOutputFormat;
 
 /**
  * OutputFormat to write tuples into a database.

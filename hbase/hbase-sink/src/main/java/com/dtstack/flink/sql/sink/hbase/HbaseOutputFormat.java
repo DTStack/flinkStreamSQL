@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.metric.MetricOutputFormat;
+import com.dtstack.flink.sql.sink.MetricOutputFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;

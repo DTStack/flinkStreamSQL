@@ -15,8 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.dtstack.flink.sql.metric;
+package com.dtstack.flink.sql.sink;
 
+import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.java.tuple.Tuple2;
 
 import org.apache.flink.api.common.io.RichOutputFormat;
