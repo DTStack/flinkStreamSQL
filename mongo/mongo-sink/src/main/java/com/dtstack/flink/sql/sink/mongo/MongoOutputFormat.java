@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.sink.mongo;
 
-import com.dtstack.flink.sql.metric.MetricConstant;
+import com.dtstack.flink.sql.metric.MetricOutputFormat;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
@@ -28,19 +28,14 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.UpdateResult;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.metrics.Counter;
-import org.apache.flink.metrics.Meter;
-import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -52,7 +47,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
+public class MongoOutputFormat extends MetricOutputFormat {
     private static final Logger LOG = LoggerFactory.getLogger(MongoOutputFormat.class);
 
     private String address;
@@ -67,10 +62,6 @@ public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
     private MongoDatabase db;
 
     private static String PK = "_ID";
-
-    private transient Counter outRecords;
-
-    private transient Meter outRecordsRate;
 
     public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
 
@@ -155,11 +146,6 @@ public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
         } catch (Exception e) {
             throw new IllegalArgumentException("[connMongoDB]:" + e.getMessage());
         }
-    }
-
-    private void initMetric() {
-        outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
-        outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
     }
 
     private MongoOutputFormat() {
