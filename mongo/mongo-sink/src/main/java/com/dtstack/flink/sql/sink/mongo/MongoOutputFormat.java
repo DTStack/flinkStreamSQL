@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.sink.mongo;
 
-import com.dtstack.flink.sql.metric.MetricOutputFormat;
+import com.dtstack.flink.sql.sink.MetricOutputFormat;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
