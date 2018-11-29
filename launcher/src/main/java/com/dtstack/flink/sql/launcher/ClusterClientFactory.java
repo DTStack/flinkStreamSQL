@@ -154,7 +154,7 @@ public class ClusterClientFactory {
                             jobGraph.addJar(new org.apache.flink.core.fs.Path(url.toString()));
                         }
                     }
-                    YarnClusterConfiguration clusterConf = getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir);
+                    YarnClusterConfiguration clusterConf = getYarnClusterConfiguration(flinkConf,yarnConf,flinkConfDir,yarnConfDir);
                     JobParameter jobParam = new JobParameter(confProperties);
 
                     AbstractYarnClusterDescriptor clusterDescriptor = createDescriptor(jobParam,clusterConf,flinkConf, yarnConf, flinkConfDir, yarnClient,launcherOptions.getName());
@@ -192,14 +192,18 @@ public class ClusterClientFactory {
         return new YarnConfiguration(hadoopConf);
     }
 
-    public static YarnClusterConfiguration getYarnClusterConfiguration(Configuration flinkConf,YarnConfiguration yarnConf,String flinkConfDir)
+    public static YarnClusterConfiguration getYarnClusterConfiguration(Configuration flinkConf,YarnConfiguration yarnConf,String flinkConfDir,String yarnConfDir)
     {
         Path flinkJar = new Path(getFlinkJarFile(flinkConfDir).toURI());
 
-        final Set<Path> resourcesToLocalize = Stream
+        Set<Path> resourcesToLocalize = Stream
                 .of("../lib")
                 .map(x -> new Path(flinkConfDir, x))
                 .collect(Collectors.toSet());
+        resourcesToLocalize.addAll(Stream
+                .of("../hadoop")
+                .map(x -> new Path(yarnConfDir, x))
+                .collect(Collectors.toSet()));
 
         return new YarnClusterConfiguration(
                 flinkConf,
