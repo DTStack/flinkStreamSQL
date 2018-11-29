@@ -10,7 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>sql.sink.elasticsearch5</artifactId>
-    <name>elasticsearch5-sink</name>
+    <name>elasticsearch-sink</name>
 
     <dependencies>
         <dependency>
@@ -48,7 +48,6 @@
                             <artifactSet>
                                 <excludes>
                                     <exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>
-                                    <exclude>org.slf4j:slf4j-api</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>
