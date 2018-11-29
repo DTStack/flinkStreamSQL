@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.sink.mysql;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Date: 2017/2/27
@@ -41,6 +42,11 @@ public class MysqlSink extends RdbSink {
     @Override
     public void buildSql(String tableName, List<String> fields) {
         buildInsertSql(tableName, fields);
+    }
+
+    @Override
+    public String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
+        return null;
     }
 
     private void buildInsertSql(String tableName, List<String> fields) {
@@ -65,5 +71,6 @@ public class MysqlSink extends RdbSink {
     public String getDriverName() {
         return MYSQL_DRIVER;
     }
+
 
 }

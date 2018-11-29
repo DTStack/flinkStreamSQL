@@ -52,12 +52,17 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(RdbAsyncReqRow.class);
 
+    public final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 1;
+
+    public final static int DEFAULT_VERTX_WORKER_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
+
+    public final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
+
     private transient SQLClient rdbSQLClient;
 
     public RdbAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new RdbAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
-
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {

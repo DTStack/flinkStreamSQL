@@ -18,17 +18,20 @@
 
 package com.dtstack.flink.sql.sink.rdb;
 
+import com.dtstack.flink.sql.enums.EDatabaseType;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.sql.*;
+import java.util.*;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+
 import com.dtstack.flink.sql.sink.MetricOutputFormat;
 
 /**
@@ -49,14 +52,32 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private String dbURL;
     private String insertQuery;
     private String tableName;
+    private String dbType;
     private int batchInterval = 5000;
 
     private Connection dbConn;
     private PreparedStatement upload;
+    //index field
+    private Map<String, List<String>> realIndexes = Maps.newHashMap();
+    //full field
+    private List<String> fullField = Lists.newArrayList();
+
+    private DBSink dbSink;
 
     private int batchCount = 0;
 
     public int[] typesArray;
+
+    private final static String GET_ORACLE_INDEX_SQL = "SELECT " +
+            "t.INDEX_NAME," +
+            "t.COLUMN_NAME " +
+            "FROM " +
+            "user_ind_columns t," +
+            "user_indexes i " +
+            "WHERE " +
+            "t.index_name = i.index_name " +
+            "AND i.uniqueness = 'UNIQUE' " +
+            "AND t.table_name = '%s'";
 
     public RetractJDBCOutputFormat() {
 
@@ -77,9 +98,11 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
             establishConnection();
-            upload = dbConn.prepareStatement(insertQuery);
             initMetric();
             if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
+                if (!EDatabaseType.MYSQL.name().equalsIgnoreCase(dbType) && isReplaceInsertQuery()) {
+                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.fieldNames), realIndexes, fullField);
+                }
                 upload = dbConn.prepareStatement(insertQuery);
             } else {
                 throw new SQLException("Table " + tableName + " doesn't exist");
@@ -90,6 +113,22 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         } catch (ClassNotFoundException cnfe) {
             throw new IllegalArgumentException("JDBC driver class not found.", cnfe);
         }
+    }
+
+    private boolean isReplaceInsertQuery() throws SQLException {
+        getRealIndexes();
+        getFullColumns();
+
+        if (!realIndexes.isEmpty()) {
+            for (List<String> value : realIndexes.values()) {
+                for (String fieldName : dbSink.getFieldNames()) {
+                    if (value.contains(fieldName)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private void establishConnection() throws SQLException, ClassNotFoundException {
@@ -148,7 +187,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             batchCount = 0;
         }
     }
-
 
     private void updatePreparedStmt(Row row, PreparedStatement pstmt) throws SQLException {
         if (typesArray == null) {
@@ -269,6 +307,67 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         }
     }
 
+    /**
+     * get db all index
+     *
+     * @throws SQLException
+     */
+    public void getRealIndexes() throws SQLException {
+        Map<String, List<String>> map = Maps.newHashMap();
+        ResultSet rs;
+        if (EDatabaseType.ORACLE.name().equalsIgnoreCase(dbType)) {
+            PreparedStatement ps = dbConn.prepareStatement(String.format(GET_ORACLE_INDEX_SQL, tableName));
+            rs = ps.executeQuery();
+        } else {
+            rs = dbConn.getMetaData().getIndexInfo(null, null, tableName, true, false);
+        }
+
+        while (rs.next()) {
+            String indexName = rs.getString("INDEX_NAME");
+            if (!map.containsKey(indexName)) {
+                map.put(indexName, new ArrayList<>());
+            }
+            String column_name = rs.getString("COLUMN_NAME");
+            if (StringUtils.isNotBlank(column_name)) {
+                column_name = column_name.toUpperCase();
+            }
+            map.get(indexName).add(column_name);
+        }
+
+        for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+            String k = entry.getKey();
+            List<String> v = entry.getValue();
+            if (v != null && v.size() != 0 && v.get(0) != null) {
+                realIndexes.put(k, v);
+            }
+        }
+    }
+
+    /**
+     * get db all column name
+     *
+     * @throws SQLException
+     */
+    public void getFullColumns() throws SQLException {
+        String schema = null;
+        if (EDatabaseType.ORACLE.name().equalsIgnoreCase(dbType)) {
+            String[] parts = tableName.split("\\.");
+            if (parts.length == 2) {
+                schema = parts[0].toUpperCase();
+                tableName = parts[1];
+            }
+        }
+
+        ResultSet rs = dbConn.getMetaData().getColumns(null, schema, tableName, null);
+        while (rs.next()) {
+            String columnName = rs.getString("COLUMN_NAME");
+            if (StringUtils.isNotBlank(columnName)) {
+                fullField.add(columnName.toUpperCase());
+            }
+        }
+
+    }
+
     public static JDBCOutputFormatBuilder buildJDBCOutputFormat() {
         return new JDBCOutputFormatBuilder();
     }
@@ -320,6 +419,17 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             format.tableName = tableName;
             return this;
         }
+
+        public JDBCOutputFormatBuilder setDBSink(DBSink dbSink) {
+            format.dbSink = dbSink;
+            return this;
+        }
+
+        public JDBCOutputFormatBuilder setDBType(String dbType) {
+            format.dbType = dbType;
+            return this;
+        }
+
 
         /**
          * Finalizes the configuration and checks validity.

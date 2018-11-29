@@ -61,6 +61,8 @@ public abstract class RdbSink extends DBSink implements IStreamSinkGener<RdbSink
         this.password = tmpPassword;
         this.tableName = tmpTableName;
         this.primaryKeys = rdbTableInfo.getPrimaryKeys();
+        this.dbType=rdbTableInfo.getType();
+
         buildSql(tableName, fields);
         buildSqlTypes(fieldTypeArray);
         return this;

@@ -49,13 +49,6 @@ public class MysqlAsyncReqRow extends RdbAsyncReqRow {
 
     private final static String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 
-    private final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 10;
-
-    private final static int DEFAULT_VERTX_WORKER_POOL_SIZE = 20;
-
-    private final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = 20;
-
-
     public MysqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
