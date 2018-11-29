@@ -21,6 +21,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
@@ -29,10 +30,12 @@ import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Reason:
@@ -41,7 +44,7 @@ import java.util.List;
  *
  * @author maqi
  */
-public abstract class DBSink implements RetractStreamTableSink<Row> {
+public abstract class DBSink implements RetractStreamTableSink<Row>, Serializable {
 
     protected String driverName;
 
@@ -50,6 +53,8 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
     protected String userName;
 
     protected String password;
+
+    protected String dbType;
 
     protected int batchInterval = 1;
 
@@ -66,6 +71,7 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
     private TypeInformation[] fieldTypes;
 
     private int parallelism = -1;
+
 
     public RichSinkFunction createJdbcSinkFunc() {
 
@@ -84,6 +90,9 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
         jdbcFormatBuild.setBatchInterval(batchInterval);
         jdbcFormatBuild.setSqlTypes(sqlTypes);
         jdbcFormatBuild.setTableName(tableName);
+        jdbcFormatBuild.setDBType(dbType);
+        jdbcFormatBuild.setDBSink(this);
+
         RetractJDBCOutputFormat outputFormat = jdbcFormatBuild.finish();
 
         OutputFormatSinkFunction outputFormatSinkFunc = new OutputFormatSinkFunction(outputFormat);
@@ -180,6 +189,10 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
         this.parallelism = parallelism;
     }
 
+    public void setDbType(String dbType) {
+        this.dbType = dbType;
+    }
+
     /**
      * you need to implements  this method in your own class.
      *
@@ -187,4 +200,14 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
      * @param fields
      */
     public abstract void buildSql(String tableName, List<String> fields);
+
+    /**
+     * sqlserver and oracle maybe implement
+     *
+     * @param tableName
+     * @param fieldNames
+     * @param realIndexes
+     * @return
+     */
+    public abstract String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField);
 }

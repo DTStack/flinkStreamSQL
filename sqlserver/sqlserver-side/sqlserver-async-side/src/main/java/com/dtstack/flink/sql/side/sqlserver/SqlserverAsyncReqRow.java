@@ -40,12 +40,6 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
 
     private final static String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
 
-    private final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 10;
-
-    private final static int DEFAULT_VERTX_WORKER_POOL_SIZE = 20;
-
-    private final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = 20;
-
     public SqlserverAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
