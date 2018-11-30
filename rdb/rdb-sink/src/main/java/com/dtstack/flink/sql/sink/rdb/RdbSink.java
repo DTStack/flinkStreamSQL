@@ -99,8 +99,6 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         return outputFormatSinkFunc;
     }
 
-    public abstract RetractJDBCOutputFormat getOutputFormat();
-
 
     @Override
     public RdbSink genStreamSink(TargetTableInfo targetTableInfo) {
@@ -252,4 +250,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
     public abstract String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField);
 
     public abstract String getDriverName();
+
+    public abstract RetractJDBCOutputFormat getOutputFormat();
+
 }
