@@ -17,6 +17,7 @@
  */
 package com.dtstack.flink.sql.sink.sqlserver;
 
+import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import org.apache.commons.lang3.StringUtils;
 
@@ -29,7 +30,7 @@ import java.util.*;
  *
  * @author maqi
  */
-public class SqlserverSink extends RdbSink {
+public class SqlserverSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     private static final String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
 
     @Override
@@ -97,7 +98,7 @@ public class SqlserverSink extends RdbSink {
         String prefixRight = StringUtils.isBlank(rightTable) ? "" : quoteTable(rightTable) + ".";
         List<String> list = new ArrayList<>();
         for (String col : fullColumn) {
-            if (keyCols == null || keyCols.size() == 0 ) {
+            if (keyCols == null || keyCols.size() == 0) {
                 continue;
             }
             if (fullColumn == null || column.contains(col)) {

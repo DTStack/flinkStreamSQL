@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.rdb;
+package com.dtstack.flink.sql.sink.rdb.format;
 
-import com.dtstack.flink.sql.enums.EDatabaseType;
+import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -28,6 +28,7 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.sql.*;
 import java.util.*;
 import java.io.IOException;
@@ -50,34 +51,22 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private String password;
     private String drivername;
     private String dbURL;
-    private String insertQuery;
     private String tableName;
     private String dbType;
+    private RdbSink dbSink;
     private int batchInterval = 5000;
+    private String insertQuery;
+    public int[] typesArray;
 
     private Connection dbConn;
     private PreparedStatement upload;
+
+    private int batchCount = 0;
+
     //index field
     private Map<String, List<String>> realIndexes = Maps.newHashMap();
     //full field
     private List<String> fullField = Lists.newArrayList();
-
-    private DBSink dbSink;
-
-    private int batchCount = 0;
-
-    public int[] typesArray;
-
-    private final static String GET_ORACLE_INDEX_SQL = "SELECT " +
-            "t.INDEX_NAME," +
-            "t.COLUMN_NAME " +
-            "FROM " +
-            "user_ind_columns t," +
-            "user_indexes i " +
-            "WHERE " +
-            "t.index_name = i.index_name " +
-            "AND i.uniqueness = 'UNIQUE' " +
-            "AND t.table_name = '%s'";
 
     public RetractJDBCOutputFormat() {
 
@@ -100,8 +89,8 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             establishConnection();
             initMetric();
             if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
-                if (!EDatabaseType.MYSQL.name().equalsIgnoreCase(dbType) && isReplaceInsertQuery()) {
-                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.fieldNames), realIndexes, fullField);
+                if (isReplaceInsertQuery()) {
+                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
                 }
                 upload = dbConn.prepareStatement(insertQuery);
             } else {
@@ -115,21 +104,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         }
     }
 
-    private boolean isReplaceInsertQuery() throws SQLException {
-        getRealIndexes();
-        getFullColumns();
-
-        if (!realIndexes.isEmpty()) {
-            for (List<String> value : realIndexes.values()) {
-                for (String fieldName : dbSink.getFieldNames()) {
-                    if (value.contains(fieldName)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
 
     private void establishConnection() throws SQLException, ClassNotFoundException {
         Class.forName(drivername);
@@ -307,153 +281,91 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         }
     }
 
-    /**
-     * get db all index
-     *
-     * @throws SQLException
-     */
-    public void getRealIndexes() throws SQLException {
-        Map<String, List<String>> map = Maps.newHashMap();
-        ResultSet rs;
-        if (EDatabaseType.ORACLE.name().equalsIgnoreCase(dbType)) {
-            PreparedStatement ps = dbConn.prepareStatement(String.format(GET_ORACLE_INDEX_SQL, tableName));
-            rs = ps.executeQuery();
-        } else {
-            rs = dbConn.getMetaData().getIndexInfo(null, null, tableName, true, false);
-        }
 
-        while (rs.next()) {
-            String indexName = rs.getString("INDEX_NAME");
-            if (!map.containsKey(indexName)) {
-                map.put(indexName, new ArrayList<>());
-            }
-            String column_name = rs.getString("COLUMN_NAME");
-            if (StringUtils.isNotBlank(column_name)) {
-                column_name = column_name.toUpperCase();
-            }
-            map.get(indexName).add(column_name);
-        }
+    public boolean isReplaceInsertQuery() throws SQLException {
+        return false;
+    }
 
-        for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-            String k = entry.getKey();
-            List<String> v = entry.getValue();
-            if (v != null && v.size() != 0 && v.get(0) != null) {
-                realIndexes.put(k, v);
-            }
+    public void verifyField() {
+        if (StringUtils.isBlank(username)) {
+            LOG.info("Username was not supplied separately.");
+        }
+        if (StringUtils.isBlank(password)) {
+            LOG.info("Password was not supplied separately.");
+        }
+        if (StringUtils.isBlank(dbURL)) {
+            throw new IllegalArgumentException("No dababase URL supplied.");
+        }
+        if (StringUtils.isBlank(insertQuery)) {
+            throw new IllegalArgumentException("No insertQuery suplied");
+        }
+        if (StringUtils.isBlank(drivername)) {
+            throw new IllegalArgumentException("No driver supplied");
         }
     }
 
-    /**
-     * get db all column name
-     *
-     * @throws SQLException
-     */
-    public void getFullColumns() throws SQLException {
-        String schema = null;
-        if (EDatabaseType.ORACLE.name().equalsIgnoreCase(dbType)) {
-            String[] parts = tableName.split("\\.");
-            if (parts.length == 2) {
-                schema = parts[0].toUpperCase();
-                tableName = parts[1];
-            }
-        }
 
-        ResultSet rs = dbConn.getMetaData().getColumns(null, schema, tableName, null);
-        while (rs.next()) {
-            String columnName = rs.getString("COLUMN_NAME");
-            if (StringUtils.isNotBlank(columnName)) {
-                fullField.add(columnName.toUpperCase());
-            }
-        }
-
+    public void setUsername(String username) {
+        this.username = username;
     }
 
-    public static JDBCOutputFormatBuilder buildJDBCOutputFormat() {
-        return new JDBCOutputFormatBuilder();
+    public void setPassword(String password) {
+        this.password = password;
     }
 
-    public static class JDBCOutputFormatBuilder {
-        private final RetractJDBCOutputFormat format;
-
-        protected JDBCOutputFormatBuilder() {
-            this.format = new RetractJDBCOutputFormat();
-        }
-
-        public JDBCOutputFormatBuilder setUsername(String username) {
-            format.username = username;
-            return this;
-        }
-
-        public JDBCOutputFormatBuilder setPassword(String password) {
-            format.password = password;
-            return this;
-        }
-
-        public JDBCOutputFormatBuilder setDrivername(String drivername) {
-            format.drivername = drivername;
-            return this;
-        }
-
-        public JDBCOutputFormatBuilder setDBUrl(String dbURL) {
-            format.dbURL = dbURL;
-            return this;
-        }
-
-        public JDBCOutputFormatBuilder setInsertQuery(String query) {
-            format.insertQuery = query;
-            return this;
-        }
-
-
-        public JDBCOutputFormatBuilder setBatchInterval(int batchInterval) {
-            format.batchInterval = batchInterval;
-            return this;
-        }
-
-        public JDBCOutputFormatBuilder setSqlTypes(int[] typesArray) {
-            format.typesArray = typesArray;
-            return this;
-        }
-
-        public JDBCOutputFormatBuilder setTableName(String tableName) {
-            format.tableName = tableName;
-            return this;
-        }
-
-        public JDBCOutputFormatBuilder setDBSink(DBSink dbSink) {
-            format.dbSink = dbSink;
-            return this;
-        }
-
-        public JDBCOutputFormatBuilder setDBType(String dbType) {
-            format.dbType = dbType;
-            return this;
-        }
-
-
-        /**
-         * Finalizes the configuration and checks validity.
-         *
-         * @return Configured RetractJDBCOutputFormat
-         */
-        public RetractJDBCOutputFormat finish() {
-            if (format.username == null) {
-                LOG.info("Username was not supplied separately.");
-            }
-            if (format.password == null) {
-                LOG.info("Password was not supplied separately.");
-            }
-            if (format.dbURL == null) {
-                throw new IllegalArgumentException("No dababase URL supplied.");
-            }
-            if (format.insertQuery == null) {
-                throw new IllegalArgumentException("No insertQuery suplied");
-            }
-            if (format.drivername == null) {
-                throw new IllegalArgumentException("No driver supplied");
-            }
-            return format;
-        }
+    public void setDrivername(String drivername) {
+        this.drivername = drivername;
     }
 
+    public void setDbURL(String dbURL) {
+        this.dbURL = dbURL;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
+    }
+
+    public void setDbType(String dbType) {
+        this.dbType = dbType;
+    }
+
+    public void setDbSink(RdbSink dbSink) {
+        this.dbSink = dbSink;
+    }
+
+    public void setBatchInterval(int batchInterval) {
+        this.batchInterval = batchInterval;
+    }
+
+    public void setInsertQuery(String insertQuery) {
+        this.insertQuery = insertQuery;
+    }
+
+    public void setTypesArray(int[] typesArray) {
+        this.typesArray = typesArray;
+    }
+
+    public String getDbType() {
+        return dbType;
+    }
+
+    public RdbSink getDbSink() {
+        return dbSink;
+    }
+
+    public Connection getDbConn() {
+        return dbConn;
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public Map<String, List<String>> getRealIndexes() {
+        return realIndexes;
+    }
+
+    public List<String> getFullField() {
+        return fullField;
+    }
 }
