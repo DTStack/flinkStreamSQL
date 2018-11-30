@@ -20,6 +20,7 @@
 package com.dtstack.flink.sql.sink.mysql;
 
 
+import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 
 import java.util.List;
@@ -32,7 +33,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public class MysqlSink extends RdbSink {
+public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
     private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 
