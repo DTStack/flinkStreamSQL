@@ -16,9 +16,8 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.rdb.format;
+package com.dtstack.flink.sql.sink.rdb;
 
-import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;

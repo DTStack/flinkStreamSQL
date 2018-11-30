@@ -213,7 +213,7 @@ public abstract class RdbAllReqRow extends AllReqRow {
         }
     }
 
-    public int getFetchSize(){
+    public int getFetchSize() {
         return 1000;
     }
 

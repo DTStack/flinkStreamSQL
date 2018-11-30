@@ -17,7 +17,6 @@
  */
 
 package com.dtstack.flink.sql.sink.sqlserver;
-
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
