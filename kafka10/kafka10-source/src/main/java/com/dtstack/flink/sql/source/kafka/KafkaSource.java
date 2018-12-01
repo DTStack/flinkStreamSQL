@@ -80,7 +80,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }else{
             kafkaSrc = new FlinkKafkaConsumer010(topicName,
                     new CustomerCommonDeserialization(),props);
-            fields = StringUtils.join(CustomerCommonDeserialization.KAFKA_COLUMNS, ",");
+            fields = StringUtils.join(kafka010SourceTableInfo.getFields(), ",");
         }
 
         //earliest,latest

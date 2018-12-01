@@ -69,9 +69,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLDecoder;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -104,6 +102,10 @@ public class Main {
     private static final int failureInterval = 6; //min
 
     private static final int delayInterval = 10; //sec
+
+    private static String TMP_FILE_PATH = "/tmp/.flink/";
+
+    private static String FS_DEFAULT_PREFIX = "hdfs://hdpfd3-58-cluster";
 
     public static final List<URL> urlList = new ArrayList<>();
 
@@ -217,9 +219,8 @@ public class Main {
         env.execute(name);
     }
 
-    private static String TMP_FILE_PATH = "/tmp/.flink/";
-    private static String copyToLocalFile(String jar,String yarnConfDir) throws IOException {
-        FileSystem fs = FileSystem.get(loadYarnConfiguration(yarnConfDir));
+    private static String copyToLocalFile(String jar,String yarnConfDir) throws IOException, URISyntaxException {
+        FileSystem fs = FileSystem.get(new URI(FS_DEFAULT_PREFIX),loadYarnConfiguration(yarnConfDir));
         Path sourcePath = new Path(jar);
         Path destPath = new Path(TMP_FILE_PATH,sourcePath.getName());
         fs.copyToLocalFile(sourcePath,destPath);
