@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.sink.mysql;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
+import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,11 @@ public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 
     public MysqlSink() {
+    }
+
+    @Override
+    public RetractJDBCOutputFormat getOutputFormat() {
+        return new RetractJDBCOutputFormat();
     }
 
     @Override
