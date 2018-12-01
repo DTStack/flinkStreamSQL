@@ -19,6 +19,7 @@ package com.dtstack.flink.sql.sink.sqlserver;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
+import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -36,6 +37,11 @@ public class SqlserverSink extends RdbSink implements IStreamSinkGener<RdbSink> 
     @Override
     public String getDriverName() {
         return SQLSERVER_DRIVER;
+    }
+
+    @Override
+    public RetractJDBCOutputFormat getOutputFormat() {
+        return new SqlserverOutputFormat();
     }
 
     @Override

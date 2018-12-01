@@ -17,11 +17,8 @@
  */
 package com.dtstack.flink.sql.sink.rdb;
 
-import com.dtstack.flink.sql.enums.EDatabaseType;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
-import com.dtstack.flink.sql.sink.rdb.format.OracleOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
-import com.dtstack.flink.sql.sink.rdb.format.SqlserverOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -85,7 +82,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
             throw new RuntimeException("any of params in(driverName, dbURL, userName, password, type, tableName) " +
                     " must not be null. please check it!!!");
         }
-        RetractJDBCOutputFormat outputFormat = getOutputFormat(dbType);
+        RetractJDBCOutputFormat outputFormat = getOutputFormat();
         outputFormat.setDbURL(dbURL);
         outputFormat.setDrivername(driverName);
         outputFormat.setUsername(userName);
@@ -102,15 +99,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         return outputFormatSinkFunc;
     }
 
-    protected RetractJDBCOutputFormat getOutputFormat(String dbType) {
-        if (dbType.equalsIgnoreCase(EDatabaseType.SQLSERVER.name())) {
-            return new SqlserverOutputFormat();
-        } else if (dbType.equalsIgnoreCase(EDatabaseType.ORACLE.name())) {
-            return new OracleOutputFormat();
-        } else {
-            return new RetractJDBCOutputFormat();
-        }
-    }
+    public abstract RetractJDBCOutputFormat getOutputFormat();
 
 
     @Override
