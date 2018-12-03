@@ -31,7 +31,7 @@ public class RedisTableInfo extends TargetTableInfo {
 
     public static final String PASSWORD_KEY = "password";
 
-    public static final String TABLENAME_KEY = "tablename";
+    public static final String TABLENAME_KEY = "tableName";
 
     public static final String TIMEOUT = "timeout";
 
