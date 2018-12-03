@@ -78,10 +78,5 @@ public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         return MYSQL_DRIVER;
     }
 
-    @Override
-    public RetractJDBCOutputFormat getOutputFormat() {
-        return new RetractJDBCOutputFormat();
-    }
-
 
 }

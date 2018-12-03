@@ -16,8 +16,9 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.rdb;
+package com.dtstack.flink.sql.sink.rdb.format;
 
+import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -27,7 +28,6 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.sql.*;
 import java.util.*;
 import java.io.IOException;
