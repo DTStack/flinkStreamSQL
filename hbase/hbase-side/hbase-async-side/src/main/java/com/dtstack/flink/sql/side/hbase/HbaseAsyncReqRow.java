@@ -160,7 +160,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    protected Row fillData(Row input, Object sideInput){
+    public Row fillData(Row input, Object sideInput){
 
         List<Object> sideInputList = (List<Object>) sideInput;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
