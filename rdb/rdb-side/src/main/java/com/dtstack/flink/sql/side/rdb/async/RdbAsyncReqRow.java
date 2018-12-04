@@ -170,7 +170,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             if (jsonArray == null) {
                 row.setField(entry.getKey(), null);
             } else {
-                Object object = SwitchUtil.getTarget(jsonArray.getValue(entry.getValue()), fields[entry.getKey()]);
+                Object object = SwitchUtil.getTarget(jsonArray.getValue(entry.getValue()), fields[entry.getValue()]);
                 row.setField(entry.getKey(), object);
             }
         }
