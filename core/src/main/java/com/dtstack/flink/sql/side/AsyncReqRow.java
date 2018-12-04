@@ -40,7 +40,7 @@ import java.util.Collections;
  * @author xuchao
  */
 
-public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> {
+public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements ISideReqRow {
 
     private static final long serialVersionUID = 2098635244857937717L;
 
@@ -78,9 +78,6 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> {
     protected boolean openCache(){
         return sideInfo.getSideCache() != null;
     }
-
-
-    protected abstract Row fillData(Row input, Object sideInput);
 
     protected void dealMissKey(Row input, ResultFuture<Row> resultFuture){
         if(sideInfo.getJoinType() == JoinType.LEFT){
