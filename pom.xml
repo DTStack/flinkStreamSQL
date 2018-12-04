@@ -18,6 +18,7 @@
         <module>launcher</module>
         <module>rdb</module>
         <module>sqlserver</module>
+        <module>oracle</module>
     </modules>
     <packaging>pom</packaging>
 
