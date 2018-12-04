@@ -19,6 +19,7 @@ package com.dtstack.flink.sql.sink.oracle;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
+import com.dtstack.flink.sql.sink.rdb.format.ExtendOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import org.apache.commons.lang3.StringUtils;
 
@@ -43,7 +44,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
     @Override
     public RetractJDBCOutputFormat getOutputFormat() {
-        return new OracleOutputFormat();
+        return new ExtendOutputFormat();
     }
 
     @Override
@@ -71,7 +72,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
                 + updateKeySql(realIndexes) + ") WHEN MATCHED THEN UPDATE SET "
                 + getUpdateSql(fieldNames, fullField, "T1", "T2", keyColList(realIndexes)) + " WHEN NOT MATCHED THEN "
                 + "INSERT (" + quoteColumns(fieldNames) + ") VALUES ("
-                + quoteColumns(fieldNames, "T2") + ");";
+                + quoteColumns(fieldNames, "T2") + ")";
     }
 
 
@@ -106,7 +107,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         String prefixRight = StringUtils.isBlank(rightTable) ? "" : quoteTable(rightTable) + ".";
         List<String> list = new ArrayList<>();
         for (String col : fullColumn) {
-            if (keyCols == null || keyCols.size() == 0) {
+            if (keyCols == null || keyCols.size() == 0 || keyCols.contains(col)) {
                 continue;
             }
             if (fullColumn == null || column.contains(col)) {
@@ -152,6 +153,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
             }
             sb.append("? " + quoteColumn(column.get(i)));
         }
+        sb.append(" FROM DUAL");
         return sb.toString();
     }
 

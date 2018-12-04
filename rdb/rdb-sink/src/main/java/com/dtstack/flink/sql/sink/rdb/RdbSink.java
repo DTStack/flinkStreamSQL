@@ -35,6 +35,7 @@ import org.apache.flink.types.Row;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Arrays;
@@ -149,7 +150,9 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
             String fieldType = fieldTypeArray.get(i).getName();
             if (fieldType.equals(Integer.class.getName())) {
                 tmpFieldsType[i] = Types.INTEGER;
-            } else if (fieldType.equals(Long.class.getName())) {
+            }else if (fieldType.equals(Boolean.class.getName())) {
+                tmpFieldsType[i] = Types.BOOLEAN;
+            }else if (fieldType.equals(Long.class.getName())) {
                 tmpFieldsType[i] = Types.BIGINT;
             } else if (fieldType.equals(Byte.class.getName())) {
                 tmpFieldsType[i] = Types.TINYINT;
@@ -167,6 +170,8 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
                 tmpFieldsType[i] = Types.TIMESTAMP;
             } else if (fieldType.equals(BigDecimal.class.getName())) {
                 tmpFieldsType[i] = Types.DECIMAL;
+            } else if (fieldType.equals(Date.class.getName())) {
+                tmpFieldsType[i] = Types.DATE;
             } else {
                 throw new RuntimeException("no support field type for sql. the input type:" + fieldType);
             }
