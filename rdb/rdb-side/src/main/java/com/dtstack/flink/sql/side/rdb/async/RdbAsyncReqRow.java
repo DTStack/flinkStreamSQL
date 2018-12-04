@@ -22,9 +22,11 @@ package com.dtstack.flink.sql.side.rdb.async;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.configuration.Configuration;
@@ -34,6 +36,7 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
@@ -120,6 +123,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 int resultSize = rs.result().getResults().size();
                 if (resultSize > 0) {
                     for (JsonArray line : rs.result().getResults()) {
+
                         Row row = fillData(input, line);
                         if (openCache()) {
                             cacheContent.add(line);
@@ -151,10 +155,10 @@ public class RdbAsyncReqRow extends AsyncReqRow {
     public Row fillData(Row input, Object line) {
         JsonArray jsonArray = (JsonArray) line;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
             Object obj = input.getField(entry.getValue());
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
-
             if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
                 obj = ((Timestamp) obj).getTime();
             }
@@ -166,7 +170,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             if (jsonArray == null) {
                 row.setField(entry.getKey(), null);
             } else {
-                row.setField(entry.getKey(), jsonArray.getValue(entry.getValue()));
+                Object object = SwitchUtil.getTarget(jsonArray.getValue(entry.getValue()), fields[entry.getKey()]);
+                row.setField(entry.getKey(), object);
             }
         }
 
