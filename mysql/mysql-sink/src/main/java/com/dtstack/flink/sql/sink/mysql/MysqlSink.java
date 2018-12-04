@@ -23,7 +23,6 @@ package com.dtstack.flink.sql.sink.mysql;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
-
 import java.util.List;
 import java.util.Map;
 

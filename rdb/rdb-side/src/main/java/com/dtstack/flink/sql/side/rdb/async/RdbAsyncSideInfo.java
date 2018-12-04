@@ -42,6 +42,8 @@ import java.util.List;
 
 public class RdbAsyncSideInfo extends SideInfo {
 
+    private static final long serialVersionUID = 1942629132469918611L;
+
     public RdbAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }

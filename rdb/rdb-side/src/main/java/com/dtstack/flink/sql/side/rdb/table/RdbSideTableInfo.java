@@ -28,6 +28,7 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
  * @author maqi
  */
 public class RdbSideTableInfo extends SideTableInfo {
+
     private static final long serialVersionUID = -1L;
 
     public static final String URL_KEY = "url";

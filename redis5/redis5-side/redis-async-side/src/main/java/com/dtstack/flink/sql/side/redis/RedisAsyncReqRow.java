@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.side.redis;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
 import io.lettuce.core.KeyValue;
 import io.lettuce.core.RedisClient;
@@ -60,9 +61,11 @@ public class RedisAsyncReqRow extends AsyncReqRow {
 
     private RedisSideTableInfo redisSideTableInfo;
 
+    private RedisSideReqRow redisSideReqRow;
 
     public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new RedisAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
+        redisSideReqRow = new RedisSideReqRow(super.sideInfo);
     }
 
     @Override
@@ -108,30 +111,8 @@ public class RedisAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    protected Row fillData(Row input, Object sideInput) {
-        Map<String, String> keyValue = (Map<String, String>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
-        for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
-            Object obj = input.getField(entry.getValue());
-            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
-
-            if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
-                obj = ((Timestamp)obj).getTime();
-            }
-
-            row.setField(entry.getKey(), obj);
-        }
-
-        for(Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()){
-            if(keyValue == null){
-                row.setField(entry.getKey(), null);
-            }else{
-                String key = sideInfo.getSideFieldNameIndex().get(entry.getKey());
-                row.setField(entry.getKey(), keyValue.get(key));
-            }
-        }
-
-        return row;
+    public Row fillData(Row input, Object sideInput) {
+        return redisSideReqRow.fillData(input, sideInput);
     }
 
     @Override
