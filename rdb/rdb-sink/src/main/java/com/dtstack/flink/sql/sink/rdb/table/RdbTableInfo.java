@@ -29,8 +29,6 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
  */
 public class RdbTableInfo extends TargetTableInfo {
 
-    //private static final String CURR_TYPE = "mysql";
-
     public static final String URL_KEY = "url";
 
     public static final String TABLE_NAME_KEY = "tableName";

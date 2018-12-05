@@ -21,9 +21,10 @@ package com.dtstack.flink.sql.side.rdb.util;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * Date: 2017/4/21
@@ -75,6 +76,8 @@ public class MathUtil {
             return ((Double) obj).intValue();
         } else if (obj instanceof BigDecimal) {
             return ((BigDecimal) obj).intValue();
+        } else if (obj instanceof BigInteger) {
+            return ((BigInteger) obj).intValue();
         }
 
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Integer.");
@@ -219,18 +222,28 @@ public class MathUtil {
         if (obj == null) {
             return null;
         }
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         if (obj instanceof String) {
-            try {
-                return sdf.parse((String) obj);
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-        } else if (obj instanceof Date) {
+            return Date.valueOf((String) obj);
+        } else if (obj instanceof Timestamp) {
+            return new Date(((Timestamp) obj).getTime());
+        }else if (obj instanceof Date){
             return (Date) obj;
         }
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
     }
 
+    public static Timestamp getTimestamp(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Timestamp) {
+            return (Timestamp) obj;
+        } else if (obj instanceof Date) {
+            return Timestamp.valueOf((String) obj);
+        } else if (obj instanceof String) {
+            return Timestamp.valueOf((String) obj);
+        }
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
+    }
 
 }

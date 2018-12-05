@@ -62,6 +62,7 @@ public abstract class RdbAllReqRow extends AllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
+
     public RdbAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new RdbAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
@@ -204,7 +205,7 @@ public abstract class RdbAllReqRow extends AllReqRow {
                 Map<String, Object> oneRow = Maps.newHashMap();
                 for (String fieldName : sideFieldNames) {
                     Object object = resultSet.getObject(fieldName.trim());
-                    int fieldIndex = sideInfo.getRowTypeInfo().getFieldIndex(fieldName.trim());
+                    int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
                     object = SwitchUtil.getTarget(object, fields[fieldIndex]);
                     oneRow.put(fieldName.trim(), object);
                 }
