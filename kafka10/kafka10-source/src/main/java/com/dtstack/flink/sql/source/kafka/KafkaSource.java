@@ -26,9 +26,9 @@ import com.dtstack.flink.sql.table.SourceTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
@@ -90,6 +90,11 @@ public class KafkaSource implements IStreamSourceGener<Table> {
             kafkaSrc.setStartFromLatest();
         }
 
-        return tableEnv.fromDataStream(env.addSource(kafkaSrc, typeInformation), fields);
+        DataStreamSource kafkaSource = env.addSource(kafkaSrc, typeInformation);
+        Integer parallelism = kafka010SourceTableInfo.getParallelism();
+        if(parallelism != null){
+            kafkaSource.setParallelism(parallelism);
+        }
+        return tableEnv.fromDataStream(kafkaSource, fields);
     }
 }

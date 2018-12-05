@@ -55,7 +55,7 @@ public abstract class TableInfo {
 
     private List<String> primaryKeys;
 
-    private Integer parallelism = 1;
+    private Integer parallelism;
 
     private String sourceDataType = "json";
 

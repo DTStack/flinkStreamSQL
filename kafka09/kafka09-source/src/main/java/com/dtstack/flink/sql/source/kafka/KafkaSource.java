@@ -27,6 +27,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.table.api.Table;
@@ -81,7 +83,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }else{
             kafkaSrc = new FlinkKafkaConsumer09(topicName,
                     new CustomerCommonDeserialization(),props);
-            fields = StringUtils.join(kafka09SourceTableInfo.getFields(), ",");
+            fields = StringUtils.join(CustomerCommonDeserialization.KAFKA_COLUMNS, ",");
         }
 
         //earliest,latest
@@ -91,8 +93,11 @@ public class KafkaSource implements IStreamSourceGener<Table> {
             kafkaSrc.setStartFromLatest();
         }
 
-
-
-        return tableEnv.fromDataStream(env.addSource(kafkaSrc, typeInformation), fields);
+        DataStreamSource kafkaSource = env.addSource(kafkaSrc, typeInformation);
+        Integer parallelism = kafka09SourceTableInfo.getParallelism();
+        if(parallelism != null){
+            kafkaSource.setParallelism(parallelism);
+        }
+        return tableEnv.fromDataStream(kafkaSource, fields);
     }
 }

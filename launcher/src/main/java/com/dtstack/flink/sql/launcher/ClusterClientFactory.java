@@ -200,10 +200,10 @@ public class ClusterClientFactory {
                 .of("../lib")
                 .map(x -> new Path(flinkConfDir, x))
                 .collect(Collectors.toSet());
-        resourcesToLocalize.addAll(Stream
+        /*resourcesToLocalize.addAll(Stream
                 .of("../hadoop")
                 .map(x -> new Path(yarnConfDir, x))
-                .collect(Collectors.toSet()));
+                .collect(Collectors.toSet()));*/
 
         return new YarnClusterConfiguration(
                 flinkConf,
