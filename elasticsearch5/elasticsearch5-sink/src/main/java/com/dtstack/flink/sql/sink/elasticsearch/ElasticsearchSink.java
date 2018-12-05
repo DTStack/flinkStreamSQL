@@ -27,6 +27,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
@@ -131,7 +132,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
         CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), idIndexList);
 
-        return new org.apache.flink.streaming.connectors.elasticsearch5.ElasticsearchSink(userConfig, transports, customerSinkFunc);
+        return new MetricElasticsearchSink(userConfig, transports, customerSinkFunc);
     }
 
     @Override

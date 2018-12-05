@@ -21,8 +21,10 @@
 package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.enums.ColumnType;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -41,6 +43,9 @@ import java.util.regex.Pattern;
 public class DtStringUtil {
 
     private static final Pattern NO_VERSION_PATTERN = Pattern.compile("([a-zA-Z]+).*");
+
+    private static ObjectMapper objectMapper = new ObjectMapper();
+
 
     /**
      * Split the specified string delimiter --- ignored quotes delimiter
@@ -206,5 +211,18 @@ public class DtStringUtil {
         }
 
         return preStr + "?" + sb.toString();
+    }
+
+    public  static boolean isJosn(String str){
+        boolean flag = false;
+        if(StringUtils.isNotBlank(str)){
+            try {
+                objectMapper.readValue(str,Map.class);
+                flag = true;
+            } catch (Throwable e) {
+                flag=false;
+            }
+        }
+        return flag;
     }
 }

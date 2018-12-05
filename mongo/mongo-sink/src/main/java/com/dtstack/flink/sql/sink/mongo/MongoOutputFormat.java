@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.sink.mongo;
 
+import com.dtstack.flink.sql.sink.MetricOutputFormat;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
@@ -27,7 +28,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.UpdateResult;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -36,7 +36,6 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -48,7 +47,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
+public class MongoOutputFormat extends MetricOutputFormat {
     private static final Logger LOG = LoggerFactory.getLogger(MongoOutputFormat.class);
 
     private String address;
@@ -73,6 +72,7 @@ public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         establishConnection();
+        initMetric();
     }
 
     @Override
@@ -107,6 +107,7 @@ public class MongoOutputFormat extends RichOutputFormat<Tuple2> {
         } else {
             dbCollection.insertOne(doc);
         }
+        outRecords.inc();
     }
 
     @Override

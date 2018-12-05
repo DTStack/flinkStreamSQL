@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,24 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.dtstack.flink.sql.side.rdb.table;
 
- 
-
-package com.dtstack.flink.sql.sink.mysql.table;
-
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 
 /**
  * Reason:
- * Date: 2018/6/22
+ * Date: 2018/11/26
  * Company: www.dtstack.com
- * @author xuchao
+ *
+ * @author maqi
  */
+public class RdbSideTableInfo extends SideTableInfo {
 
-public class MysqlTableInfo extends TargetTableInfo {
-
-    private static final String CURR_TYPE = "mysql";
+    private static final long serialVersionUID = -1L;
 
     public static final String URL_KEY = "url";
 
@@ -42,14 +39,13 @@ public class MysqlTableInfo extends TargetTableInfo {
 
     public static final String PASSWORD_KEY = "password";
 
-    public static final String BATCH_SIZE_KEY = "batchSize";
-
-    public static final String BUFFER_SIZE_KEY = "bufferSize";
-
-    public static final String FLUSH_INTERVALMS_KEY = "flushIntervalMs";
-
-    public MysqlTableInfo(){
-        setType(CURR_TYPE);
+    @Override
+    public boolean check() {
+        Preconditions.checkNotNull(url, "rdb of URL is required");
+        Preconditions.checkNotNull(tableName, "rdb of tableName is required");
+        Preconditions.checkNotNull(userName, "rdb of userName is required");
+        Preconditions.checkNotNull(password, "rdb of password is required");
+        return true;
     }
 
     private String url;
@@ -59,12 +55,6 @@ public class MysqlTableInfo extends TargetTableInfo {
     private String userName;
 
     private String password;
-
-    private Integer batchSize;
-
-    private String bufferSize;
-
-    private String flushIntervalMs;
 
     public String getUrl() {
         return url;
@@ -96,44 +86,5 @@ public class MysqlTableInfo extends TargetTableInfo {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public Integer getBatchSize() {
-        return batchSize;
-    }
-
-    public void setBatchSize(Integer batchSize) {
-        this.batchSize = batchSize;
-    }
-
-    public String getBufferSize() {
-        return bufferSize;
-    }
-
-    public void setBufferSize(String bufferSize) {
-        this.bufferSize = bufferSize;
-    }
-
-    public String getFlushIntervalMs() {
-        return flushIntervalMs;
-    }
-
-    public void setFlushIntervalMs(String flushIntervalMs) {
-        this.flushIntervalMs = flushIntervalMs;
-    }
-
-    @Override
-    public boolean check() {
-        Preconditions.checkNotNull(url, "mysql field of URL is required");
-        Preconditions.checkNotNull(tableName, "mysql field of tableName is required");
-        Preconditions.checkNotNull(userName, "mysql field of userName is required");
-        Preconditions.checkNotNull(password, "mysql field of password is required");
-        return true;
-    }
-
-    @Override
-    public String getType() {
-        // return super.getType().toLowerCase() + TARGET_SUFFIX;
-        return super.getType().toLowerCase();
     }
 }
