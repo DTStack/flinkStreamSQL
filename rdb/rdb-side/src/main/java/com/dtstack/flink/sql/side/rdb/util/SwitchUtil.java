@@ -27,7 +27,7 @@ import java.text.ParseException;
  * @author maqi
  */
 public class SwitchUtil {
-    public static Object getTarget(Object obj, String targetType)  {
+    public static Object getTarget(Object obj, String targetType) {
         targetType = targetType.toLowerCase();
         switch (targetType) {
             case "int":
@@ -52,6 +52,8 @@ public class SwitchUtil {
                 return MathUtil.getBigDecimal(obj);
             case "date":
                 return MathUtil.getDate(obj);
+            case "timestamp":
+                return MathUtil.getTimestamp(obj);
         }
         return obj;
     }

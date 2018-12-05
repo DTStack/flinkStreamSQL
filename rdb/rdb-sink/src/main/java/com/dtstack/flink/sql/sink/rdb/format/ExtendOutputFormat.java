@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.sqlserver;
-import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
+package com.dtstack.flink.sql.sink.rdb.format;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -33,7 +34,7 @@ import java.util.Map;
  *
  * @author maqi
  */
-public class SqlserverOutputFormat extends RetractJDBCOutputFormat {
+public class ExtendOutputFormat extends RetractJDBCOutputFormat {
 
 
     @Override
@@ -89,8 +90,7 @@ public class SqlserverOutputFormat extends RetractJDBCOutputFormat {
      * @throws SQLException
      */
     public void fillFullColumns() throws SQLException {
-        String schema = null;
-        ResultSet rs = getDbConn().getMetaData().getColumns(null, schema, getTableName(), null);
+        ResultSet rs = getDbConn().getMetaData().getColumns(null, null, getTableName(), null);
         while (rs.next()) {
             String columnName = rs.getString("COLUMN_NAME");
             if (StringUtils.isNotBlank(columnName)) {
