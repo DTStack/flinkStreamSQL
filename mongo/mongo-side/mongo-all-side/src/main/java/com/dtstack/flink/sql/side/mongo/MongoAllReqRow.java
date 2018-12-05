@@ -152,7 +152,6 @@ public class MongoAllReqRow extends AllReqRow {
         }
 
         for (Map<String, Object> one : cacheList) {
-            System.out.println(fillData(value, one));
             out.collect(fillData(value, one));
         }
     }
