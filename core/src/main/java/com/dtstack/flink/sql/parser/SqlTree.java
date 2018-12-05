@@ -45,12 +45,20 @@ public class SqlTree {
 
     private List<InsertSqlParser.SqlParseResult> execSqlList = Lists.newArrayList();
 
+    private List<CreateTmpTableParser.SqlParserResult> tmpSqlList = Lists.newArrayList();
+
+    private Map<String, CreateTmpTableParser.SqlParserResult> tmpTableMap = Maps.newHashMap();
+
     public List<CreateFuncParser.SqlParserResult> getFunctionList() {
         return functionList;
     }
 
     public Map<String, CreateTableParser.SqlParserResult> getPreDealTableMap() {
         return preDealTableMap;
+    }
+
+    public Map<String, CreateTmpTableParser.SqlParserResult> getTmpTableMap() {
+        return tmpTableMap;
     }
 
     public List<InsertSqlParser.SqlParseResult> getExecSqlList() {
@@ -65,8 +73,20 @@ public class SqlTree {
         preDealTableMap.put(tableName, table);
     }
 
+    public void addTmplTableInfo(String tableName, CreateTmpTableParser.SqlParserResult table){
+        tmpTableMap.put(tableName, table);
+    }
+
     public void addExecSql(InsertSqlParser.SqlParseResult execSql){
         execSqlList.add(execSql);
+    }
+
+    public void addTmpSql(CreateTmpTableParser.SqlParserResult tmpSql){
+        tmpSqlList.add(tmpSql);
+    }
+
+    public List<CreateTmpTableParser.SqlParserResult> getTmpSqlList(){
+        return tmpSqlList;
     }
 
     public Map<String, TableInfo> getTableInfoMap() {

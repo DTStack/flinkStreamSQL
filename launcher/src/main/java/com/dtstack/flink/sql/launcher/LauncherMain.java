@@ -41,7 +41,7 @@ import org.json.JSONObject;
  * @author xuchao
  */
 
-public class LauncherMain {
+public class   LauncherMain {
     private static final String CORE_JAR = "core.jar";
 
     private static String SP = File.separator;
