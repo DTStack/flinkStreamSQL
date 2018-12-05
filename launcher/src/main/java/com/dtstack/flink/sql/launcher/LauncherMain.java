@@ -90,8 +90,20 @@ public class LauncherMain {
             PerJobSubmitter.submit(launcherOptions, jobGraph);
         } else {
             ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
+            pluginRoot = launcherOptions.getLocalSqlPluginPath();
+            jarFile = new File(getLocalCoreJarPath(pluginRoot));
+            remoteArgs = argList.toArray(new String[argList.size()]);
+            program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
+            if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
+                program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
+            }
+            //final JobGraph jobGraph;
+            //jobGraph = PackagedProgramUtils.createJobGraph(program, new Configuration(), 1);
+            //clusterClient.runDetached(jobGraph,null);
             clusterClient.run(program, 1);
             clusterClient.shutdown();
+
+            System.exit(0);
         }
 
         System.out.println("---submit end----");
