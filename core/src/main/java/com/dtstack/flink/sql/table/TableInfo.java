@@ -53,7 +53,7 @@ public abstract class TableInfo {
 
     private final List<Class> fieldClassList = Lists.newArrayList();
 
-    private List<String> primaryKeys;
+    private List<String> primaryKeys ;
 
     private Integer parallelism;
 
