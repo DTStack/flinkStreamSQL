@@ -5,6 +5,9 @@
     <groupId>com.dtstack.flink</groupId>
     <artifactId>flink.sql</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>flink.sql</name>
+    <url>http://maven.apache.org</url>
     <modules>
         <module>core</module>
         <module>kafka09</module>
@@ -19,11 +22,9 @@
         <module>rdb</module>
         <module>sqlserver</module>
         <module>oracle</module>
+        <module>cassandra</module>
     </modules>
-    <packaging>pom</packaging>
 
-    <name>flink.sql</name>
-    <url>http://maven.apache.org</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
