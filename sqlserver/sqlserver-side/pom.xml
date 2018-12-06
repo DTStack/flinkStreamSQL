@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>sql.sqlserver</artifactId>
+        <groupId>com.dtstack.flink</groupId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>sql.side.sqlserver</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>sqlserver-side</name>
+    <packaging>pom</packaging>
+
+    <properties>
+        <rdb.side.version>1.0-SNAPSHOT</rdb.side.version>
+    </properties>
+
+
+    <modules>
+        <module>sqlserver-side-core</module>
+        <module>sqlserver-all-side</module>
+        <module>sqlserver-async-side</module>
+    </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.rdb</artifactId>
+            <version>${rdb.side.version}</version>
+        </dependency>
+    </dependencies>
+
+
+
+</project>

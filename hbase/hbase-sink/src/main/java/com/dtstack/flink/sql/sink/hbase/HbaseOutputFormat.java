@@ -20,8 +20,8 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
+import com.dtstack.flink.sql.sink.MetricOutputFormat;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
@@ -34,7 +34,6 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -44,7 +43,7 @@ import java.util.List;
  * author: jingzhen@dtstack.com
  * date: 2017-6-29
  */
-public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
+public class HbaseOutputFormat extends MetricOutputFormat {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseOutputFormat.class);
 
@@ -82,6 +81,7 @@ public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
         conn = ConnectionFactory.createConnection(conf);
         table = conn.getTable(TableName.valueOf(tableName));
         LOG.warn("---open end(get table from hbase) ---");
+        initMetric();
     }
 
     @Override
@@ -133,6 +133,7 @@ public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
         }
 
         table.put(put);
+        outRecords.inc();
 
     }
 

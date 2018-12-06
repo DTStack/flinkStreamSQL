@@ -33,10 +33,15 @@ public class RedisSinkParser extends AbsTableParser {
         redisTableInfo.setUrl(MathUtil.getString(props.get(RedisTableInfo.URL_KEY)));
         redisTableInfo.setDatabase(MathUtil.getString(props.get(RedisTableInfo.DATABASE_KEY)));
         redisTableInfo.setPassword(MathUtil.getString(props.get(RedisTableInfo.PASSWORD_KEY)));
-        redisTableInfo.setTablename(MathUtil.getString(props.get(RedisTableInfo.TABLENAME_KEY)));
+        redisTableInfo.setTablename(MathUtil.getString(props.get(RedisTableInfo.TABLENAME_KEY.toLowerCase())));
         if (props.get(RedisTableInfo.TIMEOUT) != null){
             redisTableInfo.setTimeout(Integer.parseInt(MathUtil.getString(props.get(RedisTableInfo.TIMEOUT))));
         }
+        redisTableInfo.setMaxTotal(MathUtil.getString(props.get(RedisTableInfo.MAXTOTAL.toLowerCase())));
+        redisTableInfo.setMaxIdle(MathUtil.getString(props.get(RedisTableInfo.MAXIDLE.toLowerCase())));
+        redisTableInfo.setMinIdle(MathUtil.getString(props.get(RedisTableInfo.MINIDLE.toLowerCase())));
+        redisTableInfo.setRedisType(MathUtil.getString(props.get(RedisTableInfo.REDIS_TYPE.toLowerCase())));
+        redisTableInfo.setMasterName(MathUtil.getString(props.get(RedisTableInfo.MASTER_NAME.toLowerCase())));
         return redisTableInfo;
     }
 }

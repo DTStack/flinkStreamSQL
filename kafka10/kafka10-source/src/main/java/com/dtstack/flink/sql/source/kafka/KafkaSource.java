@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.source.kafka;
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -79,9 +80,8 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         //earliest,latest
         if("earliest".equalsIgnoreCase(kafka010SourceTableInfo.getOffsetReset())){
             kafkaSrc.setStartFromEarliest();
-        }else if(kafka010SourceTableInfo.getOffsetReset().startsWith("{")){
+        }else if(DtStringUtil.isJosn(kafka010SourceTableInfo.getOffsetReset())){// {"0":12312,"1":12321,"2":12312}
             try {
-                // {"0":12312,"1":12321,"2":12312}
                 Properties properties = PluginUtil.jsonStrToObject(kafka010SourceTableInfo.getOffsetReset(), Properties.class);
                 Map<String, Object> offsetMap = PluginUtil.ObjectToMap(properties);
                 Map<KafkaTopicPartition, Long> specificStartupOffsets = new HashMap<>();

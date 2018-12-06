@@ -18,18 +18,18 @@
 
 package com.dtstack.flink.sql.sink.redis;
 
+import com.dtstack.flink.sql.sink.MetricOutputFormat;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import redis.clients.jedis.*;
-
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 
-public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
+public class RedisOutputFormat extends MetricOutputFormat {
 
     private String url;
 
@@ -38,6 +38,16 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
     private String tableName;
 
     private String password;
+
+    private int redisType;
+
+    private String maxTotal;
+
+    private String maxIdle;
+
+    private String minIdle;
+
+    private String masterName;
 
     protected String[] fieldNames;
 
@@ -49,7 +59,7 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
 
     private JedisPool pool;
 
-    private Jedis jedis;
+    private JedisCommands jedis;
 
     private JedisSentinelPool jedisSentinelPool;
 
@@ -65,28 +75,54 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         establishConnection();
+        initMetric();
+    }
+
+    private GenericObjectPoolConfig setPoolConfig(String maxTotal, String maxIdle, String minIdle){
+        GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+        if (maxTotal != null){
+            config.setMaxTotal(Integer.parseInt(maxTotal));
+        }
+        if (maxIdle != null){
+            config.setMaxIdle(Integer.parseInt(maxIdle));
+        }
+        if (minIdle != null){
+            config.setMinIdle(Integer.parseInt(minIdle));
+        }
+        return config;
     }
 
     private void establishConnection() {
-        poolConfig = new GenericObjectPoolConfig();
+        poolConfig = setPoolConfig(maxTotal, maxIdle, minIdle);
         String[] nodes = url.split(",");
-        if (nodes.length > 1){
-            //cluster
-            Set<HostAndPort> addresses = new HashSet<>();
-            Set<String> ipPorts = new HashSet<>();
-            for (String ipPort : nodes) {
-                ipPorts.add(ipPort);
-                String[] ipPortPair = ipPort.split(":");
-                addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
-            }
-            jedisSentinelPool = new JedisSentinelPool("Master", ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
-            jedis = jedisSentinelPool.getResource();
-        } else {
-            String[] ipPortPair = nodes[0].split(":");
-            String ip = ipPortPair[0];
-            String port = ipPortPair[1];
-            pool = new JedisPool(poolConfig, ip, Integer.parseInt(port), timeout, password, Integer.parseInt(database));
-            jedis = pool.getResource();
+        String[] firstIpPort = nodes[0].split(":");
+        String firstIp = firstIpPort[0];
+        String firstPort = firstIpPort[1];
+        Set<HostAndPort> addresses = new HashSet<>();
+        Set<String> ipPorts = new HashSet<>();
+        for (String ipPort : nodes) {
+            ipPorts.add(ipPort);
+            String[] ipPortPair = ipPort.split(":");
+            addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
+        }
+        if (timeout == 0){
+            timeout = 10000;
+        }
+
+        switch (redisType){
+            //单机
+            case 1:
+                pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
+                jedis = pool.getResource();
+                break;
+            //哨兵
+            case 2:
+                jedisSentinelPool = new JedisSentinelPool(masterName, ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
+                jedis = jedisSentinelPool.getResource();
+                break;
+            //集群
+            case 3:
+                jedis = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
         }
     }
 
@@ -128,6 +164,7 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
             key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
             jedis.set(key.toString(), (String) row.getField(i));
         }
+        outRecords.inc();
     }
 
     @Override
@@ -137,6 +174,11 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
         }
         if (pool != null) {
             pool.close();
+        }
+        if (jedis != null){
+            if (jedis instanceof Closeable){
+                ((Closeable) jedis).close();
+            }
         }
 
     }
@@ -192,21 +234,38 @@ public class RedisOutputFormat extends RichOutputFormat<Tuple2> {
             return this;
         }
 
+        public RedisOutputFormatBuilder setRedisType(int redisType){
+            redisOutputFormat.redisType = redisType;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setMaxTotal(String maxTotal){
+            redisOutputFormat.maxTotal = maxTotal;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setMaxIdle(String maxIdle){
+            redisOutputFormat.maxIdle = maxIdle;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setMinIdle(String minIdle){
+            redisOutputFormat.minIdle = minIdle;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setMasterName(String masterName){
+            redisOutputFormat.masterName = masterName;
+            return this;
+        }
+
         public RedisOutputFormat finish(){
             if (redisOutputFormat.url == null){
                 throw new IllegalArgumentException("No URL supplied.");
             }
 
-            if (redisOutputFormat.database == null){
-                throw new IllegalArgumentException("No database supplied.");
-            }
-
             if (redisOutputFormat.tableName == null){
                 throw new IllegalArgumentException("No tablename supplied.");
-            }
-
-            if (redisOutputFormat.password == null){
-                throw new IllegalArgumentException("No password supplied.");
             }
 
             return redisOutputFormat;
