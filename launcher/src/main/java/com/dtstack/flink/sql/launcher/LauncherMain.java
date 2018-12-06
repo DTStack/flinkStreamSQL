@@ -59,13 +59,15 @@ public class LauncherMain {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length==1 && args[0].endsWith(".json")){
+        if (args.length == 1 && args[0].endsWith(".json")){
             args = parseJson(args);
         }
+
         LauncherOptionParser optionParser = new LauncherOptionParser(args);
         LauncherOptions launcherOptions = optionParser.getLauncherOptions();
         String mode = launcherOptions.getMode();
         List<String> argList = optionParser.getProgramExeArgList();
+
         if(mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[argList.size()]);
             Main.main(localArgs);

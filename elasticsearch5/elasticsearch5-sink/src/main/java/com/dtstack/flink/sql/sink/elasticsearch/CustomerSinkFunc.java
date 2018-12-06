@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.sink.elasticsearch;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkFunction;
 import org.apache.flink.streaming.connectors.elasticsearch.RequestIndexer;
 import org.apache.flink.types.Row;
@@ -56,6 +57,8 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private List<String> fieldTypes;
 
+    public transient Counter outRecords;
+
     /** 默认分隔符为'_' */
     private char sp = '_';
 
@@ -79,9 +82,14 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
 
             indexer.add(createIndexRequest(element));
+            outRecords.inc();
         }catch (Throwable e){
             logger.error("", e);
         }
+    }
+
+    public void setOutRecords(Counter outRecords) {
+        this.outRecords = outRecords;
     }
 
     private IndexRequest createIndexRequest(Row element) {
