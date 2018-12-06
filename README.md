@@ -10,12 +10,10 @@
  
 # 已支持
   * 源表：kafka 0.9，1.x版本
-  * 维表：mysql，hbase，mongo，redis,cassandra
-  * 结果表：mysql，hbase，elasticsearch5.x，mongo，redis,cassandra
+  * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra
+  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra
 
 # 后续开发计划
-  * 增加oracle维表，结果表功能
-  * 增加SQlServer维表，结果表功能
   * 增加kafka结果表功能
   * 增加SQL支持CEP
   * 维表快照
