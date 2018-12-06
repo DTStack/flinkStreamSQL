@@ -100,8 +100,8 @@ public class MyLocalStreamEnvironment extends StreamExecutionEnvironment {
         Configuration configuration = new Configuration();
         configuration.addAll(jobGraph.getJobConfiguration());
 
-        configuration.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE, "-1L");
-        configuration.setInteger(ConfigConstants.TASK_MANAGER_NUM_TASK_SLOTS, jobGraph.getMaximumParallelism());
+        configuration.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE, "512M");
+        configuration.setInteger(TaskManagerOptions.NUM_TASK_SLOTS, jobGraph.getMaximumParallelism());
 
         // add (and override) the settings with what the user defined
         configuration.addAll(this.conf);
