@@ -10,8 +10,8 @@
  
 # 已支持
   * 源表：kafka 0.9，1.x版本
-  * 维表：mysql，hbase，mongo，redis
-  * 结果表：mysql，hbase，elasticsearch5.x，mongo，redis
+  * 维表：mysql，hbase，mongo，redis,cassandra
+  * 结果表：mysql，hbase，elasticsearch5.x，mongo，redis,cassandra
 
 # 后续开发计划
   * 增加oracle维表，结果表功能
@@ -152,12 +152,14 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [mysql 结果表插件](docs/mysqlSink.md)
 * [mongo 结果表插件](docs/mongoSink.md)
 * [redis 结果表插件](docs/redisSink.md)
+* [cassandra 结果表插件](docs/cassandraSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
 * [mysql 维表插件](docs/mysqlSide.md)
 * [mongo 维表插件](docs/mongoSide.md)
 * [redis 维表插件](docs/redisSide.md)
+* [cassandra 维表插件](docs/cassandraSide.md)
 
 ## 3 性能指标(新增)
 
