@@ -11,7 +11,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class CustomerCommonDeserialization implements KeyedDeserializationSchema<Row>
 {
-    public static final String[] KAFKA_COLUMNS = new String[] {"TOPIC", "MESSAGEKEY", "MESSAGE", "PARTITION", "OFFSET"};
+    public static final String[] KAFKA_COLUMNS = new String[] {"_TOPIC", "_MESSAGEKEY", "_MESSAGE", "_PARTITION", "_OFFSET"};
 
     @Override
     public boolean isEndOfStream(Row nextElement)
