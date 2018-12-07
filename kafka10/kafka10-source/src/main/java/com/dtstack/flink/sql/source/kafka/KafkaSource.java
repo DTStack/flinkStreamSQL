@@ -29,6 +29,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
@@ -77,7 +78,12 @@ public class KafkaSource implements IStreamSourceGener<Table> {
             kafkaSrc = new CustomerKafka010Consumer(topicName,
                     new CustomerJsonDeserialization(typeInformation), props);
             fields = StringUtils.join(kafka010SourceTableInfo.getFields(), ",");
-        }else{
+        }else if ("csv".equalsIgnoreCase(kafka010SourceTableInfo.getSourceDataType())){
+            kafkaSrc = new CustomerKafka010Consumer(topicName,
+                    new CustomerCsvDeserialization(typeInformation,
+                            kafka010SourceTableInfo.getFieldDelimiter(),kafka010SourceTableInfo.getLengthCheckPolicy()),props);
+            fields = StringUtils.join(kafka010SourceTableInfo.getFields(), ",");
+        }else {
             kafkaSrc = new FlinkKafkaConsumer010(topicName,
                     new CustomerCommonDeserialization(),props);
             fields = StringUtils.join(kafka010SourceTableInfo.getFields(), ",");

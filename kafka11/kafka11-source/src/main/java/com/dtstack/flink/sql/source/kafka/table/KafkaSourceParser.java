@@ -45,6 +45,12 @@ public class KafkaSourceParser extends AbsSourceParser {
         if (props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE) != null) {
             kafka11SourceTableInfo.setSourceDataType(props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE).toString());
         }
+        if (props.get(KafkaSourceTableInfo.FIELD_DELINITER) != null) {
+            kafka11SourceTableInfo.setFieldDelimiter(props.get(KafkaSourceTableInfo.FIELD_DELINITER).toString());
+        }
+        if (props.get(KafkaSourceTableInfo.LENGTH_CHECK_POLICY) != null) {
+            kafka11SourceTableInfo.setLengthCheckPolicy(props.get(KafkaSourceTableInfo.LENGTH_CHECK_POLICY).toString());
+        }
         for (String key:props.keySet()) {
             if (!key.isEmpty() && key.startsWith("kafka.")) {
                 kafka11SourceTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());

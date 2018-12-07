@@ -25,6 +25,7 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -206,5 +207,28 @@ public class DtStringUtil {
         }
 
         return preStr + "?" + sb.toString();
+    }
+
+    public static Object parse(String str,Class clazz){
+        String fieldType = clazz.getName();
+        Object object = null;
+        if(fieldType.equals(Integer.class.getName())){
+            object = Integer.parseInt(str);
+        }else if(fieldType.equals(Long.class.getName())){
+            object = Long.parseLong(str);
+        }else if(fieldType.equals(Byte.class.getName())){
+            object = str.getBytes()[0];
+        }else if(fieldType.equals(String.class.getName())){
+            object = str;
+        }else if(fieldType.equals(Float.class.getName())){
+            object = Float.parseFloat(str);
+        }else if(fieldType.equals(Double.class.getName())){
+            object = Double.parseDouble(str);
+        }else if (fieldType.equals(Timestamp.class.getName())){
+            object = Timestamp.valueOf(str);
+        }else{
+            throw new RuntimeException("no support field type for sql. the input type:" + fieldType);
+        }
+        return object;
     }
 }

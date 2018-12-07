@@ -80,7 +80,12 @@ public class KafkaSource implements IStreamSourceGener<Table> {
             kafkaSrc = new CustomerKafka09Consumer(topicName,
                     new CustomerJsonDeserialization(typeInformation), props);
             fields = StringUtils.join(kafka09SourceTableInfo.getFields(), ",");
-        }else{
+        }else if ("csv".equalsIgnoreCase(kafka09SourceTableInfo.getSourceDataType())){
+            kafkaSrc = new CustomerKafka09Consumer(topicName,
+                    new CustomerCsvDeserialization(typeInformation,
+                            kafka09SourceTableInfo.getFieldDelimiter(),kafka09SourceTableInfo.getLengthCheckPolicy()),props);
+            fields = StringUtils.join(kafka09SourceTableInfo.getFields(), ",");
+        }else {
             kafkaSrc = new FlinkKafkaConsumer09(topicName,
                     new CustomerCommonDeserialization(),props);
             fields = StringUtils.join(kafka09SourceTableInfo.getFields(), ",");
