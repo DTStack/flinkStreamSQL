@@ -108,6 +108,10 @@ public class RedisOutputFormat extends MetricOutputFormat {
         if (timeout == 0){
             timeout = 10000;
         }
+        if (database == null)
+        {
+            database = "0";
+        }
 
         switch (redisType){
             //单机
@@ -134,7 +138,7 @@ public class RedisOutputFormat extends MetricOutputFormat {
             return;
         }
         Row row = tupleTrans.getField(1);
-        if (record.getArity() != fieldNames.length) {
+        if (row.getArity() != fieldNames.length) {
             return;
         }
 
