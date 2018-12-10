@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>flink.sql</artifactId>
+        <groupId>com.dtstack.flink</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>sql.oracle</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <modules>
+        <module>oracle-side</module>
+        <module>oracle-sink</module>
+    </modules>
+    <packaging>pom</packaging>
+
+    <properties>
+        <ojdbc.version>12.2.0.1</ojdbc.version>
+        <sql.core.version>1.0-SNAPSHOT</sql.core.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.core</artifactId>
+            <version>${sql.core.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.noraui</groupId>
+            <artifactId>ojdbc8</artifactId>
+            <version>${ojdbc.version}</version>
+        </dependency>
+    </dependencies>
+</project>

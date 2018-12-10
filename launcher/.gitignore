@@ -10,3 +10,4 @@ target/
 plugins/
 lib/
 dependency-reduced-pom.xml
+.vertx/

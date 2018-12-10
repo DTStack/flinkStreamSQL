@@ -1,24 +1,23 @@
 # flinkStreamSQL
 > * 基于开源的flink，对其实时sql进行扩展   
 >  >  * 自定义create table 语法（包括源表,输出表,维表）
+>  >  * 自定义create view 语法
 >  >  * 自定义create function 语法
 >  >  * 实现了流与维表的join
 >  >  * 支持原生FLinkSQL所有的语法
+>  >  * 扩展了输入和输出的性能指标到promethus
+
  
 # 已支持
   * 源表：kafka 0.9，1.x版本
-  * 维表：mysql，hbase
-  * 结果表：mysql，hbase，elasticsearch5.x
+  * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra
+  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra
 
 # 后续开发计划
-  * 增加全局缓存功能
-  * 增加临时表功能
-  * 增加redis维表,结果表功能
-  * 增加mongodb维表，结果表功能
-  * 增加oracle维表，结果表功能
-  * 增加SQlServer维表，结果表功能
   * 增加kafka结果表功能
   * 增加SQL支持CEP
+  * 维表快照
+  * sql优化（谓词下移等）
 
 ## 1 快速起步
 ### 1.1 运行模式
@@ -57,8 +56,9 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * **mode**
 	* 描述：执行模式，也就是flink集群的工作模式
 		* local: 本地模式
-		* standalone: 独立部署模式的flink集群
-		* yarn: yarn模式的flink集群
+		* standalone: 提交到独立部署模式的flink集群
+		* yarn: 提交到yarn模式的flink集群(即提交到已有flink集群)
+		* yarnPer: yarn per_job模式提交(即创建新flink application)
 	* 必选：否
 	* 默认值：local
 	
@@ -103,6 +103,11 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
         * sql.max.concurrent.checkpoints: 最大并发生成checkpoint数
         * sql.checkpoint.cleanup.mode: 默认是不会将checkpoint存储到外部存储,[true(任务cancel之后会删除外部存储)|false(外部存储需要手动删除)]
         * flinkCheckpointDataURI: 设置checkpoint的外部存储路径,根据实际的需求设定文件路径,hdfs://, file://
+        * jobmanager.memory.mb: per_job模式下指定jobmanager的内存大小(单位MB, 默认值:768)
+        * taskmanager.memory.mb: per_job模式下指定taskmanager的内存大小(单位MB, 默认值:768)
+        * taskmanager.num: per_job模式下指定taskmanager的实例数(默认1)
+        * taskmanager.slots：per_job模式下指定每个taskmanager对应的slot数量(默认1)
+        * [prometheus 相关参数](docs/prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	
 * **flinkconf**
@@ -124,6 +129,16 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 描述：指示保存点是否允许非还原状态的标志
 	* 必选：否
 	* 默认值：false
+	
+* **flinkJarPath**
+	* 描述：per_job 模式提交需要指定本地的flink jar存放路径
+	* 必选：否
+	* 默认值：false	
+
+* **queue**
+	* 描述：per_job 模式下指定的yarn queue
+	* 必选：否
+	* 默认值：false	
 
 ## 2 结构
 ### 2.1 源表插件
@@ -133,12 +148,43 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [elasticsearch 结果表插件](docs/elasticsearchSink.md)
 * [hbase 结果表插件](docs/hbaseSink.md)
 * [mysql 结果表插件](docs/mysqlSink.md)
+* [mongo 结果表插件](docs/mongoSink.md)
+* [redis 结果表插件](docs/redisSink.md)
+* [cassandra 结果表插件](docs/cassandraSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
 * [mysql 维表插件](docs/mysqlSide.md)
+* [mongo 维表插件](docs/mongoSide.md)
+* [redis 维表插件](docs/redisSide.md)
+* [cassandra 维表插件](docs/cassandraSide.md)
+
+## 3 性能指标(新增)
+
+### kafka插件
+* 业务延迟： flink_taskmanager_job_task_operator_dtEventDelay(单位s)  
+   数据本身的时间和进入flink的当前时间的差值.
+  
+* 各个输入源的脏数据：flink_taskmanager_job_task_operator_dtDirtyData  
+  从kafka获取的数据解析失败的视为脏数据  
+
+* 各Source的数据输入TPS: flink_taskmanager_job_task_operator_dtNumRecordsInRate  
+  kafka接受的记录数(未解析前)/s
+
+* 各Source的数据输入RPS: flink_taskmanager_job_task_operator_dtNumRecordsInResolveRate  
+  kafka接受的记录数(解析后)/s
+  
+* 各Source的数据输入BPS: flink_taskmanager_job_task_operator_dtNumBytesInRate  
+  kafka接受的字节数/s
+
+* Kafka作为输入源的各个分区的延迟数: flink_taskmanager_job_task_operator_topic_partition_dtTopicPartitionLag  
+  当前kafka10,kafka11有采集该指标
+
+* 各个输出源RPS: flink_taskmanager_job_task_operator_dtNumRecordsOutRate  
+  写入的外部记录数/s
+      
 	
-## 3 样例
+## 4 样例
 
 ```
 

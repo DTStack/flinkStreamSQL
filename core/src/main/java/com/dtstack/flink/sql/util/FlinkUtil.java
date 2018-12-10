@@ -101,7 +101,7 @@ public class FlinkUtil {
         }
 
         String cleanupModeStr = properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_CLEANUPMODE_KEY);
-        if(cleanupModeStr != null){//设置在cancle job情况下checkpoint是否被保存
+        if(cleanupModeStr != null){//设置在cancel job情况下checkpoint是否被保存
             if("true".equalsIgnoreCase(cleanupModeStr)){
                 env.getCheckpointConfig().enableExternalizedCheckpoints(
                         CheckpointConfig.ExternalizedCheckpointCleanup.DELETE_ON_CANCELLATION);

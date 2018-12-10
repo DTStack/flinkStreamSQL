@@ -10,3 +10,6 @@ target/
 plugins/
 lib/
 .vertx/
+bin/nohup.out
+
+bin/sideSql.txt

@@ -22,13 +22,14 @@ package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.enums.ETableType;
 import com.dtstack.flink.sql.table.TableInfo;
-import com.dtstack.flink.sql.table.TableInfoParserFactory;
+import com.dtstack.flink.sql.table.TableInfoParser;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
 import org.apache.flink.shaded.guava18.com.google.common.base.Strings;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Reason:
@@ -44,7 +45,7 @@ public class SqlParser {
     private static String LOCAL_SQL_PLUGIN_ROOT;
 
     private static List<IParser> sqlParserList = Lists.newArrayList(CreateFuncParser.newInstance(),
-            CreateTableParser.newInstance(), InsertSqlParser.newInstance());
+            CreateTableParser.newInstance(), InsertSqlParser.newInstance(), CreateTmpTableParser.newInstance());
 
     public static void setLocalSqlPluginRoot(String localSqlPluginRoot){
         LOCAL_SQL_PLUGIN_ROOT = localSqlPluginRoot;
@@ -74,7 +75,7 @@ public class SqlParser {
 
         List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SQL_DELIMITER);
         SqlTree sqlTree = new SqlTree();
-
+        TableInfoParser tableInfoParser = new TableInfoParser();
         for(String childSql : sqlArr){
             if(Strings.isNullOrEmpty(childSql)){
                 continue;
@@ -102,27 +103,48 @@ public class SqlParser {
         for(InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()){
             List<String> sourceTableList = result.getSourceTableList();
             List<String> targetTableList = result.getTargetTableList();
+            Set<String> tmpTableList = sqlTree.getTmpTableMap().keySet();
 
             for(String tableName : sourceTableList){
-                CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
-                if(createTableResult == null){
-                    throw new RuntimeException("can't find table " + tableName);
-                }
+                if (!tmpTableList.contains(tableName)){
+                    CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
+                    if(createTableResult == null){
+                        throw new RuntimeException("can't find table " + tableName);
+                    }
 
-                TableInfo tableInfo = TableInfoParserFactory.parseWithTableType(ETableType.SOURCE.getType(),
-                        createTableResult, LOCAL_SQL_PLUGIN_ROOT);
-                sqlTree.addTableInfo(tableName, tableInfo);
+                    TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
+                            createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                    sqlTree.addTableInfo(tableName, tableInfo);
+                }
             }
 
             for(String tableName : targetTableList){
-                CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
-                if(createTableResult == null){
-                    throw new RuntimeException("can't find table " + tableName);
-                }
+                if (!tmpTableList.contains(tableName)){
+                    CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
+                    if(createTableResult == null){
+                        throw new RuntimeException("can't find table " + tableName);
+                    }
 
-                TableInfo tableInfo = TableInfoParserFactory.parseWithTableType(ETableType.SINK.getType(),
-                        createTableResult, LOCAL_SQL_PLUGIN_ROOT);
-                sqlTree.addTableInfo(tableName, tableInfo);
+                    TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SINK.getType(),
+                            createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                    sqlTree.addTableInfo(tableName, tableInfo);
+                }
+            }
+        }
+
+        for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()){
+            List<String> sourceTableList = result.getSourceTableList();
+            for(String tableName : sourceTableList){
+                if (!sqlTree.getTableInfoMap().keySet().contains(tableName)){
+                    CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
+                    if(createTableResult == null){
+                        throw new RuntimeException("can't find table " + tableName);
+                    }
+
+                    TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
+                            createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                    sqlTree.addTableInfo(tableName, tableInfo);
+                }
             }
         }
 

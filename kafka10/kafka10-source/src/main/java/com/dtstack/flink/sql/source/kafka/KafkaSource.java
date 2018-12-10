@@ -23,15 +23,20 @@ package com.dtstack.flink.sql.source.kafka;
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
+import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -42,6 +47,8 @@ import java.util.Properties;
  */
 
 public class KafkaSource implements IStreamSourceGener<Table> {
+
+    private static final String SOURCE_OPERATOR_NAME_TPL = "${topic}_${table}";
 
     /**
      * Get kafka data source, you need to provide the data field names, data types
@@ -67,17 +74,30 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }
 
         TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka010SourceTableInfo.getFields());
-        FlinkKafkaConsumer010<Row> kafkaSrc = new FlinkKafkaConsumer010(topicName,
+        FlinkKafkaConsumer010<Row> kafkaSrc = new CustomerKafka010Consumer(topicName,
                 new CustomerJsonDeserialization(typeInformation), props);
 
         //earliest,latest
         if("earliest".equalsIgnoreCase(kafka010SourceTableInfo.getOffsetReset())){
             kafkaSrc.setStartFromEarliest();
-        }else{
+        }else if(DtStringUtil.isJosn(kafka010SourceTableInfo.getOffsetReset())){// {"0":12312,"1":12321,"2":12312}
+            try {
+                Properties properties = PluginUtil.jsonStrToObject(kafka010SourceTableInfo.getOffsetReset(), Properties.class);
+                Map<String, Object> offsetMap = PluginUtil.ObjectToMap(properties);
+                Map<KafkaTopicPartition, Long> specificStartupOffsets = new HashMap<>();
+                for(Map.Entry<String,Object> entry:offsetMap.entrySet()){
+                    specificStartupOffsets.put(new KafkaTopicPartition(topicName,Integer.valueOf(entry.getKey())),Long.valueOf(entry.getValue().toString()));
+                }
+                kafkaSrc.setStartFromSpecificOffsets(specificStartupOffsets);
+            } catch (Exception e) {
+                throw new RuntimeException("not support offsetReset type:" + kafka010SourceTableInfo.getOffsetReset());
+            }
+        }else {
             kafkaSrc.setStartFromLatest();
         }
 
         String fields = StringUtils.join(kafka010SourceTableInfo.getFields(), ",");
-        return tableEnv.fromDataStream(env.addSource(kafkaSrc, typeInformation), fields);
+        String sourceOperatorName = SOURCE_OPERATOR_NAME_TPL.replace("${topic}", topicName).replace("${table}", sourceTableInfo.getName());
+        return tableEnv.fromDataStream(env.addSource(kafkaSrc, sourceOperatorName, typeInformation), fields);
     }
 }

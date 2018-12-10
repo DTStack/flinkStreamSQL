@@ -52,7 +52,7 @@
 ## 4.样例
 ```
 CREATE TABLE sideTable(
-    cf:name String as name,
+    cf:name varchar as name,
     cf:info int as info,
     PRIMARY KEY(md5(name) + 'test'),
     PERIOD FOR SYSTEM_TIME
