@@ -41,6 +41,8 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
     public static final String GROUPID_KEY = "groupId";
 
+    public static final String OFFSET_RESET = "offsetReset";
+
     private String bootstrapServers;
 
     private String topic;
