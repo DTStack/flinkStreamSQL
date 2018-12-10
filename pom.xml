@@ -26,10 +26,10 @@
     </modules>
 
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <flink.version>1.5.4</flink.version>
-    </properties>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <flink.version>1.6.2</flink.version>
+  </properties>
 
     <build>
         <plugins>

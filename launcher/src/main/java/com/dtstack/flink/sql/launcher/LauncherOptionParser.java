@@ -101,21 +101,25 @@ public class LauncherOptionParser {
             byte[] filecontent = new byte[(int) file.length()];
             in.read(filecontent);
             String content = new String(filecontent, "UTF-8");
+
             String sql = URLEncoder.encode(content, Charsets.UTF_8.name());
             properties.setSql(sql);
+
             String localPlugin = Preconditions.checkNotNull(cl.getOptionValue(OPTION_LOCAL_SQL_PLUGIN_PATH));
             properties.setLocalSqlPluginPath(localPlugin);
+
             String remotePlugin = cl.getOptionValue(OPTION_REMOTE_SQL_PLUGIN_PATH);
-            if(!ClusterMode.local.name().equals(mode)){
-                Preconditions.checkNotNull(remotePlugin);
-                properties.setRemoteSqlPluginPath(remotePlugin);
-            }
+            Preconditions.checkNotNull(remotePlugin);
+            properties.setRemoteSqlPluginPath(remotePlugin);
+
             String name = Preconditions.checkNotNull(cl.getOptionValue(OPTION_NAME));
             properties.setName(name);
+
             String addJar = cl.getOptionValue(OPTION_ADDJAR);
             if(StringUtils.isNotBlank(addJar)){
                 properties.setAddjar(addJar);
             }
+
             String confProp = cl.getOptionValue(OPTION_CONF_PROP);
             if(StringUtils.isNotBlank(confProp)){
                 properties.setConfProp(confProp);
@@ -157,6 +161,7 @@ public class LauncherOptionParser {
     public List<String> getProgramExeArgList() throws Exception {
         Map<String,Object> mapConf = PluginUtil.ObjectToMap(properties);
         List<String> args = Lists.newArrayList();
+
         for(Map.Entry<String, Object> one : mapConf.entrySet()){
             String key = one.getKey();
             if(OPTION_FLINK_CONF_DIR.equalsIgnoreCase(key)
