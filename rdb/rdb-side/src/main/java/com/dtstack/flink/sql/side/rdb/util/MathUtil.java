@@ -223,10 +223,15 @@ public class MathUtil {
             return null;
         }
         if (obj instanceof String) {
-            return Date.valueOf((String) obj);
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+            try {
+                return new Date(format.parse((String) obj).getTime());
+            } catch (ParseException e) {
+                throw new RuntimeException("String convert to Date fail.");
+            }
         } else if (obj instanceof Timestamp) {
             return new Date(((Timestamp) obj).getTime());
-        }else if (obj instanceof Date){
+        } else if (obj instanceof Date) {
             return (Date) obj;
         }
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
@@ -239,9 +244,9 @@ public class MathUtil {
         if (obj instanceof Timestamp) {
             return (Timestamp) obj;
         } else if (obj instanceof Date) {
-            return Timestamp.valueOf((String) obj);
+            return new Timestamp(((Date) obj).getTime());
         } else if (obj instanceof String) {
-            return Timestamp.valueOf((String) obj);
+            return new Timestamp(getDate(obj).getTime());
         }
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
     }
