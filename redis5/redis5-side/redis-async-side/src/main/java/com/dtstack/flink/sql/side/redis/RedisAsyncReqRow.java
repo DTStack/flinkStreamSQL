@@ -80,6 +80,8 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         String password = redisSideTableInfo.getPassword();
         if (password != null){
             password = password + "@";
+        } else {
+            password = "";
         }
         String database = redisSideTableInfo.getDatabase();
         if (database == null){
