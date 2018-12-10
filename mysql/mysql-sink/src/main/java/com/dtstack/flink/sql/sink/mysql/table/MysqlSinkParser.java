@@ -16,13 +16,11 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.sink.mysql.table;
 
-import com.dtstack.flink.sql.table.AbsTableParser;
+import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.TableInfo;
-import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 
@@ -30,26 +28,17 @@ import java.util.Map;
  * Reason:
  * Date: 2018/7/4
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public class MysqlSinkParser extends AbsTableParser {
+public class MysqlSinkParser extends RdbSinkParser {
+    private static final String CURR_TYPE = "mysql";
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        MysqlTableInfo mysqlTableInfo = new MysqlTableInfo();
-        mysqlTableInfo.setName(tableName);
-        parseFieldsInfo(fieldsInfo, mysqlTableInfo);
-
-        mysqlTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(MysqlTableInfo.PARALLELISM_KEY.toLowerCase())));
-        mysqlTableInfo.setUrl(MathUtil.getString(props.get(MysqlTableInfo.URL_KEY.toLowerCase())));
-        mysqlTableInfo.setTableName(MathUtil.getString(props.get(MysqlTableInfo.TABLE_NAME_KEY.toLowerCase())));
-        mysqlTableInfo.setUserName(MathUtil.getString(props.get(MysqlTableInfo.USER_NAME_KEY.toLowerCase())));
-        mysqlTableInfo.setPassword(MathUtil.getString(props.get(MysqlTableInfo.PASSWORD_KEY.toLowerCase())));
-        mysqlTableInfo.setBatchSize(MathUtil.getIntegerVal(props.get(MysqlTableInfo.BATCH_SIZE_KEY.toLowerCase())));
-        mysqlTableInfo.setBufferSize(MathUtil.getString(props.get(MysqlTableInfo.BUFFER_SIZE_KEY.toLowerCase())));
-        mysqlTableInfo.setFlushIntervalMs(MathUtil.getString(props.get(MysqlTableInfo.FLUSH_INTERVALMS_KEY.toLowerCase())));
-
+        TableInfo mysqlTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+        mysqlTableInfo.setType(CURR_TYPE);
         return mysqlTableInfo;
     }
 }

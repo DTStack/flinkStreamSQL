@@ -44,6 +44,9 @@ public class SideAsyncOperator {
 
     private static final String PATH_FORMAT = "%sasyncside";
 
+    //TODO need to set by create table task
+    private static int asyncCapacity = 100;
+
     private static AsyncReqRow loadAsyncReq(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,
                                             JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -60,7 +63,7 @@ public class SideAsyncOperator {
                                             List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
         AsyncReqRow asyncDbReq = loadAsyncReq(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
         //TODO How much should be set for the degree of parallelism? Timeout? capacity settings?
-        return AsyncDataStream.orderedWait(inputStream, asyncDbReq, 10000, TimeUnit.MILLISECONDS, 10)
+        return AsyncDataStream.orderedWait(inputStream, asyncDbReq, 10000, TimeUnit.MILLISECONDS, asyncCapacity)
                 .setParallelism(sideTableInfo.getParallelism());
     }
 }

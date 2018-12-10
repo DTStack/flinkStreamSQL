@@ -15,11 +15,15 @@
 
     <packaging>jar</packaging>
 
+    <properties>
+        <sql.side.mysql.core.version>1.0-SNAPSHOT</sql.side.mysql.core.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.dtstack.flink</groupId>
             <artifactId>sql.side.mysql.core</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${sql.side.mysql.core.version}</version>
         </dependency>
     </dependencies>
 
@@ -71,12 +75,12 @@
                             <tasks>
                                 <copy todir="${basedir}/../../../plugins/mysqlallside">
                                     <fileset dir="target/">
-                                        <include name="${project.artifactId}-${project.version}.jar" />
+                                        <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
                                 <move file="${basedir}/../../../plugins/mysqlallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/mysqlallside/${project.name}.jar" />
+                                      tofile="${basedir}/../../../plugins/mysqlallside/${project.name}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

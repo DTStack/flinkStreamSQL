@@ -48,6 +48,11 @@ public class LauncherOptions {
 
     private  String allowNonRestoredState = "false";
 
+    //just use for per_job mode
+    private String flinkJarPath;
+
+    private String queue;
+
     public String getMode() {
         return mode;
     }
@@ -134,5 +139,21 @@ public class LauncherOptions {
 
     public void setAllowNonRestoredState(String allowNonRestoredState) {
         this.allowNonRestoredState = allowNonRestoredState;
+    }
+
+    public String getFlinkJarPath() {
+        return flinkJarPath;
+    }
+
+    public void setFlinkJarPath(String flinkJarPath) {
+        this.flinkJarPath = flinkJarPath;
+    }
+
+    public String getQueue() {
+        return queue;
+    }
+
+    public void setQueue(String queue) {
+        this.queue = queue;
     }
 }

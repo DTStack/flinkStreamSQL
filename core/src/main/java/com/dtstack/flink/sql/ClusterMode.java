@@ -1,3 +1,4 @@
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,10 +20,7 @@
 package com.dtstack.flink.sql;
 
 /**
- * This class defines three running mode of FlinkX
- *
- * Company: www.dtstack.com
- * @author huyifan.zju@163.com
+ * Created by sishu.yss on 2018/10/10.
  */
 public enum ClusterMode {
 
@@ -33,5 +31,4 @@ public enum ClusterMode {
     ClusterMode(int type){
         this.type = type;
     }
-
 }
