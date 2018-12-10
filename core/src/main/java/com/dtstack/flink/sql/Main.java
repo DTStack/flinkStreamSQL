@@ -34,6 +34,7 @@ import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.dtstack.flink.sql.util.FlinkUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.cli.CommandLine;
@@ -185,7 +186,11 @@ public class Main {
                 if (sqlTree.getTmpTableMap().containsKey(tableName)) {
                     CreateTmpTableParser.SqlParserResult tmp = sqlTree.getTmpTableMap().get(tableName);
                     String realSql = DtStringUtil.replaceIgnoreQuota(result.getExecSql(), "`", "");
-                    SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql).parseStmt();
+                    org.apache.calcite.sql.parser.SqlParser.Config config = org.apache.calcite.sql.parser.SqlParser
+                            .configBuilder()
+                            .setLex(Lex.JAVA)
+                            .build();
+                    SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql,config).parseStmt();
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
                     tmp.setExecSql(tmpSql);
                     sideSqlExec.registerTmpTable(tmp, sideTableMap, tableEnv, registerTableCache);
@@ -246,7 +251,7 @@ public class Main {
                 classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
             }
             classLoader.loadClass(funcInfo.getClassName());
-            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName().toUpperCase(),
+            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
                     tableEnv, classLoader);
         }
     }
