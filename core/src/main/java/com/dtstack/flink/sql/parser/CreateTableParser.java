@@ -54,7 +54,7 @@ public class CreateTableParser implements IParser {
     public void parseSql(String sql, SqlTree sqlTree) {
         Matcher matcher = PATTERN.matcher(sql);
         if(matcher.find()){
-            String tableName = matcher.group(1).toUpperCase();
+            String tableName = matcher.group(1);
             String fieldsInfoStr = matcher.group(2);
             String propsStr = matcher.group(3);
             Map<String, Object> props = parseProp(propsStr);
