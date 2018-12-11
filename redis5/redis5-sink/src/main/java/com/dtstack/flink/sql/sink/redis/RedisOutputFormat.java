@@ -126,7 +126,7 @@ public class RedisOutputFormat extends MetricOutputFormat {
                 break;
             //集群
             case 3:
-                jedis = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
+                jedis = new JedisCluster(addresses, timeout, timeout,10, password, poolConfig);
         }
     }
 
