@@ -58,7 +58,7 @@ public class SideSQLParser {
         Queue<Object> queueInfo = Queues.newLinkedBlockingQueue();
         SqlParser.Config config = SqlParser
                 .configBuilder()
-                .setLex(Lex.JAVA)
+                .setLex(Lex.MYSQL)
                 .build();
         SqlParser sqlParser = SqlParser.create(exeSql,config);
         SqlNode sqlNode = sqlParser.parseStmt();

@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -94,7 +95,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         for (Map.Entry<String, List<String>> entry : updateKey.entrySet()) {
             List<String> list = entry.getValue();
             for (String col : list) {
-                if (!keyCols.contains(col)) {
+                if (!containsIgnoreCase(keyCols,col)) {
                     keyCols.add(col);
                 }
             }
@@ -107,10 +108,10 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         String prefixRight = StringUtils.isBlank(rightTable) ? "" : quoteTable(rightTable) + ".";
         List<String> list = new ArrayList<>();
         for (String col : fullColumn) {
-            if (keyCols == null || keyCols.size() == 0 || keyCols.contains(col)) {
+            if (keyCols == null || keyCols.size() == 0 || containsIgnoreCase(keyCols,col)) {
                 continue;
             }
-            if (fullColumn == null || column.contains(col)) {
+            if (fullColumn == null || containsIgnoreCase(column,col)) {
                 list.add(prefixLeft + col + "=" + prefixRight + col);
             } else {
                 list.add(prefixLeft + col + "=null");
@@ -155,6 +156,15 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         }
         sb.append(" FROM DUAL");
         return sb.toString();
+    }
+
+    public boolean containsIgnoreCase(List<String> l, String s) {
+        Iterator<String> it = l.iterator();
+        while (it.hasNext()) {
+            if (it.next().equalsIgnoreCase(s))
+                return true;
+        }
+        return false;
     }
 
     public String quoteColumn(String column) {
