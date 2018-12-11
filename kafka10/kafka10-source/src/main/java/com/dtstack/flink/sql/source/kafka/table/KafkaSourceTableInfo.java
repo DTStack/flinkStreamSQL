@@ -43,6 +43,8 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
     public static final String OFFSETRESET_KEY="offsetReset";
 
+    public static final String TOPICISPATTERN_KEY = "topicIsPattern";
+
     private String bootstrapServers;
 
     private String topic;
@@ -53,6 +55,8 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
     private String offsetReset = "latest";
 
     private String offset;
+
+    private Boolean topicIsPattern = false;
 
     public KafkaSourceTableInfo(){
         super.setType(CURR_TYPE);
@@ -99,7 +103,18 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
     }
 
     public void setOffset(String offset) {
+        if (offsetReset == null) {
+            return;
+        }
         this.offset = offset;
+    }
+
+    public Boolean getTopicIsPattern() {
+        return topicIsPattern;
+    }
+
+    public void setTopicIsPattern(Boolean topicIsPattern) {
+        this.topicIsPattern = topicIsPattern;
     }
 
     @Override
