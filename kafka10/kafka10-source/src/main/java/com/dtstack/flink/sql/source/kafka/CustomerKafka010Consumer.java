@@ -30,8 +30,10 @@ import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition
 import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 /**
  * Reason:
@@ -47,10 +49,14 @@ public class CustomerKafka010Consumer extends FlinkKafkaConsumer010<Row> {
     private CustomerJsonDeserialization customerJsonDeserialization;
 
     public CustomerKafka010Consumer(String topic, AbsDeserialization valueDeserializer, Properties props) {
-        super(topic, valueDeserializer, props);
+        super(Arrays.asList(topic.split(",")), valueDeserializer, props);
         this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
     }
 
+    public CustomerKafka010Consumer(Pattern subscriptionPattern, AbsDeserialization<Row> valueDeserializer, Properties props) {
+        super(subscriptionPattern, valueDeserializer, props);
+        this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
+    }
     @Override
     public void run(SourceContext<Row> sourceContext) throws Exception {
         customerJsonDeserialization.setRuntimeContext(getRuntimeContext());
