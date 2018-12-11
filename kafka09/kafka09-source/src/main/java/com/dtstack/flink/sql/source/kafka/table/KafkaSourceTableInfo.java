@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.source.kafka.table;
 
@@ -27,96 +26,111 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
  * Reason:
  * Date: 2018/6/22
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
 public class KafkaSourceTableInfo extends SourceTableInfo {
 
-    //version
-    private static final String CURR_TYPE = "kafka09";
+	//version
+	private static final String CURR_TYPE = "kafka09";
 
-    public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
+	public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
 
-    public static final String TOPIC_KEY = "topic";
+	public static final String TOPIC_KEY = "topic";
 
-    public static final String GROUPID_KEY = "groupId";
+	public static final String GROUPID_KEY = "groupId";
 
-    public static final String OFFSETRESET_KEY="offsetReset";
+	public static final String OFFSETRESET_KEY = "offsetReset";
 
-    private String bootstrapServers;
+	public static final String TOPICISPATTERN_KEY = "topicIsPattern";
 
-    private String topic;
+	private String bootstrapServers;
 
-    private String groupId;
+	private String topic;
 
-    //latest, earliest
-    private String offsetReset = "latest";
+	private String groupId;
 
-    private String offset;
+	//latest, earliest
+	private String offsetReset = "latest";
 
-    public KafkaSourceTableInfo(){
-        super.setType(CURR_TYPE);
-    }
+	private String offset;
+
+	private Boolean topicIsPattern = false;
+
+	public Boolean getTopicIsPattern() {
+		return topicIsPattern;
+	}
+
+	public void setTopicIsPattern(Boolean topicIsPattern) {
+		if (topicIsPattern == null) return;
+
+		this.topicIsPattern = topicIsPattern;
+	}
+
+	public KafkaSourceTableInfo() {
+		super.setType(CURR_TYPE);
+	}
 
 
-    public String getBootstrapServers() {
-        return bootstrapServers;
-    }
+	public String getBootstrapServers() {
+		return bootstrapServers;
+	}
 
-    public void setBootstrapServers(String bootstrapServers) {
-        this.bootstrapServers = bootstrapServers;
-    }
+	public void setBootstrapServers(String bootstrapServers) {
+		this.bootstrapServers = bootstrapServers;
+	}
 
-    public String getTopic() {
-        return topic;
-    }
+	public String getTopic() {
+		return topic;
+	}
 
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
+	public void setTopic(String topic) {
+		this.topic = topic;
+	}
 
-    public String getGroupId() {
-        return groupId;
-    }
+	public String getGroupId() {
+		return groupId;
+	}
 
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
+	public void setGroupId(String groupId) {
+		this.groupId = groupId;
+	}
 
-    public String getOffsetReset() {
-        return offsetReset;
-    }
+	public String getOffsetReset() {
+		return offsetReset;
+	}
 
-    public void setOffsetReset(String offsetReset) {
-        if(offsetReset == null){
-            return;
-        }
+	public void setOffsetReset(String offsetReset) {
+		if (offsetReset == null) {
+			return;
+		}
 
-        this.offsetReset = offsetReset;
-    }
+		this.offsetReset = offsetReset;
+	}
 
-    public String getOffset() {
-        return offset;
-    }
+	public String getOffset() {
+		return offset;
+	}
 
-    public void setOffset(String offset) {
-        this.offset = offset;
-    }
+	public void setOffset(String offset) {
+		this.offset = offset;
+	}
 
-    @Override
-    public boolean check() {
-        Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
-        Preconditions.checkNotNull(topic, "kafka of topic is required");
-        Preconditions.checkNotNull(groupId, "kafka of groupId is required");
-        Preconditions.checkState(offsetReset.equalsIgnoreCase("latest")
-                || offsetReset.equalsIgnoreCase("latest"), "kafka of offsetReset set fail");
+	@Override
+	public boolean check() {
+		Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
+		Preconditions.checkNotNull(topic, "kafka of topic is required");
+		Preconditions.checkNotNull(groupId, "kafka of groupId is required");
+		Preconditions.checkState(offsetReset.equalsIgnoreCase("latest")
+				|| offsetReset.equalsIgnoreCase("latest"), "kafka of offsetReset set fail");
 
-        return false;
-    }
+		return false;
+	}
 
-    @Override
-    public String getType() {
+	@Override
+	public String getType() {
 //        return super.getType() + SOURCE_SUFFIX;
-        return super.getType();
-    }
+		return super.getType();
+	}
 }
