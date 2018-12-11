@@ -70,7 +70,7 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
             }
             String column_name = rs.getString("COLUMN_NAME");
             if (StringUtils.isNotBlank(column_name)) {
-                column_name = column_name.toUpperCase();
+                column_name = column_name;
             }
             map.get(indexName).add(column_name);
         }
@@ -94,7 +94,7 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
         while (rs.next()) {
             String columnName = rs.getString("COLUMN_NAME");
             if (StringUtils.isNotBlank(columnName)) {
-                getFullField().add(columnName.toUpperCase());
+                getFullField().add(columnName);
             }
         }
     }
