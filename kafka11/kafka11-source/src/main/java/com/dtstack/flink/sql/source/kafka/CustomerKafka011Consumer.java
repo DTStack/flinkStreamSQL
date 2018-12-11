@@ -32,8 +32,11 @@ import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
 
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 /**
  * Reason:
@@ -50,7 +53,12 @@ public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
     private CustomerJsonDeserialization customerJsonDeserialization;
 
     public CustomerKafka011Consumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
-        super(topic, valueDeserializer, props);
+        super(Arrays.asList(topic.split(",")), valueDeserializer, props);
+        this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
+    }
+
+    public CustomerKafka011Consumer(Pattern subscriptionPattern, AbsDeserialization<Row> valueDeserializer, Properties props) {
+        super(subscriptionPattern, valueDeserializer, props);
         this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
     }
 
