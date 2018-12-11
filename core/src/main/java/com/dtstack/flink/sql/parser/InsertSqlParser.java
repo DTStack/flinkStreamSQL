@@ -60,7 +60,7 @@ public class InsertSqlParser implements IParser {
     public void parseSql(String sql, SqlTree sqlTree) {
         SqlParser.Config config = SqlParser
                 .configBuilder()
-                .setLex(Lex.JAVA)
+                .setLex(Lex.MYSQL)
                 .build();
         SqlParser sqlParser = SqlParser.create(sql,config);
         SqlNode sqlNode = null;

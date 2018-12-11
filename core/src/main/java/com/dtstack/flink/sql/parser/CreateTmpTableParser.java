@@ -69,7 +69,7 @@ public class CreateTmpTableParser implements IParser {
 
             SqlParser.Config config = SqlParser
                     .configBuilder()
-                    .setLex(Lex.JAVA)
+                    .setLex(Lex.MYSQL)
                     .build();
             SqlParser sqlParser = SqlParser.create(selectSql,config);
 

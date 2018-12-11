@@ -188,7 +188,7 @@ public class Main {
                     String realSql = DtStringUtil.replaceIgnoreQuota(result.getExecSql(), "`", "");
                     org.apache.calcite.sql.parser.SqlParser.Config config = org.apache.calcite.sql.parser.SqlParser
                             .configBuilder()
-                            .setLex(Lex.JAVA)
+                            .setLex(Lex.MYSQL)
                             .build();
                     SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql,config).parseStmt();
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
