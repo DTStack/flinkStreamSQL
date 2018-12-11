@@ -188,7 +188,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 ```
 
-CREATE (scala|table) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun
+CREATE (scala|table) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun;
 
 
 CREATE TABLE MyTable(
