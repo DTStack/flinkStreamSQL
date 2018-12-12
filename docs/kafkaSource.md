@@ -38,6 +38,8 @@ CREATE TABLE tableName(
 |bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
 |zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||
 |topic | 需要读取的 topic 名称|是||
+|topicIsPattern |  topic是否是正则表达式格式|否| false
+|groupId | 需要读取的 groupId 名称|否||
 |offsetReset | 读取的topic 的offset初始位置[latest\|earliest\|指定offset值({"0":12312,"1":12321,"2":12312},{"partition_no":offset_value})]|否|latest|
 |parallelism | 并行度设置|否|1|
   
@@ -54,7 +56,10 @@ CREATE TABLE MyTable(
     bootstrapServers ='172.16.8.198:9092',
     zookeeperQuorum ='172.16.8.198:2181/kafka',
     offsetReset ='latest',
-    topic ='nbTest1',
+    groupId='nbTest',
+    topic ='nbTest1,nbTest2,nbTest3',
+    --- topic ='mqTest.*',
+    ---topicIsPattern='true',
     parallelism ='1'
  );
 ```

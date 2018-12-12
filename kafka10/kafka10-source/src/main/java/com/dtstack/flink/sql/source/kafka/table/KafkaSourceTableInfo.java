@@ -40,8 +40,9 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
     public static final String TOPIC_KEY = "topic";
 
     public static final String GROUPID_KEY = "groupId";
+    public static final String OFFSETRESET_KEY="offsetReset";
 
-    public static final String OFFSET_RESET = "offsetReset";
+    public static final String TOPICISPATTERN_KEY = "topicIsPattern";
 
     private String bootstrapServers;
 
@@ -53,6 +54,8 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
     private String offsetReset = "latest";
 
     private String offset;
+
+    private Boolean topicIsPattern = false;
 
     public KafkaSourceTableInfo(){
         super.setType(CURR_TYPE);
@@ -91,7 +94,6 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
         if(offsetReset == null){
             return;
         }
-
         this.offsetReset = offsetReset;
     }
 
@@ -100,14 +102,25 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
     }
 
     public void setOffset(String offset) {
+        if (offsetReset == null) {
+            return;
+        }
         this.offset = offset;
+    }
+
+    public Boolean getTopicIsPattern() {
+        return topicIsPattern;
+    }
+
+    public void setTopicIsPattern(Boolean topicIsPattern) {
+        this.topicIsPattern = topicIsPattern;
     }
 
     @Override
     public boolean check() {
         Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
         Preconditions.checkNotNull(topic, "kafka of topic is required");
-        Preconditions.checkNotNull(groupId, "kafka of groupId is required");
+        //Preconditions.checkNotNull(groupId, "kafka of groupId is required");
         Preconditions.checkState(offsetReset.equalsIgnoreCase("latest")
                 || offsetReset.equalsIgnoreCase("latest"), "kafka of offsetReset set fail");
 
