@@ -53,7 +53,6 @@ import static org.apache.calcite.sql.SqlKind.*;
 public class SideSQLParser {
 
     public Queue<Object> getExeQueue(String exeSql, Set<String> sideTableSet) throws SqlParseException {
-        exeSql = DtStringUtil.replaceIgnoreQuota(exeSql, "`", "");
         System.out.println("---exeSql---");
         System.out.println(exeSql);
         Queue<Object> queueInfo = Queues.newLinkedBlockingQueue();

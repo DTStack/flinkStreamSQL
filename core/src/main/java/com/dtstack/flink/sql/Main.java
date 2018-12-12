@@ -191,7 +191,7 @@ public class Main {
                             .configBuilder()
                             .setLex(Lex.MYSQL)
                             .build();
-                    SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql).parseStmt();
+                    SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql,config).parseStmt();
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
                     tmp.setExecSql(tmpSql);
                     sideSqlExec.registerTmpTable(tmp, sideTableMap, tableEnv, registerTableCache);
@@ -252,7 +252,7 @@ public class Main {
                 classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
             }
             classLoader.loadClass(funcInfo.getClassName());
-            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName().toUpperCase(),
+            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
                     tableEnv, classLoader);
         }
     }
