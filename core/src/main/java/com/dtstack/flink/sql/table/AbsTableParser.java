@@ -82,10 +82,6 @@ public abstract class AbsTableParser {
         String[] fieldRows = DtStringUtil.splitIgnoreQuotaBrackets(fieldsInfo, ",");
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
-            if(fieldNameNeedsUpperCase()) {
-                fieldRow = fieldRow.toUpperCase();
-            }
-
             boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
 
             if(isMatcherKey){

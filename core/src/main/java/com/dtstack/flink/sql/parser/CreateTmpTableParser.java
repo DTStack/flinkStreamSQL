@@ -63,7 +63,7 @@ public class CreateTmpTableParser implements IParser {
             String tableName = null;
             String selectSql = null;
             if(matcher.find()) {
-                tableName = matcher.group(1).toUpperCase();
+                tableName = matcher.group(1);
                 selectSql = "select " + matcher.group(2);
             }
             SqlParser.Config config = SqlParser
@@ -93,7 +93,7 @@ public class CreateTmpTableParser implements IParser {
                 String tableName = null;
                 String fieldsInfoStr = null;
                 if (matcher.find()){
-                    tableName = matcher.group(1).toUpperCase();
+                    tableName = matcher.group(1);
                     fieldsInfoStr = matcher.group(2);
                 }
                 CreateTmpTableParser.SqlParserResult sqlParseResult = new CreateTmpTableParser.SqlParserResult();

@@ -645,7 +645,7 @@ public class SideSqlExec {
                 String[] filedNameArr = new String[filed.length - 1];
                 System.arraycopy(filed, 0, filedNameArr, 0, filed.length - 1);
                 String fieldName = String.join(" ", filedNameArr);
-                fieldNames.add(fieldName.toUpperCase());
+                fieldNames.add(fieldName);
                 String fieldType = filed[filed.length - 1 ].trim();
                 Class fieldClass = ClassUtil.stringConvertClass(fieldType);
                 Class tableField = table.getSchema().getType(i).get().getTypeClass();
