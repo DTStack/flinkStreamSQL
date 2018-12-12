@@ -6,8 +6,10 @@
         <artifactId>flink.sql</artifactId>
         <groupId>com.dtstack.flink</groupId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
+
     <artifactId>sql.mysql</artifactId>
     <packaging>pom</packaging>
 
@@ -16,6 +18,11 @@
         <module>mysql-side</module>
     </modules>
 
+    <properties>
+        <mysql.connector.version>5.1.46</mysql.connector.version>
+        <sql.core.version>1.0-SNAPSHOT</sql.core.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -23,16 +30,18 @@
             <version>3.8.1</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.dtstack.flink</groupId>
             <artifactId>sql.core</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${sql.core.version}</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.46</version>
+            <version>${mysql.connector.version}</version>
         </dependency>
     </dependencies>
 

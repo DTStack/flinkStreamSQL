@@ -80,7 +80,7 @@ public class MongoAllReqRow extends AllReqRow {
     }
 
     @Override
-    protected Row fillData(Row input, Object sideInput) {
+    public Row fillData(Row input, Object sideInput) {
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
@@ -152,7 +152,6 @@ public class MongoAllReqRow extends AllReqRow {
         }
 
         for (Map<String, Object> one : cacheList) {
-            System.out.println(fillData(value, one));
             out.collect(fillData(value, one));
         }
     }

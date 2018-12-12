@@ -11,14 +11,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>sql.side.mysql.core</artifactId>
-    <dependencies>
-        <dependency>
-            <groupId>com.dtstack.flink</groupId>
-            <artifactId>sql.core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
+    <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
+    <name>mysql-side-core</name>
 
 </project>

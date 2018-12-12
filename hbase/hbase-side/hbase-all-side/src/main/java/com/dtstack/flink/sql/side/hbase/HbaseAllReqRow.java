@@ -66,7 +66,7 @@ public class HbaseAllReqRow extends AllReqRow {
     }
 
     @Override
-    protected Row fillData(Row input, Object sideInput) {
+    public Row fillData(Row input, Object sideInput) {
         Map<String, Object> sideInputList = (Map<String, Object>) sideInput;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
