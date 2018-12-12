@@ -67,6 +67,8 @@ public class SideSqlExec {
 
     private SideSQLParser sideSQLParser = new SideSQLParser();
 
+    private Map<String, Table> localTableCache = Maps.newHashMap();
+
     public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
                      Map<String, Table> tableCache)
             throws Exception {
@@ -75,7 +77,7 @@ public class SideSqlExec {
             throw new RuntimeException("need to set localSqlPluginPath");
         }
 
-        Map<String, Table> localTableCache = Maps.newHashMap(tableCache);
+        localTableCache.putAll(tableCache);
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
         Object pollObj = null;
 
@@ -501,7 +503,7 @@ public class SideSqlExec {
             throw new RuntimeException("need to set localSqlPluginPath");
         }
 
-        Map<String, Table> localTableCache = Maps.newHashMap(tableCache);
+        localTableCache.putAll(tableCache);
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(result.getExecSql(), sideTableMap.keySet());
         Object pollObj = null;
 
@@ -540,6 +542,7 @@ public class SideSqlExec {
                             throw new RuntimeException("Fields mismatch");
                         }
                     }
+                    localTableCache.put(result.getTableName(), table);
 
                 }
 
