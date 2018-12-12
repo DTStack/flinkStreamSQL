@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -65,8 +66,11 @@ public class CreateTmpTableParser implements IParser {
                 tableName = matcher.group(1).toUpperCase();
                 selectSql = "select " + matcher.group(2);
             }
-
-            SqlParser sqlParser = SqlParser.create(selectSql);
+            SqlParser.Config config = SqlParser
+                    .configBuilder()
+                    .setLex(Lex.MYSQL)
+                    .build();
+            SqlParser sqlParser = SqlParser.create(selectSql,config);
             SqlNode sqlNode = null;
             try {
                 sqlNode = sqlParser.parseStmt();

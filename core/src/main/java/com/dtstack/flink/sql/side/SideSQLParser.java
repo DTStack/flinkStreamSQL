@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -56,7 +57,11 @@ public class SideSQLParser {
         System.out.println("---exeSql---");
         System.out.println(exeSql);
         Queue<Object> queueInfo = Queues.newLinkedBlockingQueue();
-        SqlParser sqlParser = SqlParser.create(exeSql);
+        SqlParser.Config config = SqlParser
+                .configBuilder()
+                .setLex(Lex.MYSQL)
+                .build();
+        SqlParser sqlParser = SqlParser.create(exeSql,config);
         SqlNode sqlNode = sqlParser.parseStmt();
         parseSql(sqlNode, sideTableSet, queueInfo);
         queueInfo.offer(sqlNode);
