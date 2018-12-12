@@ -14,8 +14,16 @@
     <name>mysql-sink</name>
     <url>http://maven.apache.org</url>
 
-    <dependencies>
+    <properties>
+        <sql.sink.rdb.version>1.0-SNAPSHOT</sql.sink.rdb.version>
+    </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.sink.rdb</artifactId>
+            <version>${sql.sink.rdb.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -66,12 +74,12 @@
                             <tasks>
                                 <copy todir="${basedir}/../../plugins/mysqlsink">
                                     <fileset dir="target/">
-                                        <include name="${project.artifactId}-${project.version}.jar" />
+                                        <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
                                 <move file="${basedir}/../../plugins/mysqlsink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/mysqlsink/${project.name}.jar" />
+                                      tofile="${basedir}/../../plugins/mysqlsink/${project.name}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

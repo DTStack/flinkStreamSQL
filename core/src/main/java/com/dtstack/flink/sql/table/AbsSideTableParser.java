@@ -25,6 +25,8 @@ import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Reason:
@@ -34,6 +36,19 @@ import java.util.Map;
  */
 
 public abstract class AbsSideTableParser extends AbsTableParser {
+
+    private final static String SIDE_SIGN_KEY = "sideSignKey";
+
+    private final static Pattern SIDE_TABLE_SIGN = Pattern.compile("(?i)^PERIOD\\s+FOR\\s+SYSTEM_TIME$");
+
+    static {
+        keyPatternMap.put(SIDE_SIGN_KEY, SIDE_TABLE_SIGN);
+        keyHandlerMap.put(SIDE_SIGN_KEY, AbsSideTableParser::dealSideSign);
+    }
+
+    private static void dealSideSign(Matcher matcher, TableInfo tableInfo){
+        //FIXME SIDE_TABLE_SIGN current just used as a sign for side table; and do nothing
+    }
 
     //Analytical create table attributes ==> Get information cache
     protected void parseCacheProp(SideTableInfo sideTableInfo, Map<String, Object> props){

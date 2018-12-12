@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public abstract class AllReqRow extends RichFlatMapFunction<Row, Row>{
+public abstract class AllReqRow extends RichFlatMapFunction<Row, Row> implements ISideReqRow {
 
     protected SideInfo sideInfo;
 
@@ -47,8 +47,6 @@ public abstract class AllReqRow extends RichFlatMapFunction<Row, Row>{
         this.sideInfo = sideInfo;
 
     }
-
-    protected abstract Row fillData(Row input, Object sideInput);
 
     protected abstract void initCache() throws SQLException;
 

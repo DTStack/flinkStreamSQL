@@ -20,7 +20,13 @@
 
 package com.dtstack.flink.sql.parser;
 
-import org.apache.calcite.sql.*;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.commons.lang3.StringUtils;
@@ -52,7 +58,11 @@ public class InsertSqlParser implements IParser {
 
     @Override
     public void parseSql(String sql, SqlTree sqlTree) {
-        SqlParser sqlParser = SqlParser.create(sql);
+        SqlParser.Config config = SqlParser
+                .configBuilder()
+                .setLex(Lex.MYSQL)
+                .build();
+        SqlParser sqlParser = SqlParser.create(sql,config);
         SqlNode sqlNode = null;
         try {
             sqlNode = sqlParser.parseStmt();

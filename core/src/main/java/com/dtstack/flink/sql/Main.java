@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql;
 
@@ -34,6 +34,7 @@ import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.dtstack.flink.sql.util.FlinkUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.cli.CommandLine;
@@ -91,8 +92,6 @@ public class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
-    private static final String LOCAL_MODE = "local";
-
     private static final int failureRate = 3;
 
     private static final int failureInterval = 6; //min
@@ -141,7 +140,7 @@ public class Main {
         Thread.currentThread().setContextClassLoader(dtClassLoader);
 
         URLClassLoader parentClassloader;
-        if(!LOCAL_MODE.equals(deployMode)){
+        if(!ClusterMode.local.name().equals(deployMode)){
             parentClassloader = (URLClassLoader) threadClassLoader.getParent();
         }else{
             parentClassloader = dtClassLoader;
@@ -187,7 +186,12 @@ public class Main {
                 if (sqlTree.getTmpTableMap().containsKey(tableName)) {
                     CreateTmpTableParser.SqlParserResult tmp = sqlTree.getTmpTableMap().get(tableName);
                     String realSql = DtStringUtil.replaceIgnoreQuota(result.getExecSql(), "`", "");
-                    SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql).parseStmt();
+
+                    org.apache.calcite.sql.parser.SqlParser.Config config = org.apache.calcite.sql.parser.SqlParser
+                            .configBuilder()
+                            .setLex(Lex.MYSQL)
+                            .build();
+                    SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql,config).parseStmt();
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
                     tmp.setExecSql(tmpSql);
                     sideSqlExec.registerTmpTable(tmp, sideTableMap, tableEnv, registerTableCache);
@@ -248,7 +252,7 @@ public class Main {
                 classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
             }
             classLoader.loadClass(funcInfo.getClassName());
-            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName().toUpperCase(),
+            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
                     tableEnv, classLoader);
         }
     }
@@ -313,7 +317,7 @@ public class Main {
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException {
-        StreamExecutionEnvironment env = !LOCAL_MODE.equals(deployMode) ?
+        StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
 

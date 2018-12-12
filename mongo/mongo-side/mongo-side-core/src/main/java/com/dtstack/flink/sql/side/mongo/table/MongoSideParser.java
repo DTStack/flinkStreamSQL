@@ -37,8 +37,6 @@ import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
  */
 public class MongoSideParser extends AbsSideTableParser {
 
-    private final static String SIDE_SIGN_KEY = "sideSignKey";
-
     public static final String ADDRESS_KEY = "address";
 
     public static final String TABLE_NAME_KEY = "tableName";
@@ -48,13 +46,6 @@ public class MongoSideParser extends AbsSideTableParser {
     public static final String PASSWORD_KEY = "password";
 
     public static final String DATABASE_KEY = "database";
-
-    private final static Pattern SIDE_TABLE_SIGN = Pattern.compile("(?i)^PERIOD\\s+FOR\\s+SYSTEM_TIME$");
-
-    static {
-        keyPatternMap.put(SIDE_SIGN_KEY, SIDE_TABLE_SIGN);
-        keyHandlerMap.put(SIDE_SIGN_KEY, MongoSideParser::dealSideSign);
-    }
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
@@ -72,8 +63,5 @@ public class MongoSideParser extends AbsSideTableParser {
         mongoSideTableInfo.setPassword(MathUtil.getString(props.get(PASSWORD_KEY.toLowerCase())));
 
         return mongoSideTableInfo;
-    }
-
-    private static void dealSideSign(Matcher matcher, TableInfo tableInfo) {
     }
 }

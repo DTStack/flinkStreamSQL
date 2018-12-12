@@ -23,17 +23,24 @@ package com.dtstack.flink.sql.source.kafka;
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.util.PluginUtil;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
+import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 /**
  * If eventtime field is specified, the default time field rowtime
@@ -62,6 +69,10 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         Properties props = new Properties();
         props.setProperty("bootstrap.servers", kafka09SourceTableInfo.getBootstrapServers());
         props.setProperty("auto.offset.reset", kafka09SourceTableInfo.getOffsetReset());
+        if (StringUtils.isNotBlank(kafka09SourceTableInfo.getGroupId())){
+            props.setProperty("group.id", kafka09SourceTableInfo.getGroupId());
+        }
+        // only required for Kafka 0.8
         //TODO props.setProperty("zookeeper.connect", kafka09SourceTableInfo.)
 
         TypeInformation[] types = new TypeInformation[kafka09SourceTableInfo.getFields().length];
@@ -70,13 +81,31 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }
 
         TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka09SourceTableInfo.getFields());
-        FlinkKafkaConsumer09<Row> kafkaSrc = new CustomerKafka09Consumer(topicName,
-                new CustomerJsonDeserialization(typeInformation), props);
+        FlinkKafkaConsumer09<Row> kafkaSrc;
+        if (BooleanUtils.isTrue(kafka09SourceTableInfo.getTopicIsPattern())) {
+            kafkaSrc = new CustomerKafka09Consumer(Pattern.compile(topicName),
+                    new CustomerJsonDeserialization(typeInformation), props);
+        } else {
+            kafkaSrc = new CustomerKafka09Consumer(topicName,
+                    new CustomerJsonDeserialization(typeInformation), props);
+        }
 
         //earliest,latest
         if("earliest".equalsIgnoreCase(kafka09SourceTableInfo.getOffsetReset())){
             kafkaSrc.setStartFromEarliest();
-        }else{
+        }else if(DtStringUtil.isJosn(kafka09SourceTableInfo.getOffsetReset())){// {"0":12312,"1":12321,"2":12312}
+            try {
+                Properties properties = PluginUtil.jsonStrToObject(kafka09SourceTableInfo.getOffsetReset(), Properties.class);
+                Map<String, Object> offsetMap = PluginUtil.ObjectToMap(properties);
+                Map<KafkaTopicPartition, Long> specificStartupOffsets = new HashMap<>();
+                for(Map.Entry<String,Object> entry:offsetMap.entrySet()){
+                    specificStartupOffsets.put(new KafkaTopicPartition(topicName,Integer.valueOf(entry.getKey())),Long.valueOf(entry.getValue().toString()));
+                }
+                kafkaSrc.setStartFromSpecificOffsets(specificStartupOffsets);
+            } catch (Exception e) {
+                throw new RuntimeException("not support offsetReset type:" + kafka09SourceTableInfo.getOffsetReset());
+            }
+        }else {
             kafkaSrc.setStartFromLatest();
         }
 
