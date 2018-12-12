@@ -69,7 +69,9 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 		Properties props = new Properties();
 		props.setProperty("bootstrap.servers", kafka011SourceTableInfo.getBootstrapServers());
 		props.setProperty("auto.offset.reset", kafka011SourceTableInfo.getOffsetReset());
-		props.setProperty("group.id", kafka011SourceTableInfo.getGroupId());
+		if (StringUtils.isNotBlank(kafka011SourceTableInfo.getGroupId())){
+			props.setProperty("group.id", kafka011SourceTableInfo.getGroupId());
+		}
 		// only required for Kafka 0.8
 		//TODO props.setProperty("zookeeper.connect", kafka09SourceTableInfo.)
 
