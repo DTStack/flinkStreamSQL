@@ -162,8 +162,6 @@ public class SqlserverSink extends RdbSink implements IStreamSinkGener<RdbSink> 
         }
         return false;
     }
-
-
     public String quoteColumn(String column) {
         return getStartQuote() + column + getEndQuote();
     }

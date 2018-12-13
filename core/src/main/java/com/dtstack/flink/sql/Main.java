@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql;
 
@@ -186,6 +186,7 @@ public class Main {
                 if (sqlTree.getTmpTableMap().containsKey(tableName)) {
                     CreateTmpTableParser.SqlParserResult tmp = sqlTree.getTmpTableMap().get(tableName);
                     String realSql = DtStringUtil.replaceIgnoreQuota(result.getExecSql(), "`", "");
+
                     org.apache.calcite.sql.parser.SqlParser.Config config = org.apache.calcite.sql.parser.SqlParser
                             .configBuilder()
                             .setLex(Lex.MYSQL)
