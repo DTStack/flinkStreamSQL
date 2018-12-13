@@ -24,6 +24,7 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +46,7 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
         if (!getRealIndexes().isEmpty()) {
             for (List<String> value : getRealIndexes().values()) {
                 for (String fieldName : getDbSink().getFieldNames()) {
-                    if (value.contains(fieldName)) {
+                    if (containsIgnoreCase(value, fieldName)) {
                         return true;
                     }
                 }
@@ -99,5 +100,12 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
         }
     }
 
-
+    public boolean containsIgnoreCase(List<String> l, String s) {
+        Iterator<String> it = l.iterator();
+        while (it.hasNext()) {
+            if (it.next().equalsIgnoreCase(s))
+                return true;
+        }
+        return false;
+    }
 }
