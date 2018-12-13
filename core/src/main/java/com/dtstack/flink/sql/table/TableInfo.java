@@ -37,6 +37,8 @@ public abstract class TableInfo {
 
     public static final String SOURCE_DATA_TYPE = "sourcedatatype";
 
+    public static final String SINK_DATA_TYPE = "sinkdatatype";
+
     public static final String FIELD_DELINITER = "fielddelimiter";
 
     public static final String LENGTH_CHECK_POLICY = "lengthcheckpolicy";
@@ -61,6 +63,8 @@ public abstract class TableInfo {
     private Integer parallelism;
 
     private String sourceDataType = "json";
+
+    private String sinkDataType = "json";
 
     private String fieldDelimiter;
 
@@ -127,6 +131,10 @@ public abstract class TableInfo {
     public void setSourceDataType(String sourceDataType) {
         this.sourceDataType = sourceDataType;
     }
+
+    public String getSinkDataType() { return sinkDataType; }
+
+    public void setSinkDataType(String sinkDataType) { this.sinkDataType = sinkDataType; }
 
     public String getFieldDelimiter() {
         return fieldDelimiter;

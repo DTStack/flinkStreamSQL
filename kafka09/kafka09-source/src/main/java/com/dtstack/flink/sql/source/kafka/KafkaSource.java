@@ -97,8 +97,8 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         }else{
             kafkaSrc.setStartFromLatest();
         }
-
-        DataStreamSource kafkaSource = env.addSource(kafkaSrc, typeInformation);
+        String sourceOperatorName = SOURCE_OPERATOR_NAME_TPL.replace("${topic}", topicName).replace("${table}", sourceTableInfo.getName());
+        DataStreamSource kafkaSource = env.addSource(kafkaSrc, sourceOperatorName, typeInformation);
         Integer parallelism = kafka09SourceTableInfo.getParallelism();
         if(parallelism != null){
             kafkaSource.setParallelism(parallelism);

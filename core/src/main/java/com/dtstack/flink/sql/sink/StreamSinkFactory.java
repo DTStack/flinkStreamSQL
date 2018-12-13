@@ -53,7 +53,8 @@ public class StreamSinkFactory {
         String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), sqlRootDir);
 
         PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
-        String className = PluginUtil.getSqlParserClassName(pluginType, CURR_TYPE);
+        String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
+        String className = PluginUtil.getSqlParserClassName(typeNoVersion, CURR_TYPE);
         Class<?> targetParser = dtClassLoader.loadClass(className);
 
         if(!AbsTableParser.class.isAssignableFrom(targetParser)){
@@ -76,8 +77,8 @@ public class StreamSinkFactory {
         String pluginJarDirPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), localSqlRootDir);
 
         PluginUtil.addPluginJar(pluginJarDirPath, dtClassLoader);
-
-        String className = PluginUtil.getGenerClassName(pluginType, CURR_TYPE);
+        String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
+        String className = PluginUtil.getGenerClassName(typeNoVersion, CURR_TYPE);
         Class<?> sinkClass = dtClassLoader.loadClass(className);
 
         if(!IStreamSinkGener.class.isAssignableFrom(sinkClass)){

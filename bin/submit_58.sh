@@ -18,7 +18,7 @@
 #
 
 set -e
-export JAVA_HOME=/root/software/jdk1.8.0_66
+export JAVA_HOME=/opt/soft/jdk/jdk1.8.0_66
 export SQL_HOME="$(cd "`dirname "$0"`"/..; pwd)"
 
 # Find the java binary
@@ -40,6 +40,8 @@ echo ${PARAM}
 PARAM=${PARAM//time_characteristic/time.characteristic}
 PARAM=${PARAM//sql_checkpoint_interval/sql.checkpoint.interval}
 PARAM=${PARAM//sql_checkpoint_mode/sql.checkpoint.mode}
+PARAM=${PARAM//sql_checkpoint_cleanup_mode/sql.checkpoint.cleanup.mode}
+PARAM=${PARAM//parallelism/sql.env.parallelism}
 echo ${PARAM} 
 #export HADOOP_USER_NAME
 if [ "$1" == "-hadoop_user_name" ];then

@@ -389,6 +389,7 @@ public class SideSqlExec {
                 || selectNode.getKind() == BETWEEN
                 || selectNode.getKind() == IS_NULL
                 || selectNode.getKind() == IS_NOT_NULL
+                || selectNode.getKind() == ROW_NUMBER
                 ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){

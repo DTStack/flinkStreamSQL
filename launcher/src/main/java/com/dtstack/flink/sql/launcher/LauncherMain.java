@@ -101,6 +101,7 @@ public class   LauncherMain {
                 result.put("resultStatus","Success");
             }catch (Exception e){
                 result.put("resultStatus","Failed");
+                e.printStackTrace();
                 result.put("detail",e.getCause());
             }finally {
                 System.out.println(result.toString());

@@ -14,6 +14,7 @@
 
     <modules>
         <module>kafka10-source</module>
+        <module>kafka10-sink</module>
     </modules>
 
     <dependencies>

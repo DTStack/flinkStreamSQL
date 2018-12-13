@@ -70,6 +70,9 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     @Override
     public Row deserialize(byte[] message) throws IOException {
         try {
+            numInRecord.inc();
+            numInBytes.inc(message.length);
+
             JsonNode root = objectMapper.readTree(message);
             Row row = new Row(fieldNames.length);
             for (int i = 0; i < fieldNames.length; i++) {
@@ -89,9 +92,13 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
                 }
             }
 
+            numInResolveRecord.inc();
             return row;
         } catch (Throwable t) {
-            throw new IOException("Failed to deserialize JSON object.", t);
+            logger.error(t.getMessage());
+            dirtyDataCounter.inc();
+            //return new Row(fieldNames.length);
+            return null;
         }
     }
 

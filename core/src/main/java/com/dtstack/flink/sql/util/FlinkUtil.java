@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.util;
 
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
 import org.apache.flink.runtime.state.filesystem.FsStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.TimeCharacteristic;
@@ -116,7 +117,9 @@ public class FlinkUtil {
         String backendPath = properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_DATAURI_KEY);
         if(backendPath != null){
             //set checkpoint save path on file system, 根据实际的需求设定文件路径,hdfs://, file://
-            env.setStateBackend(new FsStateBackend(backendPath));
+            //env.setStateBackend(new FsStateBackend(backendPath));
+            env.setStateBackend(new RocksDBStateBackend(backendPath));
+
         }
 
     }
