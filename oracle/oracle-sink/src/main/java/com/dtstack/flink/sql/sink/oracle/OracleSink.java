@@ -111,7 +111,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
             if (keyCols == null || keyCols.size() == 0 || containsIgnoreCase(keyCols,col)) {
                 continue;
             }
-            if (fullColumn == null || containsIgnoreCase(column,col)) {
+            if (fullColumn == null ||containsIgnoreCase(column,col)) {
                 list.add(prefixLeft + col + "=" + prefixRight + col);
             } else {
                 list.add(prefixLeft + col + "=null");
