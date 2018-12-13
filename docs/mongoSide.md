@@ -7,11 +7,12 @@
      PRIMARY KEY(keyInfo),
      PERIOD FOR SYSTEM_TIME
   )WITH(
-     type='mysql',
-     url='jdbcUrl',
+    type ='mongo',
+    address ='ip:port[,ip:port]',
      userName='dbUserName',
      password='dbPwd',
      tableName='tableName',
+     database='database',
      cache ='LRU',
      cacheSize ='10000',
      cacheTTLMs ='60000',
@@ -21,7 +22,7 @@
 ```
 
 # 2.支持版本
- mysql-5.6.35
+ mongo-3.8.2
  
 ## 3.表结构定义
   
@@ -37,12 +38,12 @@
 
   |参数名称|含义|是否必填|默认值|
   |----|---|---|----|
-  | type | 表明维表的类型[hbase\|mysql] |是||
-  | url | 连接mysql数据库 jdbcUrl |是||
-  | userName | mysql连接用户名 |是||
-  | password | mysql连接密码|是||
-  | tableName | mysql表名称|是||
-  | tableName | mysql 的表名称|是||
+  | type |表明 输出表类型 mongo|是||
+  | address | 连接mongo数据库 jdbcUrl |是||
+  | userName | mongo连接用户名|否||
+  | password | mongo连接密码|否||
+  | tableName | mongo表名称|是||
+  | database  | mongo表名称|是||
   | cache | 维表缓存策略(NONE/LRU)|否|NONE|
   | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
   
@@ -57,19 +58,16 @@
 ## 5.样例
 ```
 create table sideTable(
-    channel varchar,
-    xccount int,
+    CHANNEL varchar,
+    XCCOUNT int,
     PRIMARY KEY(channel),
     PERIOD FOR SYSTEM_TIME
  )WITH(
-    type='mysql',
-    url='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',
-    userName='dtstack',
-    password='abc123',
-    tableName='sidetest',
+    type ='mongo',
+    address ='172.21.32.1:27017,172.21.32.1:27017',
+    database ='test',
+    tableName ='sidetest',
     cache ='LRU',
-    cacheSize ='10000',
-    cacheTTLMs ='60000',
     parallelism ='1',
     partitionedJoin='false'
  );
