@@ -99,11 +99,13 @@ CREATE TABLE MyTable(
     fielddelimiter ='\|',
     lengthcheckpolicy = 'PAD'
  );
+ ```
 # 三、text格式数据源UDF自定义拆分
 Kafka源表数据解析流程：Kafka Source Table -> UDTF ->Realtime Compute -> SINK。从Kakfa读入的数据，都是VARBINARY（二进制）格式，对读入的每条数据，都需要用UDTF将其解析成格式化数据。
   与其他格式不同，本格式定义DDL必须与以下SQL一摸一样，表中的五个字段顺序务必保持一致：
   
 ## 1. 定义源表，注意：kafka源表DDL字段必须与以下例子一模一样。WITH中参数可改。
+```
 create table kafka_stream(
      _topic STRING,
      _messageKey STRING,
@@ -119,7 +121,7 @@ create table kafka_stream(
      parallelism ='1',
      sourcedatatype='text' 
  ）
- 
+```
 ## 2.参数：
  
 |参数名称|含义|是否必填|默认值|
@@ -139,6 +141,7 @@ create table kafka_stream(
 2018-11-11 00:00:00|1|Anna|female整个计算流程为：Kafka SOURCE->UDTF->Realtime Compute->RDS SINK（单一分隔符可直接使用类csv格式模板，自定义适用于更复杂的数据类型，本说明只做参考）
    
 **SQL**
+```
 -- 定义解析Kakfa message的UDTF
  CREATE FUNCTION kafkapaser AS 'com.XXXX.kafkaUDTF';
  CREATE FUNCTION kafkaUDF AS 'com.XXXX.kafkaUDF';
@@ -207,8 +210,9 @@ create table kafka_stream(
    SELECT 
        cnt,sex
    from view2;
-   
+ ```  
 **UDF&UDTF**
+```
 package com.XXXX;
  import com.XXXX.fastjson.JSONObject;
  import org.apache.flink.table.functions.TableFunction;
@@ -273,3 +277,4 @@ package com.XXXX;
      public void close() {                                        
          }                                                        
  }
+ ```
