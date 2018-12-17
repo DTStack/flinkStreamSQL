@@ -13,8 +13,12 @@
     <module>kafka11</module>
     <module>mysql</module>
     <module>hbase</module>
+    <!--
     <module>elasticsearch5</module>
+    <module>mongo</module>
+    -->
     <module>redis5</module>
+    <module>wredis5</module>
     <module>launcher</module>
   </modules>
   <packaging>pom</packaging>

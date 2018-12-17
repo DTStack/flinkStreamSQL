@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wredis>
+
+    <!--online
+    <config>config.wredis.service.58dns.org</config>-->
+
+    <!--test-->
+    <config>10.48.160.2</config>
+
+    <!--offline
+    <config>192.168.185.45</config>-->
+
+    <!--app下的name属性，对应示例代码中的appName值
+    这样，程序就会根据用户指定的appName找到对应的key，然后进行初始化
+    解决了线下环境和线上环境切换需要修改代码的问题
+    如此，环境切换，只需修改key值即可-->
+    <app key="XXX" name="wreidsDemoName">
+        <connectionTimeout>3000</connectionTimeout>
+        <soTimeout>3000</soTimeout>
+        <maxRedirections>3</maxRedirections>
+        <isReadWriteSeparate>false</isReadWriteSeparate>
+        <clientName></clientName>
+        <poolConfig>
+            <maxTotal>256</maxTotal>
+            <minIdle>32</minIdle>
+            <blockWhenExhausted>true</blockWhenExhausted>
+            <maxWaitMillis>1000</maxWaitMillis>
+            <minEvictableIdleTimeMillis>30000</minEvictableIdleTimeMillis>
+            <numTestsPerEvictionRun>30</numTestsPerEvictionRun>
+            <testWhileIdle>true</testWhileIdle>
+            <timeBetweenEvictionRunsMillis>600000</timeBetweenEvictionRunsMillis>
+        </poolConfig>
+    </app>
+    <!--&lt;!&ndash;若有多个appKey,则写多个节点&ndash;&gt;-->
+    <!--<app key="xxx2">-->
+        <!--<connectionTimeout>1000</connectionTimeout>-->
+        <!--<soTimeout>1000</soTimeout>-->
+        <!--<maxRedirections>3</maxRedirections>-->
+        <!--<isReadWriteSeparate>false</isReadWriteSeparate>-->
+        <!--<poolConfig>-->
+            <!--<maxTotal>512</maxTotal>-->
+            <!--<maxIdle></maxIdle>-->
+            <!--<minIdle></minIdle>-->
+            <!--<blockWhenExhausted></blockWhenExhausted>-->
+            <!--<evictionPolicyClassName></evictionPolicyClassName>-->
+            <!--<fairness></fairness>-->
+            <!--<jmxEnabled></jmxEnabled>-->
+            <!--<jmxNameBase></jmxNameBase>-->
+            <!--<jmxNamePrefix></jmxNamePrefix>-->
+            <!--<lifo></lifo>-->
+            <!--<maxWaitMillis>1000</maxWaitMillis>-->
+            <!--<minEvictableIdleTimeMillis></minEvictableIdleTimeMillis>-->
+            <!--<numTestsPerEvictionRun></numTestsPerEvictionRun>-->
+            <!--<softMinEvictableIdleTimeMillis></softMinEvictableIdleTimeMillis>-->
+            <!--<testOnBorrow></testOnBorrow>-->
+            <!--<testOnCreate></testOnCreate>-->
+            <!--<testOnReturn></testOnReturn>-->
+            <!--<testWhileIdle></testWhileIdle>-->
+            <!--<timeBetweenEvictionRunsMillis></timeBetweenEvictionRunsMillis>-->
+        <!--</poolConfig>-->
+    <!--</app>-->
+</wredis>
