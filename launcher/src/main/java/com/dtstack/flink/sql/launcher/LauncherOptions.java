@@ -53,6 +53,8 @@ public class LauncherOptions {
 
     private String queue;
 
+    private int defaultParallelism=1;
+
     public String getMode() {
         return mode;
     }
@@ -155,5 +157,13 @@ public class LauncherOptions {
 
     public void setQueue(String queue) {
         this.queue = queue;
+    }
+
+    public int getDefaultParallelism() {
+        return defaultParallelism;
+    }
+
+    public void setDefaultParallelism(int defaultParallelism) {
+        this.defaultParallelism = defaultParallelism;
     }
 }
