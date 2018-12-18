@@ -111,6 +111,8 @@ public class Main {
 
         options.addOption("savePointPath", true, "Savepoint restore path");
         options.addOption("allowNonRestoredState", true, "Flag indicating whether non restored state is allowed if the savepoint");
+        options.addOption("defaultParallelism",false,"defaultParallelism");
+
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cl = parser.parse(options, args);
