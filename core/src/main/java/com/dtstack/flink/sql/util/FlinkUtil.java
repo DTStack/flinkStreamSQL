@@ -32,6 +32,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.BatchTableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.functions.AggregateFunction;
 import org.apache.flink.table.functions.ScalarFunction;
 import org.apache.flink.table.functions.TableFunction;
 import org.slf4j.Logger;
@@ -162,6 +163,8 @@ public class FlinkUtil {
             registerScalaUDF(classPath, funcName, tableEnv, classLoader);
         }else if("TABLE".equalsIgnoreCase(type)){
             registerTableUDF(classPath, funcName, tableEnv, classLoader);
+        }else if("AGGREGATE".equalsIgnoreCase(type)){
+            registerAggregateUDF(classPath, funcName, tableEnv, classLoader);
         }else{
             throw new RuntimeException("not support of UDF which is not in (TABLE, SCALA)");
         }
@@ -215,6 +218,33 @@ public class FlinkUtil {
         }
     }
 
+    /**
+     * 注册自定义TABLEFFUNC方法到env上
+     * TODO 对User-Defined Aggregate Functions的支持
+     * @param classPath
+     * @param funcName
+     * @param tableEnv
+     */
+    public static void registerAggregateUDF(String classPath, String funcName, TableEnvironment tableEnv,
+                                        ClassLoader classLoader){
+        try {
+            AggregateFunction udfFunc = Class.forName(classPath, false, classLoader)
+                    .asSubclass(AggregateFunction.class).newInstance();
+
+            if(tableEnv instanceof StreamTableEnvironment){
+                ((StreamTableEnvironment)tableEnv).registerFunction(funcName, udfFunc);
+            }else if(tableEnv instanceof BatchTableEnvironment){
+                ((BatchTableEnvironment)tableEnv).registerFunction(funcName, udfFunc);
+            }else{
+                throw new RuntimeException("no support tableEnvironment class for " + tableEnv.getClass().getName());
+            }
+
+            logger.info("register aggregate function:{} success.", funcName);
+        }catch (Exception e){
+            logger.error("", e);
+            throw new RuntimeException("register Table UDF exception:" + e.getMessage());
+        }
+    }
 
     /**
      *

@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 
 public class CreateFuncParser implements IParser {
 
-    private static final String funcPatternStr = "(?i)\\s*create\\s+(scala|table)\\s+function\\s+(\\S+)\\s+WITH\\s+(\\S+)";
+    private static final String funcPatternStr = "(?i)\\s*create\\s+(scala|table|aggregate)\\s+function\\s+(\\S+)\\s+WITH\\s+(\\S+)";
 
     private static final Pattern funcPattern = Pattern.compile(funcPatternStr);
 
