@@ -14,9 +14,17 @@
 
     <modules>
         <module>kafka11-source</module>
+        <module>kafka11-sink</module>
     </modules>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-kafka-0.11_2.11</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -31,6 +39,7 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+
 
 
 </project>

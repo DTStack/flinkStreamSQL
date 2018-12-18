@@ -41,12 +41,24 @@ public class KafkaSourceParser extends AbsSourceParser {
         kafka10SourceTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, kafka10SourceTableInfo);
         kafka10SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
-        kafka10SourceTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
-        kafka10SourceTableInfo.setGroupId(MathUtil.getString(props.get(KafkaSourceTableInfo.GROUPID_KEY.toLowerCase())));
-        kafka10SourceTableInfo.setTopic(MathUtil.getString(props.get(KafkaSourceTableInfo.TOPIC_KEY.toLowerCase())));
-        kafka10SourceTableInfo.setOffsetReset(MathUtil.getString(props.get(KafkaSourceTableInfo.OFFSETRESET_KEY.toLowerCase())));
-        kafka10SourceTableInfo.setTopicIsPattern(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.TOPICISPATTERN_KEY.toLowerCase())));
-        kafka10SourceTableInfo.check();
+
+        kafka10SourceTableInfo.setPatternTopic(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.PATTERNTOPIC_KEY.toLowerCase())));
+
+
+        if (props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE) != null) {
+            kafka10SourceTableInfo.setSourceDataType(props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE).toString());
+        }
+        if (props.get(KafkaSourceTableInfo.FIELD_DELINITER) != null) {
+            kafka10SourceTableInfo.setFieldDelimiter(props.get(KafkaSourceTableInfo.FIELD_DELINITER).toString());
+        }
+        if (props.get(KafkaSourceTableInfo.LENGTH_CHECK_POLICY) != null) {
+            kafka10SourceTableInfo.setLengthCheckPolicy(props.get(KafkaSourceTableInfo.LENGTH_CHECK_POLICY).toString());
+        }
+        for (String key:props.keySet()) {
+            if (!key.isEmpty() && key.startsWith("kafka.")) {
+                kafka10SourceTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
+            }
+        }
         return kafka10SourceTableInfo;
     }
 }

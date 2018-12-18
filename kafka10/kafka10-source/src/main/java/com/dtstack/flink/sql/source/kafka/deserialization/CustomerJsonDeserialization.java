@@ -18,7 +18,7 @@
 
  
 
-package com.dtstack.flink.sql.source.kafka;
+package com.dtstack.flink.sql.source.kafka.deserialization;
 
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
@@ -123,6 +123,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             return row;
         } catch (Throwable t) {
             //add metric of dirty data
+            LOG.error(t.getMessage());
             dirtyDataCounter.inc();
             return null;
         }

@@ -13,17 +13,6 @@
     <name>kafka10-source</name>
     <url>http://maven.apache.org</url>
 
-    <dependencies>
-
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-connector-kafka-0.10_2.11</artifactId>
-            <version>${flink.version}</version>
-        </dependency>
-
-    </dependencies>
-
-
     <build>
         <plugins>
             <plugin>
