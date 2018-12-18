@@ -24,6 +24,7 @@
         <module>oracle</module>
         <module>cassandra</module>
         <module>kafka08</module>
+        <module>serversocket</module>
     </modules>
 
 
