@@ -38,11 +38,12 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 
 /**
- * Reason:
- * Date: 2018/10/19
+ * Date: 2018/12/18
  * Company: www.dtstack.com
+ * @author DocLi
  *
- * @author xuchao
+ * @modifyer maqi
+ *
  */
 
 public class CustomerCsvConsumer extends FlinkKafkaConsumer09<Row> {
@@ -60,8 +61,6 @@ public class CustomerCsvConsumer extends FlinkKafkaConsumer09<Row> {
         super(subscriptionPattern, valueDeserializer, props);
         this.customerCsvDeserialization = (CustomerCsvDeserialization) valueDeserializer;
     }
-
-
 
 
     @Override

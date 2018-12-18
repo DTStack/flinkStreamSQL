@@ -41,6 +41,16 @@ import org.apache.flink.types.Row;
 import java.util.Optional;
 import java.util.Properties;
 
+/**
+ * kafka result table
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
+ *
+ * @author DocLi
+ *
+ * @modifyer maqi
+ *
+ */
 public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<KafkaSink> {
 
     protected String[] fieldNames;
@@ -87,9 +97,9 @@ public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<
         this.schema = schemaBuilder.build();
 
         //this.serializationSchema = Optional.of(JsonRowSerializationSchema.class);
-        if ("json".equalsIgnoreCase(kafka011SinkTableInfo.getSourceDataType())) {
+        if ("json".equalsIgnoreCase(kafka011SinkTableInfo.getSinkDataType())) {
             this.serializationSchema = new JsonRowSerializationSchema(getOutputType());
-        } else if ("csv".equalsIgnoreCase(kafka011SinkTableInfo.getSourceDataType())){
+        } else if ("csv".equalsIgnoreCase(kafka011SinkTableInfo.getSinkDataType())){
             this.serializationSchema = new TypeInformationSerializationSchema(TypeInformation.of(Row.class),
                     new CustomerCsvSerialization(kafka011SinkTableInfo.getFieldDelimiter(),fieldTypes));
         }

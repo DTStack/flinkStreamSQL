@@ -114,7 +114,6 @@ public class KafkaSource implements IStreamSourceGener<Table> {
             } else {
                 kafkaSrc = new CustomerCommonConsumer(Pattern.compile(topicName), new CustomerCommonDeserialization(), props);
             }
-
         }
 
         //earliest,latest

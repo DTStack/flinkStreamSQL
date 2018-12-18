@@ -44,12 +44,13 @@ import java.util.Set;
 import static com.dtstack.flink.sql.metric.MetricConstant.*;
 
 /**
- * json string parsing custom
- * Date: 2017/5/28
+ * Date: 2018/12/18
  * Company: www.dtstack.com
  * @author DocLi
+ *
+ * @modifyer maqi
+ *
  */
-
 public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerCsvDeserialization.class);

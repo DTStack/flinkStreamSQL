@@ -23,7 +23,15 @@ import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
-
+/**
+ *
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
+ * @author DocLi
+ *
+ * @modifyer maqi
+ *
+ */
 public class KafkaSinkParser extends AbsTableParser {
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
@@ -32,7 +40,7 @@ public class KafkaSinkParser extends AbsTableParser {
         parseFieldsInfo(fieldsInfo, kafka11SinkTableInfo);
         kafka11SinkTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase())));
         if (props.get(KafkaSinkTableInfo.SINK_DATA_TYPE) != null) {
-            kafka11SinkTableInfo.setSourceDataType(props.get(KafkaSinkTableInfo.SINK_DATA_TYPE).toString());
+            kafka11SinkTableInfo.setSinkDataType(props.get(KafkaSinkTableInfo.SINK_DATA_TYPE).toString());
         }
         if (props.get(KafkaSinkTableInfo.FIELD_DELINITER) != null) {
             kafka11SinkTableInfo.setFieldDelimiter(props.get(KafkaSinkTableInfo.FIELD_DELINITER).toString());

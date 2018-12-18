@@ -14,7 +14,16 @@ import org.apache.flink.types.StringValue;
 import java.io.IOException;
 
 import static org.apache.flink.api.java.typeutils.runtime.NullMaskUtils.writeNullMask;
-
+/**
+ *
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
+ *
+ * @author DocLi
+ *
+ * @modifyer maqi
+ *
+ */
 @Internal
 public final class CustomerCsvSerialization extends TypeSerializerSingleton<Row> {
 

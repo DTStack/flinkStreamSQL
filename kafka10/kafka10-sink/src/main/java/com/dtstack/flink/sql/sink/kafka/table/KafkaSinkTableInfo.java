@@ -24,10 +24,19 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
+/**
+ *
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
+ *
+ * @author DocLi
+ *
+ * @modifyer maqi
+ *
+ */
 public class KafkaSinkTableInfo extends TargetTableInfo {
     //version
-    private static final String CURR_TYPE = "kafka11";
+    private static final String CURR_TYPE = "kafka10";
 
     public KafkaSinkTableInfo(){
         super.setType(CURR_TYPE);

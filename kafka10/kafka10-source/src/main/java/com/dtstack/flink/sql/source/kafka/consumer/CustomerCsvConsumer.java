@@ -38,11 +38,14 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 
 /**
- * Reason:
- * Date: 2018/10/19
+ *
+ * Date: 2018/12/18
  * Company: www.dtstack.com
  *
- * @author xuchao
+ * @author DocLi
+ *
+ * @modifyer maqi
+ *
  */
 
 public class CustomerCsvConsumer extends FlinkKafkaConsumer010<Row> {

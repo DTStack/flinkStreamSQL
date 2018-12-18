@@ -25,7 +25,14 @@ import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
-
+/**
+ *
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
+ * @author xuchao
+ *
+ * @modifyer DocLi
+ */
 
 public class KafkaSourceParser extends AbsSourceParser {
 
