@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
+ 
 
-
-package com.dtstack.flink.sql.source.kafka;
+package com.dtstack.flink.sql.source.kafka.deserialization;
 
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.metrics.MetricGroup;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
@@ -39,23 +39,22 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Iterator;
 import java.util.Set;
 
 import static com.dtstack.flink.sql.metric.MetricConstant.*;
 
 /**
  * json string parsing custom
- * Date: 2018/09/18
+ * Date: 2017/5/28
  * Company: www.dtstack.com
- * @author sishu.yss
+ * @author DocLi
  */
 
-public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
+public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CustomerCsvDeserialization.class);
 
-    private static final long serialVersionUID = 2385115520960444192L;
+    private static final long serialVersionUID = -2706012724306826506L;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -75,17 +74,24 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private boolean firstMsg = true;
 
-    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo){
+    private String fieldDelimiter;
+
+    private String lengthCheckPolicy;
+
+    public CustomerCsvDeserialization(TypeInformation<Row> typeInfo, String fieldDelimiter, String lengthCheckPolicy){
         this.typeInfo = typeInfo;
 
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
 
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
+
+        this.fieldDelimiter = fieldDelimiter;
+
+        this.lengthCheckPolicy = lengthCheckPolicy;
     }
 
     @Override
     public Row deserialize(byte[] message) throws IOException {
-
         if(firstMsg){
             try {
                 registerPtMetric(fetcher);
@@ -99,23 +105,24 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         try {
             numInRecord.inc();
             numInBytes.inc(message.length);
+            String[] fieldsList = null;
+            if (message != null && message.length > 0){
+                fieldsList = new String(message).split(fieldDelimiter);
+            }
+            if (fieldsList == null || fieldsList.length != fieldNames.length){//exception condition
+                if (lengthCheckPolicy.equalsIgnoreCase("SKIP")) {
+                    return null;
+                }else if (lengthCheckPolicy.equalsIgnoreCase("EXCEPTION")) {
+                    throw new RuntimeException("lengthCheckPolicy Error,message have "+fieldsList.length+" fields,sql have "+fieldNames.length);
+                }
+            }
 
-            JsonNode root = objectMapper.readTree(message);
             Row row = new Row(fieldNames.length);
             for (int i = 0; i < fieldNames.length; i++) {
-                JsonNode node = getIgnoreCase(root, fieldNames[i]);
-
-                if (node == null) {
-                    if (failOnMissingField) {
-                        throw new IllegalStateException("Failed to find field with name '"
-                                + fieldNames[i] + "'.");
-                    } else {
-                        row.setField(i, null);
-                    }
+                if (i<fieldsList.length) {
+                    row.setField(i, DtStringUtil.parse(fieldsList[i],fieldTypes[i].getTypeClass()));
                 } else {
-                    // Read the value as specified type
-                    Object value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
-                    row.setField(i, value);
+                    break;
                 }
             }
 
@@ -124,32 +131,13 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         } catch (Throwable t) {
             //add metric of dirty data
             dirtyDataCounter.inc();
-            return null;
+            throw new RuntimeException(t);
         }
-    }
-
-    public void setFailOnMissingField(boolean failOnMissingField) {
-        this.failOnMissingField = failOnMissingField;
-    }
-
-    public JsonNode getIgnoreCase(JsonNode jsonNode, String key) {
-
-        Iterator<String> iter = jsonNode.fieldNames();
-        while (iter.hasNext()) {
-            String key1 = iter.next();
-            if (key1.equalsIgnoreCase(key)) {
-                return jsonNode.get(key1);
-            }
-        }
-
-        return null;
-
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
         this.fetcher = fetcher;
     }
-
 
     protected void registerPtMetric(AbstractFetcher<Row, ?> fetcher) throws Exception {
 
@@ -186,7 +174,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     }
 
-    private static String partitionLagMetricName(TopicPartition tp) {
-        return tp + ".records-lag";
+    public void setFailOnMissingField(boolean failOnMissingField) {
+        this.failOnMissingField = failOnMissingField;
     }
+
 }

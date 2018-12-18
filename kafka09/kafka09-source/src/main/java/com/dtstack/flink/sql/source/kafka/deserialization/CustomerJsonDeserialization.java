@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
+ 
 
-
-package com.dtstack.flink.sql.source.kafka;
+package com.dtstack.flink.sql.source.kafka.deserialization;
 
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
@@ -42,9 +42,7 @@ import java.lang.reflect.Field;
 import java.util.Iterator;
 import java.util.Set;
 
-import static com.dtstack.flink.sql.metric.MetricConstant.DT_PARTITION_GROUP;
-import static com.dtstack.flink.sql.metric.MetricConstant.DT_TOPIC_GROUP;
-import static com.dtstack.flink.sql.metric.MetricConstant.DT_TOPIC_PARTITION_LAG_GAUGE;
+import static com.dtstack.flink.sql.metric.MetricConstant.*;
 
 /**
  * json string parsing custom
@@ -125,6 +123,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             return row;
         } catch (Throwable t) {
             //add metric of dirty data
+            LOG.error(t.getMessage());
             dirtyDataCounter.inc();
             return null;
         }

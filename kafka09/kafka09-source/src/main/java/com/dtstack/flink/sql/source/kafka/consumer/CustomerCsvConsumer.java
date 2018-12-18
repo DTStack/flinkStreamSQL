@@ -16,24 +16,23 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.source.kafka;
+package com.dtstack.flink.sql.source.kafka.consumer;
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
+import com.dtstack.flink.sql.source.kafka.deserialization.CustomerCsvDeserialization;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
 
-
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
@@ -46,33 +45,36 @@ import java.util.regex.Pattern;
  * @author xuchao
  */
 
-public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
+public class CustomerCsvConsumer extends FlinkKafkaConsumer09<Row> {
 
     private static final long serialVersionUID = -2265366268827807739L;
 
-    private CustomerJsonDeserialization customerJsonDeserialization;
+    private CustomerCsvDeserialization customerCsvDeserialization;
 
-    public CustomerKafka011Consumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
+    public CustomerCsvConsumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
         super(Arrays.asList(topic.split(",")), valueDeserializer, props);
-        this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
+        this.customerCsvDeserialization = (CustomerCsvDeserialization) valueDeserializer;
     }
 
-    public CustomerKafka011Consumer(Pattern subscriptionPattern, AbsDeserialization<Row> valueDeserializer, Properties props) {
+    public CustomerCsvConsumer(Pattern subscriptionPattern, AbsDeserialization<Row> valueDeserializer, Properties props) {
         super(subscriptionPattern, valueDeserializer, props);
-        this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
+        this.customerCsvDeserialization = (CustomerCsvDeserialization) valueDeserializer;
     }
+
+
+
 
     @Override
-    public void run(SourceContext<Row> sourceContext) throws Exception {
-        customerJsonDeserialization.setRuntimeContext(getRuntimeContext());
-        customerJsonDeserialization.initMetric();
+    public void run(SourceFunction.SourceContext<Row> sourceContext) throws Exception {
+        customerCsvDeserialization.setRuntimeContext(getRuntimeContext());
+        customerCsvDeserialization.initMetric();
         super.run(sourceContext);
     }
 
     @Override
-    protected AbstractFetcher<Row, ?> createFetcher(SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
+    protected AbstractFetcher<Row, ?> createFetcher(SourceFunction.SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
         AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext, assignedPartitionsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, runtimeContext, offsetCommitMode, consumerMetricGroup, useMetrics);
-        customerJsonDeserialization.setFetcher(fetcher);
+        customerCsvDeserialization.setFetcher(fetcher);
         return fetcher;
     }
 }
