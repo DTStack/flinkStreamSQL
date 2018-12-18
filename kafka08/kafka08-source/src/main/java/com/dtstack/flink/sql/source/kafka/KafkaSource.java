@@ -76,19 +76,20 @@ public class KafkaSource implements IStreamSourceGener<Table> {
                     new CustomerCsvDeserialization(typeInformation,
                             kafka08SourceTableInfo.getFieldDelimiter(),kafka08SourceTableInfo.getLengthCheckPolicy()),props);
             fields = StringUtils.join(kafka08SourceTableInfo.getFields(), ",");
-        }else {
+        }else{
             kafkaSrc = new FlinkKafkaConsumer08(topicName,
                     new CustomerCommonDeserialization(),props);
             fields = StringUtils.join(kafka08SourceTableInfo.getFields(), ",");
         }
+        kafkaSrc.setCommitOffsetsOnCheckpoints(true);
         //earliest,latest
         if("earliest".equalsIgnoreCase(offsetReset)){
             kafkaSrc.setStartFromEarliest();
         }else{
             kafkaSrc.setStartFromLatest();
         }
-        String sourceOperatorName = SOURCE_OPERATOR_NAME_TPL.replace("${topic}", topicName).replace("${table}", sourceTableInfo.getName());
-        DataStreamSource kafkaSource = env.addSource(kafkaSrc, sourceOperatorName, typeInformation);
+
+        DataStreamSource kafkaSource = env.addSource(kafkaSrc, typeInformation);
         Integer parallelism = kafka08SourceTableInfo.getParallelism();
         if(parallelism != null){
             kafkaSource.setParallelism(parallelism);

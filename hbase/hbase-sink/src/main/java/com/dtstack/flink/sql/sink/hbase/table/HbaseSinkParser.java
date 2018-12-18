@@ -61,8 +61,8 @@ public class HbaseSinkParser extends AbsTableParser {
         hbaseTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
         hbaseTableInfo.setHost((String) props.get(HBASE_ZOOKEEPER_QUORUM.toLowerCase()));
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
-        String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
-        hbaseTableInfo.setRowkey(rk.split(","));
+        //String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
+        //hbaseTableInfo.setRowkey(rk.split(","));
         return hbaseTableInfo;
     }
 }

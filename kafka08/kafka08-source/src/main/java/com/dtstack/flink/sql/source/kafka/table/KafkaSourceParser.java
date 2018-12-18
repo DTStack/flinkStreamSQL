@@ -50,6 +50,8 @@ public class KafkaSourceParser extends AbsSourceParser {
                 kafka08SourceTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
             }
         }
+        // default kafka parameter
+        kafka08SourceTableInfo.addKafkaParam("fetch.message.max.bytes","10485760");
         return kafka08SourceTableInfo;
     }
 }

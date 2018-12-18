@@ -21,8 +21,7 @@
 package com.dtstack.flink.sql.source.kafka;
 
 
-import com.dtstack.flink.sql.source.AbsDeserialization;
-import com.dtstack.flink.sql.util.DtStringUtil;
+import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 
 /**
  * json string parsing custom
@@ -39,7 +39,7 @@ import java.io.IOException;
  * @author xuchao
  */
 
-public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
+public class CustomerCsvDeserialization extends AbstractDeserializationSchema<Row> {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerCsvDeserialization.class);
 
@@ -78,8 +78,6 @@ public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
     @Override
     public Row deserialize(byte[] message) throws IOException {
         try {
-            numInRecord.inc();
-            numInBytes.inc(message.length);
             String[] fieldsList = null;
             if (message != null && message.length > 0){
                 fieldsList = new String(message).split(fieldDelimiter);
@@ -95,21 +93,41 @@ public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
             Row row = new Row(fieldNames.length);
             for (int i = 0; i < fieldNames.length; i++) {
                 if (i<fieldsList.length) {
-                    row.setField(i, DtStringUtil.parse(fieldsList[i],fieldTypes[i].getTypeClass()));
+                    row.setField(i, parse(fieldsList[i],fieldTypes[i].getTypeClass()));
                 } else {
                     break;
                 }
             }
 
-            numInResolveRecord.inc();
             return row;
         } catch (Throwable t) {
             //add metric of dirty data
-            dirtyDataCounter.inc();
             throw new RuntimeException(t);
         }
     }
 
+    public static Object parse(String str,Class clazz){
+        String fieldType = clazz.getName();
+        Object object = null;
+        if(fieldType.equals(Integer.class.getName())){
+            object = Integer.parseInt(str);
+        }else if(fieldType.equals(Long.class.getName())){
+            object = Long.parseLong(str);
+        }else if(fieldType.equals(Byte.class.getName())){
+            object = str.getBytes()[0];
+        }else if(fieldType.equals(String.class.getName())){
+            object = str;
+        }else if(fieldType.equals(Float.class.getName())){
+            object = Float.parseFloat(str);
+        }else if(fieldType.equals(Double.class.getName())){
+            object = Double.parseDouble(str);
+        }else if (fieldType.equals(Timestamp.class.getName())){
+            object = Timestamp.valueOf(str);
+        }else{
+            throw new RuntimeException("no support field type for sql. the input type:" + fieldType);
+        }
+        return object;
+    }
     public void setFailOnMissingField(boolean failOnMissingField) {
         this.failOnMissingField = failOnMissingField;
     }

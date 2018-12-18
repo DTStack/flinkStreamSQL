@@ -64,7 +64,6 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
     @Override
     public Row deserialize(byte[] message){
         try {
-            logger.info(new String(message));
             JsonNode root = objectMapper.readTree(message);
             Row row = new Row(fieldNames.length);
             for (int i = 0; i < fieldNames.length; i++) {

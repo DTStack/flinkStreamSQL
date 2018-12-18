@@ -20,6 +20,8 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -36,7 +38,10 @@ import org.apache.hadoop.hbase.client.Table;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * author: jingzhen@dtstack.com
@@ -53,10 +58,13 @@ public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
 
     private String[] families;
     private String[] qualifiers;
+    protected List<String> primaryKeys;
 
     private transient org.apache.hadoop.conf.Configuration conf;
     private transient Connection conn;
     private transient Table table;
+
+    private boolean ignoreRowKeyColumn = true;
 
     public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     public final SimpleDateFormat FIELD_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -85,34 +93,53 @@ public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
             //FIXME 暂时不处理hbase删除操作--->hbase要求有key,所有认为都是可以执行update查找
             return;
         }
-
         Row record = tupleTrans.getField(1);
-
-        List<String> list = new ArrayList<>();
-        for(int i = 0; i < rowkey.length; ++i) {
-            String colName = rowkey[i];
-            int j = 0;
-            for(; j < columnNames.length; ++j) {
-                if(columnNames[j].equals(colName)) {
-                    break;
+        final Set<Integer>  keyIndexSet = new HashSet<>();
+        List<String> primaryKeysVal = new ArrayList<>();
+        if(CollectionUtils.isEmpty(primaryKeys)) {
+            for(int i = 0; i < rowkey.length; ++i) {
+                String colName = rowkey[i];
+                int j = 0;
+                for(; j < columnNames.length; ++j) {
+                    if(columnNames[j].equals(colName)) {
+                        break;
+                    }
+                }
+                if(j != columnNames.length && record.getField(i) != null) {
+                    Object field = record.getField(j);
+                    if(field == null ) {
+                        primaryKeysVal.add("null");
+                    } else if (field instanceof java.util.Date){
+                        java.util.Date d = (java.util.Date)field;
+                        primaryKeysVal.add(ROWKEY_DATE_FORMAT.format(d));
+                    } else {
+                        primaryKeysVal.add(field.toString());
+                    }
                 }
             }
-            if(j != columnNames.length && record.getField(i) != null) {
-                Object field = record.getField(j);
+        }else{
+            for (String primaryKey:  primaryKeys) {
+                String[] quaAndCol = primaryKey.split(":");
+                int primaryKeyIndex = ArrayUtils.indexOf(qualifiers, quaAndCol[1]);
+                if(primaryKeyIndex < 0)
+                    throw new IllegalStateException("Primary key " + primaryKey + " not set up correctly.");
+                keyIndexSet.add(primaryKeyIndex);
+                Object field = record.getField(primaryKeyIndex);
                 if(field == null ) {
-                    list.add("null");
+                    primaryKeysVal.add("null");
                 } else if (field instanceof java.util.Date){
                     java.util.Date d = (java.util.Date)field;
-                    list.add(ROWKEY_DATE_FORMAT.format(d));
+                    primaryKeysVal.add(ROWKEY_DATE_FORMAT.format(d));
                 } else {
-                    list.add(field.toString());
+                    primaryKeysVal.add(field.toString());
                 }
             }
         }
-
-        String key = StringUtils.join(list, "-");
+        String key = StringUtils.join(primaryKeysVal, "-");
         Put put = new Put(key.getBytes());
         for(int i = 0; i < record.getArity(); ++i) {
+            if(CollectionUtils.isNotEmpty(primaryKeys) && keyIndexSet.contains(i))
+                continue;
             Object field = record.getField(i);
             byte[] val = null;
             if (field != null) {
@@ -121,11 +148,8 @@ public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
             byte[] cf = families[i].getBytes();
             byte[] qualifier = qualifiers[i].getBytes();
             put.addColumn(cf, qualifier, val);
-
         }
-
         table.put(put);
-
     }
 
     @Override
@@ -181,6 +205,14 @@ public class HbaseOutputFormat extends RichOutputFormat<Tuple2> {
             return this;
         }
 
+        public HbaseOutputFormatBuilder ignoreRowKeyColumn(boolean ignoreRowKeyColumn) {
+            format.ignoreRowKeyColumn = ignoreRowKeyColumn;
+            return this;
+        }
+        public HbaseOutputFormatBuilder setPrimaryKeys(List<String > primaryKeys){
+            format.primaryKeys = primaryKeys;
+            return this;
+        }
         public HbaseOutputFormat finish() {
             Preconditions.checkNotNull(format.host, "zookeeperQuorum should be specified");
             Preconditions.checkNotNull(format.tableName, "tableName should be specified");

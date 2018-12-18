@@ -28,12 +28,15 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.table.sinks.AppendStreamTableSink;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
+
+import java.util.List;
 
 /**
  * Date: 2018/09/14
@@ -49,6 +52,9 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String parent;
     protected String tableName;
     protected String[] rowkey;
+    protected List<String> primaryKeys;
+
+    protected boolean ignoreRowKeyColumn = false;
 
     public HbaseSink() {
         // TO DO NOTHING
@@ -62,20 +68,25 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.parent = hbaseTableInfo.getParent();
         this.tableName = hbaseTableInfo.getTableName();
         this.rowkey = hbaseTableInfo.getRowkey();
+        this.ignoreRowKeyColumn = hbaseTableInfo.getIgnoreRowKeyColumn();
+        this.primaryKeys = targetTableInfo.getPrimaryKeys();
         return this;
     }
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         HbaseOutputFormat.HbaseOutputFormatBuilder builder = HbaseOutputFormat.buildHbaseOutputFormat();
-        builder.setHost(this.zookeeperQuorum).setZkParent(this.parent).setTable(this.tableName);
-        
-        builder.setRowkey(rowkey);
-        builder.setColumnNames(fieldNames);
-
+        builder.setHost(this.zookeeperQuorum)
+                .setZkParent(this.parent)
+                .setTable(this.tableName)
+                .setRowkey(rowkey)
+                .setColumnNames(fieldNames)
+                .ignoreRowKeyColumn(ignoreRowKeyColumn)
+                .setPrimaryKeys(primaryKeys);
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
-        dataStream.addSink(richSinkFunction);
+        DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
+        dataStreamSink.name(tableName);
     }
 
     @Override

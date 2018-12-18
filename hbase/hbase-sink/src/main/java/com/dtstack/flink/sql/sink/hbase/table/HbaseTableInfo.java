@@ -23,6 +23,8 @@ package com.dtstack.flink.sql.sink.hbase.table;
 
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
+
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,6 +35,8 @@ import java.util.Map;
 public class HbaseTableInfo extends TargetTableInfo {
 
     private static final String CURR_TYPE = "hbase";
+
+    public static final String IGNORE_ROWKEY_COLUMN = "ignoreRowKeyColumn";
 
     private String host;
 
@@ -51,6 +55,10 @@ public class HbaseTableInfo extends TargetTableInfo {
     private String[] columnTypes;
 
     private String tableName;
+
+    private boolean ignoreRowKeyColumn = false;
+
+    private List<String> primaryKeys;
 
     public HbaseTableInfo(){
         setType(CURR_TYPE);
@@ -128,6 +136,12 @@ public class HbaseTableInfo extends TargetTableInfo {
         this.columnTypes = columnTypes;
     }
 
+    public void setIgnoreRowKeyColumn(boolean ignoreRowKeyColumn) {
+        this.ignoreRowKeyColumn = ignoreRowKeyColumn;
+    }
+    public boolean getIgnoreRowKeyColumn() {
+        return this.ignoreRowKeyColumn;
+    }
     @Override
     public boolean check() {
         Preconditions.checkNotNull(host, "hbase field of zookeeperQuorum is required");
@@ -139,4 +153,13 @@ public class HbaseTableInfo extends TargetTableInfo {
         return super.getType().toLowerCase();
     }
 
+    @Override
+    public List<String> getPrimaryKeys() {
+        return primaryKeys;
+    }
+
+    @Override
+    public void setPrimaryKeys(List<String> primaryKeys) {
+        this.primaryKeys = primaryKeys;
+    }
 }
