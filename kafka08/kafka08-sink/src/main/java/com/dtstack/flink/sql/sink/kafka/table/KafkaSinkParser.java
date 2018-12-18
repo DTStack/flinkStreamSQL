@@ -24,25 +24,35 @@ import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 
+/**
+ *
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
+ *
+ * @author DocLi
+ *
+ * @modifyer maqi
+ *
+ */
 public class KafkaSinkParser extends AbsTableParser {
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        KafkaSinkTableInfo kafka11SinkTableInfo = new KafkaSinkTableInfo();
-        kafka11SinkTableInfo.setName(tableName);
-        parseFieldsInfo(fieldsInfo, kafka11SinkTableInfo);
-        kafka11SinkTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase())));
+        KafkaSinkTableInfo kafka08SinkTableInfo = new KafkaSinkTableInfo();
+        kafka08SinkTableInfo.setName(tableName);
+        parseFieldsInfo(fieldsInfo, kafka08SinkTableInfo);
+        kafka08SinkTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase())));
         if (props.get(KafkaSinkTableInfo.SINK_DATA_TYPE) != null) {
-            kafka11SinkTableInfo.setSourceDataType(props.get(KafkaSinkTableInfo.SINK_DATA_TYPE).toString());
+            kafka08SinkTableInfo.setSinkDataType(props.get(KafkaSinkTableInfo.SINK_DATA_TYPE).toString());
         }
         if (props.get(KafkaSinkTableInfo.FIELD_DELINITER) != null) {
-            kafka11SinkTableInfo.setFieldDelimiter(props.get(KafkaSinkTableInfo.FIELD_DELINITER).toString());
+            kafka08SinkTableInfo.setFieldDelimiter(props.get(KafkaSinkTableInfo.FIELD_DELINITER).toString());
         }
 
         for (String key:props.keySet()) {
             if (!key.isEmpty() && key.startsWith("kafka.")) {
-                kafka11SinkTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
+                kafka08SinkTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
             }
         }
-        return kafka11SinkTableInfo;
+        return kafka08SinkTableInfo;
     }
 }

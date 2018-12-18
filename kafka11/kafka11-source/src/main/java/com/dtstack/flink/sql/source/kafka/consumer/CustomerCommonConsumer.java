@@ -35,11 +35,13 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 
 /**
- * Reason:
- * Date: 2018/12/17
- * Company: www.dtstack.com
  *
- * @author maqi
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
+ * @author DocLi
+ *
+ * @modifyer maqi
+ *
  */
 public class CustomerCommonConsumer extends FlinkKafkaConsumer011<Row> {
 

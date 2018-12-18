@@ -18,29 +18,21 @@
 package com.dtstack.flink.sql.source.kafka.consumer;
 
 import com.dtstack.flink.sql.source.kafka.deserialization.CustomerCommonDeserialization;
-import org.apache.flink.metrics.MetricGroup;
-import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
-import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer08;
-import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
-import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
-import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.streaming.util.serialization.KeyedDeserializationSchema;
 import org.apache.flink.types.Row;
-import org.apache.flink.util.SerializedValue;
 
-import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
 /**
- * Reason:
- * Date: 2018/12/17
- * Company: www.dtstack.com
  *
- * @author maqi
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
+ * @author DocLi
+ *
+ * @modifyer maqi
  */
 public class CustomerCommonConsumer extends FlinkKafkaConsumer08<Row> {
 

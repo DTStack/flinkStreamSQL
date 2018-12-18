@@ -30,4 +30,16 @@ package com.dtstack.flink.sql.table;
 public abstract class TargetTableInfo extends TableInfo {
 
     public static final String TARGET_SUFFIX = "Sink";
+
+    public static final String SINK_DATA_TYPE = "sinkdatatype";
+
+    private String sinkDataType = "json";
+
+    public String getSinkDataType() {
+        return sinkDataType;
+    }
+
+    public void setSinkDataType(String sinkDataType) {
+        this.sinkDataType = sinkDataType;
+    }
 }

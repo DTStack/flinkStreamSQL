@@ -36,11 +36,12 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 
 /**
- * Reason:
- * Date: 2018/12/17
+ * Date: 2018/12/18
  * Company: www.dtstack.com
+ * @author DocLi
  *
- * @author maqi
+ * @modifyer maqi
+ *
  */
 public class CustomerCommonConsumer extends FlinkKafkaConsumer09<Row> {
 

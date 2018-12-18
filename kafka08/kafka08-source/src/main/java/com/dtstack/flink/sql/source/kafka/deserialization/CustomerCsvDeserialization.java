@@ -33,10 +33,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 /**
- * json string parsing custom
- * Date: 2017/5/28
+ * Date: 2018/12/18
  * Company: www.dtstack.com
  * @author DocLi
+ *
+ * @modifyer maqi
  */
 
 public class CustomerCsvDeserialization extends AbsDeserialization<Row> {

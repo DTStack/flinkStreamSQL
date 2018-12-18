@@ -25,9 +25,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ *
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
+ * @author DocLi
+ *
+ * @modifyer maqi
+ *
+ */
 public class KafkaSinkTableInfo extends TargetTableInfo {
     //version
-    private static final String CURR_TYPE = "kafka11";
+    private static final String CURR_TYPE = "kafka08";
 
     public KafkaSinkTableInfo(){
         super.setType(CURR_TYPE);

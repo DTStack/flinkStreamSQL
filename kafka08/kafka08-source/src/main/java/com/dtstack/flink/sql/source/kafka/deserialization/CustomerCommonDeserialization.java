@@ -32,9 +32,11 @@ import java.io.IOException;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * Date: 2017/5/28
- *
+ * Date: 2018/12/18
+ * Company: www.dtstack.com
  * @author DocLi
+ *
+ * @modifyer maqi
  */
 public class CustomerCommonDeserialization extends AbsDeserialization<Row> implements KeyedDeserializationSchema<Row> {
 	private static final Logger LOG = LoggerFactory.getLogger(CustomerCommonDeserialization.class);
