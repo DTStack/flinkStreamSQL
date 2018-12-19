@@ -18,7 +18,6 @@
   * 维表快照
   * sql优化（谓词下移等）
   * serverSocket 源表
-  * console 结果表
   * kafka avro格式
   * topN
 
@@ -158,6 +157,7 @@ sh submit.sh /user/home/xxx.json
 * [mongo 结果表插件](docs/mongoSink.md)
 * [redis 结果表插件](docs/redisSink.md)
 * [cassandra 结果表插件](docs/cassandraSink.md)
+* [console 结果表插件](docs/consoleSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)

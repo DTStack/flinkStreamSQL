@@ -323,7 +323,7 @@ public class SideSqlExecTest {
     }
 
     @Test
-    public void testParseSql2() throws Exception {
+    public void testParseSqlWithMysql() throws Exception {
         String sql = "CREATE TABLE MyTable(\n" +
                 "    name varchar,\n" +
                 "    channel varchar\n" +
@@ -354,7 +354,7 @@ public class SideSqlExecTest {
     }
 
     @Test
-    public void testParseMongo() throws Exception {
+    public void testParseSqlWithMongo() throws Exception {
         String sql = "CREATE TABLE MyTable(\n" +
                 "    name varchar,\n" +
                 "    channel varchar\n" +
@@ -406,7 +406,7 @@ public class SideSqlExecTest {
     }
 
     @Test
-    public void testParseMongo2() throws Exception {
+    public void testParseSqlWithMongo2() throws Exception {
         String sql = "CREATE TABLE MyTable(\n" +
                 "    name varchar,\n" +
                 "    channel varchar\n" +
@@ -453,6 +453,39 @@ public class SideSqlExecTest {
         test2(sql);
     }
 
+    @Test
+    public void testParseSqlWithConsole() throws Exception {
+        String sql = "CREATE TABLE MyTable(\n" +
+                "    name varchar,\n" +
+                "    cs int,\n" +
+                "    channel varchar\n" +
+                " )WITH(\n" +
+                "    type ='kafka10',\n" +
+                "    bootstrapServers ='172.21.32.1:9092',\n" +
+                "    zookeeperQuorum ='172.21.32.1:2181/kafka',\n" +
+                "    offsetReset ='latest',\n" +
+                "    topic ='test1',\n" +
+                "    parallelism ='3'\n" +
+                " );\n" +
+                " \n" +
+                " CREATE TABLE MyResult(\n" +
+                "    name varchar,\n" +
+                "    channel varchar,\n" +
+                "    cs int\n" +
+                " )WITH(\n" +
+                "    type ='console',\n" +
+                "    address ='172.21.32.1:27017,172.21.32.1:27017',\n" +
+                "    database ='test',\n" +
+                "    tableName ='pv',\n" +
+                "    parallelism ='3'\n" +
+                " );\n" +
+                " \n" +
+                "insert into MyResult\n" +
+                "select a.name,a.channel,a.cs\n" +
+                "from MyTable a ;";
+        test2(sql);
+    }
+
     public void test2(String sql) throws Exception {
         List<String> paramList = Lists.newArrayList();
         paramList.add("-sql");
@@ -461,7 +494,7 @@ public class SideSqlExecTest {
         paramList.add("-name");
         paramList.add("xc");
         paramList.add("-localSqlPluginPath");
-        paramList.add("D:\\soucecode\\flinkStreamSQL-my-src\\plugins");
+        paramList.add("D:\\soucecode\\FlinkStreamSQL-my-src\\plugins");
         paramList.add("-mode");
         paramList.add("local");
         paramList.add("-confProp");

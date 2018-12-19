@@ -23,6 +23,7 @@
         <module>sqlserver</module>
         <module>oracle</module>
         <module>cassandra</module>
+        <module>console</module>
     </modules>
 
 
