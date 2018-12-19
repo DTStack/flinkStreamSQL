@@ -66,7 +66,9 @@ public abstract class AbsSideTableParser extends AbsTableParser {
             sideTableInfo.setCacheType(cacheType);
             if(props.containsKey(SideTableInfo.CACHE_SIZE_KEY.toLowerCase())){
                 Integer cacheSize = MathUtil.getIntegerVal(props.get(SideTableInfo.CACHE_SIZE_KEY.toLowerCase()));
-
+                if(cacheSize < 0){
+                    throw new RuntimeException("cache size need > 0.");
+                }
                 sideTableInfo.setCacheSize(cacheSize);
             }
 
