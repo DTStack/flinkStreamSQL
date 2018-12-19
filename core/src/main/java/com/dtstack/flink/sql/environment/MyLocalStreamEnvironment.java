@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql;
+package com.dtstack.flink.sql.environment;
 
 import org.apache.flink.api.common.InvalidProgramException;
 import org.apache.flink.api.common.JobExecutionResult;
