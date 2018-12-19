@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.PluginUtil;
+import com.sun.org.apache.bcel.internal.generic.I2F;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -44,6 +45,9 @@ public class SideAsyncOperator {
 
     private static final String PATH_FORMAT = "%sasyncside";
 
+    private static final String ORDERED = "ordered";
+
+
     //TODO need to set by create table task
     private static int asyncCapacity = 100;
 
@@ -62,8 +66,15 @@ public class SideAsyncOperator {
     public static DataStream getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,  JoinInfo joinInfo,
                                             List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
         AsyncReqRow asyncDbReq = loadAsyncReq(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+
         //TODO How much should be set for the degree of parallelism? Timeout? capacity settings?
-        return AsyncDataStream.orderedWait(inputStream, asyncDbReq, 10000, TimeUnit.MILLISECONDS, asyncCapacity)
-                .setParallelism(sideTableInfo.getParallelism());
+        if (ORDERED.equals(sideTableInfo.getCacheMode())){
+            return AsyncDataStream.orderedWait(inputStream, asyncDbReq, 10000, TimeUnit.MILLISECONDS, asyncCapacity)
+                    .setParallelism(sideTableInfo.getParallelism());
+        }else {
+            return AsyncDataStream.unorderedWait(inputStream, asyncDbReq, 10000, TimeUnit.MILLISECONDS, asyncCapacity)
+                    .setParallelism(sideTableInfo.getParallelism());
+        }
+
     }
 }
