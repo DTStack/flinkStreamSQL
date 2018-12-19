@@ -52,6 +52,7 @@
   * LRU:
     * cacheSize: 缓存的条目数量
     * cacheTTLMs:缓存的过期时间(ms)
+    * cacheMode: (unordered|ordered)异步加载是有序还是无序,默认无序。
   
 
 ## 5.样例
@@ -70,6 +71,7 @@ create table sideTable(
     cache ='LRU',
     cacheSize ='10000',
     cacheTTLMs ='60000',
+    cacheMode='unordered',
     parallelism ='1',
     partitionedJoin='false'
  );
