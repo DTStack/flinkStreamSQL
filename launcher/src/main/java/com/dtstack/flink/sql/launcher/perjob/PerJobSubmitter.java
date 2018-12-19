@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.launcher.perjob;
 
-import com.dtstack.flink.sql.launcher.LauncherOptions;
+import com.dtstack.flink.sql.options.LauncherOptions;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;

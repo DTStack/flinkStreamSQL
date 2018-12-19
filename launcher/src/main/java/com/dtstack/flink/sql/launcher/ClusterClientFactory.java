@@ -42,7 +42,6 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.util.*;
@@ -52,7 +51,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import java.io.IOException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
+import com.dtstack.flink.sql.options.LauncherOptions;
 import static java.util.Objects.requireNonNull;
 
 /**

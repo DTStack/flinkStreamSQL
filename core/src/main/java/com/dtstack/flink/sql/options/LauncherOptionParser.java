@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.launcher;
+package com.dtstack.flink.sql.options;
 
 import avro.shaded.com.google.common.collect.Lists;
 import org.apache.commons.cli.BasicParser;
@@ -73,7 +73,7 @@ public class LauncherOptionParser {
 
     private LauncherOptions properties = new LauncherOptions();
 
-    public LauncherOptionParser(String[] args) {
+    public LauncherOptionParser(String[] args) throws Exception {
         options.addOption(OPTION_MODE, true, "Running mode");
         options.addOption(OPTION_SQL, true, "Job sql file");
         options.addOption(OPTION_NAME, true, "Job name");
@@ -87,8 +87,6 @@ public class LauncherOptionParser {
         options.addOption(OPTION_SAVE_POINT_PATH, true, "Savepoint restore path");
         options.addOption(OPTION_ALLOW_NON_RESTORED_STATE, true, "Flag indicating whether non restored state is allowed if the savepoint");
         options.addOption(OPTION_FLINK_JAR_PATH, true, "flink jar path for submit of perjob mode");
-
-        try {
             CommandLine cl = parser.parse(options, args);
             String mode = cl.getOptionValue(OPTION_MODE, ClusterMode.local.name());
             //check mode
@@ -109,7 +107,6 @@ public class LauncherOptionParser {
             properties.setLocalSqlPluginPath(localPlugin);
 
             String remotePlugin = cl.getOptionValue(OPTION_REMOTE_SQL_PLUGIN_PATH);
-            Preconditions.checkNotNull(remotePlugin);
             properties.setRemoteSqlPluginPath(remotePlugin);
 
             String name = Preconditions.checkNotNull(cl.getOptionValue(OPTION_NAME));
@@ -148,10 +145,6 @@ public class LauncherOptionParser {
             if(StringUtils.isNotBlank(flinkJarPath)){
                 properties.setFlinkJarPath(flinkJarPath);
             }
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public LauncherOptions getLauncherOptions(){
