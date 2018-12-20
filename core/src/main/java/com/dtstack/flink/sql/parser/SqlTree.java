@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 解析sql获得的对象结构
+ * parser sql to get the Sql Tree structure
  * Date: 2018/6/25
  * Company: www.dtstack.com
  * @author xuchao

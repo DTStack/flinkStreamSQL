@@ -44,6 +44,8 @@ public class SideAsyncOperator {
 
     private static final String PATH_FORMAT = "%sasyncside";
 
+    private static final String OPERATOR_TYPE = "Async";
+
     private static final String ORDERED = "ordered";
 
 
@@ -57,7 +59,7 @@ public class SideAsyncOperator {
         String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir);
         DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
         PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
-        String className = PluginUtil.getSqlSideClassName(sideType, "side", "Async");
+        String className = PluginUtil.getSqlSideClassName(sideType, "side", OPERATOR_TYPE);
         return dtClassLoader.loadClass(className).asSubclass(AsyncReqRow.class)
                 .getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, SideTableInfo.class).newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
