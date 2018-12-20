@@ -25,6 +25,7 @@
         <module>cassandra</module>
         <module>kafka08</module>
         <module>serversocket</module>
+        <module>console</module>
     </modules>
 
 
