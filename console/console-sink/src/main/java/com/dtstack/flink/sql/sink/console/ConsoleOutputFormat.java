@@ -59,7 +59,6 @@ public class ConsoleOutputFormat extends MetricOutputFormat {
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
         if (!retract) {
-            //FIXME 暂时不处理Mongo删除操作--->Mongo要求有key,所有认为都是可以执行update查找
             return;
         }
 

@@ -192,22 +192,22 @@ public class TablePrintUtil {
                 String cell = data.get(y)[x];
                 switch (align) {
                     case ALIGN_LEFT:
-                        for (int i = 0; i < padding; i++) sb.append(s);
+                        for (int i = 0; i < padding; i++) {sb.append(s);}
                         sb.append(cell);
-                        for (int i = 0; i < colLengths[x] - getStringCharLength(cell) + padding; i++) sb.append(s);
+                        for (int i = 0; i < colLengths[x] - getStringCharLength(cell) + padding; i++) {sb.append(s);}
                         break;
                     case ALIGN_RIGHT:
-                        for (int i = 0; i < colLengths[x] - getStringCharLength(cell) + padding; i++) sb.append(s);
+                        for (int i = 0; i < colLengths[x] - getStringCharLength(cell) + padding; i++) {sb.append(s);}
                         sb.append(cell);
-                        for (int i = 0; i < padding; i++) sb.append(s);
+                        for (int i = 0; i < padding; i++) {sb.append(s);}
                         break;
                     case ALIGN_CENTER:
                         int space = colLengths[x] - getStringCharLength(cell);
                         int left = space / 2;
                         int right = space - left;
-                        for (int i = 0; i < left + padding; i++) sb.append(s);
+                        for (int i = 0; i < left + padding; i++) {sb.append(s);}
                         sb.append(cell);
-                        for (int i = 0; i < right + padding; i++) sb.append(s);
+                        for (int i = 0; i < right + padding; i++) {sb.append(s);}
                         break;
                 }
                 sb.append(v);
