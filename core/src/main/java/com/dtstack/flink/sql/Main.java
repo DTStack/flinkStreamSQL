@@ -22,6 +22,9 @@ package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
+import com.dtstack.flink.sql.options.LauncherOptionParser;
+import com.dtstack.flink.sql.options.LauncherOptions;
 import com.dtstack.flink.sql.parser.*;
 import com.dtstack.flink.sql.side.SideSqlExec;
 import com.dtstack.flink.sql.side.SideTableInfo;
@@ -42,6 +45,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -59,7 +63,6 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.sinks.TableSink;
-import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,42 +102,22 @@ public class Main {
     private static final int delayInterval = 10; //sec
 
     public static void main(String[] args) throws Exception {
-
-        Options options = new Options();
-        options.addOption("sql", true, "sql config");
-        options.addOption("name", true, "job name");
-        options.addOption("addjar", true, "add jar");
-        options.addOption("localSqlPluginPath", true, "local sql plugin path");
-        options.addOption("remoteSqlPluginPath", true, "remote sql plugin path");
-        options.addOption("confProp", true, "env properties");
-        options.addOption("mode", true, "deploy mode");
-
-        options.addOption("savePointPath", true, "Savepoint restore path");
-        options.addOption("allowNonRestoredState", true, "Flag indicating whether non restored state is allowed if the savepoint");
-
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cl = parser.parse(options, args);
-        String sql = cl.getOptionValue("sql");
-        String name = cl.getOptionValue("name");
-        String addJarListStr = cl.getOptionValue("addjar");
-        String localSqlPluginPath = cl.getOptionValue("localSqlPluginPath");
-        String remoteSqlPluginPath = cl.getOptionValue("remoteSqlPluginPath");
-        String deployMode = cl.getOptionValue("mode");
-        String confProp = cl.getOptionValue("confProp");
-
-        Preconditions.checkNotNull(sql, "parameters of sql is required");
-        Preconditions.checkNotNull(name, "parameters of name is required");
-        Preconditions.checkNotNull(localSqlPluginPath, "parameters of localSqlPluginPath is required");
-
+        LauncherOptionParser optionParser = new LauncherOptionParser(args);
+        LauncherOptions launcherOptions = optionParser.getLauncherOptions();
+        String sql = launcherOptions.getSql();
+        String name =launcherOptions.getName();
+        String addJarListStr = launcherOptions.getAddjar();
+        String localSqlPluginPath = launcherOptions.getLocalSqlPluginPath();
+        String remoteSqlPluginPath = launcherOptions.getRemoteSqlPluginPath();
+        String deployMode = launcherOptions.getMode();
+        String confProp = launcherOptions.getConfProp();
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
-
         List<String> addJarFileList = Lists.newArrayList();
         if(!Strings.isNullOrEmpty(addJarListStr)){
             addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
             addJarFileList = objMapper.readValue(addJarListStr, List.class);
         }
-
         ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
         DtClassLoader dtClassLoader = new DtClassLoader(new URL[]{}, threadClassLoader);
         Thread.currentThread().setContextClassLoader(dtClassLoader);
@@ -238,6 +221,12 @@ public class Main {
                 contextEnvironment.getClasspaths().add(url);
             }
         }
+        int i = 0;
+        for(URL url : classPathSet){
+            String classFileName = String.format(CLASS_FILE_NAME_FMT, i);
+            env.registerCachedFile(url.getPath(),  classFileName, true);
+            i++;
+        }
     }
 
     private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, URLClassLoader parentClassloader,
@@ -289,18 +278,23 @@ public class Main {
                 Table regTable = tableEnv.fromDataStream(adaptStream, fields);
                 tableEnv.registerTable(tableInfo.getName(), regTable);
                 registerTableCache.put(tableInfo.getName(), regTable);
-                classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath));
+                if(StringUtils.isNotBlank(remoteSqlPluginPath)){
+                    classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath));
+                }
             } else if (tableInfo instanceof TargetTableInfo) {
 
                 TableSink tableSink = StreamSinkFactory.getTableSink((TargetTableInfo) tableInfo, localSqlPluginPath);
                 TypeInformation[] flinkTypes = FlinkUtil.transformTypes(tableInfo.getFieldClasses());
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
-                classPathSet.add( PluginUtil.getRemoteJarFilePath(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
+                if(StringUtils.isNotBlank(remoteSqlPluginPath)){
+                    classPathSet.add( PluginUtil.getRemoteJarFilePath(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
+                }
             } else if(tableInfo instanceof SideTableInfo){
-
                 String sideOperator = ECacheType.ALL.name().equals(((SideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
                 sideTableMap.put(tableInfo.getName(), (SideTableInfo) tableInfo);
-                classPathSet.add(PluginUtil.getRemoteSideJarFilePath(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
+                if(StringUtils.isNotBlank(remoteSqlPluginPath)){
+                    classPathSet.add(PluginUtil.getRemoteSideJarFilePath(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
+                }
             }else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
@@ -308,12 +302,6 @@ public class Main {
 
         //The plug-in information corresponding to the table is loaded into the classPath env
         addEnvClassPath(env, classPathSet);
-        int i = 0;
-        for(URL url : classPathSet){
-            String classFileName = String.format(CLASS_FILE_NAME_FMT, i);
-            env.registerCachedFile(url.getPath(),  classFileName, true);
-            i++;
-        }
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException {

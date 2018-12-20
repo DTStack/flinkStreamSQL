@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -84,6 +85,15 @@ public abstract class AbsSideTableParser extends AbsTableParser {
                 if(partitionedJoinKey){
                     sideTableInfo.setPartitionedJoin(true);
                 }
+            }
+
+            if(props.containsKey(SideTableInfo.CACHE_MODE_KEY.toLowerCase())){
+                String cachemode = MathUtil.getString(props.get(SideTableInfo.CACHE_MODE_KEY.toLowerCase()));
+
+                if(!cachemode.equalsIgnoreCase("ordered") && !cachemode.equalsIgnoreCase("unordered")){
+                    throw new RuntimeException("cachemode must ordered or unordered!");
+                }
+                sideTableInfo.setCacheMode(cachemode.toLowerCase());
             }
         }
     }
