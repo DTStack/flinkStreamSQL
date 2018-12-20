@@ -45,6 +45,8 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     public static final String PARTITIONED_JOIN_KEY = "partitionedJoin";
 
+    public static final String CACHE_MODE_KEY = "cacheMode";
+
     private String cacheType = "none";//None or LRU or ALL
 
     private int cacheSize = 10000;
@@ -52,6 +54,8 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
     private long cacheTimeout = 60 * 1000;//
 
     private boolean partitionedJoin = false;
+
+    private String cacheMode="ordered";
 
     public RowTypeInfo getRowTypeInfo(){
         Class[] fieldClass = getFieldClasses();
@@ -94,5 +98,13 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     public void setPartitionedJoin(boolean partitionedJoin) {
         this.partitionedJoin = partitionedJoin;
+    }
+
+    public String getCacheMode() {
+        return cacheMode;
+    }
+
+    public void setCacheMode(String cacheMode) {
+        this.cacheMode = cacheMode;
     }
 }

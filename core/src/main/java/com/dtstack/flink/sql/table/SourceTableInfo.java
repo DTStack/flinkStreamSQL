@@ -36,6 +36,10 @@ public abstract class SourceTableInfo extends TableInfo {
 
     public static final String SOURCE_SUFFIX = "Source";
 
+    public static final String SOURCE_DATA_TYPE = "sourcedatatype";
+
+    private String sourceDataType = "json";
+
     private String eventTimeField;
 
     private Integer maxOutOrderness = 10;
@@ -100,5 +104,13 @@ public abstract class SourceTableInfo extends TableInfo {
 
     public String getAdaptName(){
         return getName() + "_adapt";
+    }
+
+    public String getSourceDataType() {
+        return sourceDataType;
+    }
+
+    public void setSourceDataType(String sourceDataType) {
+        this.sourceDataType = sourceDataType;
     }
 }

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.util;
 
@@ -25,7 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
-
+import java.sql.Timestamp;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -224,5 +224,28 @@ public class DtStringUtil {
             }
         }
         return flag;
+    }
+
+    public static Object parse(String str,Class clazz){
+        String fieldType = clazz.getName();
+        Object object = null;
+        if(fieldType.equals(Integer.class.getName())){
+            object = Integer.parseInt(str);
+        }else if(fieldType.equals(Long.class.getName())){
+            object = Long.parseLong(str);
+        }else if(fieldType.equals(Byte.class.getName())){
+            object = str.getBytes()[0];
+        }else if(fieldType.equals(String.class.getName())){
+            object = str;
+        }else if(fieldType.equals(Float.class.getName())){
+            object = Float.parseFloat(str);
+        }else if(fieldType.equals(Double.class.getName())){
+            object = Double.parseDouble(str);
+        }else if (fieldType.equals(Timestamp.class.getName())){
+            object = Timestamp.valueOf(str);
+        }else{
+            throw new RuntimeException("no support field type for sql. the input type:" + fieldType);
+        }
+        return object;
     }
 }
