@@ -32,8 +32,7 @@ import java.util.List;
 import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 
 /**
- * 解析flink sql
- * sql 只支持 insert 开头的
+ * parser flink sql
  * Date: 2018/6/22
  * Company: www.dtstack.com
  * @author xuchao

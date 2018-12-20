@@ -33,6 +33,12 @@ import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 
+/**
+ * parser create tmp table sql
+ * Date: 2018/6/26
+ * Company: www.dtstack.com
+ * @author yanxi
+ */
 public class CreateTmpTableParser implements IParser {
 
     //select table tableName as select

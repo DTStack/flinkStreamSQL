@@ -102,8 +102,10 @@ public class Main {
     private static final int delayInterval = 10; //sec
 
     public static void main(String[] args) throws Exception {
+
         LauncherOptionParser optionParser = new LauncherOptionParser(args);
         LauncherOptions launcherOptions = optionParser.getLauncherOptions();
+
         String sql = launcherOptions.getSql();
         String name =launcherOptions.getName();
         String addJarListStr = launcherOptions.getAddjar();
@@ -111,13 +113,16 @@ public class Main {
         String remoteSqlPluginPath = launcherOptions.getRemoteSqlPluginPath();
         String deployMode = launcherOptions.getMode();
         String confProp = launcherOptions.getConfProp();
+
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
         List<String> addJarFileList = Lists.newArrayList();
+
         if(!Strings.isNullOrEmpty(addJarListStr)){
             addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
             addJarFileList = objMapper.readValue(addJarListStr, List.class);
         }
+
         ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
         DtClassLoader dtClassLoader = new DtClassLoader(new URL[]{}, threadClassLoader);
         Thread.currentThread().setContextClassLoader(dtClassLoader);

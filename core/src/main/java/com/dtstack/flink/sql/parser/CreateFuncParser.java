@@ -24,7 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 解析创建自定义方法sql
+ * parser register udf sql
  * Date: 2018/6/26
  * Company: www.dtstack.com
  * @author xuchao
