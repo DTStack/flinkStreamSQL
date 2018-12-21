@@ -43,6 +43,8 @@ public class SideWithAllCacheOperator {
 
     private static final String PATH_FORMAT = "%sallside";
 
+    private static final String OPERATOR_TYPE = "All";
+
     private static AllReqRow loadFlatMap(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,
                                          JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
                                          SideTableInfo sideTableInfo) throws Exception {
@@ -53,7 +55,7 @@ public class SideWithAllCacheOperator {
 
         DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
         PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
-        String className = PluginUtil.getSqlSideClassName(sideType, "side", "All");
+        String className = PluginUtil.getSqlSideClassName(sideType, "side", OPERATOR_TYPE);
 
         return dtClassLoader.loadClass(className).asSubclass(AllReqRow.class).getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, SideTableInfo.class)
                 .newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);

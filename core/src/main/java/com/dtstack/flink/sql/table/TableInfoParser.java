@@ -20,7 +20,6 @@
 
 package com.dtstack.flink.sql.table;
 
-import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.ETableType;
 import com.dtstack.flink.sql.parser.CreateTableParser;
 import com.dtstack.flink.sql.side.SideTableInfo;

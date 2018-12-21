@@ -20,7 +20,6 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsOperator;

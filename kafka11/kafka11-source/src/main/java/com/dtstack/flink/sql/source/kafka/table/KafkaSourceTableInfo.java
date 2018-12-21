@@ -56,7 +56,7 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 		super.setType(CURR_TYPE);
 	}
 
-	public static Map<String, String> kafkaParam = new HashMap<String, String>();
+	public static Map<String, String> kafkaParam = new HashMap<>();
 
 	public void addKafkaParam(String key, String value) {
 		kafkaParam.put(key, value);
@@ -74,8 +74,9 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 	public boolean check() {
 		Preconditions.checkNotNull(kafkaParam.get("bootstrap.servers"), "kafka of bootstrapServers is required");
 		Preconditions.checkNotNull(kafkaParam.get("topic"), "kafka of topic is required");
-		Preconditions.checkState(kafkaParam.get("auto.offset.reset").toString().equalsIgnoreCase("latest")
-				|| kafkaParam.get("auto.offset.reset").toString().equalsIgnoreCase("earliest"), "kafka of offsetReset set fail");
+		String offset = kafkaParam.get("auto.offset.reset");
+		Preconditions.checkState(offset.equalsIgnoreCase("latest")
+				|| offset.equalsIgnoreCase("earliest"), "kafka of offsetReset set fail");
 		return false;
 	}
 
