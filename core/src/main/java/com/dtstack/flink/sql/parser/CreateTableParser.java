@@ -29,7 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 解析创建表结构sql
+ * parser create table sql
  * Date: 2018/6/26
  * Company: www.dtstack.com
  * @author xuchao

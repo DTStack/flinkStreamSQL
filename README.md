@@ -143,6 +143,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 ## 2 结构
 ### 2.1 源表插件
 * [kafka 源表插件](docs/kafkaSource.md)
+* [serverSocket 源表插件](docs/serverSocketSource.md)
 
 ### 2.2 结果表插件
 * [elasticsearch 结果表插件](docs/elasticsearchSink.md)
@@ -151,6 +152,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [mongo 结果表插件](docs/mongoSink.md)
 * [redis 结果表插件](docs/redisSink.md)
 * [cassandra 结果表插件](docs/cassandraSink.md)
+* [console 结果表插件](docs/consoleSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
