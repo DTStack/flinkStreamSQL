@@ -84,13 +84,6 @@ public class LauncherMain {
                 PerJobSubmitter.submit(launcherOptions, jobGraph);
             } else {
                 ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
-                pluginRoot = launcherOptions.getLocalSqlPluginPath();
-                jarFile = new File(getLocalCoreJarPath(pluginRoot));
-                remoteArgs = argList.toArray(new String[argList.size()]);
-                program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
-                if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
-                    program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
-                }
                 clusterClient.run(program, launcherOptions.getDefaultParallelism());
                 clusterClient.shutdown();
                 System.exit(0);
