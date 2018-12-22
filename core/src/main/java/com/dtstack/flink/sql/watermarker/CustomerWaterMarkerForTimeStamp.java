@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.watermarker;
 
@@ -59,13 +59,14 @@ public class CustomerWaterMarkerForTimeStamp extends AbsCustomerWaterMarker<Row>
     public long extractTimestamp(Row row) {
         try {
             Timestamp time = (Timestamp) row.getField(pos);
-            lastTime = time.getTime();
 
-            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - convertTimeZone(lastTime))/1000));
+            long extractTime=time.getTime();
 
-            long restime=lastTime + timezone.getOffset(lastTime);
+            lastTime = extractTime + timezone.getOffset(extractTime);
 
-            return restime;
+            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - convertTimeZone(extractTime))/1000));
+
+            return lastTime;
         } catch (RuntimeException e) {
             logger.error("", e);
         }
