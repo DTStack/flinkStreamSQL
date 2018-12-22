@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.watermarker;
 
 import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -30,6 +31,8 @@ import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrderness
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
+
+import java.util.TimeZone;
 
 /**
  * define watermarker
@@ -54,6 +57,8 @@ public class WaterMarkerAssigner {
 
         int maxOutOrderness = sourceTableInfo.getMaxOutOrderness();
 
+        String timeZone=sourceTableInfo.getTimeZone();
+
         String[] fieldNames = typeInfo.getFieldNames();
         TypeInformation<?>[] fieldTypes = typeInfo.getFieldTypes();
 
@@ -75,9 +80,9 @@ public class WaterMarkerAssigner {
 
         AbsCustomerWaterMarker waterMarker = null;
         if(fieldType.getTypeClass().getTypeName().equalsIgnoreCase("java.sql.Timestamp")){
-            waterMarker = new CustomerWaterMarkerForTimeStamp(Time.milliseconds(maxOutOrderness), pos);
+            waterMarker = new CustomerWaterMarkerForTimeStamp(Time.milliseconds(maxOutOrderness), pos,timeZone);
         }else if(fieldType.getTypeClass().getTypeName().equalsIgnoreCase("java.lang.Long")){
-            waterMarker = new CustomerWaterMarkerForLong(Time.milliseconds(maxOutOrderness), pos);
+            waterMarker = new CustomerWaterMarkerForLong(Time.milliseconds(maxOutOrderness), pos,timeZone);
         }else{
             throw new IllegalArgumentException("not support type of " + fieldType + ", current only support(timestamp, long).");
         }
