@@ -53,7 +53,8 @@
     * cacheSize: 缓存的条目数量
     * cacheTTLMs:缓存的过期时间(ms)
     * cacheMode: (unordered|ordered)异步加载是有序还是无序,默认有序。
-  
+    * asyncCapacity:异步请求容量，默认1000
+    * asyncTimeout：异步请求超时时间，默认10000毫秒
 
 ## 5.样例
 ```
@@ -72,6 +73,8 @@ create table sideTable(
     cacheSize ='10000',
     cacheTTLMs ='60000',
     cacheMode='unordered',
+    asyncCapacity='1000',
+    asyncTimeout='10000'
     parallelism ='1',
     partitionedJoin='false'
  );
