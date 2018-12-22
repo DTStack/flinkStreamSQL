@@ -47,11 +47,19 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     public static final String CACHE_MODE_KEY = "cacheMode";
 
+    public static final String ASYNC_CAP_KEY = "asyncCapacity";
+
+    public static final String ASYNC_TIMEOUT_KEY = "asyncTimeout";
+
     private String cacheType = "none";//None or LRU or ALL
 
     private int cacheSize = 10000;
 
     private long cacheTimeout = 60 * 1000;//
+
+    private int  asyncCapacity=100;
+
+    private int  asyncTimeout=10000;
 
     private boolean partitionedJoin = false;
 
@@ -106,5 +114,21 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     public void setCacheMode(String cacheMode) {
         this.cacheMode = cacheMode;
+    }
+
+    public int getAsyncCapacity() {
+        return asyncCapacity;
+    }
+
+    public void setAsyncCapacity(int asyncCapacity) {
+        this.asyncCapacity = asyncCapacity;
+    }
+
+    public int getAsyncTimeout() {
+        return asyncTimeout;
+    }
+
+    public void setAsyncTimeout(int asyncTimeout) {
+        this.asyncTimeout = asyncTimeout;
     }
 }

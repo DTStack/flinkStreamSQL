@@ -95,6 +95,22 @@ public abstract class AbsSideTableParser extends AbsTableParser {
                 }
                 sideTableInfo.setCacheMode(cachemode.toLowerCase());
             }
+
+            if(props.containsKey(SideTableInfo.ASYNC_CAP_KEY.toLowerCase())){
+                Integer asyncCap = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_CAP_KEY.toLowerCase()));
+                if(asyncCap < 0){
+                    throw new RuntimeException("asyncCapacity size need > 0.");
+                }
+                sideTableInfo.setAsyncCapacity(asyncCap);
+            }
+
+            if(props.containsKey(SideTableInfo.ASYNC_TIMEOUT_KEY.toLowerCase())){
+                Integer asyncTimeout = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_TIMEOUT_KEY.toLowerCase()));
+                if (asyncTimeout<0){
+                    throw new RuntimeException("asyncTimeout size need > 0.");
+                }
+                sideTableInfo.setAsyncTimeout(asyncTimeout);
+            }
         }
     }
 }
