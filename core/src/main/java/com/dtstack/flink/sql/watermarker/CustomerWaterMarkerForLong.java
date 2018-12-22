@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.watermarker;
 
@@ -26,6 +26,8 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.TimeZone;
 
 /**
  * Custom watermark --- for eventtime
@@ -40,13 +42,16 @@ public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
 
     private static final long serialVersionUID = 1L;
 
+    private TimeZone timezone;
+
     private int pos;
 
     private long lastTime = 0;
 
-    public CustomerWaterMarkerForLong(Time maxOutOfOrderness, int pos) {
+    public CustomerWaterMarkerForLong(Time maxOutOfOrderness, int pos,String timezone) {
         super(maxOutOfOrderness);
         this.pos = pos;
+        this.timezone= TimeZone.getTimeZone(timezone);
     }
 
     @Override
@@ -55,12 +60,21 @@ public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
         try{
             Long eveTime = MathUtil.getLongVal(row.getField(pos));
             lastTime = eveTime;
-            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - eveTime)/1000));
-            return eveTime;
+
+            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - convertTimeZone(eveTime))/1000));
+
+            long restime=lastTime + timezone.getOffset(lastTime);
+
+            return restime;
         }catch (Exception e){
             logger.error("", e);
         }
 
         return lastTime;
+    }
+
+    public long convertTimeZone(long evenTime){
+        long res = evenTime - timezone.getOffset(evenTime) + TimeZone.getDefault().getOffset(evenTime);
+        return res;
     }
 }

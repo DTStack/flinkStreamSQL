@@ -15,6 +15,8 @@ CREATE TABLE tableName(
     kafka.auto.offset.reset ='latest',
     kafka.topic ='topicName',
     parallelism ='parllNum',
+    --timezone='America/Los_Angeles',
+    timezone='Asia/Shanghai',
     sourcedatatype ='json' #可不设置
  );
 ```
@@ -46,6 +48,7 @@ CREATE TABLE tableName(
 |kafka.auto.offset.reset  | 读取的topic 的offset初始位置[latest\|earliest\|指定offset值({"0":12312,"1":12321,"2":12312},{"partition_no":offset_value})]|否|latest|
 |parallelism | 并行度设置|否|1|
 |sourcedatatype | 数据类型|否|json|
+|timezone|时区设置[timezone支持的参数](timeZone.md)|否|'Asia/Shanghai'
 **kafka相关参数可以自定义，使用kafka.开头即可。**
 
 ## 5.样例：

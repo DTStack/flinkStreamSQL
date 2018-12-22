@@ -47,6 +47,7 @@ public class KafkaSourceParser extends AbsSourceParser {
 
         kafka09SourceTableInfo.setPatternTopic(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.PATTERNTOPIC_KEY.toLowerCase())));
 
+        kafka09SourceTableInfo.setTimeZone(MathUtil.getString(props.get(KafkaSourceTableInfo.TIME_ZONE_KEY.toLowerCase())));
 
         if (props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE) != null) {
             kafka09SourceTableInfo.setSourceDataType(props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE).toString());

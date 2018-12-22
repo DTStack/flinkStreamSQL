@@ -20,10 +20,14 @@
 
 package com.dtstack.flink.sql.table;
 
+import com.google.common.collect.Lists;
+import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Reason:
@@ -38,7 +42,11 @@ public abstract class SourceTableInfo extends TableInfo {
 
     public static final String SOURCE_DATA_TYPE = "sourcedatatype";
 
+    public static final String TIME_ZONE_KEY="timezone";
+
     private String sourceDataType = "json";
+
+    private String timeZone="Asia/Shanghai";
 
     private String eventTimeField;
 
@@ -113,4 +121,25 @@ public abstract class SourceTableInfo extends TableInfo {
     public void setSourceDataType(String sourceDataType) {
         this.sourceDataType = sourceDataType;
     }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        if (timeZone==null){
+            return;
+        }
+        timeZoneCheck(timeZone);
+        this.timeZone = timeZone;
+    }
+
+    private void timeZoneCheck(String timeZone) {
+        ArrayList<String> zones = Lists.newArrayList(TimeZone.getAvailableIDs());
+        if (!zones.contains(timeZone)){
+            throw  new IllegalArgumentException(" timezone is Incorrect!");
+        }
+    }
+
+
 }

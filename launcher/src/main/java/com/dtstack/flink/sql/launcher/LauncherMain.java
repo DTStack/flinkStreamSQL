@@ -67,8 +67,8 @@ public class LauncherMain {
         String mode = launcherOptions.getMode();
         List<String> argList = optionParser.getProgramExeArgList();
         if(mode.equals(ClusterMode.local.name())) {
-            String[] localArgs = argList.toArray(new String[argList.size()]);
-            Main.main(localArgs);
+            //String[] localArgs = argList.toArray(new String[argList.size()]);
+            Main.main(args);
         }else{
             String pluginRoot = launcherOptions.getLocalSqlPluginPath();
             File jarFile = new File(getLocalCoreJarPath(pluginRoot));
