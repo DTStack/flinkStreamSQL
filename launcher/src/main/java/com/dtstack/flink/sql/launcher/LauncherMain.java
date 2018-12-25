@@ -67,13 +67,11 @@ public class LauncherMain {
         String mode = launcherOptions.getMode();
         List<String> argList = optionParser.getProgramExeArgList();
         if(mode.equals(ClusterMode.local.name())) {
-            //String[] localArgs = argList.toArray(new String[argList.size()]);
             Main.main(args);
         }else{
             String pluginRoot = launcherOptions.getLocalSqlPluginPath();
             File jarFile = new File(getLocalCoreJarPath(pluginRoot));
-            String[] remoteArgs = argList.toArray(new String[argList.size()]);
-            PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
+            PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), args);
             if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
                 program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
             }
