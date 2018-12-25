@@ -1,5 +1,8 @@
 package com.dtstack.flink.sql.sink.console.table;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -15,6 +18,7 @@ import java.util.regex.Pattern;
  * @author xuqianjin
  */
 public class TablePrintUtil {
+    private static final Logger LOG = LoggerFactory.getLogger(TablePrintUtil.class);
     public static final int ALIGN_LEFT = 1;//左对齐
     public static final int ALIGN_RIGHT = 2;//右对齐
     public static final int ALIGN_CENTER = 3;//居中对齐
@@ -222,6 +226,7 @@ public class TablePrintUtil {
      * 直接打印表格
      */
     public void print() {
+        LOG.info("\n"+getTableString());
         System.out.println(getTableString());
     }
 

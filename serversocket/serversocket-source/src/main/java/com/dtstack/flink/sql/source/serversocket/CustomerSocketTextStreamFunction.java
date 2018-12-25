@@ -25,6 +25,8 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMap
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -42,11 +44,12 @@ import java.util.Iterator;
  * @author maqi
  */
 public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
+	private static final Logger LOG = LoggerFactory.getLogger(CustomerSocketTextStreamFunction.class);
 
 	/**
 	 * Default delay between successive connection attempts.
 	 */
-	private static final int DEFAULT_CONNECTION_RETRY_SLEEP = 500;
+	private static final int DEFAULT_CONNECTION_RETRY_SLEEP = 2000;
 
 	/**
 	 * Default connection timeout when connecting to the server socket (infinite).
@@ -92,31 +95,32 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 		long attempt = 0;
 
 		while (isRunning) {
-
-			try (Socket socket = new Socket()) {
+			try {
+				Socket socket = new Socket();
 				currentSocket = socket;
-
 				socket.connect(new InetSocketAddress(tableInfo.getHostname(), tableInfo.getPort()), CONNECTION_TIMEOUT_TIME);
-				try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-					char[] cbuf = new char[8192];
-					int bytesRead;
-					while (isRunning && (bytesRead = reader.read(cbuf)) != -1) {
-						buffer.append(cbuf, 0, bytesRead);
-						int delimPos;
-						String delimiter = tableInfo.getDelimiter();
-						while (buffer.length() >= delimiter.length() && (delimPos = buffer.indexOf(delimiter)) != -1) {
-							String record = buffer.substring(0, delimPos);
-							// truncate trailing carriage return
-							if (delimiter.equals("\n") && record.endsWith("\r")) {
-								record = record.substring(0, record.length() - 1);
-							}
-							ctx.collect(convertToRow(record));
-							buffer.delete(0, delimPos + delimiter.length());
+				BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				char[] cbuf = new char[8192];
+				int bytesRead;
+				while (isRunning && (bytesRead = reader.read(cbuf)) != -1) {
+					buffer.append(cbuf, 0, bytesRead);
+					int delimPos;
+					String delimiter = tableInfo.getDelimiter();
+					while (buffer.length() >= delimiter.length() && (delimPos = buffer.indexOf(delimiter)) != -1) {
+						String record = buffer.substring(0, delimPos);
+						// truncate trailing carriage return
+						if (delimiter.equals("\n") && record.endsWith("\r")) {
+							record = record.substring(0, record.length() - 1);
 						}
+						ctx.collect(convertToRow(record));
+						buffer.delete(0, delimPos + delimiter.length());
 					}
 				}
+			} catch (Exception e) {
+				LOG.info("Connection server failed, Please check configuration  !!!!!!!!!!!!!!!!");
 			}
+
 
 			// if we dropped out of this loop due to an EOF, sleep and retry
 			if (isRunning) {
