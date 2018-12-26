@@ -36,6 +36,8 @@ public class KafkaSourceParser extends AbsSourceParser {
         kafka08SourceTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, kafka08SourceTableInfo);
         kafka08SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
+
+        kafka08SourceTableInfo.setTimeZone(MathUtil.getString(props.get(KafkaSourceTableInfo.TIME_ZONE_KEY.toLowerCase())));
         if (props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE) != null) {
             kafka08SourceTableInfo.setSourceDataType(props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE).toString());
         }

@@ -23,7 +23,7 @@ CREATE TABLE tableName(
     kafka08,kafka09,kafka10,kafka11
 
 ## 3.表结构定义
- 
+
 |参数名称|含义|
 |----|---|
 | tableName | 在 sql 中使用的名称;即注册到flink-table-env上的名称|
@@ -33,7 +33,7 @@ CREATE TABLE tableName(
 | WATERMARK FOR colName AS withOffset( colName , delayTime ) | 标识输入流生的watermake生成规则,根据指定的colName(当前支持列的类型为Long \| Timestamp) 和delayTime生成waterMark 同时会在注册表的使用附带上rowtime字段(如果未指定则默认添加proctime字段);注意：添加该标识的使用必须设置系统参数 time.characteristic:EventTime; delayTime: 数据最大延迟时间(ms)|
 
 ## 4.参数：
- 
+
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
 |type | kafka09 | 是||
@@ -66,7 +66,7 @@ CREATE TABLE MyTable(
 # 二、csv格式数据源
 根据字段分隔符进行数据分隔，按顺序匹配sql中配置的列。如数据分隔列数和sql中配置的列数相等直接匹配；如不同参照lengthcheckpolicy策略处理。
 ## 1.参数：
- 
+
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
 |type | kafka09 | 是||
@@ -103,7 +103,7 @@ CREATE TABLE MyTable(
 # 三、text格式数据源UDF自定义拆分
 Kafka源表数据解析流程：Kafka Source Table -> UDTF ->Realtime Compute -> SINK。从Kakfa读入的数据，都是VARBINARY（二进制）格式，对读入的每条数据，都需要用UDTF将其解析成格式化数据。
   与其他格式不同，本格式定义DDL必须与以下SQL一摸一样，表中的五个字段顺序务必保持一致：
-  
+
 ## 1. 定义源表，注意：kafka源表DDL字段必须与以下例子一模一样。WITH中参数可改。
 ```
 create table kafka_stream(
@@ -119,11 +119,11 @@ create table kafka_stream(
      kafka.auto.offset.reset ='latest',
      kafka.topic ='nbTest1',
      parallelism ='1',
-     sourcedatatype='text' 
+     sourcedatatype='text'
  ）
 ```
 ## 2.参数：
- 
+
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
 |type | kafka09 | 是||
@@ -136,10 +136,10 @@ create table kafka_stream(
 **kafka相关参数可以自定义，使用kafka.开头即可。**
 
 ## 2.自定义：
-从kafka读出的数据，需要进行窗口计算。 按照实时计算目前的设计，滚窗/滑窗等窗口操作，需要（且必须）在源表DDL上定义Watermark。Kafka源表比较特殊。如果要以kafka中message字段中的的Event Time进行窗口操作， 
+从kafka读出的数据，需要进行窗口计算。 按照实时计算目前的设计，滚窗/滑窗等窗口操作，需要（且必须）在源表DDL上定义Watermark。Kafka源表比较特殊。如果要以kafka中message字段中的的Event Time进行窗口操作，
 需要先从message字段，使用UDX解析出event time，才能定义watermark。 在kafka源表场景中，需要使用计算列。 假设，kafka中写入的数据如下：
 2018-11-11 00:00:00|1|Anna|female整个计算流程为：Kafka SOURCE->UDTF->Realtime Compute->RDS SINK（单一分隔符可直接使用类csv格式模板，自定义适用于更复杂的数据类型，本说明只做参考）
-   
+
 **SQL**
 ```
 -- 定义解析Kakfa message的UDTF
@@ -207,10 +207,10 @@ create table kafka_stream(
  Group BY sex, TUMBLE(ctime, INTERVAL '1' MINUTE);
  -- 使用解析出的格式化数据进行计算，并将结果输出到RDS中
  insert into rds_sink
-   SELECT 
+   SELECT
        cnt,sex
    from view2;
- ```  
+ ```
 **UDF&UDTF**
 ```
 package com.XXXX;
@@ -255,26 +255,26 @@ package com.XXXX;
      public DataType getResultType(Object[] arguments, Class[] argTypes) {
          return DataTypes.createRowType(DataTypes.TIMESTAMP,DataTypes.STRING, DataTypes.Integer, DataTypes.STRING,DataTypes.STRING);
      }
- }                                                         
- 
- package com.dp58;                                             
- package com.dp58.sql.udx;                              
- import org.apache.flink.table.functions.FunctionContext;         
- import org.apache.flink.table.functions.ScalarFunction;          
- public class KafkaUDF extends ScalarFunction {                   
-     // 可选，open方法可以不写                                             
+ }
+
+ package com.dp58;
+ package com.dp58.sql.udx;
+ import org.apache.flink.table.functions.FunctionContext;
+ import org.apache.flink.table.functions.ScalarFunction;
+ public class KafkaUDF extends ScalarFunction {
+     // 可选，open方法可以不写
      // 需要import org.apache.flink.table.functions.FunctionContext;
-     public String eval(byte[] message) {                         
-          // 读入一个二进制数据，并将其转换为String格式                             
-         String msg = new String(message, "UTF-8");               
-         return msg.split('\\|')[0];                              
-     }                                                            
-     public long eval(String b, String c) {                       
-         return eval(b) + eval(c);                                
-     }                                                            
-     //可选，close方法可以不写                                             
-     @Override                                                    
-     public void close() {                                        
-         }                                                        
+     public String eval(byte[] message) {
+          // 读入一个二进制数据，并将其转换为String格式
+         String msg = new String(message, "UTF-8");
+         return msg.split('\\|')[0];
+     }
+     public long eval(String b, String c) {
+         return eval(b) + eval(c);
+     }
+     //可选，close方法可以不写
+     @Override
+     public void close() {
+         }
  }
  ```

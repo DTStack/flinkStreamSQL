@@ -16,14 +16,18 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.table;
 
+import com.google.common.collect.Lists;
+import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Reason:
@@ -36,6 +40,14 @@ public abstract class SourceTableInfo extends TableInfo {
 
     public static final String SOURCE_SUFFIX = "Source";
 
+    public static final String SOURCE_DATA_TYPE = "sourcedatatype";
+
+    public static final String TIME_ZONE_KEY="timezone";
+
+    private String sourceDataType = "json";
+
+    private String timeZone="Asia/Shanghai";
+
     private String eventTimeField;
 
     private Integer maxOutOrderness = 10;
@@ -44,7 +56,7 @@ public abstract class SourceTableInfo extends TableInfo {
 
     @Override
     public boolean check() {
-       return true;
+        return true;
     }
 
     public String getEventTimeField() {
@@ -101,4 +113,33 @@ public abstract class SourceTableInfo extends TableInfo {
     public String getAdaptName(){
         return getName() + "_adapt";
     }
+
+    public String getSourceDataType() {
+        return sourceDataType;
+    }
+
+    public void setSourceDataType(String sourceDataType) {
+        this.sourceDataType = sourceDataType;
+    }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        if (timeZone==null){
+            return;
+        }
+        timeZoneCheck(timeZone);
+        this.timeZone = timeZone;
+    }
+
+    private void timeZoneCheck(String timeZone) {
+        ArrayList<String> zones = Lists.newArrayList(TimeZone.getAvailableIDs());
+        if (!zones.contains(timeZone)){
+            throw  new IllegalArgumentException(" timezone is Incorrect!");
+        }
+    }
+
+
 }
