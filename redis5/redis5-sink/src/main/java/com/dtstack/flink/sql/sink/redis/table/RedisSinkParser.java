@@ -24,6 +24,8 @@ import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 
+import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
+
 public class RedisSinkParser extends AbsTableParser {
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
@@ -34,6 +36,7 @@ public class RedisSinkParser extends AbsTableParser {
         redisTableInfo.setDatabase(MathUtil.getString(props.get(RedisTableInfo.DATABASE_KEY)));
         redisTableInfo.setPassword(MathUtil.getString(props.get(RedisTableInfo.PASSWORD_KEY)));
         redisTableInfo.setTablename(MathUtil.getString(props.get(RedisTableInfo.TABLENAME_KEY)));
+        redisTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
         if (props.get(RedisTableInfo.TIMEOUT) != null){
             redisTableInfo.setTimeout(Integer.parseInt(MathUtil.getString(props.get(RedisTableInfo.TIMEOUT))));
         }

@@ -53,7 +53,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String tableName;
     protected String[] rowkey;
     protected List<String> primaryKeys;
-
+    protected Integer parallelism;
     protected boolean ignoreRowKeyColumn = false;
 
     public HbaseSink() {
@@ -70,6 +70,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.rowkey = hbaseTableInfo.getRowkey();
         this.ignoreRowKeyColumn = hbaseTableInfo.getIgnoreRowKeyColumn();
         this.primaryKeys = targetTableInfo.getPrimaryKeys();
+        this.parallelism = hbaseTableInfo.getParallelism();
         return this;
     }
 
@@ -87,6 +88,9 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
         dataStreamSink.name(tableName);
+        if (parallelism!=null && parallelism > 0) {
+            dataStreamSink.setParallelism(parallelism);
+        }
     }
 
     @Override

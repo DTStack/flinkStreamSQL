@@ -192,7 +192,6 @@ public class FlinkUtil {
 
     /**
      * 注册自定义TABLEFFUNC方法到env上
-     * TODO 对User-Defined Aggregate Functions的支持
      * @param classPath
      * @param funcName
      * @param tableEnv
@@ -220,7 +219,6 @@ public class FlinkUtil {
 
     /**
      * 注册自定义TABLEFFUNC方法到env上
-     * TODO 对User-Defined Aggregate Functions的支持
      * @param classPath
      * @param funcName
      * @param tableEnv

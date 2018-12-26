@@ -24,7 +24,11 @@ package com.dtstack.flink.sql.sink.hbase.table;
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
@@ -61,8 +65,13 @@ public class HbaseSinkParser extends AbsTableParser {
         hbaseTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
         hbaseTableInfo.setHost((String) props.get(HBASE_ZOOKEEPER_QUORUM.toLowerCase()));
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
-        //String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
-        //hbaseTableInfo.setRowkey(rk.split(","));
+        String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
+        if(StringUtils.isNotBlank(rk)) {
+            hbaseTableInfo.setRowkey(rk.split(","));
+        }
+        if(CollectionUtils.isEmpty(hbaseTableInfo.getPrimaryKeys()) && ArrayUtils.isEmpty(hbaseTableInfo.getRowkey())){
+            throw new IllegalStateException("Primary key must be set up.");
+        }
         return hbaseTableInfo;
     }
 }

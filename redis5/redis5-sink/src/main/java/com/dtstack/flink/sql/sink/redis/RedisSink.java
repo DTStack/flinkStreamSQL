@@ -26,6 +26,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
@@ -52,9 +53,7 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     protected int timeout;
 
-    public RedisSink(){
-
-    }
+    protected Integer parallelism;
 
     @Override
     public RedisSink genStreamSink(TargetTableInfo targetTableInfo) {
@@ -64,6 +63,7 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.password = redisTableInfo.getPassword();
         this.tableName = redisTableInfo.getTablename();
         this.primaryKeys = targetTableInfo.getPrimaryKeys();
+        this.parallelism = targetTableInfo.getParallelism();
         return this;
     }
 
@@ -85,7 +85,11 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
                 .setTimeout(this.timeout);
         RedisOutputFormat redisOutputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(redisOutputFormat);
-        dataStream.addSink(richSinkFunction);
+        DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
+        dataStreamSink.name(tableName);
+        if (parallelism!=null && parallelism > 0) {
+            dataStreamSink.setParallelism(parallelism);
+        }
     }
 
     @Override
