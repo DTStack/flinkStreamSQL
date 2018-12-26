@@ -80,8 +80,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     public Row deserialize(byte[] message) throws IOException {
 
         try {
-            numInRecord.inc();
-            numInBytes.inc(message.length);
+           // numInRecord.inc();
+           // numInBytes.inc(message.length);
 
             JsonNode root = objectMapper.readTree(message);
             Row row = new Row(fieldNames.length);
@@ -102,12 +102,12 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
                 }
             }
 
-            numInResolveRecord.inc();
+          //  numInResolveRecord.inc();
             return row;
         } catch (Throwable t) {
             //add metric of dirty data
             LOG.error(t.getMessage());
-            dirtyDataCounter.inc();
+           // dirtyDataCounter.inc();
             return null;
         }
     }

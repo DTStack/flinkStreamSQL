@@ -48,9 +48,9 @@ public class CustomerCommonDeserialization extends AbsDeserialization<Row> imple
 	@Override
 	public Row deserialize(byte[] messageKey, byte[] message, String topic, int partition, long offset) {
 
-		numInRecord.inc();
-		numInBytes.inc(message.length);
-		numInBytes.inc(messageKey.length);
+		//numInRecord.inc();
+		//numInBytes.inc(message.length);
+		//numInBytes.inc(messageKey.length);
 
 		try {
 			Row row = Row.of(
@@ -63,7 +63,7 @@ public class CustomerCommonDeserialization extends AbsDeserialization<Row> imple
 			return row;
 		} catch (Throwable t) {
 			LOG.error(t.getMessage());
-			dirtyDataCounter.inc();
+		//	dirtyDataCounter.inc();
 			return null;
 		}
 	}
