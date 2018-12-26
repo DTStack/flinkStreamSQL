@@ -100,19 +100,19 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 			}
 		} else if ("csv".equalsIgnoreCase(kafka011SourceTableInfo.getSourceDataType())) {
 			if (topicIsPattern) {
-				kafkaSrc = new CustomerCsvConsumer(topicName,
+				kafkaSrc = new CustomerCsvConsumer(Pattern.compile(topicName),
 						new CustomerCsvDeserialization(typeInformation,
 								kafka011SourceTableInfo.getFieldDelimiter(), kafka011SourceTableInfo.getLengthCheckPolicy()), props);
 			} else {
-				kafkaSrc = new CustomerCsvConsumer(Pattern.compile(topicName),
+				kafkaSrc = new CustomerCsvConsumer(topicName,
 						new CustomerCsvDeserialization(typeInformation,
 								kafka011SourceTableInfo.getFieldDelimiter(), kafka011SourceTableInfo.getLengthCheckPolicy()), props);
 			}
 		} else {
 			if (topicIsPattern) {
-				kafkaSrc = new CustomerCommonConsumer(topicName, new CustomerCommonDeserialization(), props);
-			} else {
 				kafkaSrc = new CustomerCommonConsumer(Pattern.compile(topicName), new CustomerCommonDeserialization(), props);
+			} else {
+				kafkaSrc = new CustomerCommonConsumer(topicName, new CustomerCommonDeserialization(), props);
 			}
 		}
 

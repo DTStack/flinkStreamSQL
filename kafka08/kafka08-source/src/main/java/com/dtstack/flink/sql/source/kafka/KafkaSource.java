@@ -90,19 +90,19 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 			}
 		} else if ("csv".equalsIgnoreCase(kafka08SourceTableInfo.getSourceDataType())) {
 			if (topicIsPattern) {
-				kafkaSrc = new CustomerCsvConsumer(topicName,
+				kafkaSrc = new CustomerCsvConsumer(Pattern.compile(topicName),
 						new com.dtstack.flink.sql.source.kafka.deserialization.CustomerCsvDeserialization(typeInformation,
 								kafka08SourceTableInfo.getFieldDelimiter(), kafka08SourceTableInfo.getLengthCheckPolicy()), props);
 			} else {
-				kafkaSrc = new CustomerCsvConsumer(Pattern.compile(topicName),
+				kafkaSrc = new CustomerCsvConsumer(topicName,
 						new CustomerCsvDeserialization(typeInformation,
 								kafka08SourceTableInfo.getFieldDelimiter(), kafka08SourceTableInfo.getLengthCheckPolicy()), props);
 			}
 		} else {
 			if (topicIsPattern) {
-				kafkaSrc = new CustomerCommonConsumer(topicName, new com.dtstack.flink.sql.source.kafka.deserialization.CustomerCommonDeserialization(), props);
+				kafkaSrc = new CustomerCommonConsumer(Pattern.compile(topicName), new com.dtstack.flink.sql.source.kafka.deserialization.CustomerCommonDeserialization(), props);
 			} else {
-				kafkaSrc = new CustomerCommonConsumer(Pattern.compile(topicName), new CustomerCommonDeserialization(), props);
+				kafkaSrc = new CustomerCommonConsumer(topicName, new CustomerCommonDeserialization(), props);
 			}
 		}
 

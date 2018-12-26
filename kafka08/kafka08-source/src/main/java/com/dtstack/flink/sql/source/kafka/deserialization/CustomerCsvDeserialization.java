@@ -80,8 +80,8 @@ public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
     public Row deserialize(byte[] message) throws IOException {
 
         try {
-            numInRecord.inc();
-            numInBytes.inc(message.length);
+            //numInRecord.inc();
+            //numInBytes.inc(message.length);
             String[] fieldsList = null;
             if (message != null && message.length > 0){
                 fieldsList = new String(message).split(fieldDelimiter);
@@ -103,11 +103,11 @@ public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
                 }
             }
 
-            numInResolveRecord.inc();
+            //numInResolveRecord.inc();
             return row;
         } catch (Throwable t) {
             //add metric of dirty data
-            dirtyDataCounter.inc();
+            //dirtyDataCounter.inc();
             throw new RuntimeException(t);
         }
     }
