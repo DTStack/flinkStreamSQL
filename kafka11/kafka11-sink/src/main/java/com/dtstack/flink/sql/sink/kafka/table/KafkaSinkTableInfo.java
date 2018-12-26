@@ -41,7 +41,7 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
         super.setType(CURR_TYPE);
     }
 
-    public static Map<String,String> kafkaParam = new HashMap<String,String>();
+    public Map<String,String> kafkaParam = new HashMap<String,String>();
 
     public void addKafkaParam(String key,String value){
         kafkaParam.put(key,value);

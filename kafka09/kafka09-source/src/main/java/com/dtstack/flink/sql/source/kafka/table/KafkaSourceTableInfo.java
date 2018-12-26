@@ -59,7 +59,7 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 	}
 
 
-	public static Map<String,String> kafkaParam = new HashMap<>();
+	public Map<String,String> kafkaParam = new HashMap<>();
 
 
 	public void addKafkaParam(String key,String value){
