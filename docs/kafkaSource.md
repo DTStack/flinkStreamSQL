@@ -15,12 +15,15 @@ CREATE TABLE tableName(
     kafka.auto.offset.reset ='latest',
     kafka.topic ='topicName',
     parallelism ='parllNum',
+    --timezone='America/Los_Angeles',
+    timezone='Asia/Shanghai',
     sourcedatatype ='json' #可不设置
  );
 ```
 
 ## 2.支持的版本
-    kafka08,kafka09,kafka10,kafka11
+    kafka08,kafka09,kafka10,kafka11    
+ **kafka读取和写入的版本必须一致，否则会有兼容性错误。**
 
 ## 3.表结构定义
  
@@ -37,12 +40,15 @@ CREATE TABLE tableName(
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
 |type | kafka09 | 是||
+|kafka.group.id | 需要读取的 groupId 名称|否||
 |kafka.bootstrap.servers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
 |kafka.zookeeper.quorum | kafka zk地址信息(多个之间用逗号分隔)|是||
 |kafka.topic | 需要读取的 topic 名称|是||
-|kafka.auto.offset.reset | 读取的topic 的offset初始位置[latest\|earliest]|否|latest|
+|patterntopic | topic是否是正则表达式格式(true|false)  |否| false
+|kafka.auto.offset.reset  | 读取的topic 的offset初始位置[latest\|earliest\|指定offset值({"0":12312,"1":12321,"2":12312},{"partition_no":offset_value})]|否|latest|
 |parallelism | 并行度设置|否|1|
 |sourcedatatype | 数据类型|否|json|
+|timezone|时区设置[timezone支持的参数](timeZone.md)|否|'Asia/Shanghai'
 **kafka相关参数可以自定义，使用kafka.开头即可。**
 
 ## 5.样例：
@@ -58,7 +64,9 @@ CREATE TABLE MyTable(
     kafka.bootstrap.servers ='172.16.8.198:9092',
     kafka.zookeeper.quorum ='172.16.8.198:2181/kafka',
     kafka.auto.offset.reset ='latest',
-    kafka.topic ='nbTest1',
+    kafka.topic ='nbTest1,nbTest2,nbTest3',
+    --kafka.topic ='mqTest.*',
+    --patterntopic='true'
     parallelism ='1',
     sourcedatatype ='json' #可不设置
  );
@@ -94,6 +102,8 @@ CREATE TABLE MyTable(
     kafka.zookeeper.quorum ='172.16.8.198:2181/kafka',
     kafka.auto.offset.reset ='latest',
     kafka.topic ='nbTest1',
+    --kafka.topic ='mqTest.*',
+    --kafka.topicIsPattern='true'
     parallelism ='1',
     sourcedatatype ='csv',
     fielddelimiter ='\|',
