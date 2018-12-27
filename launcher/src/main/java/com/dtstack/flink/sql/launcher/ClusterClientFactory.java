@@ -63,7 +63,7 @@ public class ClusterClientFactory {
         String mode = launcherOptions.getMode();
         if(mode.equals(ClusterMode.standalone.name())) {
             return createStandaloneClient(launcherOptions);
-        } else if(mode.equals(ClusterMode.yarn.name()) || mode.equals(ClusterMode.yarnPer.name())) {
+        } else if(mode.equals(ClusterMode.yarn.name())) {
             return createYarnClient(launcherOptions,mode);
         }
         throw new IllegalArgumentException("Unsupported cluster client type: ");
