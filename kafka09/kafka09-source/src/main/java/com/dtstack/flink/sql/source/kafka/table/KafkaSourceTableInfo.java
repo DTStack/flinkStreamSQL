@@ -123,7 +123,7 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 		Preconditions.checkNotNull(topic, "kafka of topic is required");
 		//Preconditions.checkNotNull(groupId, "kafka of groupId is required");
 		Preconditions.checkState(offsetReset.equalsIgnoreCase("latest")
-				|| offsetReset.equalsIgnoreCase("latest"), "kafka of offsetReset set fail");
+				|| offsetReset.equalsIgnoreCase("earliest"), "kafka of offsetReset set fail");
 
 		return false;
 	}
