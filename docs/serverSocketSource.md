@@ -32,42 +32,6 @@ CREATE TABLE MyTable(
 
 ## 3.Server端样例：
 ```
-String str = "{\"CHANNEL\":\"xc3\",\"pv\":1234567,\"xdate\":\"2018-12-07\",\"xtime\":\"2018-12-15\"};";
+String JsonStr = "{\"CHANNEL\":\"xc3\",\"pv\":1234567,\"xdate\":\"2018-12-07\",\"xtime\":\"2018-12-15\"};";
 
-
-public class TimeServerHandler implements Runnable {
-	Socket socket;
-
-	String str = "{\"CHANNEL\":\"xc3\",\"pv\":1234567,\"xdate\":\"2018-12-07\",\"xtime\":\"2018-12-15\"};";
-
-	public TimeServerHandler(Socket socket) {
-		this.socket = socket;
-	}
-
-	public void run() {
-		PrintWriter out = null;
-		try {
-			out = new PrintWriter(this.socket.getOutputStream(), true);
-			while (true) {
-				Thread.sleep(3000);
-				out.println(str);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-
-			if (out != null) {
-				out.close();
-			}
-			if (socket != null) {
-				try {
-					socket.close();
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-}
 ```

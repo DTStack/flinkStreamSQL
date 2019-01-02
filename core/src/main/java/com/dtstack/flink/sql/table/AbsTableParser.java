@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Maps;
 
@@ -83,16 +84,42 @@ public abstract class AbsTableParser {
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
 
-            boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
+            String[] filedInfoArr = fieldRow.split("\\s+");
 
+            boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
             if(isMatcherKey){
                 continue;
             }
 
-            String[] filedInfoArr = fieldRow.split("\\s+");
-            if(filedInfoArr.length < 2){
+            if(filedInfoArr.length < 2 ){
                 throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
             }
+
+            if(filedInfoArr.length > 2 ){
+                throw new RuntimeException("mapping field can't contain spaces.");
+            }
+
+            String physicalField=null;
+
+            if (filedInfoArr[0].contains("(")){
+                String first=filedInfoArr[0];
+                int leftIndex=first.indexOf("(");
+                int rightIndex=first.indexOf(")");
+
+                String newFirst=first.substring(0,leftIndex).trim();
+				filedInfoArr[0]=newFirst;
+
+                physicalField=first.substring(leftIndex+1,rightIndex).trim();
+            }
+
+            if (StringUtils.isNotBlank(physicalField)){
+                tableInfo.addPhysicalMappings(filedInfoArr[0],physicalField);
+            }else {
+                tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
+            }
+
+
+
 
             //Compatible situation may arise in space in the fieldName
             String[] filedNameArr = new String[filedInfoArr.length - 1];

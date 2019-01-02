@@ -92,10 +92,10 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 		if ("json".equalsIgnoreCase(kafka011SourceTableInfo.getSourceDataType())) {
 			if (topicIsPattern) {
 				kafkaSrc = new CustomerJsonConsumer(Pattern.compile(topicName),
-						new CustomerJsonDeserialization(typeInformation), props);
+						new CustomerJsonDeserialization(typeInformation,sourceTableInfo.getPhysicalFields()), props);
 			} else {
 				kafkaSrc = new CustomerJsonConsumer(topicName,
-						new CustomerJsonDeserialization(typeInformation), props);
+						new CustomerJsonDeserialization(typeInformation,sourceTableInfo.getPhysicalFields()), props);
 			}
 		} else if ("csv".equalsIgnoreCase(kafka011SourceTableInfo.getSourceDataType())) {
 			if (topicIsPattern) {

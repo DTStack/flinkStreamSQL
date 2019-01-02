@@ -23,9 +23,15 @@ package com.dtstack.flink.sql.source.kafka.deserialization;
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
+import com.google.common.collect.Maps;
+import org.apache.flink.api.common.typeinfo.BasicArrayTypeInfo;
+import org.apache.flink.api.common.typeinfo.PrimitiveArrayTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.api.java.typeutils.ObjectArrayTypeInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
@@ -39,7 +45,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import static com.dtstack.flink.sql.metric.MetricConstant.DT_PARTITION_GROUP;
@@ -77,16 +87,22 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private boolean firstMsg = true;
 
-    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo){
+    private Map<String, String> rowAndFieldMapping = Maps.newHashMap();
+
+    private Map<String, JsonNode> nodeAndJsonnodeMapping = Maps.newHashMap();
+
+    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo,Map<String, String> rowAndFieldMapping){
         this.typeInfo = typeInfo;
 
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
 
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
+
+        this.rowAndFieldMapping=rowAndFieldMapping;
     }
 
     @Override
-    public Row deserialize(byte[] message) throws IOException {
+    public Row deserialize(byte[] message)  {
 
         if(firstMsg){
             try {
@@ -103,7 +119,10 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             numInBytes.inc(message.length);
 
             JsonNode root = objectMapper.readTree(message);
+            parseTree(root,"");
+
             Row row = new Row(fieldNames.length);
+
             for (int i = 0; i < fieldNames.length; i++) {
                 JsonNode node = getIgnoreCase(root, fieldNames[i]);
 
@@ -115,9 +134,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
                         row.setField(i, null);
                     }
                 } else {
-                    // Read the value as specified type
-                    Object value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
-                    row.setField(i, value);
+                    row.setField(i, convert(node, fieldTypes[i]));
                 }
             }
 
@@ -131,22 +148,29 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
     }
 
+    public  void parseTree(JsonNode jsonNode, String prefix){
+        nodeAndJsonnodeMapping.clear();
+
+        Iterator<String> iterator = jsonNode.fieldNames();
+        while (iterator.hasNext()){
+            String next = iterator.next();
+            JsonNode child = jsonNode.get(next);
+            if (child.isObject()){
+                parseTree(child,next+"."+prefix);
+            }else {
+                nodeAndJsonnodeMapping.put(prefix+next,child);
+            }
+        }
+    }
+
     public void setFailOnMissingField(boolean failOnMissingField) {
         this.failOnMissingField = failOnMissingField;
     }
 
+
     public JsonNode getIgnoreCase(JsonNode jsonNode, String key) {
-
-        Iterator<String> iter = jsonNode.fieldNames();
-        while (iter.hasNext()) {
-            String key1 = iter.next();
-            if (key1.equalsIgnoreCase(key)) {
-                return jsonNode.get(key1);
-            }
-        }
-
-        return null;
-
+        String nodeMappingKey = rowAndFieldMapping.get(key);
+        return nodeAndJsonnodeMapping.get(nodeMappingKey);
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
@@ -191,5 +215,66 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private static String partitionLagMetricName(TopicPartition tp) {
         return tp + ".records-lag";
+    }
+
+    // --------------------------------------------------------------------------------------------
+
+    private Object convert(JsonNode node, TypeInformation<?> info) {
+         if (info.getTypeClass().equals(Types.BOOLEAN.getTypeClass())) {
+            return node.asBoolean();
+        } else if (info.getTypeClass().equals(Types.STRING.getTypeClass())) {
+            return node.asText();
+        } else if (info.getTypeClass().equals(Types.BIG_DEC.getTypeClass())) {
+            return node.decimalValue();
+        } else if (info.getTypeClass().equals(Types.BIG_INT.getTypeClass())) {
+            return node.bigIntegerValue();
+        } else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
+            return Date.valueOf(node.asText());
+        } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
+            // according to RFC 3339 every full-time must have a timezone;
+            // until we have full timezone support, we only support UTC;
+            // users can parse their time as string as a workaround
+            final String time = node.asText();
+            if (time.indexOf('Z') < 0 || time.indexOf('.') >= 0) {
+                throw new IllegalStateException(
+                        "Invalid time format. Only a time in UTC timezone without milliseconds is supported yet. " +
+                                "Format: HH:mm:ss'Z'");
+            }
+            return Time.valueOf(time.substring(0, time.length() - 1));
+        } else if (info.getTypeClass().equals(Types.SQL_TIMESTAMP.getTypeClass())) {
+            // according to RFC 3339 every date-time must have a timezone;
+            // until we have full timezone support, we only support UTC;
+            // users can parse their time as string as a workaround
+            final String timestamp = node.asText();
+            if (timestamp.indexOf('Z') < 0) {
+                throw new IllegalStateException(
+                        "Invalid timestamp format. Only a timestamp in UTC timezone is supported yet. " +
+                                "Format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            }
+            return Timestamp.valueOf(timestamp.substring(0, timestamp.length() - 1).replace('T', ' '));
+        } else if (info instanceof ObjectArrayTypeInfo) {
+            throw new IllegalStateException("Unsupported type information '" + info + "' for node: " + node);
+        } else if (info instanceof BasicArrayTypeInfo) {
+            throw new IllegalStateException("Unsupported type information '" + info + "' for node: " + node);
+        } else if (info instanceof PrimitiveArrayTypeInfo &&
+                ((PrimitiveArrayTypeInfo) info).getComponentType() == Types.BYTE) {
+            return convertByteArray(node);
+        } else {
+            // for types that were specified without JSON schema
+            // e.g. POJOs
+            try {
+                return objectMapper.treeToValue(node, info.getTypeClass());
+            } catch (JsonProcessingException e) {
+                throw new IllegalStateException("Unsupported type information '" + info + "' for node: " + node);
+            }
+        }
+    }
+
+    private Object convertByteArray(JsonNode node) {
+        try {
+            return node.binaryValue();
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to deserialize byte array.", e);
+        }
     }
 }
