@@ -1,13 +1,12 @@
 package com.dtstack.flink.sql.sink.kafka;
 
-import org.apache.flink.annotation.Internal;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.common.typeutils.base.TypeSerializerSingleton;
 import org.apache.flink.core.memory.DataInputView;
 import org.apache.flink.core.memory.DataOutputView;
-import org.apache.flink.table.shaded.org.apache.commons.lang.StringEscapeUtils;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.StringValue;
 
@@ -22,7 +21,6 @@ import static org.apache.flink.api.java.typeutils.runtime.NullMaskUtils.writeNul
  * @modifyer maqi
  *
  */
-@Internal
 public final class CustomerCsvSerialization extends TypeSerializerSingleton<Row> {
 
     private static final long serialVersionUID = 1L;
