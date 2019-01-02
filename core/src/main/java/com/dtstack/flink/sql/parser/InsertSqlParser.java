@@ -112,10 +112,10 @@ public class InsertSqlParser implements IParser {
                     sqlParseResult.addSourceTable(identifierNode.toString());
                 }
                 break;
-            case MATCH_RECOGNIZE:
-                SqlMatchRecognize node = (SqlMatchRecognize) sqlNode;
-                sqlParseResult.addSourceTable(node.getTableRef().toString());
-                break;
+//            case MATCH_RECOGNIZE:
+//                SqlMatchRecognize node = (SqlMatchRecognize) sqlNode;
+//                sqlParseResult.addSourceTable(node.getTableRef().toString());
+//                break;
             case UNION:
                 SqlNode unionLeft = ((SqlBasicCall)sqlNode).getOperands()[0];
                 SqlNode unionRight = ((SqlBasicCall)sqlNode).getOperands()[1];

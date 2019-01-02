@@ -223,7 +223,7 @@ public class MathUtil {
             return null;
         }
         if (obj instanceof String) {
-            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             try {
                 return new Date(format.parse((String) obj).getTime());
             } catch (ParseException e) {

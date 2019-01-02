@@ -17,6 +17,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.package.name>core</project.package.name>
+        <calcite.server.version>1.16.0</calcite.server.version>
     </properties>
 
     <dependencies>
@@ -47,6 +48,12 @@
 
         <dependency>
             <groupId>org.apache.flink</groupId>
+            <artifactId>flink-streaming-scala_2.11</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
             <artifactId>flink-table_2.11</artifactId>
             <version>${flink.version}</version>
         </dependency>
@@ -55,7 +62,7 @@
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-server</artifactId>
             <!-- When updating the Calcite version, make sure to update the dependency exclusions -->
-            <version>1.16.0</version>
+            <version>${calcite.server.version}</version>
         </dependency>
 
         <dependency>
@@ -67,12 +74,6 @@
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-scala_2.11</artifactId>
-            <version>${flink.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-streaming-scala_2.11</artifactId>
             <version>${flink.version}</version>
         </dependency>
 
