@@ -140,9 +140,9 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
             numInResolveRecord.inc();
             return row;
-        } catch (Throwable t) {
+        } catch (Exception e) {
             //add metric of dirty data
-            LOG.error(t.getMessage());
+            LOG.error(e.getMessage());
             dirtyDataCounter.inc();
             return null;
         }
@@ -231,27 +231,11 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         } else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
             return Date.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
-            // according to RFC 3339 every full-time must have a timezone;
-            // until we have full timezone support, we only support UTC;
-            // users can parse their time as string as a workaround
-            final String time = node.asText();
-            if (time.indexOf('Z') < 0 || time.indexOf('.') >= 0) {
-                throw new IllegalStateException(
-                        "Invalid time format. Only a time in UTC timezone without milliseconds is supported yet. " +
-                                "Format: HH:mm:ss'Z'");
-            }
-            return Time.valueOf(time.substring(0, time.length() - 1));
+            // local zone
+            return Time.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIMESTAMP.getTypeClass())) {
-            // according to RFC 3339 every date-time must have a timezone;
-            // until we have full timezone support, we only support UTC;
-            // users can parse their time as string as a workaround
-            final String timestamp = node.asText();
-            if (timestamp.indexOf('Z') < 0) {
-                throw new IllegalStateException(
-                        "Invalid timestamp format. Only a timestamp in UTC timezone is supported yet. " +
-                                "Format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-            }
-            return Timestamp.valueOf(timestamp.substring(0, timestamp.length() - 1).replace('T', ' '));
+             // local zone
+            return Timestamp.valueOf(node.asText());
         } else if (info instanceof ObjectArrayTypeInfo) {
             throw new IllegalStateException("Unsupported type information '" + info + "' for node: " + node);
         } else if (info instanceof BasicArrayTypeInfo) {

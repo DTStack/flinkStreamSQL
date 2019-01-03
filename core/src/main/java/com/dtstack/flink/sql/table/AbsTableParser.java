@@ -85,41 +85,14 @@ public abstract class AbsTableParser {
             fieldRow = fieldRow.trim();
 
             String[] filedInfoArr = fieldRow.split("\\s+");
+            if(filedInfoArr.length < 2 ){
+                throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
+            }
 
             boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
             if(isMatcherKey){
                 continue;
             }
-
-            if(filedInfoArr.length < 2 ){
-                throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
-            }
-
-            if(filedInfoArr.length > 2 ){
-                throw new RuntimeException("mapping field can't contain spaces.");
-            }
-
-            String physicalField=null;
-
-            if (filedInfoArr[0].contains("(")){
-                String first=filedInfoArr[0];
-                int leftIndex=first.indexOf("(");
-                int rightIndex=first.indexOf(")");
-
-                String newFirst=first.substring(0,leftIndex).trim();
-				filedInfoArr[0]=newFirst;
-
-                physicalField=first.substring(leftIndex+1,rightIndex).trim();
-            }
-
-            if (StringUtils.isNotBlank(physicalField)){
-                tableInfo.addPhysicalMappings(filedInfoArr[0],physicalField);
-            }else {
-                tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
-            }
-
-
-
 
             //Compatible situation may arise in space in the fieldName
             String[] filedNameArr = new String[filedInfoArr.length - 1];
@@ -128,6 +101,7 @@ public abstract class AbsTableParser {
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
             Class fieldClass = ClassUtil.stringConvertClass(fieldType);
 
+            tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
             tableInfo.addField(fieldName);
             tableInfo.addFieldClass(fieldClass);
             tableInfo.addFieldType(fieldType);

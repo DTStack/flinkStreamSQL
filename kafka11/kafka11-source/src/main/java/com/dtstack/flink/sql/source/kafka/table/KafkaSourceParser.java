@@ -20,10 +20,14 @@
 package com.dtstack.flink.sql.source.kafka.table;
 
 import com.dtstack.flink.sql.table.AbsSourceParser;
+import com.dtstack.flink.sql.table.SourceTableInfo;
 import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Reason:
@@ -35,6 +39,28 @@ import java.util.Map;
 
 public class KafkaSourceParser extends AbsSourceParser {
 
+	private static final String KAFKA_NEST_FIELD_KEY = "nestFieldKey";
+
+	private static Pattern kafkaNestFieldKeyPattern = Pattern.compile("(?i)((\\w+\\.)*\\w+)\\s+(\\w+)\\s+AS\\s+(\\w+)$");
+
+	static {
+		keyPatternMap.put(KAFKA_NEST_FIELD_KEY, kafkaNestFieldKeyPattern);
+
+		keyHandlerMap.put(KAFKA_NEST_FIELD_KEY, KafkaSourceParser::dealNestField);
+	}
+
+	static void dealNestField(Matcher matcher, TableInfo tableInfo) {
+		SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
+		String physicalField = matcher.group(1);
+		String fieldType = matcher.group(3);
+		String mappingField = matcher.group(4);
+		Class fieldClass=ClassUtil.stringConvertClass(fieldType);
+
+		tableInfo.addPhysicalMappings(mappingField,physicalField);
+		tableInfo.addField(mappingField);
+		tableInfo.addFieldClass(fieldClass);
+		tableInfo.addFieldType(fieldType);
+	}
 
 	@Override
 	public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
