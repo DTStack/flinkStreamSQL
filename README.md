@@ -14,11 +14,10 @@
   * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra,console
 
 # 后续开发计划
-  * 增加kafka结果表功能
   * 增加SQL支持CEP
   * 维表快照
   * sql优化（谓词下移等）
-
+  
 ## 1 快速起步
 ### 1.1 运行模式
 
