@@ -34,6 +34,7 @@ import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
@@ -124,7 +125,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             Row row = new Row(fieldNames.length);
 
             for (int i = 0; i < fieldNames.length; i++) {
-                JsonNode node = getIgnoreCase(root, fieldNames[i]);
+                JsonNode node = getIgnoreCase(fieldNames[i]);
 
                 if (node == null) {
                     if (failOnMissingField) {
@@ -168,9 +169,16 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     }
 
 
-    public JsonNode getIgnoreCase(JsonNode jsonNode, String key) {
+    public JsonNode getIgnoreCase(String key) {
         String nodeMappingKey = rowAndFieldMapping.get(key);
-        return nodeAndJsonnodeMapping.get(nodeMappingKey);
+        JsonNode node = nodeAndJsonnodeMapping.get(nodeMappingKey);
+        JsonNodeType nodeType = node.getNodeType();
+
+        if (nodeType==JsonNodeType.ARRAY){
+            throw new IllegalStateException("Unsupported  type information  array .") ;
+        }
+
+        return node;
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
@@ -236,12 +244,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         } else if (info.getTypeClass().equals(Types.SQL_TIMESTAMP.getTypeClass())) {
              // local zone
             return Timestamp.valueOf(node.asText());
-        } else if (info instanceof ObjectArrayTypeInfo) {
-            throw new IllegalStateException("Unsupported type information '" + info + "' for node: " + node);
-        } else if (info instanceof BasicArrayTypeInfo) {
-            throw new IllegalStateException("Unsupported type information '" + info + "' for node: " + node);
-        } else if (info instanceof PrimitiveArrayTypeInfo &&
-                ((PrimitiveArrayTypeInfo) info).getComponentType() == Types.BYTE) {
+        }  else if (info.getTypeClass().equals(Types.BYTE.getTypeClass())){
             return convertByteArray(node);
         } else {
             // for types that were specified without JSON schema
