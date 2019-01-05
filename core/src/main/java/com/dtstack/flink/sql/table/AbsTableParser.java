@@ -82,6 +82,7 @@ public abstract class AbsTableParser {
         String[] fieldRows = DtStringUtil.splitIgnoreQuotaBrackets(fieldsInfo, ",");
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
+
             boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
 
             if(isMatcherKey){

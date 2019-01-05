@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -84,6 +85,31 @@ public abstract class AbsSideTableParser extends AbsTableParser {
                 if(partitionedJoinKey){
                     sideTableInfo.setPartitionedJoin(true);
                 }
+            }
+
+            if(props.containsKey(SideTableInfo.CACHE_MODE_KEY.toLowerCase())){
+                String cachemode = MathUtil.getString(props.get(SideTableInfo.CACHE_MODE_KEY.toLowerCase()));
+
+                if(!cachemode.equalsIgnoreCase("ordered") && !cachemode.equalsIgnoreCase("unordered")){
+                    throw new RuntimeException("cachemode must ordered or unordered!");
+                }
+                sideTableInfo.setCacheMode(cachemode.toLowerCase());
+            }
+
+            if(props.containsKey(SideTableInfo.ASYNC_CAP_KEY.toLowerCase())){
+                Integer asyncCap = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_CAP_KEY.toLowerCase()));
+                if(asyncCap < 0){
+                    throw new RuntimeException("asyncCapacity size need > 0.");
+                }
+                sideTableInfo.setAsyncCapacity(asyncCap);
+            }
+
+            if(props.containsKey(SideTableInfo.ASYNC_TIMEOUT_KEY.toLowerCase())){
+                Integer asyncTimeout = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_TIMEOUT_KEY.toLowerCase()));
+                if (asyncTimeout<0){
+                    throw new RuntimeException("asyncTimeout size need > 0.");
+                }
+                sideTableInfo.setAsyncTimeout(asyncTimeout);
             }
         }
     }

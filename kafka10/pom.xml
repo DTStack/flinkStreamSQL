@@ -14,9 +14,16 @@
 
     <modules>
         <module>kafka10-source</module>
+        <module>kafka10-sink</module>
     </modules>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-kafka-0.10_2.11</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

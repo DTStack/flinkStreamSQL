@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.watermarker;
 
@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.TimeZone;
 
 /**
  * Custom watermark --- for eventtime
@@ -45,25 +46,35 @@ public class CustomerWaterMarkerForTimeStamp extends AbsCustomerWaterMarker<Row>
 
     private long lastTime = 0;
 
+    private TimeZone timezone;
 
-    public CustomerWaterMarkerForTimeStamp(Time maxOutOfOrderness, int pos) {
+
+    public CustomerWaterMarkerForTimeStamp(Time maxOutOfOrderness, int pos,String timezone) {
         super(maxOutOfOrderness);
         this.pos = pos;
+        this.timezone= TimeZone.getTimeZone(timezone);
     }
 
     @Override
     public long extractTimestamp(Row row) {
         try {
             Timestamp time = (Timestamp) row.getField(pos);
-            lastTime = time.getTime();
 
-            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - time.getTime())/1000));
-            return time.getTime();
+            long extractTime=time.getTime();
+
+            lastTime = extractTime + timezone.getOffset(extractTime);
+
+            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - convertTimeZone(extractTime))/1000));
+
+            return lastTime;
         } catch (RuntimeException e) {
             logger.error("", e);
         }
         return lastTime;
     }
 
-
+    public long convertTimeZone(long evenTime){
+        long res = evenTime - timezone.getOffset(evenTime) + TimeZone.getDefault().getOffset(evenTime);
+        return res;
+    }
 }

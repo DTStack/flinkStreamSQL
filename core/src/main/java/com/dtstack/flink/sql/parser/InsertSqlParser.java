@@ -21,12 +21,7 @@
 package com.dtstack.flink.sql.parser;
 
 import org.apache.calcite.config.Lex;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlInsert;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.commons.lang3.StringUtils;
@@ -37,8 +32,7 @@ import java.util.List;
 import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 
 /**
- * 解析flink sql
- * sql 只支持 insert 开头的
+ * parser flink sql
  * Date: 2018/6/22
  * Company: www.dtstack.com
  * @author xuchao
@@ -117,6 +111,10 @@ public class InsertSqlParser implements IParser {
                 }else {
                     sqlParseResult.addSourceTable(identifierNode.toString());
                 }
+                break;
+            case MATCH_RECOGNIZE:
+                SqlMatchRecognize node = (SqlMatchRecognize) sqlNode;
+                sqlParseResult.addSourceTable(node.getTableRef().toString());
                 break;
             case UNION:
                 SqlNode unionLeft = ((SqlBasicCall)sqlNode).getOperands()[0];
