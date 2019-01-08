@@ -13,7 +13,7 @@
     <artifactId>sql.sink.kafka10</artifactId>
     <packaging>jar</packaging>
 
-    <name>kafka11-sink</name>
+    <name>kafka10-sink</name>
     <url>http://maven.apache.org</url>
 
     <dependencies>
