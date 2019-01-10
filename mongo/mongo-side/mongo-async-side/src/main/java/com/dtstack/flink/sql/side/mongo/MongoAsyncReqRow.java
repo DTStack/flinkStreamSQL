@@ -130,6 +130,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
                 resultFuture.complete(null);
+                return;
             }
             basicDBObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
