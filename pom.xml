@@ -13,6 +13,7 @@
     <module>kafka11</module>
     <module>mysql</module>
     <module>hbase</module>
+    <module>wtable</module>
     <!--
     <module>elasticsearch5</module>
     <module>mongo</module>
