@@ -142,12 +142,12 @@ public class MongoAsyncReqRow extends AsyncReqRow {
                     dealMissKey(input, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
-
+                    List<Row> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
                         Row row = fillData(input, jsonArray);
-                        resultFuture.complete(Collections.singleton(row));
+                        rowList.add(row);
                     }
-
+                    resultFuture.complete(rowList);
                 } else {
                     throw new RuntimeException("not support cache obj type " + val.getType());
                 }
