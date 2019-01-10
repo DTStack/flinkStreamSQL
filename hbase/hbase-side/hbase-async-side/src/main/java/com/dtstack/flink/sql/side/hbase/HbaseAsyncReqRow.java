@@ -129,6 +129,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
             Object equalObj = input.getField(conValIndex);
             if(equalObj == null){
                 resultFuture.complete(null);
+                return;
             }
 
             refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
