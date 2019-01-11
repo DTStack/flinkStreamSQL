@@ -14,10 +14,13 @@
   * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra,console
 
 # 后续开发计划
-  * 增加kafka结果表功能
   * 增加SQL支持CEP
   * 维表快照
   * sql优化（谓词下移等）
+  * serverSocket 源表
+  * console 结果表
+  * kafka avro格式
+  * topN
 
 ## 1 快速起步
 ### 1.1 运行模式
@@ -190,7 +193,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 ```
 
-CREATE (scala|table) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun
+CREATE (scala|table) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun;
 
 
 CREATE TABLE MyTable(
