@@ -42,6 +42,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.Charsets;
+import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -52,6 +53,7 @@ import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Sets;
 import org.apache.flink.client.program.ContextEnvironment;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamContextEnvironment;
@@ -67,6 +69,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
@@ -316,12 +319,33 @@ public class Main {
         }
     }
 
-    private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException {
+    private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException, NoSuchMethodException {
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
 
         env.setParallelism(FlinkUtil.getEnvParallelism(confProperties));
+        Configuration globalJobParameters = new Configuration();
+        Method method = Configuration.class.getDeclaredMethod("setValueInternal", String.class, Object.class);
+        method.setAccessible(true);
+
+        confProperties.forEach((key,val) -> {
+            try {
+                method.invoke(globalJobParameters, key, val);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        });
+
+        ExecutionConfig exeConfig = env.getConfig();
+        if(exeConfig.getGlobalJobParameters() == null){
+            exeConfig.setGlobalJobParameters(globalJobParameters);
+        }else if(exeConfig.getGlobalJobParameters() instanceof Configuration){
+            ((Configuration) exeConfig.getGlobalJobParameters()).addAll(globalJobParameters);
+        }
+
 
         if(FlinkUtil.getMaxEnvParallelism(confProperties) > 0){
             env.setMaxParallelism(FlinkUtil.getMaxEnvParallelism(confProperties));
