@@ -79,6 +79,7 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
 	@Override
 	public boolean check() {
+
 		Preconditions.checkNotNull(kafkaParam.get("bootstrap.servers"), "kafka of bootstrapServers is required");
 		Preconditions.checkNotNull(kafkaParam.get("topic"), "kafka of topic is required");
 		String offset = kafkaParam.get("auto.offset.reset");

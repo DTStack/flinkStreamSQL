@@ -141,8 +141,12 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                     dealMissKey(input, resultFuture);
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){
-                    Row row = fillData(input, val.getContent());
-                    resultFuture.complete(Collections.singleton(row));
+                    List<Row> rowList = Lists.newArrayList();
+                    for (Object jsonArray : (List) val.getContent()) {
+                        Row row = fillData(input, val.getContent());
+                        rowList.add(row);
+                    }
+                    resultFuture.complete(rowList);
                 }else{
                     throw new RuntimeException("not support cache obj type " + val.getType());
                 }
