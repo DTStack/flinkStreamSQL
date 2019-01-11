@@ -23,24 +23,31 @@ package com.dtstack.flink.sql.launcher;
 import avro.shaded.com.google.common.collect.Lists;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.dtstack.flink.sql.ClusterMode;
 import com.dtstack.flink.sql.Main;
 import com.dtstack.flink.sql.launcher.perjob.PerJobSubmitter;
+import com.dtstack.flink.sql.options.LauncherOptionParser;
+import com.dtstack.flink.sql.options.LauncherOptions;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.PackagedProgram;
-
-import java.io.*;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import com.dtstack.flink.sql.ClusterMode;
 import org.apache.flink.client.program.PackagedProgramUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.table.shaded.org.apache.commons.lang.StringUtils;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.table.shaded.org.apache.commons.lang.BooleanUtils;
-import com.dtstack.flink.sql.options.*;
+
+import org.apache.flink.table.shaded.org.apache.commons.lang.StringUtils;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * Date: 2017/2/20

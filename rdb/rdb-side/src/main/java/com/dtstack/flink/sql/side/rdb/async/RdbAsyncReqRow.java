@@ -26,19 +26,15 @@ import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
-import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigInteger;
 import java.sql.Timestamp;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -75,8 +71,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
                 resultFuture.complete(null);
+                return;
             }
-
             inputParams.add(equalObj);
         }
 
@@ -95,9 +91,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                         Row row = fillData(input, jsonArray);
                         rowList.add(row);
                     }
-
                     resultFuture.complete(rowList);
-
                 } else {
                     throw new RuntimeException("not support cache obj type " + val.getType());
                 }
