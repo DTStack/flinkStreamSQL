@@ -1,0 +1,1 @@
+java -cp D:\mywork\project\flinkStreamSQL\lib\* com.dtstack.flink.sql.launcher.LauncherMain -sql D:\mywork\project\flinkStreamSQL\testsql.txt  -name xctest -localSqlPluginPath D:\mywork\project\flinkStreamSQL\plugins -confProp {\"time.characteristic\":\"EventTime\",\"sql.checkpoint.interval\":10000}

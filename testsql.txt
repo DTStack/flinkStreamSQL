@@ -1,0 +1,46 @@
+CREATE TABLE MyTable(
+    userid varchar,
+    ip varchar
+ )WITH(	
+	type='serversocket',
+	host='127.0.0.1',
+	port='9090',
+	delimiter=';',
+	maxNumRetries='100'
+ );
+ 
+ 
+ CREATE TABLE userinfo(
+    ID int,
+    FirstName varchar,
+	LastName varchar,
+	Password varchar,
+	typeCode int,
+	PRIMARY KEY(ID),
+	PERIOD FOR SYSTEM_TIME
+ )WITH(
+    type ='mysql',
+    url ='jdbc:mysql://127.0.0.1:3306/test?charset=utf8',
+    userName ='root',
+    password ='root',
+    tableName ='userinfo',
+    parallelism ='1'
+ );
+ 
+ 
+ CREATE TABLE CntResult(
+    usertype int,
+    cnt bigint
+ )WITH(
+    type ='mysql',
+    url ='jdbc:mysql://127.0.0.1:3306/test?charset=utf8',
+    userName ='root',
+    password ='root',
+    tableName ='count_result',
+    parallelism ='1'
+ );
+ 
+insert into CntResult
+select u.typeCode,count()
+from MyTable m join userinfo u on m.userid=u.ID
+group by u.typeCode
