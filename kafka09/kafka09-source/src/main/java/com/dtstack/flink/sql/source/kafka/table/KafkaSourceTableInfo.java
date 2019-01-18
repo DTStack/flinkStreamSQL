@@ -121,10 +121,6 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 	public boolean check() {
 		Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
 		Preconditions.checkNotNull(topic, "kafka of topic is required");
-		//Preconditions.checkNotNull(groupId, "kafka of groupId is required");
-		Preconditions.checkState(offsetReset.equalsIgnoreCase("latest")
-				|| offsetReset.equalsIgnoreCase("earliest"), "kafka of offsetReset set fail");
-
 		return false;
 	}
 
