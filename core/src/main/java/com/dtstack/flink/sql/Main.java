@@ -37,9 +37,14 @@ import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.dtstack.flink.sql.util.FlinkUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
+import com.google.common.base.Preconditions;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.ExecutionConfig;
@@ -101,16 +106,31 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        LauncherOptionParser optionParser = new LauncherOptionParser(args);
-        LauncherOptions launcherOptions = optionParser.getLauncherOptions();
+        Options options = new Options();
+        options.addOption("sql", true, "sql config");
+        options.addOption("name", true, "job name");
+        options.addOption("addjar", true, "add jar");
+        options.addOption("localSqlPluginPath", true, "local sql plugin path");
+        options.addOption("remoteSqlPluginPath", true, "remote sql plugin path");
+        options.addOption("confProp", true, "env properties");
+        options.addOption("mode", true, "deploy mode");
 
-        String sql = launcherOptions.getSql();
-        String name =launcherOptions.getName();
-        String addJarListStr = launcherOptions.getAddjar();
-        String localSqlPluginPath = launcherOptions.getLocalSqlPluginPath();
-        String remoteSqlPluginPath = launcherOptions.getRemoteSqlPluginPath();
-        String deployMode = launcherOptions.getMode();
-        String confProp = launcherOptions.getConfProp();
+        options.addOption("savePointPath", true, "Savepoint restore path");
+        options.addOption("allowNonRestoredState", true, "Flag indicating whether non restored state is allowed if the savepoint");
+
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cl = parser.parse(options, args);
+        String sql = cl.getOptionValue("sql");
+        String name = cl.getOptionValue("name");
+        String addJarListStr = cl.getOptionValue("addjar");
+        String localSqlPluginPath = cl.getOptionValue("localSqlPluginPath");
+        String remoteSqlPluginPath = cl.getOptionValue("remoteSqlPluginPath");
+        String deployMode = cl.getOptionValue("mode");
+        String confProp = cl.getOptionValue("confProp");
+
+        Preconditions.checkNotNull(sql, "parameters of sql is required");
+        Preconditions.checkNotNull(name, "parameters of name is required");
+        Preconditions.checkNotNull(localSqlPluginPath, "parameters of localSqlPluginPath is required");
 
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
