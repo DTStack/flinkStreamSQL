@@ -67,23 +67,24 @@ public class LauncherMain {
         LauncherOptions launcherOptions = optionParser.getLauncherOptions();
         String mode = launcherOptions.getMode();
         List<String> argList = optionParser.getProgramExeArgList();
+        String[] localArgs = argList.toArray(new String[argList.size()]);
         if(mode.equals(ClusterMode.local.name())) {
-            Main.main(args);
+            Main.main(localArgs);
         }else{
             String pluginRoot = launcherOptions.getLocalSqlPluginPath();
             File jarFile = new File(getLocalCoreJarPath(pluginRoot));
-            PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), args);
+            PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), localArgs);
             if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
                 program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
             }
             if(mode.equals(ClusterMode.yarnPer.name())){
                 String flinkConfDir = launcherOptions.getFlinkconf();
                 Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
-                JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, launcherOptions.getDefaultParallelism());
+                JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1);
                 PerJobSubmitter.submit(launcherOptions, jobGraph);
             } else {
                 ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
-                clusterClient.run(program, launcherOptions.getDefaultParallelism());
+                clusterClient.run(program, 1);
                 clusterClient.shutdown();
                 System.exit(0);
             }
