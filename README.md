@@ -11,20 +11,18 @@
 # 已支持
   * 源表：kafka 0.9，1.x版本
   * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra
-  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra
+  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra，console
 
 # 后续开发计划
   * 增加SQL支持CEP
   * 维表快照
   * sql优化（谓词下移等）
   * serverSocket 源表
-  * console 结果表
   * kafka avro格式
   * topN
 
 ## 1 快速起步
 ### 1.1 运行模式
-
 
 * 单机模式：对应Flink集群的单机模式
 * standalone模式：对应Flink集群的分布式模式
