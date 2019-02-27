@@ -203,7 +203,7 @@ create table kafka_stream(
          sex
      )
  Group BY T.sex,
-         TUMBLE(rowtime, INTERVAL '1' MINUTE);
+         TUMBLE(ROWTIME, INTERVAL '1' MINUTE);
  -- 对input_view中输出的数据做计算
  CREATE VIEW view2 (
      cnt,
@@ -214,7 +214,7 @@ create table kafka_stream(
      T.sex
  from
      input_view
- Group BY sex, TUMBLE(rowtime, INTERVAL '1' MINUTE);
+ Group BY sex, TUMBLE(ROWTIME, INTERVAL '1' MINUTE);
  -- 使用解析出的格式化数据进行计算，并将结果输出到RDS中
  insert into rds_sink
    SELECT 
