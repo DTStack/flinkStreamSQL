@@ -79,6 +79,7 @@ public class CustomerCommonDeserialization extends AbsDeserialization<Row> imple
 		return false;
 	}
 
+	@Override
 	public TypeInformation<Row> getProducedType() {
 		TypeInformation<?>[] types = new TypeInformation<?>[]{
 				TypeExtractor.createTypeInfo(String.class),

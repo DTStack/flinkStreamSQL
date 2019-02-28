@@ -73,8 +73,8 @@ public class CustomerCommonDeserialization extends AbsDeserialization<Row> imple
 		}
 
 		numInRecord.inc();
-		numInBytes.inc(message.length);
-		numInBytes.inc(messageKey.length);
+		if(message!=null){numInBytes.inc(message.length);}
+		if(messageKey!=null){numInBytes.inc(messageKey.length);}
 
 		try {
 			Row row = Row.of(
@@ -107,6 +107,7 @@ public class CustomerCommonDeserialization extends AbsDeserialization<Row> imple
 		return false;
 	}
 
+	@Override
 	public TypeInformation<Row> getProducedType() {
 		TypeInformation<?>[] types = new TypeInformation<?>[]{
 				TypeExtractor.createTypeInfo(String.class),
