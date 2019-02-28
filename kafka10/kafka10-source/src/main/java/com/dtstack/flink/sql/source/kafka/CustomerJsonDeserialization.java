@@ -98,7 +98,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
         try {
             numInRecord.inc();
-            numInBytes.inc(message.length);
+            if(message!=null){numInBytes.inc(message.length);}
 
             JsonNode root = objectMapper.readTree(message);
             Row row = new Row(fieldNames.length);
