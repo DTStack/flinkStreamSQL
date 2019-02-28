@@ -101,6 +101,11 @@ public class Main {
 
     private static final int delayInterval = 10; //sec
 
+    private static org.apache.calcite.sql.parser.SqlParser.Config config = org.apache.calcite.sql.parser.SqlParser
+            .configBuilder()
+            .setLex(Lex.MYSQL)
+            .build();
+
     public static void main(String[] args) throws Exception {
 
         Options options = new Options();
@@ -189,11 +194,6 @@ public class Main {
                 if (sqlTree.getTmpTableMap().containsKey(tableName)) {
                     CreateTmpTableParser.SqlParserResult tmp = sqlTree.getTmpTableMap().get(tableName);
                     String realSql = DtStringUtil.replaceIgnoreQuota(result.getExecSql(), "`", "");
-
-                    org.apache.calcite.sql.parser.SqlParser.Config config = org.apache.calcite.sql.parser.SqlParser
-                            .configBuilder()
-                            .setLex(Lex.MYSQL)
-                            .build();
                     SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql,config).parseStmt();
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
                     tmp.setExecSql(tmpSql);
