@@ -47,6 +47,7 @@ import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
+import org.apache.hadoop.util.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +76,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	private String insertQuery;
 	private String tableName;
 	private int batchInterval = 5000;
-	
+	private int flushIntervalMs = 5000;
 	private Connection dbConn;
 	private PreparedStatement upload;
 
@@ -86,6 +87,10 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 	private transient Counter outRecords;
 
 	private transient Meter outRecordsRate;
+
+	private long startTime;
+
+	private long currentTime;
 
 	public RetractJDBCOutputFormat() {
 	}
@@ -112,7 +117,7 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 			} else {
 				throw new SQLException("Table " + tableName +" doesn't exist");
 			}
-
+			startTime = System.currentTimeMillis();
 		} catch (SQLException sqe) {
 			throw new IllegalArgumentException("open() failed.", sqe);
 		} catch (ClassNotFoundException cnfe) {
@@ -172,13 +177,14 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 
 
 	private void insertWrite(Row row) throws SQLException {
-
+		currentTime = System.currentTimeMillis() ;
 		updatePreparedStmt(row, upload);
 		upload.addBatch();
 		batchCount++;
-		if (batchCount >= batchInterval) {
+		if (batchCount >= batchInterval || currentTime-startTime >= flushIntervalMs) {
 			upload.executeBatch();
 			batchCount = 0;
+			startTime = currentTime;
 		}
 	}
 
@@ -351,6 +357,11 @@ public class RetractJDBCOutputFormat extends RichOutputFormat<Tuple2> {
 
 		public JDBCOutputFormatBuilder setTableName(String tableName) {
 			format.tableName = tableName;
+			return this;
+		}
+
+		public JDBCOutputFormatBuilder setFlushIntervalMs(int flushIntervalMs) {
+			format.flushIntervalMs = flushIntervalMs;
 			return this;
 		}
 

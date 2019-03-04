@@ -55,7 +55,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
     private RedisAsyncCommands<String, String> async;
 
     private RedisSideTableInfo redisSideTableInfo;
-
+    private static  boolean missKeyPolicyOpen;
 
     public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new RedisAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -69,6 +69,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         String url = redisSideTableInfo.getUrl();
         String password = redisSideTableInfo.getPassword();
         String database = redisSideTableInfo.getDatabase();
+        missKeyPolicyOpen = redisSideTableInfo.isMissKeyPolicyOpen();
         if (url.split(",").length > 1){
             uri.append("redis-sentinel://").append(password).append("@")
                     .append(url).append("/").append(database).append("#").append(url.split(",")[0]);
@@ -127,7 +128,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(key);
             if(val != null){
 
-                if(ECacheContentType.MissVal == val.getType()){
+                if(missKeyPolicyOpen && ECacheContentType.MissVal == val.getType()){
                     dealMissKey(input, resultFuture);
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){

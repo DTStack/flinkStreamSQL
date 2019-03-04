@@ -73,6 +73,7 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
 
     private final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = 20;
 
+    private static  boolean missKeyPolicyOpen;
 
     public MysqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new MysqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -84,6 +85,7 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
         super.open(parameters);
         JsonObject mySQLClientConfig = new JsonObject();
         MysqlSideTableInfo mysqlSideTableInfo = (MysqlSideTableInfo) sideInfo.getSideTableInfo();
+        missKeyPolicyOpen = mysqlSideTableInfo.isMissKeyPolicyOpen();
         mySQLClientConfig.put("url", mysqlSideTableInfo.getUrl())
                 .put("driver_class", MYSQL_DRIVER)
                 .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
@@ -115,7 +117,7 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(key);
             if(val != null){
 
-                if(ECacheContentType.MissVal == val.getType()){
+                if(missKeyPolicyOpen && ECacheContentType.MissVal == val.getType()){
                     dealMissKey(input, resultFuture);
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){

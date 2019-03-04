@@ -46,10 +46,16 @@ public class MysqlSinkParser extends AbsTableParser {
         mysqlTableInfo.setTableName(MathUtil.getString(props.get(MysqlTableInfo.TABLE_NAME_KEY.toLowerCase())));
         mysqlTableInfo.setUserName(MathUtil.getString(props.get(MysqlTableInfo.USER_NAME_KEY.toLowerCase())));
         mysqlTableInfo.setPassword(MathUtil.getString(props.get(MysqlTableInfo.PASSWORD_KEY.toLowerCase())));
-        mysqlTableInfo.setBatchSize(MathUtil.getIntegerVal(props.get(MysqlTableInfo.BATCH_SIZE_KEY.toLowerCase())));
-        mysqlTableInfo.setBufferSize(MathUtil.getString(props.get(MysqlTableInfo.BUFFER_SIZE_KEY.toLowerCase())));
-        mysqlTableInfo.setFlushIntervalMs(MathUtil.getString(props.get(MysqlTableInfo.FLUSH_INTERVALMS_KEY.toLowerCase())));
 
+        if(props.get(MysqlTableInfo.BATCH_SIZE_KEY.toLowerCase())!= null) {
+            mysqlTableInfo.setBatchSize(MathUtil.getIntegerVal(props.get(MysqlTableInfo.BATCH_SIZE_KEY.toLowerCase())));
+        }
+        if(props.get(MysqlTableInfo.BUFFER_SIZE_KEY.toLowerCase())!= null) {
+            mysqlTableInfo.setBufferSize(MathUtil.getString(props.get(MysqlTableInfo.BUFFER_SIZE_KEY.toLowerCase())));
+        }
+        if(props.get(MysqlTableInfo.FLUSH_INTERVALMS_KEY.toLowerCase())!= null) {
+            mysqlTableInfo.setFlushIntervalMs(MathUtil.getIntegerVal(props.get(MysqlTableInfo.FLUSH_INTERVALMS_KEY.toLowerCase())));
+        }
         return mysqlTableInfo;
     }
 }

@@ -77,7 +77,7 @@ public class CreateTmpTableParser implements IParser {
             parseNode(sqlNode, sqlParseResult);
 
             sqlParseResult.setTableName(tableName);
-            sqlParseResult.setExecSql(selectSql.toUpperCase());
+            sqlParseResult.setExecSql(sqlNode.toString());
             sqlTree.addTmpSql(sqlParseResult);
             sqlTree.addTmplTableInfo(tableName, sqlParseResult);
         } else {

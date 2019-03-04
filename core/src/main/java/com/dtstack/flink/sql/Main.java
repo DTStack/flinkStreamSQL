@@ -233,7 +233,8 @@ public class Main {
     }
 
     private static String copyToLocalFile(String jar,String yarnConfDir) throws IOException, URISyntaxException {
-        FileSystem fs = FileSystem.get(new URI(FS_DEFAULT_PREFIX),loadYarnConfiguration(yarnConfDir));
+        //FileSystem fs = FileSystem.get(new URI(FS_DEFAULT_PREFIX),loadYarnConfiguration(yarnConfDir));
+        FileSystem fs = FileSystem.get(loadYarnConfiguration(yarnConfDir));
         Path sourcePath = new Path(jar);
         Path destPath = new Path(TMP_FILE_PATH,sourcePath.getName());
         fs.copyToLocalFile(sourcePath,destPath);

@@ -76,6 +76,11 @@ public class MysqlSink extends DBSink implements IStreamSinkGener<MysqlSink> {
             setBatchInterval(tmpSqlBatchSize);
         }
 
+        Integer flushIntervalMs = mysqlTableInfo.getFlushIntervalMs();
+        if(flushIntervalMs != null){
+            setFlushIntervalMs(flushIntervalMs);
+        }
+
         Integer tmpSinkParallelism = mysqlTableInfo.getParallelism();
         if(tmpSinkParallelism != null){
             setParallelism(tmpSinkParallelism);

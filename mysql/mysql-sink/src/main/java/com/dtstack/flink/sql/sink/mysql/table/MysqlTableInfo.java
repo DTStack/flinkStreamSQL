@@ -64,7 +64,7 @@ public class MysqlTableInfo extends TargetTableInfo {
 
     private String bufferSize;
 
-    private String flushIntervalMs;
+    private int flushIntervalMs;
 
     public String getUrl() {
         return url;
@@ -114,11 +114,11 @@ public class MysqlTableInfo extends TargetTableInfo {
         this.bufferSize = bufferSize;
     }
 
-    public String getFlushIntervalMs() {
+    public int getFlushIntervalMs() {
         return flushIntervalMs;
     }
 
-    public void setFlushIntervalMs(String flushIntervalMs) {
+    public void setFlushIntervalMs(int flushIntervalMs) {
         this.flushIntervalMs = flushIntervalMs;
     }
 

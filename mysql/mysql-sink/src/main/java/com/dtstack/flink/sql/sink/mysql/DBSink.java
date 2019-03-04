@@ -54,6 +54,8 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
 
     protected int batchInterval = 1;
 
+    protected int flushIntervalMs;
+
     protected int[] sqlTypes;
 
     protected String tableName;
@@ -85,6 +87,7 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
         jdbcFormatBuild.setBatchInterval(batchInterval);
         jdbcFormatBuild.setSqlTypes(sqlTypes);
         jdbcFormatBuild.setTableName(tableName);
+        jdbcFormatBuild.setFlushIntervalMs(flushIntervalMs);
         RetractJDBCOutputFormat outputFormat = jdbcFormatBuild.finish();
 
         OutputFormatSinkFunction outputFormatSinkFunc = new OutputFormatSinkFunction(outputFormat);
@@ -131,6 +134,10 @@ public abstract class DBSink implements RetractStreamTableSink<Row> {
      */
     public void setBatchInterval(int batchInterval) {
         this.batchInterval = batchInterval;
+    }
+
+    public void setFlushIntervalMs(int flushIntervalMs) {
+        this.flushIntervalMs = flushIntervalMs;
     }
 
     @Override

@@ -16,8 +16,9 @@
     <module>wtable</module>
     <!--
     <module>elasticsearch5</module>
-    <module>mongo</module>
     -->
+    <module>mongo</module>
+
     <module>redis5</module>
     <module>wredis5</module>
     <module>launcher</module>

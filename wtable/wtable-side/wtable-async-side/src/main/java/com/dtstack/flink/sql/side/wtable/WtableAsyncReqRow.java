@@ -70,6 +70,7 @@ public class WtableAsyncReqRow extends AsyncReqRow {
     private String configFile ;
     private int tableId;
     private String[] colNames;
+    private static  boolean missKeyPolicyOpen;
 
     public WtableAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new WtableAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -79,6 +80,7 @@ public class WtableAsyncReqRow extends AsyncReqRow {
         String password = wtableSideTableInfo.getPassword();
         tableId = wtableSideTableInfo.getTableId();
         colNames = wtableSideTableInfo.getFields();
+        missKeyPolicyOpen = wtableSideTableInfo.isMissKeyPolicyOpen();
 
         StringBuffer sb = new StringBuffer();
         sb.append("namecenter=").append(nameCenter).append("\n");
@@ -136,7 +138,7 @@ public class WtableAsyncReqRow extends AsyncReqRow {
         if(openCache()){
             CacheObj val = getFromCache(rowKeyStr);
             if(val != null){
-                if(ECacheContentType.MissVal == val.getType()){
+                if(missKeyPolicyOpen && ECacheContentType.MissVal == val.getType()){
                     dealMissKey(input, resultFuture);
                     return;
                 }else if(ECacheContentType.SingleLine == val.getType()){

@@ -70,6 +70,13 @@ public abstract class AbsSideTableParser extends AbsTableParser {
                     sideTableInfo.setPartitionedJoin(true);
                 }
             }
+
+            if(props.containsKey(SideTableInfo.MISSKEY_POLICY_OPEN.toLowerCase())){
+                Boolean missKeyPolicyOpen = MathUtil.getBoolean(props.get(SideTableInfo.MISSKEY_POLICY_OPEN.toLowerCase()));
+                if(!missKeyPolicyOpen){
+                    sideTableInfo.setMissKeyPolicyOpen(false);
+                }
+            }
         }
     }
 }
