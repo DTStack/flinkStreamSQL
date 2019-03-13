@@ -120,7 +120,9 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 		}
 
 		//earliest,latest
-		if("earliest".equalsIgnoreCase(offsetReset)){
+		if (StringUtils.isNotEmpty(kafka010SourceTableInfo.getKafkaParam("group.id"))){
+			kafkaSrc.setStartFromGroupOffsets();
+		} else if("earliest".equalsIgnoreCase(offsetReset)){
 			kafkaSrc.setStartFromEarliest();
 		} else if (DtStringUtil.isJosn(offsetReset)) {// {"0":12312,"1":12321,"2":12312}
 			try {
