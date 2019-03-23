@@ -25,7 +25,9 @@ import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
@@ -40,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import static com.dtstack.flink.sql.metric.MetricConstant.*;
@@ -75,6 +78,9 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private boolean firstMsg = true;
 
+    private Map<String, JsonNode> nodeAndJsonNodeMapping = Maps.newHashMap();
+
+
     public CustomerJsonDeserialization(TypeInformation<Row> typeInfo){
         this.typeInfo = typeInfo;
 
@@ -101,9 +107,11 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             numInBytes.inc(message.length);
 
             JsonNode root = objectMapper.readTree(message);
+            parseTree(root, null);
             Row row = new Row(fieldNames.length);
+
             for (int i = 0; i < fieldNames.length; i++) {
-                JsonNode node = getIgnoreCase(root, fieldNames[i]);
+                JsonNode node = nodeAndJsonNodeMapping.get(fieldNames[i]);
 
                 if (node == null) {
                     if (failOnMissingField) {
@@ -132,18 +140,30 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         this.failOnMissingField = failOnMissingField;
     }
 
-    public JsonNode getIgnoreCase(JsonNode jsonNode, String key) {
 
-        Iterator<String> iter = jsonNode.fieldNames();
-        while (iter.hasNext()) {
-            String key1 = iter.next();
-            if (key1.equalsIgnoreCase(key)) {
-                return jsonNode.get(key1);
+    private void parseTree(JsonNode jsonNode, String prefix){
+        nodeAndJsonNodeMapping.clear();
+
+        Iterator<String> iterator = jsonNode.fieldNames();
+        while (iterator.hasNext()){
+            String next = iterator.next();
+            JsonNode child = jsonNode.get(next);
+            String nodeKey = getNodeKey(prefix, next);
+
+            if (child.isValueNode()){
+                nodeAndJsonNodeMapping.put(nodeKey, child);
+            }else {
+                parseTree(child, nodeKey);
             }
         }
+    }
 
-        return null;
+    private String getNodeKey(String prefix, String nodeName){
+        if(Strings.isNullOrEmpty(prefix)){
+            return nodeName;
+        }
 
+        return prefix + "." + nodeName;
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
