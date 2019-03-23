@@ -25,9 +25,12 @@ import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
@@ -40,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import static com.dtstack.flink.sql.metric.MetricConstant.DT_PARTITION_GROUP;
@@ -77,12 +81,19 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private boolean firstMsg = true;
 
-    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo){
+    private Map<String, JsonNode> nodeAndJsonNodeMapping = Maps.newHashMap();
+
+    private Map<String, String> rowAndFieldMapping;
+
+
+    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping){
         this.typeInfo = typeInfo;
 
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
 
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
+
+        this.rowAndFieldMapping= rowAndFieldMapping;
     }
 
     @Override
@@ -103,9 +114,11 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             numInBytes.inc(message.length);
 
             JsonNode root = objectMapper.readTree(message);
+            parseTree(root, null);
             Row row = new Row(fieldNames.length);
+
             for (int i = 0; i < fieldNames.length; i++) {
-                JsonNode node = getIgnoreCase(root, fieldNames[i]);
+                JsonNode node = getIgnoreCase(fieldNames[i]);
 
                 if (node == null) {
                     if (failOnMissingField) {
@@ -127,25 +140,49 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             //add metric of dirty data
             dirtyDataCounter.inc();
             return null;
+        }finally {
+            nodeAndJsonNodeMapping.clear();
         }
+    }
+
+    public JsonNode getIgnoreCase(String key) {
+        String nodeMappingKey = rowAndFieldMapping.getOrDefault(key, key);
+        JsonNode node = nodeAndJsonNodeMapping.get(nodeMappingKey);
+        JsonNodeType nodeType = node.getNodeType();
+
+        if (nodeType==JsonNodeType.ARRAY){
+            throw new IllegalStateException("Unsupported  type information  array .") ;
+        }
+
+        return node;
     }
 
     public void setFailOnMissingField(boolean failOnMissingField) {
         this.failOnMissingField = failOnMissingField;
     }
 
-    public JsonNode getIgnoreCase(JsonNode jsonNode, String key) {
+    private void parseTree(JsonNode jsonNode, String prefix){
 
-        Iterator<String> iter = jsonNode.fieldNames();
-        while (iter.hasNext()) {
-            String key1 = iter.next();
-            if (key1.equalsIgnoreCase(key)) {
-                return jsonNode.get(key1);
+        Iterator<String> iterator = jsonNode.fieldNames();
+        while (iterator.hasNext()){
+            String next = iterator.next();
+            JsonNode child = jsonNode.get(next);
+            String nodeKey = getNodeKey(prefix, next);
+
+            if (child.isValueNode()){
+                nodeAndJsonNodeMapping.put(nodeKey, child);
+            }else {
+                parseTree(child, nodeKey);
             }
         }
+    }
 
-        return null;
+    private String getNodeKey(String prefix, String nodeName){
+        if(Strings.isNullOrEmpty(prefix)){
+            return nodeName;
+        }
 
+        return prefix + "." + nodeName;
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
