@@ -30,6 +30,7 @@ import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
@@ -82,12 +83,17 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private Map<String, JsonNode> nodeAndJsonNodeMapping = Maps.newHashMap();
 
-    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo){
+    private Map<String, String> rowAndFieldMapping;
+
+
+    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping){
         this.typeInfo = typeInfo;
 
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
 
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
+
+        this.rowAndFieldMapping= rowAndFieldMapping;
     }
 
     @Override
@@ -112,7 +118,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             Row row = new Row(fieldNames.length);
 
             for (int i = 0; i < fieldNames.length; i++) {
-                JsonNode node = nodeAndJsonNodeMapping.get(fieldNames[i]);
+                JsonNode node = getIgnoreCase(fieldNames[i]);
 
                 if (node == null) {
                     if (failOnMissingField) {
@@ -134,7 +140,21 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             //add metric of dirty data
             dirtyDataCounter.inc();
             return null;
+        }finally {
+            nodeAndJsonNodeMapping.clear();
         }
+    }
+
+    public JsonNode getIgnoreCase(String key) {
+        String nodeMappingKey = rowAndFieldMapping.getOrDefault(key, key);
+        JsonNode node = nodeAndJsonNodeMapping.get(nodeMappingKey);
+        JsonNodeType nodeType = node.getNodeType();
+
+        if (nodeType==JsonNodeType.ARRAY){
+            throw new IllegalStateException("Unsupported  type information  array .") ;
+        }
+
+        return node;
     }
 
     public void setFailOnMissingField(boolean failOnMissingField) {
@@ -142,7 +162,6 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     }
 
     private void parseTree(JsonNode jsonNode, String prefix){
-        nodeAndJsonNodeMapping.clear();
 
         Iterator<String> iterator = jsonNode.fieldNames();
         while (iterator.hasNext()){
