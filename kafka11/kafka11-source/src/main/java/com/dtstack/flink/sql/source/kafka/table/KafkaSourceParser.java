@@ -73,7 +73,7 @@ public class KafkaSourceParser extends AbsSourceParser {
         parseFieldsInfo(fieldsInfo, kafka11SourceTableInfo);
 
         kafka11SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
-        String bootstrapServer = MathUtil.getString(props.get(KafkaSourceTableInfo.GROUPID_KEY.toLowerCase()));
+        String bootstrapServer = MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase()));
         if (bootstrapServer == null || bootstrapServer.trim().equals("")){
             throw new Exception("BootstrapServers can not be empty!");
         } else {
