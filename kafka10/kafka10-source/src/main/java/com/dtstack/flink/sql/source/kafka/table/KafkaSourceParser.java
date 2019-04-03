@@ -66,14 +66,20 @@ public class KafkaSourceParser extends AbsSourceParser {
     }
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {
 
         KafkaSourceTableInfo kafka10SourceTableInfo = new KafkaSourceTableInfo();
         kafka10SourceTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, kafka10SourceTableInfo);
 
         kafka10SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
-        kafka10SourceTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
+
+        String bootstrapServer = MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase()));
+        if (bootstrapServer == null || bootstrapServer.trim().equals("")){
+            throw new Exception("BootstrapServers can not be empty!");
+        } else {
+            kafka10SourceTableInfo.setBootstrapServers(bootstrapServer);
+        }
         kafka10SourceTableInfo.setGroupId(MathUtil.getString(props.get(KafkaSourceTableInfo.GROUPID_KEY.toLowerCase())));
         kafka10SourceTableInfo.setTopic(MathUtil.getString(props.get(KafkaSourceTableInfo.TOPIC_KEY.toLowerCase())));
         kafka10SourceTableInfo.setOffsetReset(MathUtil.getString(props.get(KafkaSourceTableInfo.OFFSETRESET_KEY.toLowerCase())));
