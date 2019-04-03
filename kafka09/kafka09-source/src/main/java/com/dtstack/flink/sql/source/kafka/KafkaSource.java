@@ -68,7 +68,11 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 
         Properties props = new Properties();
         props.setProperty("bootstrap.servers", kafka09SourceTableInfo.getBootstrapServers());
-        props.setProperty("auto.offset.reset", kafka09SourceTableInfo.getOffsetReset());
+        if (DtStringUtil.isJosn(kafka09SourceTableInfo.getOffsetReset())){
+            props.setProperty("auto.offset.reset", "none");
+        } else {
+            props.setProperty("auto.offset.reset", kafka09SourceTableInfo.getOffsetReset());
+        }
         if (StringUtils.isNotBlank(kafka09SourceTableInfo.getGroupId())){
             props.setProperty("group.id", kafka09SourceTableInfo.getGroupId());
         }
