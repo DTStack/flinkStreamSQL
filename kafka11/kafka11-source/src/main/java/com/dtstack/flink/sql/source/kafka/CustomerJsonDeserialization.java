@@ -148,6 +148,10 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     public JsonNode getIgnoreCase(String key) {
         String nodeMappingKey = rowAndFieldMapping.getOrDefault(key, key);
         JsonNode node = nodeAndJsonNodeMapping.get(nodeMappingKey);
+        if(node == null){
+            return null;
+        }
+
         JsonNodeType nodeType = node.getNodeType();
 
         if (nodeType==JsonNodeType.ARRAY){
