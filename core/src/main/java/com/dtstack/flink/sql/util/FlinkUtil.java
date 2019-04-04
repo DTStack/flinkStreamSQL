@@ -268,7 +268,8 @@ public class FlinkUtil {
     }
 
     private static void urlClassLoaderAddUrl(URLClassLoader classLoader, URL url) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        Method method = classLoader.getClass().getDeclaredMethod("addURL", URL.class);
+        //Method method = classLoader.getClass().getDeclaredMethod("addURL", URL.class);
+        Method method = classLoader.getClass().getSuperclass().getDeclaredMethod("addURL", URL.class);
         method.setAccessible(true);
         method.invoke(classLoader, url);
     }
