@@ -80,7 +80,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../../plugins/mysqlallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/mysqlallside/${project.name}.jar"/>
+                                      tofile="${basedir}/../../../plugins/mysqlallside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
