@@ -22,6 +22,7 @@ import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.ExtendOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -54,8 +55,14 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     }
 
     private void buildInsertSql(String tableName, List<String> fields) {
+
+        tableName = quoteTable(tableName);
         String sqlTmp = "insert into " + tableName + " (${fields}) values (${placeholder})";
-        String fieldsStr = StringUtils.join(fields, ",");
+
+        List<String> adaptFields = Lists.newArrayList();
+        fields.forEach(field -> adaptFields.add(quoteColumn(field)));
+
+        String fieldsStr = StringUtils.join(adaptFields, ",");
         String placeholder = "";
 
         for (String fieldName : fields) {
@@ -68,6 +75,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
     @Override
     public String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
+        tableName = quoteTable(tableName);
         return "MERGE INTO " + tableName + " T1 USING "
                 + "(" + makeValues(fieldNames) + ") T2 ON ("
                 + updateKeySql(realIndexes) + ") WHEN MATCHED THEN UPDATE SET "
