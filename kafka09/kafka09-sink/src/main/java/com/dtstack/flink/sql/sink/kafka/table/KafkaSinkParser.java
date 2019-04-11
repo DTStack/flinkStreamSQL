@@ -42,7 +42,7 @@ public class KafkaSinkParser extends AbsTableParser {
 
         kafka09SinkTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSinkTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
         kafka09SinkTableInfo.setTopic(MathUtil.getString(props.get(KafkaSinkTableInfo.TOPIC_KEY.toLowerCase())));
-        for (String key:props.keySet()) {
+        for (String key : props.keySet()) {
             if (!key.isEmpty() && key.startsWith("kafka.")) {
                 kafka09SinkTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
             }

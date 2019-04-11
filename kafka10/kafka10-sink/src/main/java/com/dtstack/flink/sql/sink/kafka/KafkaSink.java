@@ -69,7 +69,7 @@ public class KafkaSink implements AppendStreamTableSink<Row>, IStreamSinkGener<K
         this.fieldTypes = types;
 
         properties = new Properties();
-        for (String key:kafka10SinkTableInfo.getKafkaParamKeys()) {
+        for (String key : kafka10SinkTableInfo.getKafkaParamKeys()) {
             properties.setProperty(key, kafka10SinkTableInfo.getKafkaParam(key));
         }
         properties.setProperty("bootstrap.servers", kafka10SinkTableInfo.getBootstrapServers());
