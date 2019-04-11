@@ -68,7 +68,11 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 
 		Properties props = new Properties();
 		props.setProperty("bootstrap.servers", kafka011SourceTableInfo.getBootstrapServers());
-		props.setProperty("auto.offset.reset", kafka011SourceTableInfo.getOffsetReset());
+		if (DtStringUtil.isJosn(kafka011SourceTableInfo.getOffsetReset())){
+			props.setProperty("auto.offset.reset", "none");
+		} else {
+			props.setProperty("auto.offset.reset", kafka011SourceTableInfo.getOffsetReset());
+		}
 		if (StringUtils.isNotBlank(kafka011SourceTableInfo.getGroupId())){
 			props.setProperty("group.id", kafka011SourceTableInfo.getGroupId());
 		}
@@ -85,10 +89,10 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 		FlinkKafkaConsumer011<Row> kafkaSrc;
 		if (BooleanUtils.isTrue(kafka011SourceTableInfo.getTopicIsPattern())) {
 			kafkaSrc = new CustomerKafka011Consumer(Pattern.compile(topicName),
-					new CustomerJsonDeserialization(typeInformation), props);
+					new CustomerJsonDeserialization(typeInformation, kafka011SourceTableInfo.getPhysicalFields()), props);
 		} else {
 			kafkaSrc = new CustomerKafka011Consumer(topicName,
-					new CustomerJsonDeserialization(typeInformation), props);
+					new CustomerJsonDeserialization(typeInformation, kafka011SourceTableInfo.getPhysicalFields()), props);
 		}
 
 
