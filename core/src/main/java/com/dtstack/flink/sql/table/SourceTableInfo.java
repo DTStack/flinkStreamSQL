@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.table;
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import org.apache.flink.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -41,7 +42,7 @@ public abstract class SourceTableInfo extends TableInfo {
 
     public static final String TIME_ZONE_KEY="timezone";
 
-    private String timeZone="Asia/Shanghai";
+    private String timeZone=TimeZone.getDefault().getID();
 
     private String eventTimeField;
 
@@ -70,7 +71,6 @@ public abstract class SourceTableInfo extends TableInfo {
         if(maxOutOrderness == null){
             return;
         }
-
         this.maxOutOrderness = maxOutOrderness;
     }
 
@@ -114,7 +114,7 @@ public abstract class SourceTableInfo extends TableInfo {
     }
 
     public void setTimeZone(String timeZone) {
-        if (timeZone==null){
+        if (StringUtils.isNullOrWhitespaceOnly(timeZone)){
             return;
         }
         timeZoneCheck(timeZone);
