@@ -57,12 +57,11 @@ public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
     public long extractTimestamp(Row row) {
 
         try{
-            Long eveTime = MathUtil.getLongVal(row.getField(pos));
-            Long extractTime=eveTime;
+            Long extractTime = MathUtil.getLongVal(row.getField(pos));
 
             lastTime = extractTime + timezone.getOffset(extractTime);
 
-            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - convertTimeZone(extractTime))/1000));
+            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - extractTime)/1000));
 
             return lastTime;
         }catch (Exception e){
@@ -71,8 +70,4 @@ public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
         return lastTime;
     }
 
-    public long convertTimeZone(long evenTime){
-        long res = evenTime - timezone.getOffset(evenTime) + TimeZone.getDefault().getOffset(evenTime);
-        return res;
-    }
 }
