@@ -57,18 +57,20 @@ public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<
 
     @Override
     public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
-        KafkaSinkTableInfo kafka10SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
-        this.topic = kafka10SinkTableInfo.getTopic();
-        this.fieldNames = kafka10SinkTableInfo.getFields();
-        TypeInformation[] types = new TypeInformation[kafka10SinkTableInfo.getFields().length];
-        for (int i = 0; i < kafka10SinkTableInfo.getFieldClasses().length; i++) {
-            types[i] = TypeInformation.of(kafka10SinkTableInfo.getFieldClasses()[i]);
+        KafkaSinkTableInfo kafka11SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
+        this.topic = kafka11SinkTableInfo.getTopic();
+        this.fieldNames = kafka11SinkTableInfo.getFields();
+        TypeInformation[] types = new TypeInformation[kafka11SinkTableInfo.getFields().length];
+        for (int i = 0; i < kafka11SinkTableInfo.getFieldClasses().length; i++) {
+            types[i] = TypeInformation.of(kafka11SinkTableInfo.getFieldClasses()[i]);
         }
         this.fieldTypes = types;
 
         properties = new Properties();
-        properties.setProperty("bootstrap.servers", kafka10SinkTableInfo.getBootstrapServers());
-
+        for (String key : kafka11SinkTableInfo.getKafkaParamKeys()) {
+            properties.setProperty(key, kafka11SinkTableInfo.getKafkaParam(key));
+        }
+        properties.setProperty("bootstrap.servers", kafka11SinkTableInfo.getBootstrapServers());
         this.serializationSchema = new JsonRowSerializationSchema(getOutputType());
         return this;
     }

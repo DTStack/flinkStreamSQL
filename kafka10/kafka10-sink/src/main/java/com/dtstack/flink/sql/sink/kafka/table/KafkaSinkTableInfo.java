@@ -44,10 +44,23 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
 
     private String bootstrapServers;
 
+    public Map<String,String> kafkaParam = new HashMap<String,String>();
+
     private String topic;
 
     public KafkaSinkTableInfo() {
         super.setType(CURR_TYPE);
+    }
+    public void addKafkaParam(String key,String value){
+        kafkaParam.put(key,value);
+    }
+
+    public String getKafkaParam(String key){
+        return kafkaParam.get(key);
+    }
+
+    public Set<String> getKafkaParamKeys(){
+        return kafkaParam.keySet();
     }
 
 
