@@ -74,7 +74,7 @@ public final class CustomerCsvSerialization extends TypeSerializerSingleton<Row>
         }
 
         // write a null mask
-        writeNullMask(len, record, target);
+        //writeNullMask(len, record, target);
 
         // serialize non-null fields
         StringBuffer stringBuffer = new StringBuffer();
@@ -89,6 +89,7 @@ public final class CustomerCsvSerialization extends TypeSerializerSingleton<Row>
                 //fieldSerializers[i].serialize(fieldDelimiter, target);
             }
         }
+
         StringValue.writeString(stringBuffer.toString(), target);
     }
 

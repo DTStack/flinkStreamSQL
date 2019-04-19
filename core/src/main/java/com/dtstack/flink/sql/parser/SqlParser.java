@@ -135,6 +135,9 @@ public class SqlParser {
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()){
             List<String> sourceTableList = result.getSourceTableList();
             for(String tableName : sourceTableList){
+                if(sqlTree.getTmpTableMap().containsKey(tableName)){
+                    continue;
+                }
                 if (!sqlTree.getTableInfoMap().keySet().contains(tableName)){
                     CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
                     if(createTableResult == null){

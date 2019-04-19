@@ -74,7 +74,7 @@ public final class CustomerCsvSerialization extends TypeSerializerSingleton<Row>
         }
 
         // write a null mask
-        writeNullMask(len, record, target);
+        //writeNullMask(len, record, target);
 
         // serialize non-null fields
         StringBuffer stringBuffer = new StringBuffer();

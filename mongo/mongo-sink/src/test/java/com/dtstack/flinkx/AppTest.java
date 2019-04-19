@@ -23,7 +23,6 @@ package com.dtstack.flinkx;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-import org.apache.flink.table.shaded.org.apache.commons.lang.StringEscapeUtils;
 
 /**
  * Unit test for simple App.
@@ -52,25 +51,8 @@ public class AppTest
     /**
      * Rigourous Test :-)
      */
-
-
-    private String fieldDelimiter = "\u0001";
     public void testApp()
     {
-        StringBuffer stringBuffer = new StringBuffer();
-        for (int i = 0; i < 3; i++) {
-            Object o = "111";
-            if (o != null) {
-                //fieldSerializers[i].serialize(o, target);
-                stringBuffer.append(o);
-            }
-            if(i != 3-1){
-                stringBuffer.append(StringEscapeUtils.unescapeJava(fieldDelimiter));
-                //fieldSerializers[i].serialize(fieldDelimiter, target);
-            }
-        }
-
-        System.out.println(stringBuffer.toString());
-
+        assertTrue( true );
     }
 }

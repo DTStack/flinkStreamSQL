@@ -87,8 +87,13 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
                     }
                 } else {
                     // Read the value as specified type
-                    Object value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
-                    row.setField(i, value);
+                    if(node.isValueNode()){
+                        Object value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
+                        row.setField(i, value);
+                    }else{
+                        row.setField(i, node.toString());
+                    }
+
                 }
             }
 
@@ -108,12 +113,22 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     }
 
     public JsonNode getIgnoreCase(JsonNode jsonNode, String key) {
-
+        if(!key.isEmpty() && key.indexOf("_")==0){
+            key = key.substring(1);
+        }
         Iterator<String> iter = jsonNode.fieldNames();
         while (iter.hasNext()) {
             String key1 = iter.next();
             if (key1.equalsIgnoreCase(key)) {
                 return jsonNode.get(key1);
+            }else if(key.indexOf("_")>0 && key1.equalsIgnoreCase(key.substring(0,key.indexOf("_")))){
+                Iterator<String> subIter = jsonNode.get(key1).fieldNames();
+                while (subIter.hasNext()) {
+                    String key2 = subIter.next();
+                    if (key2.equalsIgnoreCase(key.substring(key.indexOf("_") + 1))) {
+                        return jsonNode.get(key1).get(key2);
+                    }
+                }
             }
         }
 
