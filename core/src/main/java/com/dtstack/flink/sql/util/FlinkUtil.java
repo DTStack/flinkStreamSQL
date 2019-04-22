@@ -267,8 +267,13 @@ public class FlinkUtil {
         return classLoader;
     }
 
-    private static void urlClassLoaderAddUrl(URLClassLoader classLoader, URL url) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        Method method = classLoader.getClass().getDeclaredMethod("addURL", URL.class);
+    private static void urlClassLoaderAddUrl(URLClassLoader classLoader, URL url) throws InvocationTargetException, IllegalAccessException {
+        Method method = ReflectionUtils.getDeclaredMethod(classLoader, "addURL", URL.class);
+
+        if(method == null){
+            throw new RuntimeException("can't not find declared method addURL, curr classLoader is " + classLoader.getClass());
+        }
+
         method.setAccessible(true);
         method.invoke(classLoader, url);
     }
