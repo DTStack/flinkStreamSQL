@@ -21,7 +21,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducerBase;
-import org.apache.flink.streaming.connectors.kafka.Kafka09JsonTableSink;
+import org.apache.flink.streaming.connectors.kafka.Kafka010JsonTableSink;
 import org.apache.flink.streaming.connectors.kafka.KafkaJsonTableSink;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaDelegatePartitioner;
@@ -33,6 +33,7 @@ import org.apache.flink.types.Row;
 import java.util.Properties;
 
 /**
+ *
  * Reason: add schema info
  * Date: 2019/4/8
  * Company: www.dtstack.com
@@ -60,15 +61,15 @@ public class CustomerKafka11JsonTableSink extends KafkaJsonTableSink {
 		super(topic, properties, new FlinkKafkaDelegatePartitioner<>(partitioner));
 		this.schema = schema;
 	}
-
+	//TODO 暂时使用010
 	@Override
 	protected FlinkKafkaProducerBase<Row> createKafkaProducer(String topic, Properties properties, SerializationSchema<Row> serializationSchema, FlinkKafkaPartitioner<Row> partitioner) {
 		return new FlinkKafkaProducer010<Row>(topic, serializationSchema, properties, partitioner);
 	}
 
 	@Override
-	protected Kafka09JsonTableSink createCopy() {
-		return new Kafka09JsonTableSink(topic, properties, partitioner);
+	protected Kafka010JsonTableSink createCopy() {
+		return new Kafka010JsonTableSink(topic, properties, partitioner);
 	}
 
 	@Override
