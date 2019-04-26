@@ -60,7 +60,7 @@ public class CustomerKafka09JsonTableSink extends KafkaJsonTableSink {
 
 	@Override
 	protected FlinkKafkaProducerBase<Row> createKafkaProducer(String topic, Properties properties, SerializationSchema<Row> serializationSchema, FlinkKafkaPartitioner<Row> partitioner) {
-		return new FlinkKafkaProducer09<>(topic, serializationSchema, properties, partitioner);
+		return new CustomerFlinkKafkaProducer09<Row>(topic, serializationSchema, properties);
 	}
 
 	@Override

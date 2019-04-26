@@ -19,7 +19,6 @@ package com.dtstack.flink.sql.sink.kafka;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducerBase;
 import org.apache.flink.streaming.connectors.kafka.Kafka010JsonTableSink;
 import org.apache.flink.streaming.connectors.kafka.KafkaJsonTableSink;
@@ -64,7 +63,7 @@ public class CustomerKafka11JsonTableSink extends KafkaJsonTableSink {
 	//TODO 暂时使用010
 	@Override
 	protected FlinkKafkaProducerBase<Row> createKafkaProducer(String topic, Properties properties, SerializationSchema<Row> serializationSchema, FlinkKafkaPartitioner<Row> partitioner) {
-		return new FlinkKafkaProducer010<Row>(topic, serializationSchema, properties, partitioner);
+		return new CustomerFlinkKafkaProducer011<Row>(topic, serializationSchema, properties);
 	}
 
 	@Override

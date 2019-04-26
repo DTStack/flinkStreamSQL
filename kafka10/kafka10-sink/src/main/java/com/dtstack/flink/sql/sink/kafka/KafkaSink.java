@@ -24,7 +24,6 @@ import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.formats.json.JsonRowSerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.connectors.kafka.KafkaTableSink;
 import org.apache.flink.table.sinks.AppendStreamTableSink;
@@ -74,7 +73,7 @@ public class KafkaSink implements AppendStreamTableSink<Row>, IStreamSinkGener<K
         }
         properties.setProperty("bootstrap.servers", kafka10SinkTableInfo.getBootstrapServers());
 
-        this.serializationSchema = new JsonRowSerializationSchema(getOutputType());
+        this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType());
         return this;
     }
 
