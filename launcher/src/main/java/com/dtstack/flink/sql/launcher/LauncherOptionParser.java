@@ -106,10 +106,10 @@ public class LauncherOptionParser {
             String localPlugin = Preconditions.checkNotNull(cl.getOptionValue(OPTION_LOCAL_SQL_PLUGIN_PATH));
             properties.setLocalSqlPluginPath(localPlugin);
             String remotePlugin = cl.getOptionValue(OPTION_REMOTE_SQL_PLUGIN_PATH);
-            if(!ClusterMode.local.name().equals(mode)){
-                Preconditions.checkNotNull(remotePlugin);
+//            if(!ClusterMode.local.name().equals(mode)){
+//                Preconditions.checkNotNull(remotePlugin);
                 properties.setRemoteSqlPluginPath(remotePlugin);
-            }
+//            }
             String name = Preconditions.checkNotNull(cl.getOptionValue(OPTION_NAME));
             properties.setName(name);
             String addJar = cl.getOptionValue(OPTION_ADDJAR);
