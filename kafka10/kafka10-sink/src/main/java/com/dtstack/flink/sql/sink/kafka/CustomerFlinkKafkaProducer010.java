@@ -62,63 +62,8 @@ public class CustomerFlinkKafkaProducer010<Row> extends FlinkKafkaProducer010<Ro
 
 		schema.setCounter(counter);
 
-		if (null != flinkKafkaPartitioner) {
-			if (flinkKafkaPartitioner instanceof FlinkKafkaDelegatePartitioner) {
-				((FlinkKafkaDelegatePartitioner) flinkKafkaPartitioner).setPartitions(
-						getPartitionsByTopic(this.defaultTopicId, this.producer));
-			}
-			flinkKafkaPartitioner.open(ctx.getIndexOfThisSubtask(), ctx.getNumberOfParallelSubtasks());
-		}
-
-
-		// register Kafka metrics to Flink accumulators
-		if (!Boolean.parseBoolean(producerConfig.getProperty(KEY_DISABLE_METRICS, "false"))) {
-			Map<MetricName, ? extends Metric> metrics = this.producer.metrics();
-
-			if (metrics == null) {
-				// MapR's Kafka implementation returns null here.
-			} else {
-				final MetricGroup kafkaMetricGroup = getRuntimeContext().getMetricGroup().addGroup("KafkaProducer");
-				for (Map.Entry<MetricName, ? extends Metric> metric : metrics.entrySet()) {
-					kafkaMetricGroup.gauge(metric.getKey().name(), new KafkaMetricWrapper(metric.getValue()));
-				}
-			}
-		}
-
-		if (flushOnCheckpoint && !((StreamingRuntimeContext) this.getRuntimeContext()).isCheckpointingEnabled()) {
-			flushOnCheckpoint = false;
-		}
-
-		if (logFailuresOnly) {
-			callback = new Callback() {
-				@Override
-				public void onCompletion(RecordMetadata metadata, Exception e) {
-					if (e != null) {
-					}
-					acknowledgeMessage();
-				}
-			};
-		} else {
-			callback = new Callback() {
-				@Override
-				public void onCompletion(RecordMetadata metadata, Exception exception) {
-					if (exception != null && asyncException == null) {
-						asyncException = exception;
-					}
-					acknowledgeMessage();
-				}
-			};
-		}
+		super.open(configuration);
 	}
 
-	private void acknowledgeMessage() {
-		if (flushOnCheckpoint) {
-			synchronized (pendingRecordsLock) {
-				pendingRecords--;
-				if (pendingRecords == 0) {
-					pendingRecordsLock.notifyAll();
-				}
-			}
-		}
-	}
+
 }
