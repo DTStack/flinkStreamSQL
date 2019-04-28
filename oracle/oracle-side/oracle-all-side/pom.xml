@@ -80,7 +80,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../../plugins/oracleallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/oracleallside/${project.name}.jar"/>
+                                      tofile="${basedir}/../../../plugins/oracleallside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
