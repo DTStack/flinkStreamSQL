@@ -93,7 +93,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../../plugins/hbaseallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/hbaseallside/${project.name}.jar" />
+                                      tofile="${basedir}/../../../plugins/hbaseallside/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

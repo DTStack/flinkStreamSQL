@@ -16,16 +16,17 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.watermarker;
 
 import com.dtstack.flink.sql.util.MathUtil;
-import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.TimeZone;
 
 /**
  * Custom watermark --- for eventtime
@@ -44,23 +45,29 @@ public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
 
     private long lastTime = 0;
 
-    public CustomerWaterMarkerForLong(Time maxOutOfOrderness, int pos) {
+    private TimeZone timezone;
+
+    public CustomerWaterMarkerForLong(Time maxOutOfOrderness, int pos,String timezone) {
         super(maxOutOfOrderness);
         this.pos = pos;
+        this.timezone= TimeZone.getTimeZone(timezone);
     }
 
     @Override
     public long extractTimestamp(Row row) {
 
         try{
-            Long eveTime = MathUtil.getLongVal(row.getField(pos));
-            lastTime = eveTime;
-            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - eveTime)/1000));
-            return eveTime;
+            Long extractTime = MathUtil.getLongVal(row.getField(pos));
+
+            lastTime = extractTime + timezone.getOffset(extractTime);
+
+            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - extractTime)/1000));
+
+            return lastTime;
         }catch (Exception e){
             logger.error("", e);
         }
-
         return lastTime;
     }
+
 }
