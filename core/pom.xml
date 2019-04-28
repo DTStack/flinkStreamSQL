@@ -106,7 +106,7 @@
                                     </fileset>
                                 </copy>
                                 <move file="${basedir}/../plugins/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../plugins/${project.name}.jar" />
+                                      tofile="${basedir}/../plugins/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>
