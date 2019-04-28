@@ -21,9 +21,11 @@
 package com.dtstack.flink.sql.table;
 
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Reason:
@@ -47,6 +49,9 @@ public abstract class TableInfo implements Serializable {
     private Class<?>[] fieldClasses;
 
     private final List<String> fieldList = Lists.newArrayList();
+
+    /**key:别名, value: realField */
+    private Map<String, String> physicalFields = Maps.newHashMap();
 
     private final List<String> fieldTypeList = Lists.newArrayList();
 
@@ -114,6 +119,10 @@ public abstract class TableInfo implements Serializable {
         fieldList.add(fieldName);
     }
 
+    public void addPhysicalMappings(String aliasName, String physicalFieldName){
+        physicalFields.put(aliasName, physicalFieldName);
+    }
+
     public void addFieldClass(Class fieldClass){
         fieldClassList.add(fieldClass);
     }
@@ -144,6 +153,14 @@ public abstract class TableInfo implements Serializable {
 
     public List<Class> getFieldClassList() {
         return fieldClassList;
+    }
+
+    public Map<String, String> getPhysicalFields() {
+        return physicalFields;
+    }
+
+    public void setPhysicalFields(Map<String, String> physicalFields) {
+        this.physicalFields = physicalFields;
     }
 
     public void finish(){
