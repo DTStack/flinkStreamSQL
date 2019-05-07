@@ -89,7 +89,7 @@ public class LauncherOptionParser {
         options.addOption(OPTION_SAVE_POINT_PATH, true, "Savepoint restore path");
         options.addOption(OPTION_ALLOW_NON_RESTORED_STATE, true, "Flag indicating whether non restored state is allowed if the savepoint");
         options.addOption(OPTION_FLINK_JAR_PATH, true, "flink jar path for submit of perjob mode");
-        options.addOption(OPTION_QUEUE, true, "flink jar path for submit of perjob mode");
+        options.addOption(OPTION_QUEUE, true, "flink runing yarn queue");
 
         try {
             CommandLine cl = parser.parse(options, args);
