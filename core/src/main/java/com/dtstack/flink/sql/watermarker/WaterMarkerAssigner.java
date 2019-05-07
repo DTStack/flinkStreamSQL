@@ -54,6 +54,8 @@ public class WaterMarkerAssigner {
 
         int maxOutOrderness = sourceTableInfo.getMaxOutOrderness();
 
+        String timeZone=sourceTableInfo.getTimeZone();
+
         String[] fieldNames = typeInfo.getFieldNames();
         TypeInformation<?>[] fieldTypes = typeInfo.getFieldTypes();
 
@@ -75,9 +77,9 @@ public class WaterMarkerAssigner {
 
         AbsCustomerWaterMarker waterMarker = null;
         if(fieldType.getTypeClass().getTypeName().equalsIgnoreCase("java.sql.Timestamp")){
-            waterMarker = new CustomerWaterMarkerForTimeStamp(Time.milliseconds(maxOutOrderness), pos);
+            waterMarker = new CustomerWaterMarkerForTimeStamp(Time.milliseconds(maxOutOrderness), pos,timeZone);
         }else if(fieldType.getTypeClass().getTypeName().equalsIgnoreCase("java.lang.Long")){
-            waterMarker = new CustomerWaterMarkerForLong(Time.milliseconds(maxOutOrderness), pos);
+            waterMarker = new CustomerWaterMarkerForLong(Time.milliseconds(maxOutOrderness), pos,timeZone);
         }else{
             throw new IllegalArgumentException("not support type of " + fieldType + ", current only support(timestamp, long).");
         }
