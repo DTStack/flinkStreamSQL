@@ -15,9 +15,9 @@
  2. 支持kafka结果表数据写入。
  3. 支持为ROWTIME绑定时区，默认为本地时区。例如：timezone="America/New_York"
  4. 支持从kafka自定义偏移量中消费数据。
- 5.
 
 ## BUG修复：
 
  1. oracle维表获取索引问题。
- 2. UDF类加载异常问题。
+ 2. Perjob模式下UDF类加载异常问题。
+ 3. queue 参数设置无效的问题。
