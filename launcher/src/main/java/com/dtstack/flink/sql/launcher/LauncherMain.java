@@ -60,7 +60,8 @@ public class LauncherMain {
 
     private static String getLocalCoreJarPath(String localSqlRootJar) throws Exception {
         String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR);
-        return jarPath;
+        String corePath = localSqlRootJar + SP + jarPath;
+        return corePath;
     }
 
     public static void main(String[] args) throws Exception {
