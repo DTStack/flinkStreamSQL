@@ -79,7 +79,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../plugins/mysqlsink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/mysqlsink/${project.name}.jar"/>
+                                      tofile="${basedir}/../../plugins/mysqlsink/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
