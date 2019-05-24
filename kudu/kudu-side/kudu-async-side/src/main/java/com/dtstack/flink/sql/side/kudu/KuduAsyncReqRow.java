@@ -4,11 +4,13 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
+import com.stumbleupon.async.Callback;
+import com.stumbleupon.async.Deferred;
 import io.vertx.core.json.JsonArray;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -25,7 +27,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class KuduAsyncReqRow extends AsyncReqRow {
 
@@ -42,18 +43,13 @@ public class KuduAsyncReqRow extends AsyncReqRow {
     private static final long serialVersionUID = 5028583854989267753L;
 
 
-    //    private AsyncKuduClient client;
+    private AsyncKuduClient asyncClient;
 
     private KuduTable table;
 
     private KuduSideTableInfo kuduSideTableInfo;
 
-    private KuduScanner.KuduScannerBuilder scannerBuilder;
-
-    private KuduClient syncClient;
-
-    private AtomicInteger atomicInteger = new AtomicInteger(0);
-
+    private AsyncKuduScanner.AsyncKuduScannerBuilder scannerBuilder;
 
     public KuduAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new KuduAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -92,15 +88,14 @@ public class KuduAsyncReqRow extends AsyncReqRow {
             if (null != defaultOperationTimeoutMs) {
                 asyncKuduClientBuilder.defaultOperationTimeoutMs(defaultOperationTimeoutMs);
             }
-            AsyncKuduClient client = asyncKuduClientBuilder.build();
-            syncClient = client.syncClient();
-            if (!syncClient.tableExists(tableName)) {
+            asyncClient = asyncKuduClientBuilder.build();
+            if (!asyncClient.syncClient().tableExists(tableName)) {
                 throw new IllegalArgumentException("Table Open Failed , please check table exists");
             }
-            table = syncClient.openTable(tableName);
+            table = asyncClient.syncClient().openTable(tableName);
             LOG.info("connect kudu is successed!");
         }
-        scannerBuilder = syncClient.newScannerBuilder(table);
+        scannerBuilder = asyncClient.newScannerBuilder(table);
         Integer batchSizeBytes = kuduSideTableInfo.getBatchSizeBytes();
         Long limitNum = kuduSideTableInfo.getLimitNum();
         Boolean isFaultTolerant = kuduSideTableInfo.getFaultTolerant();
@@ -169,46 +164,12 @@ public class KuduAsyncReqRow extends AsyncReqRow {
                 return;
             }
         }
-        String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
         List<Map<String, Object>> cacheContent = Lists.newArrayList();
-        KuduScanner kuduScanner = scannerBuilder.build();
+        AsyncKuduScanner asyncKuduScanner = scannerBuilder.build();
         List<Row> rowList = Lists.newArrayList();
-        //判断是否调用prc获取数据
-        while (kuduScanner.hasMoreRows()) {
-            RowResultIterator results = kuduScanner.nextRows();
-            //每次遍历一整条数据
-            while (results.hasNext()) {
-                atomicInteger.incrementAndGet();
-                RowResult result = results.next();
-                Map<String, Object> oneRow = Maps.newHashMap();
-                for (String sideFieldName1 : sideFieldNames) {
-                    String sideFieldName = sideFieldName1.trim();
-                    ColumnSchema columnSchema = table.getSchema().getColumn(sideFieldName);
-                    if (null != columnSchema) {
-                        setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
-                    }
-                }
-                Row row = fillData(input, oneRow);
-                if (openCache()) {
-                    cacheContent.add(oneRow);
-                }
-                rowList.add(row);
-            }
-        }
-        if (0 != atomicInteger.get()) {
-            if (openCache()) {
-                putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
-            }
-            resultFuture.complete(rowList);
-        } else {
-
-            dealMissKey(input, resultFuture);
-            if (openCache()) {
-                //放置在putCache的Miss中 一段时间内同一个key都会直接返回
-                putCache(key, CacheMissVal.getMissKeyObj());
-            }
-        }
-        atomicInteger.set(0);
+        Deferred<RowResultIterator> data = asyncKuduScanner.nextRows();
+        //从之前的同步修改为调用异步的Callback
+        data.addCallbackDeferring(new GetListRowCB(input, cacheContent, rowList, asyncKuduScanner, resultFuture, key));
     }
 
 
@@ -251,9 +212,9 @@ public class KuduAsyncReqRow extends AsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        if (null != syncClient) {
+        if (null != asyncClient) {
             try {
-                syncClient.close();
+                asyncClient.close();
             } catch (Exception e) {
                 LOG.error("Error while closing client.", e);
             }
@@ -296,4 +257,64 @@ public class KuduAsyncReqRow extends AsyncReqRow {
                 throw new IllegalArgumentException("Illegal var type: " + type);
         }
     }
+
+    class GetListRowCB implements Callback<Deferred<List<Row>>, RowResultIterator> {
+        private Row input;
+        private List<Map<String, Object>> cacheContent;
+        private List<Row> rowList;
+        private AsyncKuduScanner asyncKuduScanner;
+        private ResultFuture<Row> resultFuture;
+        private String key;
+
+
+        public GetListRowCB() {
+        }
+
+        GetListRowCB(Row input, List<Map<String, Object>> cacheContent, List<Row> rowList, AsyncKuduScanner asyncKuduScanner, ResultFuture<Row> resultFuture, String key) {
+            this.input = input;
+            this.cacheContent = cacheContent;
+            this.rowList = rowList;
+            this.asyncKuduScanner = asyncKuduScanner;
+            this.resultFuture = resultFuture;
+            this.key = key;
+        }
+
+        @Override
+        public Deferred<List<Row>> call(RowResultIterator results) throws Exception {
+            for (RowResult result : results) {
+                Map<String, Object> oneRow = Maps.newHashMap();
+                for (String sideFieldName1 : sideInfo.getSideSelectFields().split(",")) {
+                    String sideFieldName = sideFieldName1.trim();
+                    ColumnSchema columnSchema = table.getSchema().getColumn(sideFieldName);
+                    if (null != columnSchema) {
+                        setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
+                    }
+                }
+                Row row = fillData(input, oneRow);
+                if (openCache()) {
+                    cacheContent.add(oneRow);
+                }
+                rowList.add(row);
+            }
+            if (asyncKuduScanner.hasMoreRows()) {
+                return asyncKuduScanner.nextRows().addCallbackDeferring(this);
+            }
+
+            if (rowList.size() > 0) {
+                if (openCache()) {
+                    putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
+                }
+                resultFuture.complete(rowList);
+            } else {
+                dealMissKey(input, resultFuture);
+                if (openCache()) {
+                    //放置在putCache的Miss中 一段时间内同一个key都会直接返回
+                    putCache(key, CacheMissVal.getMissKeyObj());
+                }
+            }
+
+            return null;
+        }
+    }
+
 }
