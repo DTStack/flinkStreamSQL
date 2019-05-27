@@ -70,7 +70,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../plugins/kudusink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/kudusink/${project.name}.jar"/>
+                                      tofile="${basedir}/../../plugins/kudusink/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
