@@ -90,12 +90,12 @@
                             <tasks>
                                 <copy todir="${basedir}/../../../plugins/kuduasyncside">
                                     <fileset dir="target/">
-                                        <include name="${project.artifactId}-${project.version}.jar" />
+                                        <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
                                 <move file="${basedir}/../../../plugins/kuduasyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/kuduasyncside/${project.name}.jar" />
+                                      tofile="${basedir}/../../../plugins/kuduasyncside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
