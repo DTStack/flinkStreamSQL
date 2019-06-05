@@ -31,6 +31,7 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
@@ -174,6 +175,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
             if (child.isValueNode()){
                 nodeAndJsonNodeMapping.put(nodeKey, child);
+            } else if(child.isArray()){
+                nodeAndJsonNodeMapping.put(nodeKey, new TextNode(child.toString()));
             }else {
                 parseTree(child, nodeKey);
             }
