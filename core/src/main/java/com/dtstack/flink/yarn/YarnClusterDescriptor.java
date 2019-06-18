@@ -23,6 +23,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.yarn.*;
+import org.apache.flink.yarn.entrypoint.YarnSessionClusterEntrypoint;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -86,7 +87,7 @@ public class YarnClusterDescriptor
     @Override
     protected String getYarnSessionClusterEntrypoint()
     {
-        return YarnApplicationMasterRunner.class.getName();
+        return YarnSessionClusterEntrypoint.class.getName();
     }
 
     /**
@@ -95,7 +96,7 @@ public class YarnClusterDescriptor
     @Override
     protected String getYarnJobClusterEntrypoint()
     {
-        return YarnApplicationMasterRunner.class.getName();
+        return YarnSessionClusterEntrypoint.class.getName();
     }
 
     @Override
@@ -113,7 +114,7 @@ public class YarnClusterDescriptor
         return this.yarnClient;
     }
 
-    public YarnClusterClient deploy()
+    public RestClusterClient deploy()
     {
         ApplicationSubmissionContext context = Records.newRecord(ApplicationSubmissionContext.class);
         context.setApplicationId(yarnAppId);
@@ -124,10 +125,13 @@ public class YarnClusterDescriptor
             conf.setString(JobManagerOptions.ADDRESS.key(), report.getHost());
             conf.setInteger(JobManagerOptions.PORT.key(), report.getRpcPort());
 
-            return new YarnClusterClient(this,
+            /*return new RestClusterClient(this,
                     appConf.getTaskManagerCount(),
                     appConf.getTaskManagerSlots(),
-                    report, conf, false);
+                    report, conf, false);*/
+            return new RestClusterClient<>(
+                    conf,
+                    report.getApplicationId());
         }
         catch (Exception e) {
             throw new RuntimeException(e);

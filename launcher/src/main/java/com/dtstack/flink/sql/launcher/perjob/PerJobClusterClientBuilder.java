@@ -91,7 +91,7 @@ public class PerJobClusterClientBuilder {
             throw new RuntimeException("The Flink jar path is null");
         }
 
-        clusterDescriptor.setProvidedUserJarFiles(classpaths);
+        //clusterDescriptor.setProvidedUserJarFiles(classpaths);
 
         if(!Strings.isNullOrEmpty(queue)){
             clusterDescriptor.setQueue(queue);

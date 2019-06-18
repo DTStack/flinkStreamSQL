@@ -24,13 +24,15 @@ import com.dtstack.flink.yarn.YarnClusterConfiguration;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.program.ClusterClient;
-import org.apache.flink.client.program.StandaloneClusterClient;
+import org.apache.flink.client.program.MiniClusterClient;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.runtime.akka.AkkaUtils;
+import org.apache.flink.runtime.minicluster.MiniCluster;
+import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 import org.apache.flink.runtime.util.LeaderConnectionInfo;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
@@ -72,7 +74,10 @@ public class ClusterClientFactory {
     public static ClusterClient createStandaloneClient(LauncherOptions launcherOptions) throws Exception {
         String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
-        StandaloneClusterClient clusterClient = new StandaloneClusterClient(config);
+        MiniClusterConfiguration.Builder configBuilder = new MiniClusterConfiguration.Builder();
+        configBuilder.setConfiguration(config);
+        MiniCluster miniCluster = new MiniCluster(configBuilder.build());
+        MiniClusterClient clusterClient = new MiniClusterClient(config, miniCluster);
         LeaderConnectionInfo connectionInfo = clusterClient.getClusterConnectionInfo();
         InetSocketAddress address = AkkaUtils.getInetSocketAddressFromAkkaURL(connectionInfo.getAddress());
         config.setString(JobManagerOptions.ADDRESS, address.getAddress().getHostName());

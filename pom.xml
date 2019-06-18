@@ -31,7 +31,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <flink.version>1.7.0</flink.version>
+    <flink.version>1.8.0</flink.version>
   </properties>
 
     <build>

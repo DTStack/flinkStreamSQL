@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.api.common.typeutils.TypeSerializerSnapshot;
 import org.apache.flink.api.common.typeutils.base.TypeSerializerSingleton;
 import org.apache.flink.core.memory.DataInputView;
 import org.apache.flink.core.memory.DataOutputView;
@@ -131,13 +132,7 @@ public final class CustomerCsvSerialization extends TypeSerializerSingleton<Row>
     }
 
     @Override
-    public boolean canEqual(Object obj) {
-        return obj instanceof CustomerCsvSerialization;
-    }
-
-    @Override
-    protected boolean isCompatibleSerializationFormatIdentifier(String identifier) {
-        return super.isCompatibleSerializationFormatIdentifier(identifier)
-                || identifier.equals(StringValue.class.getCanonicalName());
+    public TypeSerializerSnapshot<Row> snapshotConfiguration() {
+        return null;
     }
 }
