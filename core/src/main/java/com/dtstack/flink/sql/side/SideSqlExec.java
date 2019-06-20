@@ -435,7 +435,7 @@ public class SideSqlExec {
                 }
             }
 
-            replaceSelectFieldName(elseNode, mappingTable, tableAlias);
+            ((SqlCase) selectNode).setOperand(3, replaceSelectFieldName(elseNode, mappingTable, tableAlias));
             return selectNode;
         }else if(selectNode.getKind() == OTHER){
             //不处理
