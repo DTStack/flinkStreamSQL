@@ -127,7 +127,12 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
                     }
                 } else {
                     // Read the value as specified type
-                    Object value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
+                    Object value;
+                    if (node.isValueNode()) {
+                      value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
+                    } else {
+                      value = node.toString();
+                    }
                     row.setField(i, value);
                 }
             }
@@ -143,28 +148,35 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
     }
 
+    public JsonNode getIgnoreCase(String key) {
+        String nodeMappingKey = rowAndFieldMapping.getOrDefault(key, key);
+
+        return nodeAndJsonNodeMapping.get(nodeMappingKey);
+    }
+
     public void setFailOnMissingField(boolean failOnMissingField) {
         this.failOnMissingField = failOnMissingField;
     }
 
-    private JsonNode getIgnoreCase(String key) {
-        String nodeMappingKey = rowAndFieldMapping.getOrDefault(key, key);
-        JsonNode node = nodeAndJsonNodeMapping.get(nodeMappingKey);
-        if(node == null){
-            return null;
-        }
-
-        JsonNodeType nodeType = node.getNodeType();
-
-        if (nodeType == JsonNodeType.ARRAY){
-            throw new IllegalStateException("Unsupported  type information  array .") ;
-        }
-
-        return node;
-    }
-
-
     private void parseTree(JsonNode jsonNode, String prefix){
+
+      if (jsonNode.isArray()) {
+        ArrayNode array = (ArrayNode) jsonNode;
+        for (int i = 0; i < array.size(); i++) {
+          JsonNode child = array.get(i);
+          String nodeKey = getNodeKey(prefix, i);
+
+          if (child.isValueNode()) {
+            nodeAndJsonNodeMapping.put(nodeKey, child);
+          } else {
+            if (rowAndFieldMapping.containsValue(nodeKey)) {
+              nodeAndJsonNodeMapping.put(nodeKey, child);
+            }
+            parseTree(child, nodeKey);
+          }
+        }
+        return;
+      }
 
         Iterator<String> iterator = jsonNode.fieldNames();
         while (iterator.hasNext()){
@@ -172,12 +184,15 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             JsonNode child = jsonNode.get(next);
             String nodeKey = getNodeKey(prefix, next);
 
-            if (child.isValueNode()){
-                nodeAndJsonNodeMapping.put(nodeKey, child);
-            }else {
-                parseTree(child, nodeKey);
-            }
+        if (child.isValueNode()) {
+          nodeAndJsonNodeMapping.put(nodeKey, child);
+        } else {
+          if (rowAndFieldMapping.containsValue(nodeKey)) {
+            nodeAndJsonNodeMapping.put(nodeKey, child);
+          }
+          parseTree(child, nodeKey);
         }
+      }
     }
 
     private String getNodeKey(String prefix, String nodeName){
@@ -186,6 +201,14 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
 
         return prefix + "." + nodeName;
+    }
+
+    private String getNodeKey(String prefix, int i) {
+      if (Strings.isNullOrEmpty(prefix)) {
+        return "[" + i + "]";
+      }
+
+      return prefix + "[" + i + "]";
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
