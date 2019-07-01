@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.parser.CreateTmpTableParser;
 import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
 import com.dtstack.flink.sql.util.ClassUtil;
+import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -435,7 +436,7 @@ public class SideSqlExec {
                 }
             }
 
-            replaceSelectFieldName(elseNode, mappingTable, tableAlias);
+            ((SqlCase) selectNode).setOperand(3, replaceSelectFieldName(elseNode, mappingTable, tableAlias));
             return selectNode;
         }else if(selectNode.getKind() == OTHER){
             //不处理
@@ -461,12 +462,7 @@ public class SideSqlExec {
 
     public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName){
         List<SqlNode> sqlNodeList = Lists.newArrayList();
-        if(conditionNode.getKind() == SqlKind.AND){
-            sqlNodeList.addAll(Lists.newArrayList(((SqlBasicCall)conditionNode).getOperands()));
-        }else{
-            sqlNodeList.add(conditionNode);
-        }
-
+        ParseUtils.parseAnd(conditionNode, sqlNodeList);
         List<String> conditionFields = Lists.newArrayList();
         for(SqlNode sqlNode : sqlNodeList){
             if(sqlNode.getKind() != SqlKind.EQUALS){
