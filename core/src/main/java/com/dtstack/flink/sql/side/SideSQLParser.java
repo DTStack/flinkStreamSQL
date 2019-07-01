@@ -159,8 +159,16 @@ public class SideSQLParser {
         JoinInfo tableInfo = new JoinInfo();
         tableInfo.setLeftTableName(leftTbName);
         tableInfo.setRightTableName(rightTableName);
-        tableInfo.setLeftTableAlias(leftTbAlias);
-        tableInfo.setRightTableAlias(rightTableAlias);
+        if (leftTbAlias.equals("")){
+            tableInfo.setLeftTableAlias(leftTbName);
+        } else {
+            tableInfo.setLeftTableAlias(leftTbAlias);
+        }
+        if (leftTbAlias.equals("")){
+            tableInfo.setRightTableAlias(rightTableName);
+        } else {
+            tableInfo.setRightTableAlias(rightTableAlias);
+        }
         tableInfo.setLeftIsSideTable(leftIsSide);
         tableInfo.setRightIsSideTable(rightIsSide);
         tableInfo.setLeftNode(leftNode);
