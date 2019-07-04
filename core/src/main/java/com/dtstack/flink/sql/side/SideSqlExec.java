@@ -593,7 +593,7 @@ public class SideSqlExec {
         }
 
         RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getTypes(), targetTable.getSchema().getColumnNames());
-        DataStream adaptStream = tableEnv.toAppendStream(targetTable, org.apache.flink.types.Row.class);
+        DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class);
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if(sideTableInfo.isPartitionedJoin()){
