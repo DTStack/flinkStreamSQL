@@ -160,10 +160,6 @@ public class PluginUtil {
             }
         }
 
-        if (StringUtils.isEmpty(coreJarFileName)){
-            throw new Exception("Can not find core jar file in path:" + path);
-        }
-
         return coreJarFileName;
     }
 
