@@ -158,7 +158,10 @@ public class PluginUtil {
             if (jarFiles != null && jarFiles.length > 0){
                 coreJarFileName = jarFiles[0].getName();
             }
+        }else {
+            coreJarFileName = prefix.toLowerCase() + ".jar";
         }
+
 
         return coreJarFileName;
     }
