@@ -111,7 +111,7 @@ public class PluginUtil {
         String dirName = pluginType + tableType.toLowerCase();
         String prefix = String.format("%s-%s", pluginType, tableType.toLowerCase());
         String jarPath = remoteSqlRootDir + SP + dirName;
-        String jarName = getCoreJarFileName(jarPath, prefix);
+        String jarName = getCoreJarFileName(jarPath, prefix, false);
         return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
     }
 
@@ -119,7 +119,7 @@ public class PluginUtil {
         String dirName = pluginType + sideOperator + tableType.toLowerCase();
         String prefix = String.format("%s-%s-%s", pluginType, sideOperator, tableType.toLowerCase());
         String jarPath = remoteSqlRootDir + SP + dirName;
-        String jarName = getCoreJarFileName(jarPath, prefix);
+        String jarName = getCoreJarFileName(jarPath, prefix, false);
         return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
     }
 
@@ -144,7 +144,11 @@ public class PluginUtil {
         }
     }
 
-    public static String getCoreJarFileName (String path, String prefix) throws Exception {
+    public static String getCoreJarFileName (String path, String prefix, boolean existCheck) throws Exception {
+        if (!existCheck) {
+            return prefix.toLowerCase() + ".jar";
+        }
+
         String coreJarFileName = null;
         File pluginDir = new File(path);
         if (pluginDir.exists() && pluginDir.isDirectory()){
