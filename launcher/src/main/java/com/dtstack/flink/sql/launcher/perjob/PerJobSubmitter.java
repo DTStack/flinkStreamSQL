@@ -52,10 +52,10 @@ public class PerJobSubmitter {
     public static String submit(LauncherOptions launcherOptions, JobGraph jobGraph) throws Exception {
 
 		fillJobGraphClassPath(jobGraph);
-		if (StringUtils.isNoneEmpty(launcherOptions.getAddjar())) {
+		if (!StringUtils.isBlank(launcherOptions.getAddjar())) {
 			String addjarPath = URLDecoder.decode(launcherOptions.getAddjar(), Charsets.UTF_8.toString());
 			List<String>  paths = getJarPaths(addjarPath);
-			paths.forEach( path ->{
+			paths.forEach( path -> {
 				jobGraph.addJar(new Path("file://" + path));
 			});
 		}
