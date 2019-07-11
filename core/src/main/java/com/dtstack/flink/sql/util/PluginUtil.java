@@ -107,19 +107,19 @@ public class PluginUtil {
         return properties;
     }
 
-    public static URL getRemoteJarFilePath(String pluginType, String tableType, String remoteSqlRootDir) throws Exception {
+    public static URL getRemoteJarFilePath(String pluginType, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
         String dirName = pluginType + tableType.toLowerCase();
         String prefix = String.format("%s-%s", pluginType, tableType.toLowerCase());
-        String jarPath = remoteSqlRootDir + SP + dirName;
-        String jarName = getCoreJarFileName(jarPath, prefix, false);
+        String jarPath = localSqlPluginPath + SP + dirName;
+        String jarName = getCoreJarFileName(jarPath, prefix);
         return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
     }
 
-    public static URL getRemoteSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir) throws Exception {
+    public static URL getRemoteSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
         String dirName = pluginType + sideOperator + tableType.toLowerCase();
         String prefix = String.format("%s-%s-%s", pluginType, sideOperator, tableType.toLowerCase());
-        String jarPath = remoteSqlRootDir + SP + dirName;
-        String jarName = getCoreJarFileName(jarPath, prefix, false);
+        String jarPath = localSqlPluginPath + SP + dirName;
+        String jarName = getCoreJarFileName(jarPath, prefix);
         return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
     }
 
@@ -144,11 +144,7 @@ public class PluginUtil {
         }
     }
 
-    public static String getCoreJarFileName (String path, String prefix, boolean existCheck) throws Exception {
-        if (!existCheck) {
-            return prefix.toLowerCase() + ".jar";
-        }
-
+    public static String getCoreJarFileName (String path, String prefix) throws Exception {
         String coreJarFileName = null;
         File pluginDir = new File(path);
         if (pluginDir.exists() && pluginDir.isDirectory()){
