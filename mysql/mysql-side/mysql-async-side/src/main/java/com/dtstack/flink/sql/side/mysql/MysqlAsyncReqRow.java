@@ -50,7 +50,7 @@ public class MysqlAsyncReqRow extends RdbAsyncReqRow {
     private final static String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 
     public MysqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+        super(new MysqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
 
