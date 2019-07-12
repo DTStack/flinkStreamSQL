@@ -59,8 +59,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     private transient SQLClient rdbSQLClient;
 
-    public RdbAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(new RdbAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
+    public RdbAsyncReqRow(SideInfo sideInfo) {
+        super(sideInfo);
     }
 
     @Override
