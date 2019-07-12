@@ -40,32 +40,21 @@ public class OracleAllSideInfo extends RdbAllSideInfo {
         sqlCondition = "select ${selectField} from ${tableName} ";
 
 
-        sqlCondition = sqlCondition.replace("${tableName}", dealLowerFiled(rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
+        sqlCondition = sqlCondition.replace("${tableName}", dealFiled(rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
         System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
 
-    private String dealLowerFiled(String field) {
-        if (StringUtils.isAllUpperCase(field)) {
-            return  field;
-        }
+    private String dealFiled(String field) {
         return   "\"" + field + "\"";
     }
 
     private String dealLowerSelectFiled(String fieldsStr) {
-        if (StringUtils.isAllUpperCase(fieldsStr)) {
-            return  fieldsStr;
-        }
-
         StringBuilder sb = new StringBuilder();
         String[] fields = fieldsStr.split(",");
 
         for(String f : fields) {
-            if (StringUtils.isAllUpperCase(f)) {
-                sb.append(f).append(",");
-            } else {
-                sb.append("\"").append(f).append("\"").append(",");
-            }
+            sb.append("\"").append(f).append("\"").append(",");
         }
 
         sb.deleteCharAt(sb.lastIndexOf(","));
