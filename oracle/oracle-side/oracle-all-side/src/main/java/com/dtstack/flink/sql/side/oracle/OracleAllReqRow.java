@@ -43,7 +43,7 @@ public class OracleAllReqRow extends RdbAllReqRow {
     private static final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
 
     public OracleAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+        super(new OracleAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override
