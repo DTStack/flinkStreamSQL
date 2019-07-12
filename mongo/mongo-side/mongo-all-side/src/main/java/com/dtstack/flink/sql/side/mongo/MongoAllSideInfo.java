@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
+import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -85,11 +86,7 @@ public class MongoAllSideInfo extends SideInfo{
         SqlNode conditionNode = joinInfo.getCondition();
 
         List<SqlNode> sqlNodeList = Lists.newArrayList();
-        if(conditionNode.getKind() == SqlKind.AND){
-            sqlNodeList.addAll(Lists.newArrayList(((SqlBasicCall)conditionNode).getOperands()));
-        }else{
-            sqlNodeList.add(conditionNode);
-        }
+        ParseUtils.parseAnd(conditionNode, sqlNodeList);
 
         for(SqlNode sqlNode : sqlNodeList){
             dealOneEqualCon(sqlNode, sideTableName);

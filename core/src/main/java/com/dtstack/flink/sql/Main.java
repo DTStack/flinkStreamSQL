@@ -46,6 +46,7 @@ import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
@@ -139,15 +140,8 @@ public class Main {
         }
 
         ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
-        DtClassLoader dtClassLoader = new DtClassLoader(new URL[]{}, threadClassLoader);
-        Thread.currentThread().setContextClassLoader(dtClassLoader);
-
-        URLClassLoader parentClassloader;
-        if(!ClusterMode.local.name().equals(deployMode)){
-            parentClassloader = (URLClassLoader) threadClassLoader.getParent();
-        }else{
-            parentClassloader = dtClassLoader;
-        }
+        DtClassLoader parentClassloader = new DtClassLoader(new URL[]{}, threadClassLoader);
+        Thread.currentThread().setContextClassLoader(parentClassloader);
 
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
@@ -218,7 +212,7 @@ public class Main {
 
         if(env instanceof MyLocalStreamEnvironment) {
             List<URL> urlList = new ArrayList<>();
-            urlList.addAll(Arrays.asList(dtClassLoader.getURLs()));
+            urlList.addAll(Arrays.asList(parentClassloader.getURLs()));
             ((MyLocalStreamEnvironment) env).setClasspaths(urlList);
         }
 
@@ -254,7 +248,6 @@ public class Main {
             if (classLoader == null) {
                 classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
             }
-            classLoader.loadClass(funcInfo.getClassName());
             FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
                     tableEnv, classLoader);
         }
@@ -279,7 +272,10 @@ public class Main {
                 Table adaptTable = adaptSql == null ? table : tableEnv.sqlQuery(adaptSql);
 
                 RowTypeInfo typeInfo = new RowTypeInfo(adaptTable.getSchema().getTypes(), adaptTable.getSchema().getColumnNames());
-                DataStream adaptStream = tableEnv.toAppendStream(adaptTable, typeInfo);
+                DataStream adaptStream = tableEnv.toRetractStream(adaptTable, typeInfo)
+                        .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
+                        .returns(typeInfo);
+
                 String fields = String.join(",", typeInfo.getFieldNames());
 
                 if(waterMarkerAssigner.checkNeedAssignWaterMarker(sourceTableInfo)){
@@ -292,18 +288,18 @@ public class Main {
                 Table regTable = tableEnv.fromDataStream(adaptStream, fields);
                 tableEnv.registerTable(tableInfo.getName(), regTable);
                 registerTableCache.put(tableInfo.getName(), regTable);
-                classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath));
+                classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
             } else if (tableInfo instanceof TargetTableInfo) {
 
                 TableSink tableSink = StreamSinkFactory.getTableSink((TargetTableInfo) tableInfo, localSqlPluginPath);
                 TypeInformation[] flinkTypes = FlinkUtil.transformTypes(tableInfo.getFieldClasses());
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
-                classPathSet.add( PluginUtil.getRemoteJarFilePath(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
+                classPathSet.add( PluginUtil.getRemoteJarFilePath(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
             } else if(tableInfo instanceof SideTableInfo){
 
                 String sideOperator = ECacheType.ALL.name().equals(((SideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
                 sideTableMap.put(tableInfo.getName(), (SideTableInfo) tableInfo);
-                classPathSet.add(PluginUtil.getRemoteSideJarFilePath(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
+                classPathSet.add(PluginUtil.getRemoteSideJarFilePath(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
             }else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
