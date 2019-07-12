@@ -58,38 +58,26 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
         for (int i = 0; i < equalFieldList.size(); i++) {
             String equalField = equalFieldList.get(i);
 
-            sqlCondition += dealLowerWhereFiled(equalField) + "=? ";
+            sqlCondition += dealLowerFiled(equalField) + "=? ";
             if (i != equalFieldList.size() - 1) {
                 sqlCondition += " and ";
             }
         }
 
-
-        sqlCondition = sqlCondition.replace("${tableName}", dealLowerWhereFiled(rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
+        sqlCondition = sqlCondition.replace("${tableName}", dealLowerFiled(rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
         System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
-    private String dealLowerWhereFiled(String field) {
-        if (StringUtils.isAllUpperCase(field)) {
-            return  field;
-        }
+    private String dealLowerFiled(String field) {
         return   "\"" + field + "\"";
     }
 
     private String dealLowerSelectFiled(String fieldsStr) {
-        if (StringUtils.isAllUpperCase(fieldsStr)) {
-            return  fieldsStr;
-        }
-
         StringBuilder sb = new StringBuilder();
         String[] fields = fieldsStr.split(",");
 
         for(String f : fields) {
-            if (StringUtils.isAllUpperCase(f)) {
-                sb.append(f).append(",");
-            } else {
-                sb.append("\"").append(f).append("\"").append(",");
-            }
+            sb.append("\"").append(f).append("\"").append(",");
         }
 
         sb.deleteCharAt(sb.lastIndexOf(","));
