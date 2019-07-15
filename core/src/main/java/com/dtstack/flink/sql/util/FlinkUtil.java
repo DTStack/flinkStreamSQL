@@ -180,7 +180,7 @@ public class FlinkUtil {
             logger.info("register scala function:{} success.", funcName);
         }catch (Exception e){
             logger.error("", e);
-            throw new RuntimeException("register UDF exception:" + e.getMessage());
+            throw new RuntimeException("register UDF exception:", e);
         }
     }
 
@@ -208,7 +208,7 @@ public class FlinkUtil {
             logger.info("register table function:{} success.", funcName);
         }catch (Exception e){
             logger.error("", e);
-            throw new RuntimeException("register Table UDF exception:" + e.getMessage());
+            throw new RuntimeException("register Table UDF exception:", e);
         }
     }
 
