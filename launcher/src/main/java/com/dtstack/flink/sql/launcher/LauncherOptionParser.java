@@ -16,23 +16,23 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.options;
+package com.dtstack.flink.sql.launcher;
 
 import avro.shaded.com.google.common.collect.Lists;
+import com.dtstack.flink.sql.ClusterMode;
+import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.hadoop.shaded.com.google.common.base.Charsets;
 import org.apache.flink.hadoop.shaded.com.google.common.base.Preconditions;
-import com.dtstack.flink.sql.util.PluginUtil;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
-import com.dtstack.flink.sql.ClusterMode;
-
 
 
 /**
@@ -89,7 +89,8 @@ public class LauncherOptionParser {
         options.addOption(OPTION_SAVE_POINT_PATH, true, "Savepoint restore path");
         options.addOption(OPTION_ALLOW_NON_RESTORED_STATE, true, "Flag indicating whether non restored state is allowed if the savepoint");
         options.addOption(OPTION_FLINK_JAR_PATH, true, "flink jar path for submit of perjob mode");
-        options.addOption(OPTION_QUEUE, true, "flink runing yarn queue");
+
+        try {
             CommandLine cl = parser.parse(options, args);
             String mode = cl.getOptionValue(OPTION_MODE, ClusterMode.local.name());
             //check mode
@@ -102,24 +103,21 @@ public class LauncherOptionParser {
             byte[] filecontent = new byte[(int) file.length()];
             in.read(filecontent);
             String content = new String(filecontent, "UTF-8");
-
             String sql = URLEncoder.encode(content, Charsets.UTF_8.name());
             properties.setSql(sql);
-
             String localPlugin = Preconditions.checkNotNull(cl.getOptionValue(OPTION_LOCAL_SQL_PLUGIN_PATH));
             properties.setLocalSqlPluginPath(localPlugin);
-
             String remotePlugin = cl.getOptionValue(OPTION_REMOTE_SQL_PLUGIN_PATH);
-            properties.setRemoteSqlPluginPath(remotePlugin);
-
+//            if(!ClusterMode.local.name().equals(mode)){
+//                Preconditions.checkNotNull(remotePlugin);
+                properties.setRemoteSqlPluginPath(remotePlugin);
+//            }
             String name = Preconditions.checkNotNull(cl.getOptionValue(OPTION_NAME));
             properties.setName(name);
-
             String addJar = cl.getOptionValue(OPTION_ADDJAR);
             if(StringUtils.isNotBlank(addJar)){
                 properties.setAddjar(addJar);
             }
-
             String confProp = cl.getOptionValue(OPTION_CONF_PROP);
             if(StringUtils.isNotBlank(confProp)){
                 properties.setConfProp(confProp);
@@ -148,10 +146,14 @@ public class LauncherOptionParser {
             if(StringUtils.isNotBlank(flinkJarPath)){
                 properties.setFlinkJarPath(flinkJarPath);
             }
+
             String queue = cl.getOptionValue(OPTION_QUEUE);
             if(StringUtils.isNotBlank(queue)){
                 properties.setQueue(queue);
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public LauncherOptions getLauncherOptions(){
@@ -161,7 +163,6 @@ public class LauncherOptionParser {
     public List<String> getProgramExeArgList() throws Exception {
         Map<String,Object> mapConf = PluginUtil.ObjectToMap(properties);
         List<String> args = Lists.newArrayList();
-
         for(Map.Entry<String, Object> one : mapConf.entrySet()){
             String key = one.getKey();
             if(OPTION_FLINK_CONF_DIR.equalsIgnoreCase(key)

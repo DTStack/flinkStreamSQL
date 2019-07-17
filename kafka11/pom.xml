@@ -6,7 +6,6 @@
         <artifactId>flink.sql</artifactId>
         <groupId>com.dtstack.flink</groupId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -25,7 +24,6 @@
             <version>${flink.version}</version>
         </dependency>
 
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -40,7 +38,6 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
-
 
 
 </project>

@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
+ 
 
 package com.dtstack.flink.sql.source.kafka.table;
 
 import com.dtstack.flink.sql.table.AbsSourceParser;
-import com.dtstack.flink.sql.table.SourceTableInfo;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
@@ -33,60 +33,58 @@ import java.util.regex.Pattern;
  * Reason:
  * Date: 2018/09/18
  * Company: www.dtstack.com
- *
  * @author sishu.yss
  */
 
 public class KafkaSourceParser extends AbsSourceParser {
 
-	private static final String KAFKA_NEST_FIELD_KEY = "nestFieldKey";
+    private static final String KAFKA_NEST_FIELD_KEY = "nestFieldKey";
 
-	private static Pattern kafkaNestFieldKeyPattern = Pattern.compile("(?i)((\\w+\\.)*\\w+)\\s+(\\w+)\\s+AS\\s+(\\w+)$");
+    private static Pattern kafkaNestFieldKeyPattern = Pattern.compile("(?i)((@*\\w+\\.)*\\w+)\\s+(\\w+)\\s+AS\\s+(\\w+)$");
 
-	static {
-		keyPatternMap.put(KAFKA_NEST_FIELD_KEY, kafkaNestFieldKeyPattern);
+    static {
+        keyPatternMap.put(KAFKA_NEST_FIELD_KEY, kafkaNestFieldKeyPattern);
 
-		keyHandlerMap.put(KAFKA_NEST_FIELD_KEY, KafkaSourceParser::dealNestField);
-	}
+        keyHandlerMap.put(KAFKA_NEST_FIELD_KEY, KafkaSourceParser::dealNestField);
+    }
 
-	static void dealNestField(Matcher matcher, TableInfo tableInfo) {
-		SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
-		String physicalField = matcher.group(1);
-		String fieldType = matcher.group(3);
-		String mappingField = matcher.group(4);
-		Class fieldClass=ClassUtil.stringConvertClass(fieldType);
+    /**
+     * add parser for alias field
+     * @param matcher
+     * @param tableInfo
+     */
+    static void dealNestField(Matcher matcher, TableInfo tableInfo) {
+        String physicalField = matcher.group(1);
+        String fieldType = matcher.group(3);
+        String mappingField = matcher.group(4);
+        Class fieldClass= ClassUtil.stringConvertClass(fieldType);
 
-		tableInfo.addPhysicalMappings(mappingField,physicalField);
-		tableInfo.addField(mappingField);
-		tableInfo.addFieldClass(fieldClass);
-		tableInfo.addFieldType(fieldType);
-	}
+        tableInfo.addPhysicalMappings(mappingField, physicalField);
+        tableInfo.addField(mappingField);
+        tableInfo.addFieldClass(fieldClass);
+        tableInfo.addFieldType(fieldType);
+    }
 
-	@Override
-	public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    @Override
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {
 
-		KafkaSourceTableInfo kafka11SourceTableInfo = new KafkaSourceTableInfo();
-		kafka11SourceTableInfo.setName(tableName);
-		parseFieldsInfo(fieldsInfo, kafka11SourceTableInfo);
-		kafka11SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
-		kafka11SourceTableInfo.setPatternTopic(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.PATTERNTOPIC_KEY.toLowerCase())));
+        KafkaSourceTableInfo kafka11SourceTableInfo = new KafkaSourceTableInfo();
+        kafka11SourceTableInfo.setName(tableName);
+        parseFieldsInfo(fieldsInfo, kafka11SourceTableInfo);
 
-		kafka11SourceTableInfo.setTimeZone(MathUtil.getString(props.get(KafkaSourceTableInfo.TIME_ZONE_KEY.toLowerCase())));
-
-		if (props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE) != null) {
-			kafka11SourceTableInfo.setSourceDataType(props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE).toString());
-		}
-		if (props.get(KafkaSourceTableInfo.FIELD_DELINITER) != null) {
-			kafka11SourceTableInfo.setFieldDelimiter(props.get(KafkaSourceTableInfo.FIELD_DELINITER).toString());
-		}
-		if (props.get(KafkaSourceTableInfo.LENGTH_CHECK_POLICY) != null) {
-			kafka11SourceTableInfo.setLengthCheckPolicy(props.get(KafkaSourceTableInfo.LENGTH_CHECK_POLICY).toString());
-		}
-		for (String key : props.keySet()) {
-			if (!key.isEmpty() && key.startsWith("kafka.")) {
-				kafka11SourceTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
-			}
-		}
-		return kafka11SourceTableInfo;
-	}
+        kafka11SourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
+        String bootstrapServer = MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase()));
+        if (bootstrapServer == null || bootstrapServer.trim().equals("")){
+            throw new Exception("BootstrapServers can not be empty!");
+        } else {
+            kafka11SourceTableInfo.setBootstrapServers(bootstrapServer);
+        }
+        kafka11SourceTableInfo.setGroupId(MathUtil.getString(props.get(KafkaSourceTableInfo.GROUPID_KEY.toLowerCase())));
+        kafka11SourceTableInfo.setTopic(MathUtil.getString(props.get(KafkaSourceTableInfo.TOPIC_KEY.toLowerCase())));
+        kafka11SourceTableInfo.setOffsetReset(MathUtil.getString(props.get(KafkaSourceTableInfo.OFFSETRESET_KEY.toLowerCase())));
+        kafka11SourceTableInfo.setTopicIsPattern(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.TOPICISPATTERN_KEY.toLowerCase())));
+        kafka11SourceTableInfo.setTimeZone(MathUtil.getString(props.get(KafkaSourceTableInfo.TIME_ZONE_KEY.toLowerCase())));
+        kafka11SourceTableInfo.check();
+        return kafka11SourceTableInfo;
+    }
 }

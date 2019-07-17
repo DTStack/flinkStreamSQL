@@ -22,22 +22,13 @@ import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.api.common.serialization.TypeInformationSerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.formats.json.JsonRowSerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
-
-import org.apache.flink.streaming.connectors.kafka.Kafka011TableSink;
 import org.apache.flink.streaming.connectors.kafka.KafkaTableSinkBase;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.sinks.AppendStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
-
-import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -56,62 +47,38 @@ public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<
 
     protected TypeInformation<?>[] fieldTypes;
 
-    /** The schema of the table. */
-    private TableSchema schema;
-
-    /** The Kafka topic to write to. */
     protected String topic;
 
-    /** Properties for the Kafka producer. */
     protected Properties properties;
 
     /** Serialization schema for encoding records to Kafka. */
     protected SerializationSchema serializationSchema;
 
-    /** Partitioner to select Kafka partition for each item. */
-    protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
-
     @Override
     public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
-        KafkaSinkTableInfo kafka011SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
-        this.topic = kafka011SinkTableInfo.getKafkaParam("topic");
-
-        Properties props = new Properties();
-        for (String key:kafka011SinkTableInfo.getKafkaParamKeys()) {
-            props.setProperty(key, kafka011SinkTableInfo.getKafkaParam(key));
-        }
-        this.properties = props;
-        this.partitioner = Optional.of(new FlinkFixedPartitioner<>());
-        this.fieldNames = kafka011SinkTableInfo.getFields();
-        TypeInformation[] types = new TypeInformation[kafka011SinkTableInfo.getFields().length];
-        for(int i = 0; i< kafka011SinkTableInfo.getFieldClasses().length; i++){
-            types[i] = TypeInformation.of(kafka011SinkTableInfo.getFieldClasses()[i]);
+        KafkaSinkTableInfo kafka11SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
+        this.topic = kafka11SinkTableInfo.getTopic();
+        this.fieldNames = kafka11SinkTableInfo.getFields();
+        TypeInformation[] types = new TypeInformation[kafka11SinkTableInfo.getFields().length];
+        for (int i = 0; i < kafka11SinkTableInfo.getFieldClasses().length; i++) {
+            types[i] = TypeInformation.of(kafka11SinkTableInfo.getFieldClasses()[i]);
         }
         this.fieldTypes = types;
 
-        TableSchema.Builder schemaBuilder = TableSchema.builder();
-        for (int i=0;i<fieldNames.length;i++){
-            schemaBuilder.field(fieldNames[i], fieldTypes[i]);
+        properties = new Properties();
+        for (String key : kafka11SinkTableInfo.getKafkaParamKeys()) {
+            properties.setProperty(key, kafka11SinkTableInfo.getKafkaParam(key));
         }
-        this.schema = schemaBuilder.build();
-
-        //this.serializationSchema = Optional.of(JsonRowSerializationSchema.class);
-        if ("json".equalsIgnoreCase(kafka011SinkTableInfo.getSinkDataType())) {
-            this.serializationSchema = new JsonRowSerializationSchema(getOutputType());
-        } else if ("csv".equalsIgnoreCase(kafka011SinkTableInfo.getSinkDataType())){
-            this.serializationSchema = new TypeInformationSerializationSchema(TypeInformation.of(Row.class),
-                    new CustomerCsvSerialization(kafka011SinkTableInfo.getFieldDelimiter(),fieldTypes));
-        }
+        properties.setProperty("bootstrap.servers", kafka11SinkTableInfo.getBootstrapServers());
+        this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType());
         return this;
     }
 
     @Override
     public void emitDataStream(DataStream<Row> dataStream) {
-        KafkaTableSinkBase kafkaTableSink = new Kafka011TableSink(
-                schema,
+        KafkaTableSinkBase kafkaTableSink = new CustomerKafka11JsonTableSink(
                 topic,
                 properties,
-                partitioner,
                 serializationSchema
         );
 
@@ -139,5 +106,4 @@ public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<
         this.fieldTypes = fieldTypes;
         return this;
     }
-
 }
