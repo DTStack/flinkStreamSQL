@@ -46,6 +46,7 @@ import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
@@ -279,7 +280,10 @@ public class Main {
                 Table adaptTable = adaptSql == null ? table : tableEnv.sqlQuery(adaptSql);
 
                 RowTypeInfo typeInfo = new RowTypeInfo(adaptTable.getSchema().getTypes(), adaptTable.getSchema().getColumnNames());
-                DataStream adaptStream = tableEnv.toAppendStream(adaptTable, typeInfo);
+                DataStream adaptStream = tableEnv.toRetractStream(adaptTable, typeInfo)
+                                                .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
+                                                .returns(typeInfo);
+
                 String fields = String.join(",", typeInfo.getFieldNames());
 
                 if(waterMarkerAssigner.checkNeedAssignWaterMarker(sourceTableInfo)){
