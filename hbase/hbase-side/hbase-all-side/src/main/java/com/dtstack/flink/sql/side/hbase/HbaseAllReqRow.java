@@ -170,7 +170,7 @@ public class HbaseAllReqRow extends AllReqRow {
                     StringBuilder key = new StringBuilder();
                     key.append(family).append(":").append(qualifier);
 
-                    kv.put(aliasNameInversion.get(key.toString().toUpperCase()), value);
+                    kv.put(aliasNameInversion.get(key.toString()), value);
                 }
                 tmpCache.put(new String(r.getRow()), kv);
             }

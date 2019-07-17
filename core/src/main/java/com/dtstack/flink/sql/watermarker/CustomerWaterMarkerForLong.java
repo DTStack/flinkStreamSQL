@@ -21,7 +21,6 @@
 package com.dtstack.flink.sql.watermarker;
 
 import com.dtstack.flink.sql.util.MathUtil;
-import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -42,11 +41,11 @@ public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
 
     private static final long serialVersionUID = 1L;
 
-    private TimeZone timezone;
-
     private int pos;
 
     private long lastTime = 0;
+
+    private TimeZone timezone;
 
     public CustomerWaterMarkerForLong(Time maxOutOfOrderness, int pos,String timezone) {
         super(maxOutOfOrderness);
@@ -58,12 +57,11 @@ public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
     public long extractTimestamp(Row row) {
 
         try{
-            Long eveTime = MathUtil.getLongVal(row.getField(pos));
-            Long extractTime=eveTime;
+            Long extractTime = MathUtil.getLongVal(row.getField(pos));
 
             lastTime = extractTime + timezone.getOffset(extractTime);
 
-            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - convertTimeZone(extractTime))/1000));
+            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - extractTime)/1000));
 
             return lastTime;
         }catch (Exception e){
@@ -72,8 +70,4 @@ public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
         return lastTime;
     }
 
-    public long convertTimeZone(long evenTime){
-        long res = evenTime - timezone.getOffset(evenTime) + TimeZone.getDefault().getOffset(evenTime);
-        return res;
-    }
 }

@@ -19,50 +19,75 @@
 package com.dtstack.flink.sql.sink.kafka.table;
 
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import com.google.common.base.Preconditions;
+import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
 /**
  * Date: 2018/12/18
  * Company: www.dtstack.com
+ *
  * @author DocLi
- *
  * @modifyer maqi
- *
  */
 public class KafkaSinkTableInfo extends TargetTableInfo {
-    //version
-    private static final String CURR_TYPE = "kafka09";
+	//version
+	private static final String CURR_TYPE = "kafka09";
 
-    public KafkaSinkTableInfo(){
-        super.setType(CURR_TYPE);
-    }
+	public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
 
-    public Map<String,String> kafkaParam = new HashMap<String,String>();
+	public static final String TOPIC_KEY = "topic";
 
-    public void addKafkaParam(String key,String value){
-        kafkaParam.put(key,value);
-    }
+	private String bootstrapServers;
 
-    public String getKafkaParam(String key){
-        return kafkaParam.get(key);
-    }
+	private String topic;
 
-    public Set<String> getKafkaParamKeys(){
-        return kafkaParam.keySet();
-    }
+	public Map<String,String> kafkaParam = new HashMap<String,String>();
 
-    @Override
-    public boolean check() {
-        Preconditions.checkNotNull(kafkaParam.get("bootstrap.servers"), "kafka of bootstrapServers is required");
-        Preconditions.checkNotNull(kafkaParam.get("topic"), "kafka of topic is required");
-        return false;
-    }
+	public KafkaSinkTableInfo() {
+		super.setType(CURR_TYPE);
+	}
 
-    @Override
-    public String getType() {
-        return super.getType();
-    }
+	public void addKafkaParam(String key,String value){
+		kafkaParam.put(key,value);
+	}
+
+	public String getKafkaParam(String key){
+		return kafkaParam.get(key);
+	}
+
+	public Set<String> getKafkaParamKeys(){
+		return kafkaParam.keySet();
+	}
+
+	public String getBootstrapServers() {
+		return bootstrapServers;
+	}
+
+	public void setBootstrapServers(String bootstrapServers) {
+		this.bootstrapServers = bootstrapServers;
+	}
+
+	public String getTopic() {
+		return topic;
+	}
+
+	public void setTopic(String topic) {
+		this.topic = topic;
+	}
+
+	@Override
+	public boolean check() {
+		Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
+		Preconditions.checkNotNull(topic, "kafka of topic is required");
+		return false;
+	}
+
+	@Override
+	public String getType() {
+//        return super.getType() + SOURCE_SUFFIX;
+		return super.getType();
+	}
 }

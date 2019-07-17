@@ -180,7 +180,7 @@ public class FlinkUtil {
             logger.info("register scala function:{} success.", funcName);
         }catch (Exception e){
             logger.error("", e);
-            throw new RuntimeException("register UDF exception:" + e.getMessage());
+            throw new RuntimeException("register UDF exception:", e);
         }
     }
 
@@ -208,7 +208,7 @@ public class FlinkUtil {
             logger.info("register table function:{} success.", funcName);
         }catch (Exception e){
             logger.error("", e);
-            throw new RuntimeException("register Table UDF exception:" + e.getMessage());
+            throw new RuntimeException("register Table UDF exception:", e);
         }
     }
 
@@ -267,8 +267,13 @@ public class FlinkUtil {
         return classLoader;
     }
 
-    private static void urlClassLoaderAddUrl(URLClassLoader classLoader, URL url) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        Method method = classLoader.getClass().getDeclaredMethod("addURL", URL.class);
+    private static void urlClassLoaderAddUrl(URLClassLoader classLoader, URL url) throws InvocationTargetException, IllegalAccessException {
+        Method method = ReflectionUtils.getDeclaredMethod(classLoader, "addURL", URL.class);
+
+        if(method == null){
+            throw new RuntimeException("can't not find declared method addURL, curr classLoader is " + classLoader.getClass());
+        }
+
         method.setAccessible(true);
         method.invoke(classLoader, url);
     }
