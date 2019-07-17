@@ -69,7 +69,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../plugins/kafka11source/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/kafka11source/${project.name}.jar" />
+                                      tofile="${basedir}/../../plugins/kafka11source/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

@@ -50,7 +50,7 @@ public class MysqlAllReqRow extends RdbAllReqRow {
     private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 
     public MysqlAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+        super(new MysqlAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override

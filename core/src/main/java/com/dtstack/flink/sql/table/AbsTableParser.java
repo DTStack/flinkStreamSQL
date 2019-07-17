@@ -57,7 +57,7 @@ public abstract class AbsTableParser {
         return true;
     }
 
-    public abstract TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props);
+    public abstract TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception;
 
     public boolean dealKeyPattern(String fieldRow, TableInfo tableInfo){
         for(Map.Entry<String, Pattern> keyPattern : keyPatternMap.entrySet()){

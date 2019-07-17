@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.options;
+package com.dtstack.flink.sql.launcher;
 
 import com.dtstack.flink.sql.ClusterMode;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 
 /**
  * This class define commandline options for the Launcher program

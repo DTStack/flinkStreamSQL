@@ -51,7 +51,6 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import java.io.IOException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import com.dtstack.flink.sql.options.LauncherOptions;
 import static java.util.Objects.requireNonNull;
 
 /**
