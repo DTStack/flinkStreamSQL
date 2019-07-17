@@ -43,7 +43,7 @@ public class SqlserverAllReqRow extends RdbAllReqRow {
     private static final String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
 
     public SqlserverAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+        super(new SqlserverAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override

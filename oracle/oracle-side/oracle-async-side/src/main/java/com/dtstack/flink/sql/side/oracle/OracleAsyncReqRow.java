@@ -43,15 +43,15 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
     private static final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
 
     public OracleAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+        super(new OracleAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        JsonObject sqlserverClientConfig = new JsonObject();
+        JsonObject oracleClientConfig = new JsonObject();
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
-        sqlserverClientConfig.put("url", rdbSideTableInfo.getUrl())
+        oracleClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", ORACLE_DRIVER)
                 .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
                 .put("user", rdbSideTableInfo.getUserName())
@@ -61,6 +61,6 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, sqlserverClientConfig));
+        setRdbSQLClient(JDBCClient.createNonShared(vertx, oracleClientConfig));
     }
 }

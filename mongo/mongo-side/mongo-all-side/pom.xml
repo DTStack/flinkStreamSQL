@@ -76,7 +76,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../../plugins/mongoallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/mongoallside/${project.name}.jar" />
+                                      tofile="${basedir}/../../../plugins/mongoallside/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

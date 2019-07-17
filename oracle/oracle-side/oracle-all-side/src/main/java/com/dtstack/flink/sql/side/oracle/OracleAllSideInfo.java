@@ -21,6 +21,8 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.RdbAllSideInfo;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.util.List;
@@ -29,5 +31,33 @@ public class OracleAllSideInfo extends RdbAllSideInfo {
 
     public OracleAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+    }
+
+    @Override
+    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
+
+        sqlCondition = "select ${selectField} from ${tableName} ";
+
+
+        sqlCondition = sqlCondition.replace("${tableName}", dealFiled(rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
+        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
+    }
+
+
+    private String dealFiled(String field) {
+        return   "\"" + field + "\"";
+    }
+
+    private String dealLowerSelectFiled(String fieldsStr) {
+        StringBuilder sb = new StringBuilder();
+        String[] fields = fieldsStr.split(",");
+
+        for(String f : fields) {
+            sb.append("\"").append(f).append("\"").append(",");
+        }
+
+        sb.deleteCharAt(sb.lastIndexOf(","));
+        return  sb.toString();
     }
 }

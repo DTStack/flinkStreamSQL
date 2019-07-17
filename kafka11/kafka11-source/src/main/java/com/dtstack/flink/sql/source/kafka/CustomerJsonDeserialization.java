@@ -16,18 +16,22 @@
  * limitations under the License.
  */
 
- 
 
-package com.dtstack.flink.sql.source.kafka.deserialization;
+
+package com.dtstack.flink.sql.source.kafka;
 
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
-import com.dtstack.flink.sql.util.DtStringUtil;
+import com.google.common.collect.Maps;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
@@ -39,23 +43,27 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import static com.dtstack.flink.sql.metric.MetricConstant.*;
 
 /**
- * Date: 2018/12/18
+ * json string parsing custom
+ * Date: 2018/09/18
  * Company: www.dtstack.com
- * @author DocLi
- *
- * @modifyer maqi
- *
+ * @author sishu.yss
  */
-public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CustomerCsvDeserialization.class);
+public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
-    private static final long serialVersionUID = -2706012724306826506L;
+    private static final Logger LOG = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
+
+    private static final long serialVersionUID = 2385115520960444192L;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -75,24 +83,23 @@ public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
 
     private boolean firstMsg = true;
 
-    private String fieldDelimiter;
+    private Map<String, String> rowAndFieldMapping = Maps.newHashMap();
 
-    private String lengthCheckPolicy;
+    private Map<String, JsonNode> nodeAndJsonnodeMapping = Maps.newHashMap();
 
-    public CustomerCsvDeserialization(TypeInformation<Row> typeInfo, String fieldDelimiter, String lengthCheckPolicy){
+    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping){
         this.typeInfo = typeInfo;
 
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
 
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
 
-        this.fieldDelimiter = fieldDelimiter;
-
-        this.lengthCheckPolicy = lengthCheckPolicy;
+        this.rowAndFieldMapping=rowAndFieldMapping;
     }
 
     @Override
-    public Row deserialize(byte[] message) throws IOException {
+    public Row deserialize(byte[] message)  {
+
         if(firstMsg){
             try {
                 registerPtMetric(fetcher);
@@ -106,39 +113,73 @@ public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
         try {
             numInRecord.inc();
             numInBytes.inc(message.length);
-            String[] fieldsList = null;
-            if (message != null && message.length > 0){
-                fieldsList = new String(message).split(fieldDelimiter);
-            }
-            if (fieldsList == null || fieldsList.length != fieldNames.length){//exception condition
-                if (lengthCheckPolicy.equalsIgnoreCase("SKIP")) {
-                    return null;
-                }else if (lengthCheckPolicy.equalsIgnoreCase("EXCEPTION")) {
-                    throw new RuntimeException("lengthCheckPolicy Error,message have "+fieldsList.length+" fields,sql have "+fieldNames.length);
-                }
-            }
+
+            JsonNode root = objectMapper.readTree(message);
+            parseTree(root,"");
 
             Row row = new Row(fieldNames.length);
+
             for (int i = 0; i < fieldNames.length; i++) {
-                if (i<fieldsList.length) {
-                    row.setField(i, DtStringUtil.parse(fieldsList[i],fieldTypes[i].getTypeClass()));
+                JsonNode node = getIgnoreCase(fieldNames[i]);
+
+                if (node == null) {
+                    if (failOnMissingField) {
+                        throw new IllegalStateException("Failed to find field with name '"
+                                + fieldNames[i] + "'.");
+                    } else {
+                        row.setField(i, null);
+                    }
                 } else {
-                    break;
+                    row.setField(i, convert(node, fieldTypes[i]));
                 }
             }
 
             numInResolveRecord.inc();
             return row;
-        } catch (Throwable t) {
+        } catch (Exception e) {
             //add metric of dirty data
+            LOG.error(e.getMessage());
             dirtyDataCounter.inc();
-            throw new RuntimeException(t);
+            return null;
         }
+    }
+
+    public  void parseTree(JsonNode jsonNode, String prefix){
+        nodeAndJsonnodeMapping.clear();
+
+        Iterator<String> iterator = jsonNode.fieldNames();
+        while (iterator.hasNext()){
+            String next = iterator.next();
+            JsonNode child = jsonNode.get(next);
+            if (child.isObject()){
+                parseTree(child,next+"."+prefix);
+            }else {
+                nodeAndJsonnodeMapping.put(prefix+next,child);
+            }
+        }
+    }
+
+    public void setFailOnMissingField(boolean failOnMissingField) {
+        this.failOnMissingField = failOnMissingField;
+    }
+
+
+    public JsonNode getIgnoreCase(String key) {
+        String nodeMappingKey = rowAndFieldMapping.get(key);
+        JsonNode node = nodeAndJsonnodeMapping.get(nodeMappingKey);
+        JsonNodeType nodeType = node.getNodeType();
+
+        if (nodeType==JsonNodeType.ARRAY){
+            throw new IllegalStateException("Unsupported  type information  array .") ;
+        }
+
+        return node;
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
         this.fetcher = fetcher;
     }
+
 
     protected void registerPtMetric(AbstractFetcher<Row, ?> fetcher) throws Exception {
 
@@ -175,8 +216,47 @@ public class CustomerCsvDeserialization extends AbsDeserialization<Row> {
 
     }
 
-    public void setFailOnMissingField(boolean failOnMissingField) {
-        this.failOnMissingField = failOnMissingField;
+    private static String partitionLagMetricName(TopicPartition tp) {
+        return tp + ".records-lag";
     }
 
+    // --------------------------------------------------------------------------------------------
+
+    private Object convert(JsonNode node, TypeInformation<?> info) {
+         if (info.getTypeClass().equals(Types.BOOLEAN.getTypeClass())) {
+            return node.asBoolean();
+        } else if (info.getTypeClass().equals(Types.STRING.getTypeClass())) {
+            return node.asText();
+        } else if (info.getTypeClass().equals(Types.BIG_DEC.getTypeClass())) {
+            return node.decimalValue();
+        } else if (info.getTypeClass().equals(Types.BIG_INT.getTypeClass())) {
+            return node.bigIntegerValue();
+        } else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
+            return Date.valueOf(node.asText());
+        } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
+            // local zone
+            return Time.valueOf(node.asText());
+        } else if (info.getTypeClass().equals(Types.SQL_TIMESTAMP.getTypeClass())) {
+             // local zone
+            return Timestamp.valueOf(node.asText());
+        }  else if (info.getTypeClass().equals(Types.BYTE.getTypeClass())){
+            return convertByteArray(node);
+        } else {
+            // for types that were specified without JSON schema
+            // e.g. POJOs
+            try {
+                return objectMapper.treeToValue(node, info.getTypeClass());
+            } catch (JsonProcessingException e) {
+                throw new IllegalStateException("Unsupported type information '" + info + "' for node: " + node);
+            }
+        }
+    }
+
+    private Object convertByteArray(JsonNode node) {
+        try {
+            return node.binaryValue();
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to deserialize byte array.", e);
+        }
+    }
 }
