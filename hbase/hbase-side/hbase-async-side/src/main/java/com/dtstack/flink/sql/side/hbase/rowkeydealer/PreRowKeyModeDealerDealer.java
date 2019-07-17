@@ -98,9 +98,9 @@ public class PreRowKeyModeDealerDealer extends AbsRowKeyModeDealer {
                     String mapKey = cf + ":" + col;
 
                     //The table format defined using different data type conversion byte
-                    String colType = colRefType.get(mapKey.toUpperCase());
+                    String colType = colRefType.get(mapKey);
                     Object val = HbaseUtils.convertByte(keyValue.value(), colType);
-                    sideMap.put(mapKey.toUpperCase(), val);
+                    sideMap.put(mapKey, val);
                 }
 
                 if (oneRow.size() > 0) {

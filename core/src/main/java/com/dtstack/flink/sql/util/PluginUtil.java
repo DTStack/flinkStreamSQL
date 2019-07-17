@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonGenerationException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonParseException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonMappingException;
@@ -28,6 +29,7 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMap
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -105,15 +107,19 @@ public class PluginUtil {
         return properties;
     }
 
-    public static URL getRemoteJarFilePath(String pluginType, String tableType, String remoteSqlRootDir) throws MalformedURLException {
+    public static URL getRemoteJarFilePath(String pluginType, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
         String dirName = pluginType + tableType.toLowerCase();
-        String jarName = String.format("%s-%s.jar", pluginType, tableType.toLowerCase());
+        String prefix = String.format("%s-%s", pluginType, tableType.toLowerCase());
+        String jarPath = localSqlPluginPath + SP + dirName;
+        String jarName = getCoreJarFileName(jarPath, prefix);
         return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
     }
 
-    public static URL getRemoteSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir) throws MalformedURLException {
+    public static URL getRemoteSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
         String dirName = pluginType + sideOperator + tableType.toLowerCase();
-        String jarName = String.format("%s-%s-%s.jar", pluginType, sideOperator, tableType.toLowerCase());
+        String prefix = String.format("%s-%s-%s", pluginType, sideOperator, tableType.toLowerCase());
+        String jarPath = localSqlPluginPath + SP + dirName;
+        String jarName = getCoreJarFileName(jarPath, prefix);
         return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
     }
 
@@ -136,6 +142,29 @@ public class PluginUtil {
             URL pluginJarURL = file.toURI().toURL();
             classLoader.addURL(pluginJarURL);
         }
+    }
+
+    public static String getCoreJarFileName (String path, String prefix) throws Exception {
+        String coreJarFileName = null;
+        File pluginDir = new File(path);
+        if (pluginDir.exists() && pluginDir.isDirectory()){
+            File[] jarFiles = pluginDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().startsWith(prefix) && name.toLowerCase().endsWith(".jar");
+                }
+            });
+
+            if (jarFiles != null && jarFiles.length > 0){
+                coreJarFileName = jarFiles[0].getName();
+            }
+        }
+
+        if (StringUtils.isEmpty(coreJarFileName)){
+            throw new Exception("Can not find core jar file in path:" + path);
+        }
+
+        return coreJarFileName;
     }
 
 }

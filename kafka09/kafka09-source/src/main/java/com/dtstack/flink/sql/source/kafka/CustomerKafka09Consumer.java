@@ -16,20 +16,17 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.source.kafka.consumer;
+package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
-import com.dtstack.flink.sql.source.kafka.deserialization.CustomerCsvDeserialization;
-import com.dtstack.flink.sql.source.kafka.deserialization.CustomerJsonDeserialization;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
-import org.apache.flink.streaming.util.serialization.KeyedDeserializationSchema;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
 
@@ -39,45 +36,38 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 
 /**
- *
- * Date: 2018/12/18
+ * Reason:
+ * Date: 2018/10/12
  * Company: www.dtstack.com
- * @author DocLi
- *
- * @modifyer maqi
- *
+ * @author xuchao
  */
 
-public class CustomerCsvConsumer extends FlinkKafkaConsumer011<Row> {
+public class CustomerKafka09Consumer extends FlinkKafkaConsumer09<Row> {
 
-    private static final long serialVersionUID = -2265366268827807739L;
+    private static final long serialVersionUID = 4451177393982291909L;
 
-    private CustomerCsvDeserialization customerCsvDeserialization;
+    private CustomerJsonDeserialization customerJsonDeserialization;
 
-    public CustomerCsvConsumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
+    public CustomerKafka09Consumer(String topic, AbsDeserialization valueDeserializer, Properties props) {
         super(Arrays.asList(topic.split(",")), valueDeserializer, props);
-        this.customerCsvDeserialization = (CustomerCsvDeserialization) valueDeserializer;
+        this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
     }
-
-    public CustomerCsvConsumer(Pattern subscriptionPattern, AbsDeserialization<Row> valueDeserializer, Properties props) {
+    public CustomerKafka09Consumer(Pattern subscriptionPattern, AbsDeserialization<Row> valueDeserializer, Properties props) {
         super(subscriptionPattern, valueDeserializer, props);
-        this.customerCsvDeserialization = (CustomerCsvDeserialization) valueDeserializer;
+        this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
     }
-
-
-
 
     @Override
     public void run(SourceContext<Row> sourceContext) throws Exception {
-        customerCsvDeserialization.setRuntimeContext(getRuntimeContext());
-        customerCsvDeserialization.initMetric();
+        customerJsonDeserialization.setRuntimeContext(getRuntimeContext());
+        customerJsonDeserialization.initMetric();
         super.run(sourceContext);
     }
 
     @Override
     protected AbstractFetcher<Row, ?> createFetcher(SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
         AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext, assignedPartitionsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, runtimeContext, offsetCommitMode, consumerMetricGroup, useMetrics);
-        customerCsvDeserialization.setFetcher(fetcher);
+        customerJsonDeserialization.setFetcher(fetcher);
         return fetcher;
     }
 }
