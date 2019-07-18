@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.sink.kafka;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
-import org.apache.flink.streaming.connectors.kafka.KafkaJsonTableSink;
+import org.apache.flink.streaming.connectors.kafka.Kafka011TableSink;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaDelegatePartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
@@ -39,7 +39,7 @@ import java.util.Properties;
  *
  * @author maqi
  */
-public class CustomerKafka11JsonTableSink extends KafkaJsonTableSink {
+public class CustomerKafka11JsonTableSink extends Kafka011TableSink {
 
 
 	protected SerializationSchema schema;
