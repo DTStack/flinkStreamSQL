@@ -92,7 +92,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../../plugins/cassandraasyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/cassandraasyncside/${project.name}.jar" />
+                                      tofile="${basedir}/../../../plugins/cassandraasyncside/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

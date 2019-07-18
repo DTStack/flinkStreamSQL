@@ -26,6 +26,7 @@ import com.alibaba.fastjson.TypeReference;
 import com.dtstack.flink.sql.ClusterMode;
 import com.dtstack.flink.sql.Main;
 import com.dtstack.flink.sql.launcher.perjob.PerJobSubmitter;
+import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.PackagedProgram;
 import org.apache.flink.client.program.PackagedProgramUtils;
@@ -52,13 +53,15 @@ import java.util.Map;
  */
 
 public class LauncherMain {
-    private static final String CORE_JAR = "core.jar";
+    private static final String CORE_JAR = "core";
 
     private static String SP = File.separator;
 
 
-    private static String getLocalCoreJarPath(String localSqlRootJar){
-        return localSqlRootJar + SP + CORE_JAR;
+    private static String getLocalCoreJarPath(String localSqlRootJar) throws Exception {
+        String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR);
+        String corePath = localSqlRootJar + SP + jarPath;
+        return corePath;
     }
 
     public static void main(String[] args) throws Exception {

@@ -8,24 +8,28 @@
 >  >  * 扩展了输入和输出的性能指标到promethus
 
  
+## BUG修复：
+
+ 1. oracle维表获取索引问题。
+ 2. Perjob模式下UDF类加载异常问题。
+ 3. queue 参数设置无效的问题。
+
+## 新特性：
+ 1. 支持从kafka读取嵌套JSON格式数据,暂不支持数组类型字段。例如：  info.name varchar as info_name。
+ 2. 支持kafka结果表数据写入。
+ 3. 支持为ROWTIME绑定时区，默认为本地时区。例如：timezone="America/New_York"
+ 4. 支持从kafka自定义偏移量中消费数据。
+ 
 # 已支持
   * 源表：kafka 0.9，1.x版本，serverSocket
   * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra
   * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra，console
 
 # 后续开发计划
-  * 增加SQL支持CEP
   * 维表快照
   * sql优化（谓词下移等）
   * kafka avro格式
   * topN
-
-## 1 快速起步
-### 1.1 运行模式
-
-* 单机模式：对应Flink集群的单机模式
-* standalone模式：对应Flink集群的分布式模式
-* yarn模式：对应Flink集群的yarn模式
 
 ### 1.2 执行环境
 
@@ -52,6 +56,10 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 ```
 
 #### 1.4.2 命令行参数选项
+
+* 单机模式：对应Flink集群的单机模式
+* standalone模式：对应Flink集群的分布式模式
+* yarn模式：对应Flink集群的yarn模式
 
 * **mode**
 	* 描述：执行模式，也就是flink集群的工作模式
@@ -267,4 +275,3 @@ into
 
 # 招聘
 1.大数据平台开发工程师，想了解岗位详细信息可以添加本人微信号ysqwhiletrue,注明招聘，如有意者发送简历至sishu@dtstack.com。
-  
