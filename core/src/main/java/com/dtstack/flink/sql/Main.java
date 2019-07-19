@@ -321,6 +321,7 @@ public class Main {
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
 
+        env.getConfig().disableClosureCleaner();
         env.setParallelism(FlinkUtil.getEnvParallelism(confProperties));
         Configuration globalJobParameters = new Configuration();
         Method method = Configuration.class.getDeclaredMethod("setValueInternal", String.class, Object.class);
