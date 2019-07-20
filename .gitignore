@@ -11,5 +11,5 @@ plugins/
 lib/
 .vertx/
 bin/nohup.out
-
+.DS_Store
 bin/sideSql.txt
