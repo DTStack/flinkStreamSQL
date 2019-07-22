@@ -38,19 +38,16 @@ public class KafkaSinkParser extends AbsTableParser {
         KafkaSinkTableInfo kafka09SinkTableInfo = new KafkaSinkTableInfo();
         kafka09SinkTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, kafka09SinkTableInfo);
-        kafka09SinkTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase())));
-        if (props.get(KafkaSinkTableInfo.SINK_DATA_TYPE) != null) {
-            kafka09SinkTableInfo.setSinkDataType(props.get(KafkaSinkTableInfo.SINK_DATA_TYPE).toString());
-        }
-        if (props.get(KafkaSinkTableInfo.FIELD_DELINITER) != null) {
-            kafka09SinkTableInfo.setFieldDelimiter(props.get(KafkaSinkTableInfo.FIELD_DELINITER).toString());
-        }
 
-        for (String key:props.keySet()) {
+
+        kafka09SinkTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSinkTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
+        kafka09SinkTableInfo.setTopic(MathUtil.getString(props.get(KafkaSinkTableInfo.TOPIC_KEY.toLowerCase())));
+        for (String key : props.keySet()) {
             if (!key.isEmpty() && key.startsWith("kafka.")) {
                 kafka09SinkTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
             }
         }
+        kafka09SinkTableInfo.check();
         return kafka09SinkTableInfo;
     }
 }

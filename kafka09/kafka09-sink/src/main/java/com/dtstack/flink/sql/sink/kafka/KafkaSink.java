@@ -22,118 +22,87 @@ import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.api.common.serialization.TypeInformationSerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.formats.json.JsonRowSerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.connectors.kafka.Kafka09TableSink;
 import org.apache.flink.streaming.connectors.kafka.KafkaTableSinkBase;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.sinks.AppendStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
-
-import java.util.Optional;
 import java.util.Properties;
+
 /**
  * Date: 2018/12/18
  * Company: www.dtstack.com
+ *
  * @author DocLi
- *
  * @modifyer maqi
- *
  */
 public class KafkaSink implements AppendStreamTableSink<Row>, IStreamSinkGener<KafkaSink> {
 
-    protected String[] fieldNames;
+	protected String[] fieldNames;
 
-    protected TypeInformation<?>[] fieldTypes;
+	protected TypeInformation<?>[] fieldTypes;
 
-    /** The schema of the table. */
-    private TableSchema schema;
+	protected String topic;
 
-    /** The Kafka topic to write to. */
-    protected String topic;
+	protected Properties properties;
 
-    /** Properties for the Kafka producer. */
-    protected Properties properties;
+	/** Serialization schema for encoding records to Kafka. */
+	protected SerializationSchema serializationSchema;
 
-    /** Serialization schema for encoding records to Kafka. */
-    protected SerializationSchema serializationSchema;
+	@Override
+	public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
+		KafkaSinkTableInfo kafka09SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
+		this.topic = kafka09SinkTableInfo.getTopic();
+		this.fieldNames = kafka09SinkTableInfo.getFields();
+		TypeInformation[] types = new TypeInformation[kafka09SinkTableInfo.getFields().length];
+		for (int i = 0; i < kafka09SinkTableInfo.getFieldClasses().length; i++) {
+			types[i] = TypeInformation.of(kafka09SinkTableInfo.getFieldClasses()[i]);
+		}
+		this.fieldTypes = types;
 
-    /** Partitioner to select Kafka partition for each item. */
-    protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
+		properties = new Properties();
+		for (String key : kafka09SinkTableInfo.getKafkaParamKeys()) {
+			properties.setProperty(key, kafka09SinkTableInfo.getKafkaParam(key));
+		}
+		properties.setProperty("bootstrap.servers", kafka09SinkTableInfo.getBootstrapServers());
 
-    @Override
-    public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
-        KafkaSinkTableInfo kafka09SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
-        this.topic = kafka09SinkTableInfo.getKafkaParam("topic");
+		this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType());
+		return this;
+	}
 
-        Properties props = new Properties();
-        for (String key:kafka09SinkTableInfo.getKafkaParamKeys()) {
-            props.setProperty(key, kafka09SinkTableInfo.getKafkaParam(key));
-        }
-        this.properties = props;
-        this.partitioner = Optional.of(new FlinkFixedPartitioner<>());
-        this.fieldNames = kafka09SinkTableInfo.getFields();
-        TypeInformation[] types = new TypeInformation[kafka09SinkTableInfo.getFields().length];
-        for(int i = 0; i< kafka09SinkTableInfo.getFieldClasses().length; i++){
-            types[i] = TypeInformation.of(kafka09SinkTableInfo.getFieldClasses()[i]);
-        }
-        this.fieldTypes = types;
+	@Override
+	public void emitDataStream(DataStream<Row> dataStream) {
+		KafkaTableSinkBase kafkaTableSink = new CustomerKafka09JsonTableSink(
+				topic,
+				properties,
+				serializationSchema
+		);
 
-        TableSchema.Builder schemaBuilder = TableSchema.builder();
-        for (int i=0;i<fieldNames.length;i++){
-            schemaBuilder.field(fieldNames[i], fieldTypes[i]);
-        }
-        this.schema = schemaBuilder.build();
+		kafkaTableSink.emitDataStream(dataStream);
+	}
 
-        //this.serializationSchema = Optional.of(JsonRowSerializationSchema.class);
-        if ("json".equalsIgnoreCase(kafka09SinkTableInfo.getSinkDataType())) {
-            this.serializationSchema = new JsonRowSerializationSchema(getOutputType());
-        } else if ("csv".equalsIgnoreCase(kafka09SinkTableInfo.getSinkDataType())){
-            this.serializationSchema = new TypeInformationSerializationSchema(TypeInformation.of(Row.class),
-                    new CustomerCsvSerialization(kafka09SinkTableInfo.getFieldDelimiter(),fieldTypes));
-        }
-        return this;
-    }
+	@Override
+	public TypeInformation<Row> getOutputType() {
+		return new RowTypeInfo(fieldTypes, fieldNames);
+	}
 
-    @Override
-    public void emitDataStream(DataStream<Row> dataStream) {
-        KafkaTableSinkBase kafkaTableSink = new Kafka09TableSink(
-                schema,
-                topic,
-                properties,
-                partitioner,
-                serializationSchema
-        );
+	@Override
+	public String[] getFieldNames() {
+		return fieldNames;
+	}
 
-        kafkaTableSink.emitDataStream(dataStream);
-    }
+	@Override
+	public TypeInformation<?>[] getFieldTypes() {
+		return fieldTypes;
+	}
 
-    @Override
-    public TypeInformation<Row> getOutputType() {
-        return new RowTypeInfo(fieldTypes, fieldNames);
-    }
-
-    @Override
-    public String[] getFieldNames() {
-        return fieldNames;
-    }
-
-    @Override
-    public TypeInformation<?>[] getFieldTypes() {
-        return fieldTypes;
-    }
-
-    @Override
-    public TableSink<Row> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
-        this.fieldNames = fieldNames;
-        this.fieldTypes = fieldTypes;
-        return this;
-    }
+	@Override
+	public TableSink<Row> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
+		this.fieldNames = fieldNames;
+		this.fieldTypes = fieldTypes;
+		return this;
+	}
 
 }

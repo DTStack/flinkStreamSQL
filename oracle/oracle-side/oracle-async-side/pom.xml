@@ -79,7 +79,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../../plugins/oracleasyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/oracleasyncside/${project.name}.jar"/>
+                                      tofile="${basedir}/../../../plugins/oracleasyncside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
