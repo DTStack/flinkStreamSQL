@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.options;
+package com.dtstack.flink.sql.launcher;
 
 import com.dtstack.flink.sql.ClusterMode;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 
 /**
  * This class define commandline options for the Launcher program
@@ -55,8 +54,6 @@ public class LauncherOptions {
     private String flinkJarPath;
 
     private String queue;
-
-    private int defaultParallelism=1;
 
     public String getMode() {
         return mode;
@@ -160,13 +157,5 @@ public class LauncherOptions {
 
     public void setQueue(String queue) {
         this.queue = queue;
-    }
-
-    public int getDefaultParallelism() {
-        return defaultParallelism;
-    }
-
-    public void setDefaultParallelism(int defaultParallelism) {
-        this.defaultParallelism = defaultParallelism;
     }
 }
