@@ -76,8 +76,8 @@ public class StreamSinkFactory {
         String pluginJarDirPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), localSqlRootDir);
 
         PluginUtil.addPluginJar(pluginJarDirPath, dtClassLoader);
-        String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
 
+        String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
         String className = PluginUtil.getGenerClassName(typeNoVersion, CURR_TYPE);
         Class<?> sinkClass = dtClassLoader.loadClass(className);
 

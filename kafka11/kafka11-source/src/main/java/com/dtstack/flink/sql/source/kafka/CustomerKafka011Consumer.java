@@ -16,24 +16,24 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.source.kafka.consumer;
+package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
-import com.dtstack.flink.sql.source.kafka.deserialization.CustomerJsonDeserialization;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
 import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
-import org.apache.flink.streaming.util.serialization.KeyedDeserializationSchema;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
 
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
@@ -46,22 +46,21 @@ import java.util.regex.Pattern;
  * @author xuchao
  */
 
-public class CustomerJsonConsumer extends FlinkKafkaConsumer011<Row> {
+public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
 
     private static final long serialVersionUID = -2265366268827807739L;
 
     private CustomerJsonDeserialization customerJsonDeserialization;
 
-    public CustomerJsonConsumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
+    public CustomerKafka011Consumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
         super(Arrays.asList(topic.split(",")), valueDeserializer, props);
         this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
     }
 
-    public CustomerJsonConsumer(Pattern subscriptionPattern, AbsDeserialization<Row> valueDeserializer, Properties props) {
+    public CustomerKafka011Consumer(Pattern subscriptionPattern, AbsDeserialization<Row> valueDeserializer, Properties props) {
         super(subscriptionPattern, valueDeserializer, props);
         this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
     }
-
 
     @Override
     public void run(SourceContext<Row> sourceContext) throws Exception {

@@ -22,8 +22,14 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import com.dtstack.flink.sql.util.ParseUtils;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -32,4 +38,50 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
     public OracleAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
+
+    @Override
+    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
+
+        String sideTableName = joinInfo.getSideTableName();
+
+        SqlNode conditionNode = joinInfo.getCondition();
+
+        List<SqlNode> sqlNodeList = Lists.newArrayList();
+        ParseUtils.parseAnd(conditionNode, sqlNodeList);
+
+        for (SqlNode sqlNode : sqlNodeList) {
+            dealOneEqualCon(sqlNode, sideTableName);
+        }
+
+        sqlCondition = "select ${selectField} from ${tableName} where ";
+        for (int i = 0; i < equalFieldList.size(); i++) {
+            String equalField = equalFieldList.get(i);
+
+            sqlCondition += dealLowerFiled(equalField) + "=? ";
+            if (i != equalFieldList.size() - 1) {
+                sqlCondition += " and ";
+            }
+        }
+
+        sqlCondition = sqlCondition.replace("${tableName}", dealLowerFiled(rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
+        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
+    }
+
+    private String dealLowerFiled(String field) {
+        return   "\"" + field + "\"";
+    }
+
+    private String dealLowerSelectFiled(String fieldsStr) {
+        StringBuilder sb = new StringBuilder();
+        String[] fields = fieldsStr.split(",");
+
+        for(String f : fields) {
+            sb.append("\"").append(f).append("\"").append(",");
+        }
+
+        sb.deleteCharAt(sb.lastIndexOf(","));
+        return  sb.toString();
+    }
+
 }

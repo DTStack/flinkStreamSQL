@@ -20,8 +20,8 @@
 
 package com.dtstack.flink.sql.table;
 
-import com.google.common.collect.Maps;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.util.List;
@@ -38,10 +38,6 @@ public abstract class TableInfo implements Serializable {
 
     public static final String PARALLELISM_KEY = "parallelism";
 
-    public static final String FIELD_DELINITER = "fielddelimiter";
-
-    public static final String LENGTH_CHECK_POLICY = "lengthcheckpolicy";
-
     private String name;
 
     private String type;
@@ -54,20 +50,16 @@ public abstract class TableInfo implements Serializable {
 
     private final List<String> fieldList = Lists.newArrayList();
 
+    /**key:别名, value: realField */
+    private Map<String, String> physicalFields = Maps.newHashMap();
+
     private final List<String> fieldTypeList = Lists.newArrayList();
 
     private final List<Class> fieldClassList = Lists.newArrayList();
 
-    /** handling nested data structures **/
-    private Map<String, String> physicalFields = Maps.newHashMap();
-
     private List<String> primaryKeys;
 
     private Integer parallelism = 1;
-
-    private String fieldDelimiter;
-
-    private String lengthCheckPolicy = "SKIP";
 
     public String[] getFieldTypes() {
         return fieldTypes;
@@ -127,6 +119,10 @@ public abstract class TableInfo implements Serializable {
         fieldList.add(fieldName);
     }
 
+    public void addPhysicalMappings(String aliasName, String physicalFieldName){
+        physicalFields.put(aliasName, physicalFieldName);
+    }
+
     public void addFieldClass(Class fieldClass){
         fieldClassList.add(fieldClass);
     }
@@ -165,31 +161,6 @@ public abstract class TableInfo implements Serializable {
 
     public void setPhysicalFields(Map<String, String> physicalFields) {
         this.physicalFields = physicalFields;
-    }
-
-    /**
-     *
-     * @param key   row field
-     * @param value physical field
-     */
-    public void addPhysicalMappings(String key,String value){
-        physicalFields.put(key,value);
-    }
-
-    public String getFieldDelimiter() {
-        return fieldDelimiter;
-    }
-
-    public void setFieldDelimiter(String fieldDelimiter) {
-        this.fieldDelimiter = fieldDelimiter;
-    }
-
-    public String getLengthCheckPolicy() {
-        return lengthCheckPolicy;
-    }
-
-    public void setLengthCheckPolicy(String lengthCheckPolicy) {
-        this.lengthCheckPolicy = lengthCheckPolicy;
     }
 
     public void finish(){
