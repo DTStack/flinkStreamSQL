@@ -394,6 +394,10 @@ public class SideSqlExec {
                 || selectNode.getKind() == BETWEEN
                 || selectNode.getKind() == IS_NULL
                 || selectNode.getKind() == IS_NOT_NULL
+                || selectNode.getKind() == LESS_THAN
+                || selectNode.getKind() == GREATER_THAN
+                || selectNode.getKind() == LESS_THAN_OR_EQUAL
+                || selectNode.getKind() == GREATER_THAN_OR_EQUAL
                 ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
