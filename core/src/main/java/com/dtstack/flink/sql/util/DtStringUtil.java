@@ -84,16 +84,6 @@ public class DtStringUtil {
         return tokensList;
     }
 
-    /***
-     * Split the specified string delimiter --- ignored in brackets and quotation marks delimiter
-     * @param str
-     * @param delimter
-     * @return
-     */
-    public static String[] splitIgnoreQuotaBrackets(String str, String delimter){
-        String splitPatternStr = delimter + "(?![^()]*+\\))(?![^{}]*+})(?![^\\[\\]]*+\\])(?=(?:[^\"]|\"[^\"]*\")*$)";
-        return str.split(splitPatternStr);
-    }
 
     public static String replaceIgnoreQuota(String str, String oriStr, String replaceStr){
         String splitPatternStr = oriStr + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)(?=(?:[^']*'[^']*')*[^']*$)";
