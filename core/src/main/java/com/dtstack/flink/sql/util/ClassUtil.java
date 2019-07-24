@@ -39,10 +39,14 @@ public class ClassUtil {
             case "bit":
                 return Boolean.class;
 
+            case "smallint":
+            case "smallintunsigned":
+            case "tinyint":
+            case "tinyintunsigned":
+            case "mediumint":
+            case "mediumintunsigned":
             case "integer":
             case "int":
-            case "mediumint":
-            case "tinyint":
                 return Integer.class;
 
             case "blob":
@@ -51,10 +55,8 @@ public class ClassUtil {
             case "bigint":
             case "intunsigned":
             case "integerunsigned":
+            case "bigintunsigned":
                 return Long.class;
-
-            case "smallint":
-                return Short.class;
 
             case "varchar":
             case "char":
@@ -63,9 +65,12 @@ public class ClassUtil {
 
             case "real":
             case "float":
+            case "realunsigned":
+            case "floatunsigned":
                 return Float.class;
 
             case "double":
+            case "doubleunsigned":
                 return Double.class;
 
             case "date":
@@ -79,6 +84,7 @@ public class ClassUtil {
                 return Time.class;
 
             case "decimal":
+            case "decimalunsigned":
                 return BigDecimal.class;
 
         }
