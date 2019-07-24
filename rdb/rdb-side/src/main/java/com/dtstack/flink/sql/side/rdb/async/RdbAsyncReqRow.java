@@ -92,7 +92,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                     }
                     resultFuture.complete(rowList);
                 } else {
-                    throw new RuntimeException("not support cache obj type " + val.getType());
+                    resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
                 }
                 return;
             }
@@ -110,7 +110,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             connection.queryWithParams(sqlCondition, inputParams, rs -> {
                 if (rs.failed()) {
                     LOG.error("Cannot retrieve the data from the database", rs.cause());
-                    resultFuture.complete(null);
+                    resultFuture.completeExceptionally(rs.cause());
                     return;
                 }
 
