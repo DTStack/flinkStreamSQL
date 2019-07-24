@@ -31,10 +31,14 @@ public class SwitchUtil {
         targetType = targetType.toLowerCase();
         switch (targetType) {
 
+            case "smallint":
+            case "smallintunsigned":
             case "tinyint":
-            case "int":
-            case "integer":
+            case "tinyintunsigned":
             case "mediumint":
+            case "mediumintunsigned":
+            case "integer":
+            case "int":
                 return MathUtil.getIntegerVal(obj);
 
             case "bigint":
@@ -48,9 +52,6 @@ public class SwitchUtil {
             case "blob":
                 return MathUtil.getByte(obj);
 
-            case "smallint":
-                return MathUtil.getShort(obj);
-
             case "varchar":
             case "char":
             case "text":
@@ -58,12 +59,16 @@ public class SwitchUtil {
 
             case "real":
             case "float":
+            case "realunsigned":
+            case "floatunsigned":
                 return MathUtil.getFloatVal(obj);
 
             case "double":
+            case "doubleunsigned":
                 return MathUtil.getDoubleVal(obj);
 
             case "decimal":
+            case "decimalunsigned":
                 return MathUtil.getBigDecimal(obj);
 
             case "date":
