@@ -140,15 +140,8 @@ public class Main {
         }
 
         ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
-        DtClassLoader dtClassLoader = new DtClassLoader(new URL[]{}, threadClassLoader);
-        Thread.currentThread().setContextClassLoader(dtClassLoader);
-
-        URLClassLoader parentClassloader;
-        if(!ClusterMode.local.name().equals(deployMode)){
-            parentClassloader = (URLClassLoader) threadClassLoader.getParent();
-        }else{
-            parentClassloader = dtClassLoader;
-        }
+        DtClassLoader parentClassloader = new DtClassLoader(new URL[]{}, threadClassLoader);
+        Thread.currentThread().setContextClassLoader(parentClassloader);
 
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
@@ -219,7 +212,7 @@ public class Main {
 
         if(env instanceof MyLocalStreamEnvironment) {
             List<URL> urlList = new ArrayList<>();
-            urlList.addAll(Arrays.asList(dtClassLoader.getURLs()));
+            urlList.addAll(Arrays.asList(parentClassloader.getURLs()));
             ((MyLocalStreamEnvironment) env).setClasspaths(urlList);
         }
 
@@ -255,7 +248,6 @@ public class Main {
             if (classLoader == null) {
                 classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
             }
-            classLoader.loadClass(funcInfo.getClassName());
             FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
                     tableEnv, classLoader);
         }
