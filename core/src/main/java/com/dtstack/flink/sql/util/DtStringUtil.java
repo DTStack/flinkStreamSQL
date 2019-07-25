@@ -57,12 +57,15 @@ public class DtStringUtil {
         List<String> tokensList = new ArrayList<>();
         boolean inQuotes = false;
         boolean inSingleQuotes = false;
+        int bracketLeftNum = 0;
         StringBuilder b = new StringBuilder();
         for (char c : str.toCharArray()) {
             if(c == delimiter){
                 if (inQuotes) {
                     b.append(c);
                 } else if(inSingleQuotes){
+                    b.append(c);
+                } else if(bracketLeftNum > 0){
                     b.append(c);
                 }else {
                     tokensList.add(b.toString());
@@ -74,6 +77,12 @@ public class DtStringUtil {
             }else if(c == '\''){
                 inSingleQuotes = !inSingleQuotes;
                 b.append(c);
+            }else if(c == '('){
+                bracketLeftNum++;
+                b.append(c);
+            }else if(c == ')'){
+                bracketLeftNum--;
+                b.append(c);
             }else{
                 b.append(c);
             }
@@ -84,16 +93,6 @@ public class DtStringUtil {
         return tokensList;
     }
 
-    /***
-     * Split the specified string delimiter --- ignored in brackets and quotation marks delimiter
-     * @param str
-     * @param delimter
-     * @return
-     */
-    public static String[] splitIgnoreQuotaBrackets(String str, String delimter){
-        String splitPatternStr = delimter + "(?![^()]*+\\))(?![^{}]*+})(?![^\\[\\]]*+\\])(?=(?:[^\"]|\"[^\"]*\")*$)";
-        return str.split(splitPatternStr);
-    }
 
     public static String replaceIgnoreQuota(String str, String oriStr, String replaceStr){
         String splitPatternStr = oriStr + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)(?=(?:[^']*'[^']*')*[^']*$)";
