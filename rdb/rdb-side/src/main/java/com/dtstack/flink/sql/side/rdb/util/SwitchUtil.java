@@ -30,29 +30,52 @@ public class SwitchUtil {
     public static Object getTarget(Object obj, String targetType) {
         targetType = targetType.toLowerCase();
         switch (targetType) {
-            case "int":
+
+            case "smallint":
+            case "smallintunsigned":
+            case "tinyint":
+            case "tinyintunsigned":
+            case "mediumint":
+            case "mediumintunsigned":
             case "integer":
+            case "int":
                 return MathUtil.getIntegerVal(obj);
+
             case "bigint":
+            case "intunsigned":
+            case "integerunsigned":
                 return MathUtil.getLongVal(obj);
+
             case "boolean":
                 return MathUtil.getBoolean(obj);
-            case "tinyint":
+
+            case "blob":
                 return MathUtil.getByte(obj);
-            case "smallint":
-                return MathUtil.getShort(obj);
+
             case "varchar":
+            case "char":
+            case "text":
                 return MathUtil.getString(obj);
+
             case "real":
             case "float":
+            case "realunsigned":
+            case "floatunsigned":
                 return MathUtil.getFloatVal(obj);
+
             case "double":
+            case "doubleunsigned":
                 return MathUtil.getDoubleVal(obj);
+
             case "decimal":
+            case "decimalunsigned":
                 return MathUtil.getBigDecimal(obj);
+
             case "date":
                 return MathUtil.getDate(obj);
+
             case "timestamp":
+            case "datetime":
                 return MathUtil.getTimestamp(obj);
         }
         return obj;
