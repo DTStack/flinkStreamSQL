@@ -57,12 +57,15 @@ public class DtStringUtil {
         List<String> tokensList = new ArrayList<>();
         boolean inQuotes = false;
         boolean inSingleQuotes = false;
+        int bracketLeftNum = 0;
         StringBuilder b = new StringBuilder();
         for (char c : str.toCharArray()) {
             if(c == delimiter){
                 if (inQuotes) {
                     b.append(c);
                 } else if(inSingleQuotes){
+                    b.append(c);
+                } else if(bracketLeftNum > 0){
                     b.append(c);
                 }else {
                     tokensList.add(b.toString());
@@ -73,6 +76,12 @@ public class DtStringUtil {
                 b.append(c);
             }else if(c == '\''){
                 inSingleQuotes = !inSingleQuotes;
+                b.append(c);
+            }else if(c == '('){
+                bracketLeftNum++;
+                b.append(c);
+            }else if(c == ')'){
+                bracketLeftNum--;
                 b.append(c);
             }else{
                 b.append(c);
