@@ -106,7 +106,9 @@ public class SideSqlExec {
 
                 if(pollSqlNode.getKind() == INSERT){
                     tableEnv.sqlUpdate(pollSqlNode.toString());
-                    LOG.info("exec sql: " + pollSqlNode.toString());
+                    if(LOG.isInfoEnabled()){
+                        LOG.info("exec sql: " + pollSqlNode.toString());
+                    }
                 }else if(pollSqlNode.getKind() == AS){
                     AliasInfo aliasInfo = parseASNode(pollSqlNode);
                     Table table = tableEnv.sql(aliasInfo.getName());
@@ -536,7 +538,9 @@ public class SideSqlExec {
                     AliasInfo aliasInfo = parseASNode(pollSqlNode);
                     Table table = tableEnv.sql(aliasInfo.getName());
                     tableEnv.registerTable(aliasInfo.getAlias(), table);
-                    LOG.info("Register Table {} by {}", aliasInfo.getAlias(), aliasInfo.getName());
+                    if(LOG.isInfoEnabled()){
+                        LOG.info("Register Table {} by {}", aliasInfo.getAlias(), aliasInfo.getName());
+                    }
                     localTableCache.put(aliasInfo.getAlias(), table);
                 } else if (pollSqlNode.getKind() == SELECT){
                     Table table = tableEnv.sqlQuery(pollObj.toString());
