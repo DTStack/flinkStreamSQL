@@ -110,14 +110,15 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
 
         try {
+            JsonNode root = objectMapper.readTree(message);
+
+            if (numInRecord.getCount()%rowLenth == 0){
+                LOG.info(root.toString());
+            }
+
             numInRecord.inc();
             numInBytes.inc(message.length);
 
-            JsonNode root = objectMapper.readTree(message);
-
-            if (numInResolveRecord.getCount()%rowLenth == 0){
-                LOG.info(root.toString());
-            }
             parseTree(root, null);
             Row row = new Row(fieldNames.length);
 
@@ -142,6 +143,9 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             return row;
         } catch (Throwable t) {
             //add metric of dirty data
+            if (dirtyDataCounter.getCount()%rowLenth == 0){
+                LOG.info(objectMapper.readTree(message).toString());
+            }
             dirtyDataCounter.inc();
             return null;
         }finally {
