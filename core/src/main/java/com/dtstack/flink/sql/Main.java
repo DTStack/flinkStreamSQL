@@ -206,8 +206,8 @@ public class Main {
                     }else{
                         tableEnv.sqlUpdate(result.getExecSql());
                         if(LOG.isInfoEnabled()){
-
-                        }LOG.info("exec sql: " + result.getExecSql());
+                            LOG.info("exec sql: " + result.getExecSql());
+                        }
                     }
                 }
             }
