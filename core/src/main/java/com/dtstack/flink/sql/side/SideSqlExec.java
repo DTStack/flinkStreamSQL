@@ -50,6 +50,8 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -63,6 +65,8 @@ import static org.apache.calcite.sql.SqlKind.*;
  */
 
 public class SideSqlExec {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SideSqlExec.class);
 
     private String localSqlPluginPath = null;
 
@@ -102,6 +106,7 @@ public class SideSqlExec {
 
                 if(pollSqlNode.getKind() == INSERT){
                     tableEnv.sqlUpdate(pollSqlNode.toString());
+                    LOG.info("exec sql: " + pollSqlNode.toString());
                 }else if(pollSqlNode.getKind() == AS){
                     AliasInfo aliasInfo = parseASNode(pollSqlNode);
                     Table table = tableEnv.sql(aliasInfo.getName());
@@ -531,6 +536,7 @@ public class SideSqlExec {
                     AliasInfo aliasInfo = parseASNode(pollSqlNode);
                     Table table = tableEnv.sql(aliasInfo.getName());
                     tableEnv.registerTable(aliasInfo.getAlias(), table);
+                    LOG.info("Register Table {} by {}", aliasInfo.getAlias(), aliasInfo.getName());
                     localTableCache.put(aliasInfo.getAlias(), table);
                 } else if (pollSqlNode.getKind() == SELECT){
                     Table table = tableEnv.sqlQuery(pollObj.toString());
