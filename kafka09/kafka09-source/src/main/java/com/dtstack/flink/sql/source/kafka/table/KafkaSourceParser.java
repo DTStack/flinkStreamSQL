@@ -63,7 +63,9 @@ public class KafkaSourceParser extends AbsSourceParser {
         tableInfo.addField(mappingField);
         tableInfo.addFieldClass(fieldClass);
         tableInfo.addFieldType(fieldType);
-        LOG.info(physicalField + "--->" + mappingField + " Class: " + fieldClass.toString());
+        if(LOG.isInfoEnabled()){
+            LOG.info(physicalField + "--->" + mappingField + " Class: " + fieldClass.toString());
+        }
     }
 
     @Override
