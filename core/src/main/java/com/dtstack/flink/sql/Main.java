@@ -173,7 +173,9 @@ public class Main {
         }
 
         for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
-            LOG.info("exe-sql:\n" + result.getExecSql());
+            if(LOG.isInfoEnabled()){
+                LOG.info("exe-sql:\n" + result.getExecSql());
+            }
 
             boolean isSide = false;
 
@@ -203,7 +205,9 @@ public class Main {
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache);
                     }else{
                         tableEnv.sqlUpdate(result.getExecSql());
-                        LOG.info("exec sql: " + result.getExecSql());
+                        if(LOG.isInfoEnabled()){
+
+                        }LOG.info("exec sql: " + result.getExecSql());
                     }
                 }
             }
@@ -286,7 +290,9 @@ public class Main {
 
                 Table regTable = tableEnv.fromDataStream(adaptStream, fields);
                 tableEnv.registerTable(tableInfo.getName(), regTable);
-                LOG.info("registe table {} success.", tableInfo.getName());
+                if(LOG.isInfoEnabled()){
+                    LOG.info("registe table {} success.", tableInfo.getName());
+                }
                 registerTableCache.put(tableInfo.getName(), regTable);
                 classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
             } else if (tableInfo instanceof TargetTableInfo) {
