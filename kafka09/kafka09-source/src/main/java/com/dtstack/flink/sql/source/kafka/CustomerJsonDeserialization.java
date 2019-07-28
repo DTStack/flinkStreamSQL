@@ -144,7 +144,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         } catch (Throwable t) {
             //add metric of dirty data
             if (dirtyDataCounter.getCount()%rowLenth == 0){
-                LOG.info(objectMapper.readTree(message).toString());
+                LOG.info("dirtyData: " + new String(message));
             }
             dirtyDataCounter.inc();
             return null;
