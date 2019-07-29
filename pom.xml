@@ -14,15 +14,15 @@
         <module>kafka10</module>
         <module>kafka11</module>
         <module>mysql</module>
-        <!--<module>hbase</module>-->
-        <!--<module>elasticsearch5</module>-->
-        <!--<module>mongo</module>-->
-        <!--<module>redis5</module>-->
+        <module>hbase</module>
+        <module>elasticsearch5</module>
+        <module>mongo</module>
+        <module>redis5</module>
         <module>launcher</module>
         <module>rdb</module>
         <module>sqlserver</module>
         <module>oracle</module>
-        <!--<module>cassandra</module>-->
+        <module>cassandra</module>
     </modules>
 
 
