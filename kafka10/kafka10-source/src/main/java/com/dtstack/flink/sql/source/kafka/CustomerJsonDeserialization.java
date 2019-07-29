@@ -62,6 +62,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private static final long serialVersionUID = 2385115520960444192L;
 
+    private static int rowLenth = 1000;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /** Type information describing the result type. */
@@ -108,10 +110,15 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
 
         try {
+            JsonNode root = objectMapper.readTree(message);
+
+            if (numInRecord.getCount()%rowLenth == 0){
+                LOG.info(root.toString());
+            }
+
             numInRecord.inc();
             numInBytes.inc(message.length);
 
-            JsonNode root = objectMapper.readTree(message);
             parseTree(root, null);
             Row row = new Row(fieldNames.length);
 
@@ -136,6 +143,9 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             return row;
         } catch (Throwable t) {
             //add metric of dirty data
+            if (dirtyDataCounter.getCount()%rowLenth == 0){
+                LOG.info("dirtyData: " + new String(message));
+            }
             dirtyDataCounter.inc();
             return null;
         }finally {

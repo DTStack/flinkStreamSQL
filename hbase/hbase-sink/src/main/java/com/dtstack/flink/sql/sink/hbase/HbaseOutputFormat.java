@@ -64,6 +64,8 @@ public class HbaseOutputFormat extends MetricOutputFormat {
     public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     public final SimpleDateFormat FIELD_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+    private static int rowLenth = 1000;
+
     @Override
     public void configure(Configuration parameters) {
         LOG.warn("---configure---");
@@ -133,6 +135,10 @@ public class HbaseOutputFormat extends MetricOutputFormat {
         }
 
         table.put(put);
+
+        if (outRecords.getCount()%rowLenth == 0){
+            LOG.info(record.toString());
+        }
         outRecords.inc();
 
     }
