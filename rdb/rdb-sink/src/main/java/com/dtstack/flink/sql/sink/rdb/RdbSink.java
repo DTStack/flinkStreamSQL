@@ -61,7 +61,9 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     protected String dbType;
 
-    protected int batchInterval = 1;
+    protected int batchNum = 1;
+
+    protected long batchWaitInterval;
 
     protected int[] sqlTypes;
 
@@ -89,7 +91,8 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         outputFormat.setUsername(userName);
         outputFormat.setPassword(password);
         outputFormat.setInsertQuery(sql);
-        outputFormat.setBatchInterval(batchInterval);
+        outputFormat.setBatchNum(batchNum);
+        outputFormat.setBatchWaitInterval(batchWaitInterval);
         outputFormat.setTypesArray(sqlTypes);
         outputFormat.setTableName(tableName);
         outputFormat.setDbType(dbType);
@@ -112,7 +115,12 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
         Integer tmpSqlBatchSize = rdbTableInfo.getBatchSize();
         if (tmpSqlBatchSize != null) {
-            setBatchInterval(tmpSqlBatchSize);
+            setBatchNum(tmpSqlBatchSize);
+        }
+
+        long batchWaitInterval = rdbTableInfo.getBatchWaitInterval();
+        if (batchWaitInterval > 0) {
+            setBatchWaitInterval(batchWaitInterval);
         }
 
         Integer tmpSinkParallelism = rdbTableInfo.getParallelism();
@@ -198,13 +206,13 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         return this;
     }
 
-    /**
-     * Set the default frequency submit updated every submission
-     *
-     * @param batchInterval
-     */
-    public void setBatchInterval(int batchInterval) {
-        this.batchInterval = batchInterval;
+
+    public void setBatchNum(int batchNum) {
+        this.batchNum = batchNum;
+    }
+
+    public void setBatchWaitInterval(long batchWaitInterval) {
+        this.batchWaitInterval = batchWaitInterval;
     }
 
     @Override
