@@ -35,7 +35,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,7 +58,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private String tableName;
     private String dbType;
     private RdbSink dbSink;
-    private long batchWaitInterval;
+    private long batchWaitInterval = 10000l;
     private int batchNum;
     private String insertQuery;
     public int[] typesArray;
@@ -69,12 +68,12 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private AtomicInteger batchCount = new AtomicInteger(0);
 
+    private transient ScheduledThreadPoolExecutor timerService;
+
     //index field
     private Map<String, List<String>> realIndexes = Maps.newHashMap();
     //full field
     private List<String> fullField = Lists.newArrayList();
-
-    private transient ScheduledThreadPoolExecutor timerService;
 
     public RetractJDBCOutputFormat() {
     }
@@ -96,7 +95,14 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             establishConnection();
             initMetric();
 
-            this.timerService = new ScheduledThreadPoolExecutor(1);
+            if (batchWaitInterval > 0) {
+                timerService = new ScheduledThreadPoolExecutor(1);
+                timerService.scheduleAtFixedRate(() -> {
+                    submitExecuteBatch();
+                }, 0, batchWaitInterval, TimeUnit.MILLISECONDS);
+
+            }
+
             if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
                 if (isReplaceInsertQuery()) {
                     insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
@@ -163,21 +169,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private void insertWrite(Row row) throws SQLException {
         updatePreparedStmt(row, upload);
         upload.addBatch();
-        ScheduledFuture<?> scheduledFuture = null;
-
-        if (batchWaitInterval > 0 && batchCount.get() == 0) {
-            scheduledFuture = registerTimer(batchWaitInterval, this);
-        }
-
         batchCount.incrementAndGet();
-
         if (batchCount.get() >= batchNum) {
-            upload.executeBatch();
-            batchCount.set(0);
-
-            if (scheduledFuture != null && !scheduledFuture.isCancelled()) {
-                scheduledFuture.cancel(true);
-            }
+            submitExecuteBatch();
         }
     }
 
@@ -270,25 +264,13 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         }
     }
 
-    public ScheduledFuture<?> registerTimer(long delay, RetractJDBCOutputFormat outputFormat) {
-        return timerService.schedule(new DelayExecuteBatch(outputFormat), delay, TimeUnit.MILLISECONDS);
-    }
 
-    private final static class DelayExecuteBatch implements Runnable {
-        RetractJDBCOutputFormat outputFormat;
-
-        private DelayExecuteBatch(RetractJDBCOutputFormat outputFormat) {
-            this.outputFormat = outputFormat;
-        }
-
-        @Override
-        public void run() {
-            try {
-                outputFormat.upload.executeBatch();
-                outputFormat.batchCount.set(0);
-            } catch (SQLException e) {
-                LOG.error("delay batch insert error...", e);
-            }
+    private synchronized void submitExecuteBatch() {
+        try {
+            this.upload.executeBatch();
+            this.batchCount.set(0);
+        } catch (SQLException e) {
+            LOG.error("", e);
         }
     }
 
@@ -303,6 +285,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             if (upload != null) {
                 upload.executeBatch();
                 upload.close();
+            }
+            if (null != timerService) {
+                timerService.shutdown();
             }
         } catch (SQLException se) {
             LOG.info("Inputformat couldn't be closed - " + se.getMessage());
