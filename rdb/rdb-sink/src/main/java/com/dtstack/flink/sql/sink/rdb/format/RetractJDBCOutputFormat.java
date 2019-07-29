@@ -61,6 +61,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private PreparedStatement upload;
 
     private int batchCount = 0;
+    private static int rowLenth = 1000;
 
     //index field
     private Map<String, List<String>> realIndexes = Maps.newHashMap();
@@ -140,6 +141,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         try {
             if (retract) {
                 insertWrite(row);
+                if (outRecords.getCount()%rowLenth == 0){
+                    LOG.info(row.toString());
+                }
                 outRecords.inc();
             } else {
                 //do nothing
