@@ -77,7 +77,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private transient ScheduledThreadPoolExecutor timerService;
 
     public RetractJDBCOutputFormat() {
-        this.timerService = new ScheduledThreadPoolExecutor(1);
     }
 
     @Override
@@ -96,6 +95,8 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         try {
             establishConnection();
             initMetric();
+
+            this.timerService = new ScheduledThreadPoolExecutor(1);
             if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
                 if (isReplaceInsertQuery()) {
                     insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
@@ -174,7 +175,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             upload.executeBatch();
             batchCount.set(0);
 
-            if (scheduledFuture != null) {
+            if (scheduledFuture != null && !scheduledFuture.isCancelled()) {
                 scheduledFuture.cancel(true);
             }
         }
