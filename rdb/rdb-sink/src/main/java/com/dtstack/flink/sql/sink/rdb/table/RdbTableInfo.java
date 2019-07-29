@@ -55,7 +55,7 @@ public class RdbTableInfo extends TargetTableInfo {
 
     private Integer batchSize;
 
-    private long batchWaitInterval;
+    private Long batchWaitInterval;
 
     private String bufferSize;
 
@@ -117,11 +117,12 @@ public class RdbTableInfo extends TargetTableInfo {
         this.flushIntervalMs = flushIntervalMs;
     }
 
-    public long getBatchWaitInterval() {
+
+    public Long getBatchWaitInterval() {
         return batchWaitInterval;
     }
 
-    public void setBatchWaitInterval(long batchWaitInterval) {
+    public void setBatchWaitInterval(Long batchWaitInterval) {
         this.batchWaitInterval = batchWaitInterval;
     }
 

@@ -118,8 +118,8 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
             setBatchNum(tmpSqlBatchSize);
         }
 
-        long batchWaitInterval = rdbTableInfo.getBatchWaitInterval();
-        if (batchWaitInterval > 0) {
+        Long batchWaitInterval = rdbTableInfo.getBatchWaitInterval();
+        if (batchWaitInterval != null) {
             setBatchWaitInterval(batchWaitInterval);
         }
 
