@@ -273,8 +273,8 @@ public class Main {
 
                 RowTypeInfo typeInfo = new RowTypeInfo(adaptTable.getSchema().getTypes(), adaptTable.getSchema().getColumnNames());
                 DataStream adaptStream = tableEnv.toRetractStream(adaptTable, typeInfo)
-                                                .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
-                                                .returns(typeInfo);
+                        .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
+                        .returns(typeInfo);
 
                 String fields = String.join(",", typeInfo.getFieldNames());
 
@@ -288,18 +288,18 @@ public class Main {
                 Table regTable = tableEnv.fromDataStream(adaptStream, fields);
                 tableEnv.registerTable(tableInfo.getName(), regTable);
                 registerTableCache.put(tableInfo.getName(), regTable);
-                classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath));
+                classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
             } else if (tableInfo instanceof TargetTableInfo) {
 
                 TableSink tableSink = StreamSinkFactory.getTableSink((TargetTableInfo) tableInfo, localSqlPluginPath);
                 TypeInformation[] flinkTypes = FlinkUtil.transformTypes(tableInfo.getFieldClasses());
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
-                classPathSet.add( PluginUtil.getRemoteJarFilePath(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
+                classPathSet.add( PluginUtil.getRemoteJarFilePath(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
             } else if(tableInfo instanceof SideTableInfo){
 
                 String sideOperator = ECacheType.ALL.name().equals(((SideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
                 sideTableMap.put(tableInfo.getName(), (SideTableInfo) tableInfo);
-                classPathSet.add(PluginUtil.getRemoteSideJarFilePath(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
+                classPathSet.add(PluginUtil.getRemoteSideJarFilePath(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
             }else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
