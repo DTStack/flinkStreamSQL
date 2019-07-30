@@ -67,10 +67,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private Connection dbConn;
     private PreparedStatement upload;
-
     private AtomicInteger batchCount = new AtomicInteger(0);
-
     private transient ScheduledThreadPoolExecutor timerService;
+
 
     //index field
     private Map<String, List<String>> realIndexes = Maps.newHashMap();
