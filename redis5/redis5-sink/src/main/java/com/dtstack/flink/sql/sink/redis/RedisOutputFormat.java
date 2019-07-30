@@ -24,12 +24,15 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.*;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 
 public class RedisOutputFormat extends MetricOutputFormat {
+    private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
 
     private String url;
 
@@ -64,6 +67,8 @@ public class RedisOutputFormat extends MetricOutputFormat {
     private JedisSentinelPool jedisSentinelPool;
 
     private GenericObjectPoolConfig poolConfig;
+
+    private static int rowLenth = 1000;
 
     private RedisOutputFormat(){
     }
@@ -167,6 +172,10 @@ public class RedisOutputFormat extends MetricOutputFormat {
             StringBuilder key = new StringBuilder();
             key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
             jedis.set(key.toString(), row.getField(i).toString());
+        }
+
+        if (outRecords.getCount()%rowLenth == 0){
+            LOG.info(record.toString());
         }
         outRecords.inc();
     }
