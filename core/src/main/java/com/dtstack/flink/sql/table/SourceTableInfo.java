@@ -21,9 +21,13 @@
 package com.dtstack.flink.sql.table;
 
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
+import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import org.apache.flink.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Reason:
@@ -35,6 +39,10 @@ import java.util.Map;
 public abstract class SourceTableInfo extends TableInfo {
 
     public static final String SOURCE_SUFFIX = "Source";
+
+    public static final String TIME_ZONE_KEY="timezone";
+
+    private String timeZone=TimeZone.getDefault().getID();
 
     private String eventTimeField;
 
@@ -63,7 +71,6 @@ public abstract class SourceTableInfo extends TableInfo {
         if(maxOutOrderness == null){
             return;
         }
-
         this.maxOutOrderness = maxOutOrderness;
     }
 
@@ -100,5 +107,24 @@ public abstract class SourceTableInfo extends TableInfo {
 
     public String getAdaptName(){
         return getName() + "_adapt";
+    }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        if (StringUtils.isNullOrWhitespaceOnly(timeZone)){
+            return;
+        }
+        timeZoneCheck(timeZone);
+        this.timeZone = timeZone;
+    }
+
+    private void timeZoneCheck(String timeZone) {
+        ArrayList<String> zones = Lists.newArrayList(TimeZone.getAvailableIDs());
+        if (!zones.contains(timeZone)){
+            throw  new IllegalArgumentException(" timezone is Incorrect!");
+        }
     }
 }
