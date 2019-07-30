@@ -73,7 +73,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../../plugins/redisallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/redisallside/${project.name}.jar" />
+                                      tofile="${basedir}/../../../plugins/redisallside/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>
