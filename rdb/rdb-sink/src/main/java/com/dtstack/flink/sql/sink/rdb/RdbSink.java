@@ -63,7 +63,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     protected int batchNum = 1;
 
-    protected long batchWaitInterval;
+    protected long batchWaitInterval = 10000;
 
     protected int[] sqlTypes;
 
