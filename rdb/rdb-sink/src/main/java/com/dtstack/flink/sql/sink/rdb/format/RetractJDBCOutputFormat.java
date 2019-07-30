@@ -93,10 +93,13 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
+            LOG.info("PreparedStatement execute batch num is {}", batchNum);
             establishConnection();
             initMetric();
 
             if (batchWaitInterval > 0) {
+                LOG.info("open batch wait interval scheduled, interval is {} ms", batchWaitInterval);
+
                 timerService = new ScheduledThreadPoolExecutor(1);
                 timerService.scheduleAtFixedRate(() -> {
                     submitExecuteBatch();
@@ -289,6 +292,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             }
             if (null != timerService) {
                 timerService.shutdown();
+                LOG.info("batch wait interval scheduled service  closed ");
             }
         } catch (SQLException se) {
             LOG.info("Inputformat couldn't be closed - ", se);
