@@ -58,8 +58,10 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private String tableName;
     private String dbType;
     private RdbSink dbSink;
+    // trigger preparedStatement execute batch interval
     private long batchWaitInterval = 10000l;
-    private int batchNum;
+    // PreparedStatement execute batch num
+    private int batchNum = 1;
     private String insertQuery;
     public int[] typesArray;
 
@@ -290,7 +292,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 timerService.shutdown();
             }
         } catch (SQLException se) {
-            LOG.info("Inputformat couldn't be closed - " + se.getMessage());
+            LOG.info("Inputformat couldn't be closed - ", se);
         } finally {
             upload = null;
             batchCount.set(0);
@@ -301,7 +303,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 dbConn.close();
             }
         } catch (SQLException se) {
-            LOG.info("Inputformat couldn't be closed - " + se.getMessage());
+            LOG.info("Inputformat couldn't be closed - ", se);
         } finally {
             dbConn = null;
         }
