@@ -1,4 +1,4 @@
-##语法
+## 1.语法
 ```
  CREATE VIEW viewName
         [ (columnName[ , columnName]*) ]
@@ -7,7 +7,7 @@
  CREATE VIEW viewName [ (columnName[ , columnName]*) ];
  INSERT INTO viewName queryStatement;
 ```
-##样例
+## 2.样例
 ```
 CREATE TABLE MyTable(
     name varchar,
