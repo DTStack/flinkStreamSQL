@@ -42,6 +42,7 @@ public class SwitchUtil {
                 return MathUtil.getIntegerVal(obj);
 
             case "bigint":
+            case "bigintunsigned":
             case "intunsigned":
             case "integerunsigned":
                 return MathUtil.getLongVal(obj);
