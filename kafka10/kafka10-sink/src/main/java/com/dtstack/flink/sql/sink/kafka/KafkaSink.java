@@ -30,7 +30,6 @@ import org.apache.flink.table.sinks.AppendStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
-import java.util.Optional;
 import java.util.Properties;
 /**
  *
