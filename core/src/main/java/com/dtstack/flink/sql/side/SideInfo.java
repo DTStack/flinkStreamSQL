@@ -89,7 +89,7 @@ public abstract class SideInfo implements Serializable{
         for( int i=0; i<outFieldInfoList.size(); i++){
             FieldInfo fieldInfo = outFieldInfoList.get(i);
             if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
-                fields.add(fieldInfo.getFieldName());
+                fields.add(sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName()));
                 sideFieldIndex.put(i, sideIndex);
                 sideFieldNameIndex.put(i, fieldInfo.getFieldName());
                 sideIndex++;
