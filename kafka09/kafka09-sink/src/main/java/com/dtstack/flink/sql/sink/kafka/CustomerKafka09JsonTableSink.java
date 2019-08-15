@@ -20,12 +20,12 @@ package com.dtstack.flink.sql.sink.kafka;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
-import org.apache.flink.streaming.connectors.kafka.*;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducerBase;
+import org.apache.flink.streaming.connectors.kafka.Kafka09TableSink;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaDelegatePartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
-import org.apache.flink.streaming.connectors.kafka.partitioner.KafkaPartitioner;
-import org.apache.flink.table.util.TableConnectorUtil;
+import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.utils.TableConnectorUtils;
 import org.apache.flink.types.Row;
 
 import java.util.Optional;
@@ -38,30 +38,26 @@ import java.util.Properties;
  *
  * @author maqi
  */
-public class CustomerKafka09JsonTableSink extends KafkaJsonTableSink {
+public class CustomerKafka09JsonTableSink extends Kafka09TableSink {
 
 
 	protected SerializationSchema schema;
 
-	public CustomerKafka09JsonTableSink(String topic, Properties properties, SerializationSchema schema) {
-		super(topic, properties, new FlinkFixedPartitioner<>());
-		this.schema = schema;
-	}
 
-	public CustomerKafka09JsonTableSink(String topic, Properties properties, FlinkKafkaPartitioner<Row> partitioner, SerializationSchema schema) {
-		super(topic, properties, partitioner);
-		this.schema = schema;
-	}
 
 
 	@Deprecated
-	public CustomerKafka09JsonTableSink(String topic, Properties properties, KafkaPartitioner<Row> partitioner, SerializationSchema schema) {
-		super(topic, properties, new FlinkKafkaDelegatePartitioner<>(partitioner));
-		this.schema = schema;
+	public CustomerKafka09JsonTableSink(TableSchema schema,
+										String topic,
+										Properties properties,
+										Optional<FlinkKafkaPartitioner<Row>> partitioner,
+										SerializationSchema<Row> serializationSchema) {
+		super(schema, topic, properties, partitioner, serializationSchema);
+		this.schema = serializationSchema;
 	}
 
 	@Override
-	protected SinkFunction<Row> createKafkaProducer(String s, Properties properties, SerializationSchema<Row> serializationSchema, Optional<FlinkKafkaPartitioner<Row>> optional) {
+	protected FlinkKafkaProducerBase<Row> createKafkaProducer(String s, Properties properties, SerializationSchema<Row> serializationSchema, Optional<FlinkKafkaPartitioner<Row>> optional) {
 		return new CustomerFlinkKafkaProducer09<>(topic, serializationSchema, properties);
 	}
 
@@ -70,6 +66,6 @@ public class CustomerKafka09JsonTableSink extends KafkaJsonTableSink {
 		SinkFunction<Row> kafkaProducer = createKafkaProducer(topic, properties, schema, partitioner);
 		// always enable flush on checkpoint to achieve at-least-once if query runs with checkpointing enabled.
 		//kafkaProducer.setFlushOnCheckpoint(true);
-		dataStream.addSink(kafkaProducer).name(TableConnectorUtil.generateRuntimeName(this.getClass(), fieldNames));
+		dataStream.addSink(kafkaProducer).name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));
 	}
 }
