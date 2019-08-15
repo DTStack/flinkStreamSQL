@@ -40,8 +40,16 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
     public KafkaSinkTableInfo(){
         super.setType(CURR_TYPE);
     }
+    public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
+
+    public static final String TOPIC_KEY = "topic";
+
+    private String bootstrapServers;
 
     public Map<String,String> kafkaParam = new HashMap<String,String>();
+
+    private String topic;
+
 
     public void addKafkaParam(String key,String value){
         kafkaParam.put(key,value);
@@ -55,10 +63,28 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
         return kafkaParam.keySet();
     }
 
+
+    public String getBootstrapServers() {
+        return bootstrapServers;
+    }
+
+    public void setBootstrapServers(String bootstrapServers) {
+        this.bootstrapServers = bootstrapServers;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+
     @Override
     public boolean check() {
-        Preconditions.checkNotNull(kafkaParam.get("bootstrap.servers"), "kafka of bootstrapServers is required");
-        Preconditions.checkNotNull(kafkaParam.get("topic"), "kafka of topic is required");
+        Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
+        Preconditions.checkNotNull(topic, "kafka of topic is required");
         //Preconditions.checkNotNull(kafkaParam.get("groupId"), "kafka of groupId is required");
         return false;
     }

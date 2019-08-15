@@ -36,6 +36,10 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
 	//version
 	private static final String CURR_TYPE = "kafka09";
 
+	public KafkaSinkTableInfo() {
+		super.setType(CURR_TYPE);
+	}
+
 	public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
 
 	public static final String TOPIC_KEY = "topic";
@@ -46,9 +50,6 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
 
 	public Map<String,String> kafkaParam = new HashMap<String,String>();
 
-	public KafkaSinkTableInfo() {
-		super.setType(CURR_TYPE);
-	}
 
 	public void addKafkaParam(String key,String value){
 		kafkaParam.put(key,value);
