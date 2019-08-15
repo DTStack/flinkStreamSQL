@@ -463,17 +463,23 @@ public class SideSqlExec {
      * Analyzing conditions are very join the dimension tables include all equivalent conditions (i.e., dimension table is the primary key definition
      * @return
      */
-    private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias,  List<String> primaryKeys){
-
-        List<String> conditionFields = getConditionFields(conditionNode, sideTableAlias);
-        if(CollectionUtils.isEqualCollection(conditionFields, primaryKeys)){
+    private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias,  SideTableInfo sideTableInfo){
+        List<String> conditionFields = getConditionFields(conditionNode, sideTableAlias, sideTableInfo);
+        if(CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo))){
             return true;
         }
-
         return false;
     }
 
-    public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName){
+    private List<String> convertPrimaryAlias(SideTableInfo sideTableInfo){
+        List<String> res = Lists.newArrayList();
+        sideTableInfo.getPrimaryKeys().forEach(field -> {
+            res.add(sideTableInfo.getPhysicalFields().getOrDefault(field, field));
+        });
+        return res;
+    }
+
+    public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName, SideTableInfo sideTableInfo){
         List<SqlNode> sqlNodeList = Lists.newArrayList();
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
         List<String> conditionFields = Lists.newArrayList();
@@ -496,7 +502,7 @@ public class SideSqlExec {
             }else{
                 throw new RuntimeException(String.format("side table:%s join condition is wrong", specifyTableName));
             }
-
+            tableCol = sideTableInfo.getPhysicalFields().getOrDefault(tableCol, tableCol);
             conditionFields.add(tableCol);
         }
 
@@ -590,7 +596,7 @@ public class SideSqlExec {
             throw new RuntimeException("can't not find side table:" + joinInfo.getRightTableName());
         }
 
-        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo.getPrimaryKeys())){
+        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo)){
             throw new RuntimeException("ON condition must contain all equal fields!!!");
         }
 
@@ -616,7 +622,7 @@ public class SideSqlExec {
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if(sideTableInfo.isPartitionedJoin()){
-            List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias());
+            List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias(), sideTableInfo);
             String[] leftJoinColArr = new String[leftJoinColList.size()];
             leftJoinColArr = leftJoinColList.toArray(leftJoinColArr);
             adaptStream = adaptStream.keyBy(leftJoinColArr);
