@@ -74,9 +74,11 @@ public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<
     @Override
     public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
         KafkaSinkTableInfo kafka011SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
-        this.topic = kafka011SinkTableInfo.getKafkaParam("topic");
+        this.topic = kafka011SinkTableInfo.getTopic();
 
         Properties props = new Properties();
+        props.setProperty("bootstrap.servers", kafka011SinkTableInfo.getBootstrapServers());
+
         for (String key:kafka011SinkTableInfo.getKafkaParamKeys()) {
             props.setProperty(key, kafka011SinkTableInfo.getKafkaParam(key));
         }
@@ -97,17 +99,14 @@ public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<
 
         //this.serializationSchema = Optional.of(JsonRowSerializationSchema.class);
         if ("json".equalsIgnoreCase(kafka011SinkTableInfo.getSinkDataType())) {
-            this.serializationSchema = new JsonRowSerializationSchema(getOutputType());
-        } else if ("csv".equalsIgnoreCase(kafka011SinkTableInfo.getSinkDataType())){
-            this.serializationSchema = new TypeInformationSerializationSchema(TypeInformation.of(Row.class),
-                    new CustomerCsvSerialization(kafka011SinkTableInfo.getFieldDelimiter(),fieldTypes));
+            this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType());
         }
         return this;
     }
 
     @Override
     public void emitDataStream(DataStream<Row> dataStream) {
-        KafkaTableSinkBase kafkaTableSink = new Kafka011TableSink(
+        KafkaTableSinkBase kafkaTableSink = new CustomerKafka11JsonTableSink(
                 schema,
                 topic,
                 properties,
