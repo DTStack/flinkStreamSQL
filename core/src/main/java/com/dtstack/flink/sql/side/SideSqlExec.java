@@ -20,7 +20,9 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.Main;
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
 import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
@@ -105,7 +107,7 @@ public class SideSqlExec {
                 }
 
                 if(pollSqlNode.getKind() == INSERT){
-                    tableEnv.sqlUpdate(pollSqlNode.toString());
+                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
                     }
