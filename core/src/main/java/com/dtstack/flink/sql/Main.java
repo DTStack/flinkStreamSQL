@@ -22,7 +22,12 @@ package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.parser.*;
+import com.dtstack.flink.sql.exec.FlinkSQLExec;
+import com.dtstack.flink.sql.parser.CreateFuncParser;
+import com.dtstack.flink.sql.parser.CreateTmpTableParser;
+import com.dtstack.flink.sql.parser.InsertSqlParser;
+import com.dtstack.flink.sql.parser.SqlParser;
+import com.dtstack.flink.sql.parser.SqlTree;
 import com.dtstack.flink.sql.side.SideSqlExec;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
@@ -204,7 +209,7 @@ public class Main {
                         //sql-dimensional table contains the dimension table of execution
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache);
                     }else{
-                        tableEnv.sqlUpdate(result.getExecSql());
+                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
                         if(LOG.isInfoEnabled()){
                             LOG.info("exec sql: " + result.getExecSql());
                         }
