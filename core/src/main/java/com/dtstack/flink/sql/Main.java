@@ -22,7 +22,12 @@ package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.parser.*;
+import com.dtstack.flink.sql.exec.FlinkSQLExec;
+import com.dtstack.flink.sql.parser.CreateFuncParser;
+import com.dtstack.flink.sql.parser.CreateTmpTableParser;
+import com.dtstack.flink.sql.parser.InsertSqlParser;
+import com.dtstack.flink.sql.parser.SqlParser;
+import com.dtstack.flink.sql.parser.SqlTree;
 import com.dtstack.flink.sql.side.SideSqlExec;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
@@ -35,7 +40,6 @@ import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.dtstack.flink.sql.util.FlinkUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.calcite.config.Lex;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.cli.CommandLine;
@@ -61,12 +65,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamContextEnvironment;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.TableEnvironment;
-import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
-import org.apache.flink.table.calcite.FlinkPlannerImpl;
-import org.apache.flink.table.plan.logical.LogicalRelNode;
-import org.apache.flink.table.plan.schema.TableSinkTable;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -210,7 +209,7 @@ public class Main {
                         //sql-dimensional table contains the dimension table of execution
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache);
                     }else{
-                        sqlUpdate(tableEnv, result.getExecSql());
+                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
                         if(LOG.isInfoEnabled()){
                             LOG.info("exec sql: " + result.getExecSql());
                         }
@@ -226,36 +225,6 @@ public class Main {
         }
 
         env.execute(name);
-    }
-
-    public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt) {
-
-        FlinkPlannerImpl planner = new FlinkPlannerImpl(tableEnv.getFrameworkConfig(), tableEnv.getPlanner(), tableEnv.getTypeFactory());
-        SqlNode insert = planner.parse(stmt);
-
-        if (!(insert instanceof SqlInsert)) {
-            throw new TableException(
-                    "Unsupported SQL query! sqlUpdate() only accepts SQL statements of type INSERT.");
-        }
-        SqlNode query = ((SqlInsert) insert).getSource();
-
-        SqlNode validatedQuery = planner.validate(query);
-
-        Table queryResult = new Table(tableEnv, new LogicalRelNode(planner.rel(validatedQuery).rel));
-        String targetTableName = ((SqlIdentifier) ((SqlInsert) insert).getTargetTable()).names.get(0);
-
-        try {
-            Method method = TableEnvironment.class.getDeclaredMethod("getTable", String.class);
-            method.setAccessible(true);
-
-            TableSinkTable targetTable = (TableSinkTable) method.invoke(tableEnv, targetTableName);
-            String[] fieldNames = targetTable.tableSink().getFieldNames();
-            Table newTable = queryResult.select(String.join(",", fieldNames));
-            // insert query result into sink table
-            tableEnv.insertInto(newTable, targetTableName, tableEnv.queryConfig());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     /**
