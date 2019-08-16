@@ -98,6 +98,15 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             establishConnection();
             initMetric();
 
+            if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
+                if (isReplaceInsertQuery()) {
+                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
+                }
+                upload = dbConn.prepareStatement(insertQuery);
+            } else {
+                throw new SQLException("Table " + tableName + " doesn't exist");
+            }
+
             if (batchWaitInterval > 0) {
                 LOG.info("open batch wait interval scheduled, interval is {} ms", batchWaitInterval);
 
@@ -106,15 +115,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                     submitExecuteBatch();
                 }, 0, batchWaitInterval, TimeUnit.MILLISECONDS);
 
-            }
-
-            if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
-                if (isReplaceInsertQuery()) {
-                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
-                }
-                upload = dbConn.prepareStatement(insertQuery);
-            } else {
-                throw new SQLException("Table " + tableName + " doesn't exist");
             }
 
         } catch (SQLException sqe) {
