@@ -61,7 +61,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     // trigger preparedStatement execute batch interval
     private long batchWaitInterval = 10000l;
     // PreparedStatement execute batch num
-    private int batchNum = 1;
+    private int batchNum = 100;
     private String insertQuery;
     public int[] typesArray;
 
@@ -97,6 +97,15 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             establishConnection();
             initMetric();
 
+            if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
+                if (isReplaceInsertQuery()) {
+                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
+                }
+                upload = dbConn.prepareStatement(insertQuery);
+            } else {
+                throw new SQLException("Table " + tableName + " doesn't exist");
+            }
+
             if (batchWaitInterval > 0) {
                 LOG.info("open batch wait interval scheduled, interval is {} ms", batchWaitInterval);
 
@@ -105,15 +114,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                     submitExecuteBatch();
                 }, 0, batchWaitInterval, TimeUnit.MILLISECONDS);
 
-            }
-
-            if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
-                if (isReplaceInsertQuery()) {
-                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
-                }
-                upload = dbConn.prepareStatement(insertQuery);
-            } else {
-                throw new SQLException("Table " + tableName + " doesn't exist");
             }
 
         } catch (SQLException sqe) {
