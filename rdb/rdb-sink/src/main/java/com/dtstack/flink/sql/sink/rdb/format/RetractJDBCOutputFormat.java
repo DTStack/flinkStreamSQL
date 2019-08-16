@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import sun.rmi.runtime.Log;
 
 /**
  * OutputFormat to write tuples into a database.
@@ -97,6 +98,15 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             establishConnection();
             initMetric();
 
+            if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
+                if (isReplaceInsertQuery()) {
+                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
+                }
+                upload = dbConn.prepareStatement(insertQuery);
+            } else {
+                throw new SQLException("Table " + tableName + " doesn't exist");
+            }
+
             if (batchWaitInterval > 0) {
                 LOG.info("open batch wait interval scheduled, interval is {} ms", batchWaitInterval);
 
@@ -107,18 +117,11 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
             }
 
-            if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
-                if (isReplaceInsertQuery()) {
-                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
-                }
-                upload = dbConn.prepareStatement(insertQuery);
-            } else {
-                throw new SQLException("Table " + tableName + " doesn't exist");
-            }
-
         } catch (SQLException sqe) {
+            LOG.error("", sqe);
             throw new IllegalArgumentException("open() failed.", sqe);
         } catch (ClassNotFoundException cnfe) {
+            LOG.error("", cnfe);
             throw new IllegalArgumentException("JDBC driver class not found.", cnfe);
         }
     }
@@ -271,6 +274,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private synchronized void submitExecuteBatch() {
         try {
+            LOG.info("submitExecuteBatch start......");
             this.upload.executeBatch();
             this.batchCount.set(0);
         } catch (SQLException e) {
