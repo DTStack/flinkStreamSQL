@@ -6,6 +6,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.TableException;
+import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.plan.logical.LogicalRelNode;
@@ -36,17 +37,23 @@ public class FlinkSQLExec {
         Table queryResult = new Table(tableEnv, new LogicalRelNode(planner.rel(validatedQuery).rel));
         String targetTableName = ((SqlIdentifier) ((SqlInsert) insert).getTargetTable()).names.get(0);
 
-        try {
-            Method method = TableEnvironment.class.getDeclaredMethod("getTable", String.class);
-            method.setAccessible(true);
+        Method method = TableEnvironment.class.getDeclaredMethod("getTable", String.class);
+        method.setAccessible(true);
 
-            TableSinkTable targetTable = (TableSinkTable) method.invoke(tableEnv, targetTableName);
-            String[] fieldNames = targetTable.tableSink().getFieldNames();
-            Table newTable = queryResult.select(String.join(",", fieldNames));
-            // insert query result into sink table
-            tableEnv.insertInto(newTable, targetTableName, tableEnv.queryConfig());
+        TableSinkTable targetTable = (TableSinkTable) method.invoke(tableEnv, targetTableName);
+        String[] fieldNames = targetTable.tableSink().getFieldNames();
+
+        Table newTable = null;
+
+        try {
+            newTable = queryResult.select(String.join(",", fieldNames));
         } catch (Exception e) {
-            throw e;
+            throw new ValidationException(
+                    "Field name of query result and registered TableSink "+targetTableName +" do not match.\n" +
+                    "Query result schema: " + String.join(",", queryResult.getSchema().getColumnNames()) + "\n" +
+                    "TableSink schema: " + String.join(",", fieldNames));
         }
+
+        tableEnv.insertInto(newTable, targetTableName, tableEnv.queryConfig());
     }
 }
