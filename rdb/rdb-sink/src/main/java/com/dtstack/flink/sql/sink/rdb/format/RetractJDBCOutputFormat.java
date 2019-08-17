@@ -62,7 +62,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     // trigger preparedStatement execute batch interval
     private long batchWaitInterval = 10000l;
     // PreparedStatement execute batch num
-    private int batchNum = 1;
+    private int batchNum = 100;
     private String insertQuery;
     public int[] typesArray;
 
