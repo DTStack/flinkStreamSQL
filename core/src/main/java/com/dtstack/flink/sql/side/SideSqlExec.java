@@ -105,7 +105,7 @@ public class SideSqlExec {
                     for(FieldReplaceInfo replaceInfo : replaceInfoList){
                         fieldNames = Lists.newArrayList();
                         replaceFieldName(pollSqlNode, replaceInfo.getMappingTable(), replaceInfo.getTargetTableName(), replaceInfo.getTargetTableAlias());
-                        addAliasForFiledNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
+                        addAliasForFieldNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
                     }
                 }
 
@@ -130,16 +130,16 @@ public class SideSqlExec {
     }
 
 
-    private void addAliasForFiledNode(SqlNode pollSqlNode, List<String> fieldList, HashBasedTable<String, String, String> mappingTable) {
+    private void addAliasForFieldNode(SqlNode pollSqlNode, List<String> fieldList, HashBasedTable<String, String, String> mappingTable) {
         SqlKind sqlKind = pollSqlNode.getKind();
         switch (sqlKind) {
             case INSERT:
                 SqlNode source = ((SqlInsert) pollSqlNode).getSource();
-                addAliasForFiledNode(source, fieldList, mappingTable);
+                addAliasForFieldNode(source, fieldList, mappingTable);
                 break;
 
             case AS:
-                addAliasForFiledNode(((SqlBasicCall) pollSqlNode).getOperands()[0], fieldList, mappingTable);
+                addAliasForFieldNode(((SqlBasicCall) pollSqlNode).getOperands()[0], fieldList, mappingTable);
                 break;
 
             case SELECT:
@@ -152,10 +152,10 @@ public class SideSqlExec {
                         if (sqlIdentifier.names.size() == 1) {
                             return;
                         }
-
-                        String filedName = sqlIdentifier.names.get(1);
-                        if (!filedName.endsWith("0") ) {
-                            fieldList.add(filedName);
+                        // save real field
+                        String fieldName = sqlIdentifier.names.get(1);
+                        if (!fieldName.endsWith("0") || fieldName.endsWith("0") && mappingTable.columnMap().containsKey(fieldName)) {
+                            fieldList.add(fieldName);
                         }
 
                     }
@@ -170,7 +170,8 @@ public class SideSqlExec {
                         }
 
                         String name = sqlIdentifier.names.get(1);
-                        if (name.endsWith("0") && !fieldList.contains(name.substring(0, name.length() - 1)) && !mappingTable.columnMap().containsKey(name)) {
+                        // avoid real field pv0 convert pv
+                        if (name.endsWith("0") &&  !fieldList.contains(name) && !fieldList.contains(name.substring(0, name.length() - 1))) {
                             SqlOperator operator = new SqlAsOperator();
                             SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
 
@@ -604,7 +605,7 @@ public class SideSqlExec {
                     for (FieldReplaceInfo replaceInfo : replaceInfoList) {
                         fieldNames = Lists.newArrayList();
                         replaceFieldName(pollSqlNode, replaceInfo.getMappingTable(), replaceInfo.getTargetTableName(), replaceInfo.getTargetTableAlias());
-                        addAliasForFiledNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
+                        addAliasForFieldNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
                     }
                 }
 
