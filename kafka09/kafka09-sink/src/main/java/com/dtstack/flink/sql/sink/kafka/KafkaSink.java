@@ -23,10 +23,12 @@ import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.connectors.kafka.KafkaTableSink;
-import org.apache.flink.table.sinks.AppendStreamTableSink;
+import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 import java.util.Properties;
@@ -38,7 +40,7 @@ import java.util.Properties;
  * @author DocLi
  * @modifyer maqi
  */
-public class KafkaSink implements AppendStreamTableSink<Row>, IStreamSinkGener<KafkaSink> {
+public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<KafkaSink> {
 
 	protected String[] fieldNames;
 
@@ -68,24 +70,34 @@ public class KafkaSink implements AppendStreamTableSink<Row>, IStreamSinkGener<K
 		}
 		properties.setProperty("bootstrap.servers", kafka09SinkTableInfo.getBootstrapServers());
 
-		this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType());
+		this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType().getTypeAt(1));
 		return this;
 	}
 
 	@Override
-	public void emitDataStream(DataStream<Row> dataStream) {
+	public TypeInformation<Row> getRecordType() {
+		return new RowTypeInfo(fieldTypes, fieldNames);
+	}
+
+	@Override
+	public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
 		KafkaTableSink kafkaTableSink = new CustomerKafka09JsonTableSink(
 				topic,
 				properties,
 				serializationSchema
 		);
 
-		kafkaTableSink.emitDataStream(dataStream);
+
+		DataStream<Row> ds = dataStream.map((Tuple2<Boolean, Row> record) -> {
+			return record.f1;
+		}).returns(getOutputType().getTypeAt(1));
+
+		kafkaTableSink.emitDataStream(ds);
 	}
 
 	@Override
-	public TypeInformation<Row> getOutputType() {
-		return new RowTypeInfo(fieldTypes, fieldNames);
+	public TupleTypeInfo<Tuple2<Boolean, Row>> getOutputType() {
+		return new TupleTypeInfo(org.apache.flink.table.api.Types.BOOLEAN(), new RowTypeInfo(fieldTypes, fieldNames));
 	}
 
 	@Override
@@ -99,7 +111,7 @@ public class KafkaSink implements AppendStreamTableSink<Row>, IStreamSinkGener<K
 	}
 
 	@Override
-	public TableSink<Row> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
+	public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
 		this.fieldNames = fieldNames;
 		this.fieldTypes = fieldTypes;
 		return this;
