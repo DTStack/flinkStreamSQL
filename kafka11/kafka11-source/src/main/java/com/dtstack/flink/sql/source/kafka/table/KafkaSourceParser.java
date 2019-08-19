@@ -24,6 +24,8 @@ import com.dtstack.flink.sql.table.AbsSourceParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -37,6 +39,8 @@ import java.util.regex.Pattern;
  */
 
 public class KafkaSourceParser extends AbsSourceParser {
+
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaSourceParser.class);
 
     private static final String KAFKA_NEST_FIELD_KEY = "nestFieldKey";
 
@@ -63,6 +67,9 @@ public class KafkaSourceParser extends AbsSourceParser {
         tableInfo.addField(mappingField);
         tableInfo.addFieldClass(fieldClass);
         tableInfo.addFieldType(fieldType);
+        if(LOG.isInfoEnabled()){
+            LOG.info(physicalField + "--->" + mappingField + " Class: " + fieldClass.toString());
+        }
     }
 
     @Override

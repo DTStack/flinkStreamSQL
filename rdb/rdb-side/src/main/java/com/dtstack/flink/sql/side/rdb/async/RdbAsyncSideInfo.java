@@ -66,7 +66,7 @@ public class RdbAsyncSideInfo extends SideInfo {
 
         sqlCondition = "select ${selectField} from ${tableName} where ";
         for (int i = 0; i < equalFieldList.size(); i++) {
-            String equalField = equalFieldList.get(i);
+            String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
 
             sqlCondition += equalField + "=? ";
             if (i != equalFieldList.size() - 1) {
