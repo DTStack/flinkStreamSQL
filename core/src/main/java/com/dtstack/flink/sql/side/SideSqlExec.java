@@ -116,7 +116,7 @@ public class SideSqlExec {
                     }
                 }else if(pollSqlNode.getKind() == AS){
                     AliasInfo aliasInfo = parseASNode(pollSqlNode);
-                    Table table = tableEnv.sql(aliasInfo.getName());
+                    Table table = tableEnv.sqlQuery(aliasInfo.getName());
                     tableEnv.registerTable(aliasInfo.getAlias(), table);
                     localTableCache.put(aliasInfo.getAlias(), table);
                 }
@@ -613,7 +613,7 @@ public class SideSqlExec {
                     tableEnv.sqlUpdate(pollSqlNode.toString());
                 }else if(pollSqlNode.getKind() == AS){
                     AliasInfo aliasInfo = parseASNode(pollSqlNode);
-                    Table table = tableEnv.sql(aliasInfo.getName());
+                    Table table = tableEnv.sqlQuery(aliasInfo.getName());
                     tableEnv.registerTable(aliasInfo.getAlias(), table);
                     if(LOG.isInfoEnabled()){
                         LOG.info("Register Table {} by {}", aliasInfo.getAlias(), aliasInfo.getName());
@@ -740,7 +740,7 @@ public class SideSqlExec {
                 fieldNames.add(fieldName);
                 String fieldType = filed[filed.length - 1 ].trim();
                 Class fieldClass = ClassUtil.stringConvertClass(fieldType);
-                Class tableField = table.getSchema().getType(i).get().getTypeClass();
+                Class tableField = table.getSchema().getFieldType(i).get().getTypeClass();
                 if (fieldClass == tableField){
                     continue;
                 } else {

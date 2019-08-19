@@ -11,6 +11,8 @@ import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.plan.logical.LogicalRelNode;
 import org.apache.flink.table.plan.schema.TableSinkTable;
+import org.apache.flink.table.plan.schema.TableSourceSinkTable;
+import scala.Option;
 
 import java.lang.reflect.Method;
 
@@ -39,12 +41,17 @@ public class FlinkSQLExec {
 
         Method method = TableEnvironment.class.getDeclaredMethod("getTable", String.class);
         method.setAccessible(true);
+        Option sinkTab = (Option)method.invoke(tableEnv, targetTableName);
 
-        TableSinkTable targetTable = (TableSinkTable) method.invoke(tableEnv, targetTableName);
-        String[] fieldNames = targetTable.tableSink().getFieldNames();
+        if (sinkTab.isEmpty()) {
+            throw  new ValidationException("Sink table " + targetTableName + "not found in flink");
+        }
+
+        TableSourceSinkTable targetTable = (TableSourceSinkTable) sinkTab.get();
+        TableSinkTable tableSinkTable = (TableSinkTable)targetTable.tableSinkTable().get();
+        String[] fieldNames = tableSinkTable.tableSink().getFieldNames();
 
         Table newTable = null;
-
         try {
             newTable = queryResult.select(String.join(",", fieldNames));
         } catch (Exception e) {
