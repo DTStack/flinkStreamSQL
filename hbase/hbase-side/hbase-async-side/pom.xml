@@ -50,6 +50,7 @@
                             <artifactSet>
                                 <excludes>
                                     <exclude>org.apache.hadoop:hadoop-common</exclude>
+                                    <exclude>org.apache.hadoop:hadoop-yarn-common</exclude>
                                     <exclude>org.apache.hadoop:hadoop-auth</exclude>
                                     <exclude>org.apache.hadoop:hadoop-mapreduce-client-core</exclude>
                                     <exclude>org.slf4j:*</exclude>

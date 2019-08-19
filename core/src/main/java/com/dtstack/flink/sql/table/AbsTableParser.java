@@ -80,7 +80,7 @@ public abstract class AbsTableParser {
 
     public void parseFieldsInfo(String fieldsInfo, TableInfo tableInfo){
 
-        String[] fieldRows = DtStringUtil.splitIgnoreQuotaBrackets(fieldsInfo, ",");
+        List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
 

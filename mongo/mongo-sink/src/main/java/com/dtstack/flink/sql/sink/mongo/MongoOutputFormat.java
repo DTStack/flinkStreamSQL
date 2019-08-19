@@ -63,6 +63,8 @@ public class MongoOutputFormat extends MetricOutputFormat {
 
     private static String PK = "_ID";
 
+    private static int rowLenth = 1000;
+
     public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
 
     @Override
@@ -106,6 +108,10 @@ public class MongoOutputFormat extends MetricOutputFormat {
             }
         } else {
             dbCollection.insertOne(doc);
+        }
+
+        if (outRecords.getCount()%rowLenth == 0){
+            LOG.info(record.toString());
         }
         outRecords.inc();
     }
