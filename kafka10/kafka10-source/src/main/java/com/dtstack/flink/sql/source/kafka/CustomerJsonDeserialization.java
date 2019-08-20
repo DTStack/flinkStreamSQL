@@ -30,8 +30,7 @@ import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.TextNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
@@ -117,7 +116,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             }
 
             numInRecord.inc();
-            numInBytes.inc(message.length);
+            if(message!=null){numInBytes.inc(message.length);}
 
             parseTree(root, null);
             Row row = new Row(fieldNames.length);
@@ -134,7 +133,12 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
                     }
                 } else {
                     // Read the value as specified type
-                    Object value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
+                    Object value;
+                    if (node.isValueNode()) {
+                      value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
+                    } else {
+                      value = node.toString();
+                    }
                     row.setField(i, value);
                 }
             }
@@ -155,19 +159,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     public JsonNode getIgnoreCase(String key) {
         String nodeMappingKey = rowAndFieldMapping.getOrDefault(key, key);
-        JsonNode node = nodeAndJsonNodeMapping.get(nodeMappingKey);
 
-        if(node == null){
-            return null;
-        }
-
-        JsonNodeType nodeType = node.getNodeType();
-
-        if (nodeType==JsonNodeType.ARRAY){
-            throw new IllegalStateException("Unsupported  type information  array .") ;
-        }
-
-        return node;
+        return nodeAndJsonNodeMapping.get(nodeMappingKey);
     }
 
 
@@ -177,17 +170,36 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private void parseTree(JsonNode jsonNode, String prefix){
 
+        if (jsonNode.isArray()) {
+            ArrayNode array = (ArrayNode) jsonNode;
+            for (int i = 0; i < array.size(); i++) {
+                JsonNode child = array.get(i);
+                String nodeKey = getNodeKey(prefix, i);
+
+                if (child.isValueNode()) {
+                    nodeAndJsonNodeMapping.put(nodeKey, child);
+                } else {
+                    if (rowAndFieldMapping.containsValue(nodeKey)) {
+                        nodeAndJsonNodeMapping.put(nodeKey, child);
+                    }
+                    parseTree(child, nodeKey);
+                }
+            }
+            return;
+        }
+
         Iterator<String> iterator = jsonNode.fieldNames();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             String next = iterator.next();
             JsonNode child = jsonNode.get(next);
             String nodeKey = getNodeKey(prefix, next);
 
-            if (child.isValueNode()){
+            if (child.isValueNode()) {
                 nodeAndJsonNodeMapping.put(nodeKey, child);
-            }else if(child.isArray()){
-                nodeAndJsonNodeMapping.put(nodeKey, new TextNode(child.toString()));
-            }else {
+            } else {
+                if (rowAndFieldMapping.containsValue(nodeKey)) {
+                    nodeAndJsonNodeMapping.put(nodeKey, child);
+                }
                 parseTree(child, nodeKey);
             }
         }
@@ -199,6 +211,14 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
 
         return prefix + "." + nodeName;
+    }
+
+    private String getNodeKey(String prefix, int i) {
+      if (Strings.isNullOrEmpty(prefix)) {
+        return "[" + i + "]";
+      }
+
+      return prefix + "[" + i + "]";
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
