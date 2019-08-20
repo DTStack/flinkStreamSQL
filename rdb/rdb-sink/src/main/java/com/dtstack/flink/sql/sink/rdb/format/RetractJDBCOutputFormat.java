@@ -20,7 +20,6 @@ package com.dtstack.flink.sql.sink.rdb.format;
 
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
@@ -28,18 +27,25 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.sql.*;
-import java.util.*;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import sun.rmi.runtime.Log;
 
 /**
  * OutputFormat to write tuples into a database.
  * The OutputFormat has to be configured using the supplied OutputFormatBuilder.
  *
- * @see Tuple
- * @see DriverManager
  */
 public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private static final long serialVersionUID = 1L;
@@ -53,14 +59,18 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private String tableName;
     private String dbType;
     private RdbSink dbSink;
-    private int batchInterval = 5000;
+    // trigger preparedStatement execute batch interval
+    private long batchWaitInterval = 10000l;
+    // PreparedStatement execute batch num
+    private int batchNum = 100;
     private String insertQuery;
     public int[] typesArray;
 
     private Connection dbConn;
     private PreparedStatement upload;
+    private AtomicInteger batchCount = new AtomicInteger(0);
+    private transient ScheduledThreadPoolExecutor timerService;
 
-    private int batchCount = 0;
 
     //index field
     private Map<String, List<String>> realIndexes = Maps.newHashMap();
@@ -68,7 +78,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private List<String> fullField = Lists.newArrayList();
 
     public RetractJDBCOutputFormat() {
-
     }
 
     @Override
@@ -85,8 +94,10 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
+            LOG.info("PreparedStatement execute batch num is {}", batchNum);
             establishConnection();
             initMetric();
+
             if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
                 if (isReplaceInsertQuery()) {
                     insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
@@ -96,9 +107,21 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 throw new SQLException("Table " + tableName + " doesn't exist");
             }
 
+            if (batchWaitInterval > 0) {
+                LOG.info("open batch wait interval scheduled, interval is {} ms", batchWaitInterval);
+
+                timerService = new ScheduledThreadPoolExecutor(1);
+                timerService.scheduleAtFixedRate(() -> {
+                    submitExecuteBatch();
+                }, 0, batchWaitInterval, TimeUnit.MILLISECONDS);
+
+            }
+
         } catch (SQLException sqe) {
+            LOG.error("", sqe);
             throw new IllegalArgumentException("open() failed.", sqe);
         } catch (ClassNotFoundException cnfe) {
+            LOG.error("", cnfe);
             throw new IllegalArgumentException("JDBC driver class not found.", cnfe);
         }
     }
@@ -151,13 +174,11 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
 
     private void insertWrite(Row row) throws SQLException {
-
         updatePreparedStmt(row, upload);
         upload.addBatch();
-        batchCount++;
-        if (batchCount >= batchInterval) {
-            upload.executeBatch();
-            batchCount = 0;
+        batchCount.incrementAndGet();
+        if (batchCount.get() >= batchNum) {
+            submitExecuteBatch();
         }
     }
 
@@ -250,6 +271,17 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         }
     }
 
+
+    private synchronized void submitExecuteBatch() {
+        try {
+            LOG.info("submitExecuteBatch start......");
+            this.upload.executeBatch();
+            this.batchCount.set(0);
+        } catch (SQLException e) {
+            LOG.error("", e);
+        }
+    }
+
     /**
      * Executes prepared statement and closes all resources of this instance.
      *
@@ -262,11 +294,15 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 upload.executeBatch();
                 upload.close();
             }
+            if (null != timerService) {
+                timerService.shutdown();
+                LOG.info("batch wait interval scheduled service  closed ");
+            }
         } catch (SQLException se) {
-            LOG.info("Inputformat couldn't be closed - " + se.getMessage());
+            LOG.info("Inputformat couldn't be closed - ", se);
         } finally {
             upload = null;
-            batchCount = 0;
+            batchCount.set(0);
         }
 
         try {
@@ -274,7 +310,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 dbConn.close();
             }
         } catch (SQLException se) {
-            LOG.info("Inputformat couldn't be closed - " + se.getMessage());
+            LOG.info("Inputformat couldn't be closed - ", se);
         } finally {
             dbConn = null;
         }
@@ -332,8 +368,8 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         this.dbSink = dbSink;
     }
 
-    public void setBatchInterval(int batchInterval) {
-        this.batchInterval = batchInterval;
+    public void setBatchNum(int batchNum) {
+        this.batchNum = batchNum;
     }
 
     public void setInsertQuery(String insertQuery) {
@@ -362,6 +398,11 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     public Map<String, List<String>> getRealIndexes() {
         return realIndexes;
+    }
+
+
+    public void setBatchWaitInterval(long batchWaitInterval) {
+        this.batchWaitInterval = batchWaitInterval;
     }
 
     public List<String> getFullField() {

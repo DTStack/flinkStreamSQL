@@ -106,7 +106,7 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
                     }
                 }
             }catch (Exception e){
-                resultFuture.complete(null);
+                resultFuture.completeExceptionally(e);
                 LOG.error("record:" + input);
                 LOG.error("get side record exception:", e);
             }
