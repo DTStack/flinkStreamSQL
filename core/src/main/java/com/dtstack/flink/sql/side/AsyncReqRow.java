@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.side;
 
@@ -28,9 +28,12 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
+import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
 import org.apache.flink.types.Row;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.TimeoutException;
 
 /**
  * All interfaces inherit naming rules: type + "AsyncReqRow" such as == "MysqlAsyncReqRow
@@ -48,6 +51,18 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
 
     public AsyncReqRow(SideInfo sideInfo){
         this.sideInfo = sideInfo;
+    }
+
+    @Override
+    public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
+        StreamRecordQueueEntry<Row> future = (StreamRecordQueueEntry<Row>)resultFuture;
+        try {
+            if (null == future.get()) {
+                new TimeoutException("Async function call has timed out.");
+            }
+        } catch (Exception e) {
+            throw new Exception(e);
+        }
     }
 
     private void initCache(){

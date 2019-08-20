@@ -23,7 +23,12 @@ package com.dtstack.flink.sql;
 import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
-import com.dtstack.flink.sql.parser.*;
+import com.dtstack.flink.sql.exec.FlinkSQLExec;
+import com.dtstack.flink.sql.parser.CreateFuncParser;
+import com.dtstack.flink.sql.parser.CreateTmpTableParser;
+import com.dtstack.flink.sql.parser.InsertSqlParser;
+import com.dtstack.flink.sql.parser.SqlParser;
+import com.dtstack.flink.sql.parser.SqlTree;
 import com.dtstack.flink.sql.side.SideSqlExec;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
@@ -49,19 +54,21 @@ import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
-import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Sets;
 import org.apache.flink.client.program.ContextEnvironment;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.shaded.guava18.com.google.common.base.Preconditions;
+import org.apache.flink.shaded.guava18.com.google.common.base.Strings;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamContextEnvironment;
+
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -205,7 +212,10 @@ public class Main {
                         //sql-dimensional table contains the dimension table of execution
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache);
                     }else{
-                        tableEnv.sqlUpdate(result.getExecSql());
+                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
+                        if(LOG.isInfoEnabled()){
+                            LOG.info("exec sql: " + result.getExecSql());
+                        }
                     }
                 }
             }
@@ -288,6 +298,9 @@ public class Main {
 
                 Table regTable = tableEnv.fromDataStream(adaptStream, fields);
                 tableEnv.registerTable(tableInfo.getName(), regTable);
+                if(LOG.isInfoEnabled()){
+                    LOG.info("registe table {} success.", tableInfo.getName());
+                }
                 registerTableCache.put(tableInfo.getName(), regTable);
                 classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
             } else if (tableInfo instanceof TargetTableInfo) {
@@ -320,7 +333,6 @@ public class Main {
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
-
         env.getConfig().disableClosureCleaner();
         env.setParallelism(FlinkUtil.getEnvParallelism(confProperties));
         Configuration globalJobParameters = new Configuration();
