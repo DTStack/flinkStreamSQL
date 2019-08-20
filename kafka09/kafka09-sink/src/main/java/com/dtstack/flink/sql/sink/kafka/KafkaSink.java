@@ -27,10 +27,15 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.connectors.kafka.KafkaTableSink;
+import org.apache.flink.streaming.connectors.kafka.KafkaTableSinkBase;
+import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
+import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
+
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -53,10 +58,25 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 	/** Serialization schema for encoding records to Kafka. */
 	protected SerializationSchema serializationSchema;
 
+	/** The schema of the table. */
+	private TableSchema schema;
+
+	/** Partitioner to select Kafka partition for each item. */
+	protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
+
+
 	@Override
 	public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
 		KafkaSinkTableInfo kafka09SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
 		this.topic = kafka09SinkTableInfo.getTopic();
+
+		properties = new Properties();
+		properties.setProperty("bootstrap.servers", kafka09SinkTableInfo.getBootstrapServers());
+		for (String key : kafka09SinkTableInfo.getKafkaParamKeys()) {
+			properties.setProperty(key, kafka09SinkTableInfo.getKafkaParam(key));
+		}
+
+		this.partitioner = Optional.of(new FlinkFixedPartitioner<>());
 		this.fieldNames = kafka09SinkTableInfo.getFields();
 		TypeInformation[] types = new TypeInformation[kafka09SinkTableInfo.getFields().length];
 		for (int i = 0; i < kafka09SinkTableInfo.getFieldClasses().length; i++) {
@@ -64,11 +84,11 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 		}
 		this.fieldTypes = types;
 
-		properties = new Properties();
-		for (String key : kafka09SinkTableInfo.getKafkaParamKeys()) {
-			properties.setProperty(key, kafka09SinkTableInfo.getKafkaParam(key));
+		TableSchema.Builder schemaBuilder = TableSchema.builder();
+		for (int i=0;i<fieldNames.length;i++){
+			schemaBuilder.field(fieldNames[i], fieldTypes[i]);
 		}
-		properties.setProperty("bootstrap.servers", kafka09SinkTableInfo.getBootstrapServers());
+		this.schema = schemaBuilder.build();
 
 		this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType().getTypeAt(1));
 		return this;
@@ -81,9 +101,11 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
 	@Override
 	public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-		KafkaTableSink kafkaTableSink = new CustomerKafka09JsonTableSink(
+		KafkaTableSinkBase kafkaTableSink = new CustomerKafka09JsonTableSink(
+				schema,
 				topic,
 				properties,
+				partitioner,
 				serializationSchema
 		);
 
