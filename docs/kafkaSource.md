@@ -45,21 +45,59 @@ CREATE TABLE tableName(
   
 ## 5.样例：
 ```
-CREATE TABLE MyTable(
-    name varchar,
-    channel varchar,
-    pv INT,
-    xctime bigint,
-    CHARACTER_LENGTH(channel) AS timeLeng
+JSON嵌套:
+CREATE TABLE pft_report_order_two(
+    message.after.id int AS id,
+    message.after.date int AS oper_date,
+    message.after.fid int AS fid,
+    message.after.reseller_id int AS reseller_id,
+    message.after.lid int AS lid,
+    message.after.tid int AS tid,
+    message.after.pid int AS pid,
+    message.after.level int AS level,
+    message.after.operate_id int AS operate_id,
+    message.after.order_num int AS order_num,
+    message.after.order_ticket int AS order_ticket,
+    message.after.cancel_num int AS cancel_num,
+    message.after.cancel_ticket int AS cancel_ticket,
+    message.after.revoke_num int AS revoke_num,
+    message.after.revoke_ticket int AS revoke_ticket,
+    message.after.cost_money int AS cost_money,
+    message.after.sale_money int AS sale_money,
+    message.after.cancel_cost_money int AS cancel_cost_money,
+    message.after.cancel_sale_money int AS cancel_sale_money,
+    message.after.revoke_cost_money int AS revoke_cost_money,
+    message.after.revoke_sale_money int AS revoke_sale_money,
+    message.after.service_money int AS service_money,
+    message.after.orders_info varchar AS orders_info,
+    message.after.cancel_orders_info varchar AS cancel_orders_info,
+    message.after.revoke_orders_info varchar AS revoke_orders_info,
+    message.after.pay_way int AS pay_way,
+    message.after.channel int AS channel,
+    message.after.update_time int AS update_time,
+    message.after.site_id int AS site_id
  )WITH(
-    type ='kafka09',
-    bootstrapServers ='172.16.8.198:9092',
-    zookeeperQuorum ='172.16.8.198:2181/kafka',
-    offsetReset ='latest',
-    groupId='nbTest',
-    topic ='nbTest1,nbTest2,nbTest3',
-    --- topic ='mqTest.*',
-    ---topicIsPattern='true',
+    type ='kafka10',
+    bootstrapServers = 'xxx:9092', 
+    zookeeperQuorum = 'xx:2181/kafka',
+    offsetReset = 'latest', 
+    topic ='mqTest01',
     parallelism ='1'
  );
+
+WATERMARK:
+
+CREATE TABLE MyTable(
+    channel varchar,
+    pv INT,
+    xctime bigint
+    WATERMARK FOR xctime AS withOffset(xctime,3000)
+ )WITH(
+   type='kafka11',
+   bootstrapServers='172.16.8.107:9092',
+   groupId='mqTest',
+   offsetReset='latest',
+   topic='mqTest01'
+ );
+
 ```
