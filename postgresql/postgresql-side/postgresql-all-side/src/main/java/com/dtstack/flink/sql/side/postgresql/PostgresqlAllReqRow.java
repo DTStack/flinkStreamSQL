@@ -50,7 +50,7 @@ public class PostgresqlAllReqRow extends RdbAllReqRow {
     private static final String postgresql_DRIVER = "org.postgresql.Driver";
 
     public PostgresqlAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+        super(new PostgresqlAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override

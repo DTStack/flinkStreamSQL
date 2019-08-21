@@ -148,7 +148,8 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                     }
                     resultFuture.complete(rowList);
                 }else{
-                    throw new RuntimeException("not support cache obj type " + val.getType());
+                    RuntimeException exception = new RuntimeException("not support cache obj type " + val.getType());
+                    resultFuture.completeExceptionally(exception);
                 }
                 return;
             }

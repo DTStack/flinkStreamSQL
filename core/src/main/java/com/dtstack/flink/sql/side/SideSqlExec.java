@@ -16,15 +16,17 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
 import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
 import com.dtstack.flink.sql.util.ClassUtil;
+import com.dtstack.flink.sql.util.ParseUtils;
+import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -34,12 +36,14 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.HashBasedTable;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
@@ -47,6 +51,9 @@ import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.types.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -60,6 +67,8 @@ import static org.apache.calcite.sql.SqlKind.*;
  */
 
 public class SideSqlExec {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SideSqlExec.class);
 
     private String localSqlPluginPath = null;
 
@@ -92,13 +101,19 @@ public class SideSqlExec {
 
                 if(preIsSideJoin){
                     preIsSideJoin = false;
+                    List<String> fieldNames = null;
                     for(FieldReplaceInfo replaceInfo : replaceInfoList){
+                        fieldNames = Lists.newArrayList();
                         replaceFieldName(pollSqlNode, replaceInfo.getMappingTable(), replaceInfo.getTargetTableName(), replaceInfo.getTargetTableAlias());
+                        addAliasForFieldNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
                     }
                 }
 
                 if(pollSqlNode.getKind() == INSERT){
-                    tableEnv.sqlUpdate(pollSqlNode.toString());
+                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
+                    if(LOG.isInfoEnabled()){
+                        LOG.info("exec sql: " + pollSqlNode.toString());
+                    }
                 }else if(pollSqlNode.getKind() == AS){
                     AliasInfo aliasInfo = parseASNode(pollSqlNode);
                     Table table = tableEnv.sql(aliasInfo.getName());
@@ -113,6 +128,68 @@ public class SideSqlExec {
         }
 
     }
+
+
+    private void addAliasForFieldNode(SqlNode pollSqlNode, List<String> fieldList, HashBasedTable<String, String, String> mappingTable) {
+        SqlKind sqlKind = pollSqlNode.getKind();
+        switch (sqlKind) {
+            case INSERT:
+                SqlNode source = ((SqlInsert) pollSqlNode).getSource();
+                addAliasForFieldNode(source, fieldList, mappingTable);
+                break;
+
+            case AS:
+                addAliasForFieldNode(((SqlBasicCall) pollSqlNode).getOperands()[0], fieldList, mappingTable);
+                break;
+
+            case SELECT:
+
+                SqlNodeList selectList = ((SqlSelect) pollSqlNode).getSelectList();
+
+                selectList.getList().forEach(node -> {
+                    if (node.getKind() == IDENTIFIER) {
+                        SqlIdentifier sqlIdentifier = (SqlIdentifier) node;
+                        if (sqlIdentifier.names.size() == 1) {
+                            return;
+                        }
+                        // save real field
+                        String fieldName = sqlIdentifier.names.get(1);
+                        if (!fieldName.endsWith("0") || fieldName.endsWith("0") && mappingTable.columnMap().containsKey(fieldName)) {
+                            fieldList.add(fieldName);
+                        }
+
+                    }
+                });
+
+                for (int i = 0; i < selectList.getList().size(); i++) {
+                    SqlNode node = selectList.get(i);
+                    if (node.getKind() == IDENTIFIER) {
+                        SqlIdentifier sqlIdentifier = (SqlIdentifier) node;
+                        if (sqlIdentifier.names.size() == 1) {
+                            return;
+                        }
+
+                        String name = sqlIdentifier.names.get(1);
+                        // avoid real field pv0 convert pv
+                        if (name.endsWith("0") &&  !fieldList.contains(name) && !fieldList.contains(name.substring(0, name.length() - 1))) {
+                            SqlOperator operator = new SqlAsOperator();
+                            SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
+
+                            SqlIdentifier sqlIdentifierAlias = new SqlIdentifier(name.substring(0, name.length() - 1), null, sqlParserPos);
+                            SqlNode[] sqlNodes = new SqlNode[2];
+                            sqlNodes[0] = sqlIdentifier;
+                            sqlNodes[1] = sqlIdentifierAlias;
+                            SqlBasicCall sqlBasicCall = new SqlBasicCall(operator, sqlNodes, sqlParserPos);
+
+                            selectList.set(i, sqlBasicCall);
+                        }
+
+                    }
+                }
+                break;
+        }
+    }
+
 
     public AliasInfo parseASNode(SqlNode sqlNode) throws SqlParseException {
         SqlKind sqlKind = sqlNode.getKind();
@@ -160,7 +237,7 @@ public class SideSqlExec {
                 replaceFieldName(sqlSource, mappingTable, targetTableName, tableAlias);
                 break;
             case AS:
-                SqlNode asNode = ((SqlBasicCall)sqlNode).getOperands()[0];
+                SqlNode asNode = ((SqlBasicCall) sqlNode).getOperands()[0];
                 replaceFieldName(asNode, mappingTable, targetTableName, tableAlias);
                 break;
             case SELECT:
@@ -255,7 +332,7 @@ public class SideSqlExec {
         }
     }
 
-    public SqlNode filterNodeWithTargetName(SqlNode sqlNode, String targetTableName){
+    public SqlNode filterNodeWithTargetName(SqlNode sqlNode, String targetTableName) {
 
         SqlKind sqlKind = sqlNode.getKind();
         switch (sqlKind){
@@ -292,7 +369,7 @@ public class SideSqlExec {
     }
 
 
-    public void setLocalSqlPluginPath(String localSqlPluginPath){
+    public void setLocalSqlPluginPath(String localSqlPluginPath) {
         this.localSqlPluginPath = localSqlPluginPath;
     }
 
@@ -336,12 +413,12 @@ public class SideSqlExec {
         }
     }
 
-    private SqlNode replaceSelectFieldName(SqlNode selectNode, HashBasedTable<String, String, String> mappingTable, String tableAlias){
-        if(selectNode.getKind() == AS){
-            SqlNode leftNode = ((SqlBasicCall)selectNode).getOperands()[0];
+    private SqlNode replaceSelectFieldName(SqlNode selectNode, HashBasedTable<String, String, String> mappingTable, String tableAlias) {
+        if (selectNode.getKind() == AS) {
+            SqlNode leftNode = ((SqlBasicCall) selectNode).getOperands()[0];
             SqlNode replaceNode = replaceSelectFieldName(leftNode, mappingTable, tableAlias);
-            if(replaceNode != null){
-                ((SqlBasicCall)selectNode).getOperands()[0] = replaceNode;
+            if (replaceNode != null) {
+                ((SqlBasicCall) selectNode).getOperands()[0] = replaceNode;
             }
 
             return selectNode;
@@ -391,6 +468,10 @@ public class SideSqlExec {
                 || selectNode.getKind() == BETWEEN
                 || selectNode.getKind() == IS_NULL
                 || selectNode.getKind() == IS_NOT_NULL
+                || selectNode.getKind() == LESS_THAN
+                || selectNode.getKind() == GREATER_THAN
+                || selectNode.getKind() == LESS_THAN_OR_EQUAL
+                || selectNode.getKind() == GREATER_THAN_OR_EQUAL
                 ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
@@ -422,7 +503,7 @@ public class SideSqlExec {
             for(int i=0; i<whenOperands.size(); i++){
                 SqlNode oneOperand = whenOperands.get(i);
                 SqlNode replaceNode = replaceSelectFieldName(oneOperand, mappingTable, tableAlias);
-                if(replaceNode != null){
+                if (replaceNode != null) {
                     whenOperands.set(i, replaceNode);
                 }
             }
@@ -430,12 +511,12 @@ public class SideSqlExec {
             for(int i=0; i<thenOperands.size(); i++){
                 SqlNode oneOperand = thenOperands.get(i);
                 SqlNode replaceNode = replaceSelectFieldName(oneOperand, mappingTable, tableAlias);
-                if(replaceNode != null){
+                if (replaceNode != null) {
                     thenOperands.set(i, replaceNode);
                 }
             }
 
-            replaceSelectFieldName(elseNode, mappingTable, tableAlias);
+            ((SqlCase) selectNode).setOperand(3, replaceSelectFieldName(elseNode, mappingTable, tableAlias));
             return selectNode;
         }else if(selectNode.getKind() == OTHER){
             //不处理
@@ -447,26 +528,28 @@ public class SideSqlExec {
 
     /**
      * Analyzing conditions are very join the dimension tables include all equivalent conditions (i.e., dimension table is the primary key definition
+     *
      * @return
      */
-    private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias,  List<String> primaryKeys){
-
-        List<String> conditionFields = getConditionFields(conditionNode, sideTableAlias);
-        if(CollectionUtils.isEqualCollection(conditionFields, primaryKeys)){
+    private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias, SideTableInfo sideTableInfo) {
+        List<String> conditionFields = getConditionFields(conditionNode, sideTableAlias, sideTableInfo);
+        if(CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo))){
             return true;
         }
-
         return false;
     }
 
-    public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName){
-        List<SqlNode> sqlNodeList = Lists.newArrayList();
-        if(conditionNode.getKind() == SqlKind.AND){
-            sqlNodeList.addAll(Lists.newArrayList(((SqlBasicCall)conditionNode).getOperands()));
-        }else{
-            sqlNodeList.add(conditionNode);
-        }
+    private List<String> convertPrimaryAlias(SideTableInfo sideTableInfo) {
+        List<String> res = Lists.newArrayList();
+        sideTableInfo.getPrimaryKeys().forEach(field -> {
+            res.add(sideTableInfo.getPhysicalFields().getOrDefault(field, field));
+        });
+        return res;
+    }
 
+    public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName, SideTableInfo sideTableInfo){
+        List<SqlNode> sqlNodeList = Lists.newArrayList();
+        ParseUtils.parseAnd(conditionNode, sqlNodeList);
         List<String> conditionFields = Lists.newArrayList();
         for(SqlNode sqlNode : sqlNodeList){
             if(sqlNode.getKind() != SqlKind.EQUALS){
@@ -487,7 +570,7 @@ public class SideSqlExec {
             }else{
                 throw new RuntimeException(String.format("side table:%s join condition is wrong", specifyTableName));
             }
-
+            tableCol = sideTableInfo.getPhysicalFields().getOrDefault(tableCol, tableCol);
             conditionFields.add(tableCol);
         }
 
@@ -518,8 +601,11 @@ public class SideSqlExec {
 
                 if(preIsSideJoin){
                     preIsSideJoin = false;
-                    for(FieldReplaceInfo replaceInfo : replaceInfoList){
+                    List<String> fieldNames = null;
+                    for (FieldReplaceInfo replaceInfo : replaceInfoList) {
+                        fieldNames = Lists.newArrayList();
                         replaceFieldName(pollSqlNode, replaceInfo.getMappingTable(), replaceInfo.getTargetTableName(), replaceInfo.getTargetTableAlias());
+                        addAliasForFieldNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
                     }
                 }
 
@@ -529,6 +615,9 @@ public class SideSqlExec {
                     AliasInfo aliasInfo = parseASNode(pollSqlNode);
                     Table table = tableEnv.sql(aliasInfo.getName());
                     tableEnv.registerTable(aliasInfo.getAlias(), table);
+                    if(LOG.isInfoEnabled()){
+                        LOG.info("Register Table {} by {}", aliasInfo.getAlias(), aliasInfo.getName());
+                    }
                     localTableCache.put(aliasInfo.getAlias(), table);
                 } else if (pollSqlNode.getKind() == SELECT){
                     Table table = tableEnv.sqlQuery(pollObj.toString());
@@ -552,6 +641,7 @@ public class SideSqlExec {
             }
         }
     }
+
     private void joinFun(Object pollObj, Map<String, Table> localTableCache,
                          Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
                          List<FieldReplaceInfo> replaceInfoList) throws Exception{
@@ -578,7 +668,7 @@ public class SideSqlExec {
             throw new RuntimeException("can't not find side table:" + joinInfo.getRightTableName());
         }
 
-        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo.getPrimaryKeys())){
+        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo)){
             throw new RuntimeException("ON condition must contain all equal fields!!!");
         }
 
@@ -597,11 +687,14 @@ public class SideSqlExec {
         }
 
         RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getTypes(), targetTable.getSchema().getColumnNames());
-        DataStream adaptStream = tableEnv.toAppendStream(targetTable, org.apache.flink.types.Row.class);
+
+        DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
+                                .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
+                                .returns(Row.class);
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if(sideTableInfo.isPartitionedJoin()){
-            List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias());
+            List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias(), sideTableInfo);
             String[] leftJoinColArr = new String[leftJoinColList.size()];
             leftJoinColArr = leftJoinColList.toArray(leftJoinColArr);
             adaptStream = adaptStream.keyBy(leftJoinColArr);
@@ -632,12 +725,11 @@ public class SideSqlExec {
         }
     }
 
-    private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table){
+    private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table) {
         List<String> fieldNames = new LinkedList<>();
         String fieldsInfo = result.getFieldsInfoStr();
         String[] fields = fieldsInfo.split(",");
-        for (int i=0; i < fields.length; i++)
-        {
+        for (int i = 0; i < fields.length; i++) {
             String[] filed = fields[i].split("\\s");
             if (filed.length < 2 || fields.length != table.getSchema().getColumnNames().length){
                 return false;

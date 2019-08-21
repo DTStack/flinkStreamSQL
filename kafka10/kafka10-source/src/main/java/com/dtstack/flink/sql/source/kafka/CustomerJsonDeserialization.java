@@ -30,7 +30,6 @@ import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
@@ -61,6 +60,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     private static final Logger LOG = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
 
     private static final long serialVersionUID = 2385115520960444192L;
+
+    private static int rowLenth = 1000;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -108,10 +109,15 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
 
         try {
+            JsonNode root = objectMapper.readTree(message);
+
+            if (numInRecord.getCount()%rowLenth == 0){
+                LOG.info(root.toString());
+            }
+
             numInRecord.inc();
             if(message!=null){numInBytes.inc(message.length);}
 
-            JsonNode root = objectMapper.readTree(message);
             parseTree(root, null);
             Row row = new Row(fieldNames.length);
 
@@ -141,6 +147,9 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             return row;
         } catch (Throwable t) {
             //add metric of dirty data
+            if (dirtyDataCounter.getCount()%rowLenth == 0){
+                LOG.info("dirtyData: " + new String(message));
+            }
             dirtyDataCounter.inc();
             return null;
         }finally {
@@ -161,39 +170,39 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private void parseTree(JsonNode jsonNode, String prefix){
 
-      if (jsonNode.isArray()) {
-        ArrayNode array = (ArrayNode) jsonNode;
-        for (int i = 0; i < array.size(); i++) {
-          JsonNode child = array.get(i);
-          String nodeKey = getNodeKey(prefix, i);
+        if (jsonNode.isArray()) {
+            ArrayNode array = (ArrayNode) jsonNode;
+            for (int i = 0; i < array.size(); i++) {
+                JsonNode child = array.get(i);
+                String nodeKey = getNodeKey(prefix, i);
 
-          if (child.isValueNode()) {
-            nodeAndJsonNodeMapping.put(nodeKey, child);
-          } else {
-            if (rowAndFieldMapping.containsValue(nodeKey)) {
-              nodeAndJsonNodeMapping.put(nodeKey, child);
+                if (child.isValueNode()) {
+                    nodeAndJsonNodeMapping.put(nodeKey, child);
+                } else {
+                    if (rowAndFieldMapping.containsValue(nodeKey)) {
+                        nodeAndJsonNodeMapping.put(nodeKey, child);
+                    }
+                    parseTree(child, nodeKey);
+                }
             }
-            parseTree(child, nodeKey);
-          }
+            return;
         }
-        return;
-      }
 
         Iterator<String> iterator = jsonNode.fieldNames();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             String next = iterator.next();
             JsonNode child = jsonNode.get(next);
             String nodeKey = getNodeKey(prefix, next);
 
-        if (child.isValueNode()) {
-          nodeAndJsonNodeMapping.put(nodeKey, child);
-        } else {
-          if (rowAndFieldMapping.containsValue(nodeKey)) {
-            nodeAndJsonNodeMapping.put(nodeKey, child);
-          }
-          parseTree(child, nodeKey);
+            if (child.isValueNode()) {
+                nodeAndJsonNodeMapping.put(nodeKey, child);
+            } else {
+                if (rowAndFieldMapping.containsValue(nodeKey)) {
+                    nodeAndJsonNodeMapping.put(nodeKey, child);
+                }
+                parseTree(child, nodeKey);
+            }
         }
-      }
     }
 
     private String getNodeKey(String prefix, String nodeName){

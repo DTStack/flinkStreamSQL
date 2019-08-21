@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -57,11 +58,7 @@ public class RdbAsyncSideInfo extends SideInfo {
         SqlNode conditionNode = joinInfo.getCondition();
 
         List<SqlNode> sqlNodeList = Lists.newArrayList();
-        if (conditionNode.getKind() == SqlKind.AND) {
-            sqlNodeList.addAll(Lists.newArrayList(((SqlBasicCall) conditionNode).getOperands()));
-        } else {
-            sqlNodeList.add(conditionNode);
-        }
+        ParseUtils.parseAnd(conditionNode, sqlNodeList);
 
         for (SqlNode sqlNode : sqlNodeList) {
             dealOneEqualCon(sqlNode, sideTableName);
@@ -69,7 +66,7 @@ public class RdbAsyncSideInfo extends SideInfo {
 
         sqlCondition = "select ${selectField} from ${tableName} where ";
         for (int i = 0; i < equalFieldList.size(); i++) {
-            String equalField = equalFieldList.get(i);
+            String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
 
             sqlCondition += equalField + "=? ";
             if (i != equalFieldList.size() - 1) {

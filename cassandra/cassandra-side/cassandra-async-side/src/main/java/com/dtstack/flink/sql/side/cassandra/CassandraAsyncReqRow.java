@@ -256,7 +256,7 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
                         t.getMessage());
                 System.out.println("Failed to retrieve the data: " + t.getMessage());
                 cluster.closeAsync();
-                resultFuture.complete(null);
+                resultFuture.completeExceptionally(t);
             }
         });
     }

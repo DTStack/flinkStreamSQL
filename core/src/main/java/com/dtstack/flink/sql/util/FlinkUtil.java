@@ -101,16 +101,14 @@ public class FlinkUtil {
         }
 
         String cleanupModeStr = properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_CLEANUPMODE_KEY);
-        if(cleanupModeStr != null){//设置在cancel job情况下checkpoint是否被保存
-            if("true".equalsIgnoreCase(cleanupModeStr)){
-                env.getCheckpointConfig().enableExternalizedCheckpoints(
-                        CheckpointConfig.ExternalizedCheckpointCleanup.DELETE_ON_CANCELLATION);
-            }else if("false".equalsIgnoreCase(cleanupModeStr)){
-                env.getCheckpointConfig().enableExternalizedCheckpoints(
-                        CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
-            }else{
-                throw new RuntimeException("not support value of cleanup mode :" + cleanupModeStr);
-            }
+        if ("true".equalsIgnoreCase(cleanupModeStr)){
+            env.getCheckpointConfig().enableExternalizedCheckpoints(
+                    CheckpointConfig.ExternalizedCheckpointCleanup.DELETE_ON_CANCELLATION);
+        } else if("false".equalsIgnoreCase(cleanupModeStr) || cleanupModeStr == null){
+            env.getCheckpointConfig().enableExternalizedCheckpoints(
+                    CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
+        } else{
+            throw new RuntimeException("not support value of cleanup mode :" + cleanupModeStr);
         }
 
         String backendPath = properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_DATAURI_KEY);
@@ -180,7 +178,7 @@ public class FlinkUtil {
             logger.info("register scala function:{} success.", funcName);
         }catch (Exception e){
             logger.error("", e);
-            throw new RuntimeException("register UDF exception:" + e.getMessage());
+            throw new RuntimeException("register UDF exception:", e);
         }
     }
 
@@ -208,7 +206,7 @@ public class FlinkUtil {
             logger.info("register table function:{} success.", funcName);
         }catch (Exception e){
             logger.error("", e);
-            throw new RuntimeException("register Table UDF exception:" + e.getMessage());
+            throw new RuntimeException("register Table UDF exception:", e);
         }
     }
 

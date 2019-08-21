@@ -48,8 +48,9 @@ public class MathUtil {
             return Long.valueOf(obj.toString());
         } else if (obj instanceof BigDecimal) {
             return ((BigDecimal) obj).longValue();
+        } else if (obj instanceof BigInteger) {
+            return ((BigInteger) obj).longValue();
         }
-
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Long.");
     }
 

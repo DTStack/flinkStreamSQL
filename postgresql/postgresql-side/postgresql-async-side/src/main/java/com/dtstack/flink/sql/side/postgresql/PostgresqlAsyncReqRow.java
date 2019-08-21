@@ -50,7 +50,7 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
     private final static String postgresql_DRIVER = "org.postgresql.Driver";
 
     public PostgresqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
-        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+        super(new PostgresqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
 

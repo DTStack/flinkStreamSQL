@@ -10,20 +10,26 @@
  
 ## BUG修复：
 
- 1. oracle维表获取索引问题。
- 2. Perjob模式下UDF类加载异常问题。
- 3. queue 参数设置无效的问题。
+ 1. 维表异步加载数据异常，打印真实错误日志，而不是Async function call has timed out。
+ 2. JOIN条件超过两个，解析异常。
+ 3. JOIN没有AS表名时，解析异常。
+ 4. JOIN子查询中包含GROUP语句Flink执行报错。
+ 5. 不支持对LESS_THAN，LESS_THAN_OR_EQUAL等关键字进行属性名称替换。
+ 6. rdb维表主键包含别名时，未映射到物理字段，解析异常。
+ 7. oracle字段未做转义处理，导致sql执行异常。
+ 8. 解析remoteSqlPluginPath插件路径异常，导致本地idea提交到yarn上的任务找不到插件类。
 
 ## 新特性：
- 1. 支持从kafka读取嵌套JSON格式数据,暂不支持数组类型字段。例如：  info.name varchar as info_name。
- 2. 支持kafka结果表数据写入。
- 3. 支持为ROWTIME绑定时区，默认为本地时区。例如：timezone="America/New_York"
- 4. 支持从kafka自定义偏移量中消费数据。
+ 1. 支持flink按名称插入结果表，而不是按顺序插入。
+ 2. 支持postgresql,kudu维表和结果表。
+ 3. 支持从kafka读取嵌套JSON格式数据,同时支持数组类型字段。例如：info.name[1] varchar as info_name。
+ 4. 支持rdb unsigned类型转换。
+ 5. 支持rdb 批量、定时插入。
  
 # 已支持
-  * 源表：kafka 0.9，1.x版本，serverSocket
-  * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra
-  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra，console
+  * 源表：kafka 0.9，1.x版本
+  * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra，kudu，postgresql
+  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra，kafka，kudu，postgresql
 
 # 后续开发计划
   * 维表快照
@@ -258,8 +264,9 @@ insert
 into
     MyResult
     select
-        d.channel,
-        d.info
+        d.info as pv,
+        d.channel
+
     from
         (      select
             a.*,b.info

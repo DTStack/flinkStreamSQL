@@ -138,12 +138,15 @@ public class SqlParser {
                 if (!sqlTree.getTableInfoMap().keySet().contains(tableName)){
                     CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
                     if(createTableResult == null){
-                        throw new RuntimeException("can't find table " + tableName);
+                        CreateTmpTableParser.SqlParserResult tmpTableResult = sqlTree.getTmpTableMap().get(tableName);
+                        if (tmpTableResult == null){
+                            throw new RuntimeException("can't find table " + tableName);
+                        }
+                    } else {
+                        TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
+                                createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                        sqlTree.addTableInfo(tableName, tableInfo);
                     }
-
-                    TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
-                            createTableResult, LOCAL_SQL_PLUGIN_ROOT);
-                    sqlTree.addTableInfo(tableName, tableInfo);
                 }
             }
         }
