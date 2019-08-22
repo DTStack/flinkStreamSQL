@@ -17,23 +17,21 @@
  */
 
 
-package com.dtstack.flink.sql.side.postgresql.table;
+package com.dtstack.flink.sql.sink.postgresql.table;
 
-import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
+import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.TableInfo;
 
 import java.util.Map;
 
 /**
- * Reason:
- * Date: 2019-08-11
+ * Date: 2019-08-22
  * Company: mmg
  *
  * @author tcm
  */
 
-public class PostgresqlSideParser extends RdbSideParser {
-
+public class PostgresqlSinkParser extends RdbSinkParser {
     private static final String CURR_TYPE = "postgresql";
 
     @Override
