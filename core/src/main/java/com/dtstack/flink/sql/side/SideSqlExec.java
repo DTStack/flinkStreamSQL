@@ -376,6 +376,7 @@ public class SideSqlExec {
                 || selectNode.getKind() == TIMES
                 || selectNode.getKind() == PLUS
                 || selectNode.getKind() == IN
+                || selectNode.getKind() == NOT_IN
                 || selectNode.getKind() == OR
                 || selectNode.getKind() == AND
                 || selectNode.getKind() == COUNT
