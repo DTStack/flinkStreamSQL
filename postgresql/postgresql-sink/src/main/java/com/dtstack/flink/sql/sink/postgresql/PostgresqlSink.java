@@ -21,10 +21,14 @@ package com.dtstack.flink.sql.sink.postgresql;
 
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
+import com.dtstack.flink.sql.sink.postgresql.table.PgTableInfo;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
+import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
+import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -37,9 +41,66 @@ import java.util.Map;
 
 public class PostgresqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
+    //支持Cockroach数据库
+    protected boolean isCockroach;
+    protected String keyField;
+    boolean isHasKey;
+
     private static final String POSTGRESQL_DRIVER = "org.postgresql.Driver";
 
     public PostgresqlSink() {
+    }
+
+    @Override
+    public PostgresqlSink genStreamSink(TargetTableInfo targetTableInfo) {
+        //super.genStreamSink(targetTableInfo);
+
+        PgTableInfo rdbTableInfo = (PgTableInfo) targetTableInfo;
+
+        //PgTableInfo pgTableInfo = (PgTableInfo) targetTableInfo;
+        this.isCockroach = rdbTableInfo.isCockroach();
+        this.keyField = rdbTableInfo.getKeyField();
+        if (StringUtils.isEmpty(this.keyField)) {
+            isHasKey = false;
+        } else {
+            isHasKey = true;
+        }
+
+        String tmpDbURL = rdbTableInfo.getUrl();
+        String tmpUserName = rdbTableInfo.getUserName();
+        String tmpPassword = rdbTableInfo.getPassword();
+        String tmpTableName = rdbTableInfo.getTableName();
+
+        Integer tmpSqlBatchSize = rdbTableInfo.getBatchSize();
+        if (tmpSqlBatchSize != null) {
+            setBatchNum(tmpSqlBatchSize);
+        }
+
+        Long batchWaitInterval = rdbTableInfo.getBatchWaitInterval();
+        if (batchWaitInterval != null) {
+            setBatchWaitInterval(batchWaitInterval);
+        }
+
+        Integer tmpSinkParallelism = rdbTableInfo.getParallelism();
+        if (tmpSinkParallelism != null) {
+            setParallelism(tmpSinkParallelism);
+        }
+
+        List<String> fields = Arrays.asList(rdbTableInfo.getFields());
+        List<Class> fieldTypeArray = Arrays.asList(rdbTableInfo.getFieldClasses());
+
+        this.driverName = getDriverName();
+        this.dbURL = tmpDbURL;
+        this.userName = tmpUserName;
+        this.password = tmpPassword;
+        this.tableName = tmpTableName;
+        this.primaryKeys = rdbTableInfo.getPrimaryKeys();
+        this.dbType = rdbTableInfo.getType();
+
+        buildSql(tableName, fields);
+        buildSqlTypes(fieldTypeArray);
+
+        return this;
     }
 
     @Override
@@ -59,16 +120,47 @@ public class PostgresqlSink extends RdbSink implements IStreamSinkGener<RdbSink>
 
     private void buildInsertSql(String tableName, List<String> fields) {
         StringBuffer sqlBuffer = new StringBuffer();
-        //upsert into tableName(col1,col2,...) values (?,?,...)
-        sqlBuffer.append("upsert into ".concat(tableName)
-                .concat(" (").concat(StringUtils.join(fields, ",")).concat(") ")
-        );
-        sqlBuffer.append("values (");
-        for (String fieldName : fields) {
-            sqlBuffer.append("?,");
+        //支持Cockroach数据库
+        if (isCockroach) {
+            //upsert into tableName(col1,col2,...) values (?,?,...)
+            sqlBuffer.append("upsert into ".concat(tableName)
+                    .concat(" (").concat(StringUtils.join(fields, ",")).concat(") ")
+            );
+            sqlBuffer.append("values (");
+            for (String fieldName : fields) {
+                sqlBuffer.append("?,");
+            }
+            sqlBuffer.deleteCharAt(sqlBuffer.length() - 1);
+            sqlBuffer.append(")");
+
+        } else {
+            //postgresql
+            //insert into test(id_, name_,date_) VALUES(1, 'zs',now()) ON conflict(id_) DO UPDATE SET date_ = excluded.date_,name_=excluded.name_
+            sqlBuffer.append("insert into ".concat(tableName)
+                    .concat(" (").concat(StringUtils.join(fields, ",")).concat(") ")
+            );
+            sqlBuffer.append("values (");
+            StringBuffer upsertFields = new StringBuffer();
+            for (String fieldName : fields) {
+                sqlBuffer.append("?,");
+
+                if (isHasKey) {
+                    if (fieldName.equals(keyField)) {
+                        continue;
+                    }
+                    upsertFields.append(String.format("%s=excluded.%s,", fieldName, fieldName));
+                }
+            }
+            sqlBuffer.deleteCharAt(sqlBuffer.length() - 1);
+            sqlBuffer.append(")");
+
+            if (isHasKey) {
+                upsertFields.deleteCharAt(upsertFields.length() - 1);
+                sqlBuffer.append(" ON conflict(".concat(keyField).concat(")"));
+                sqlBuffer.append(" DO UPDATE SET ");
+                sqlBuffer.append(upsertFields);
+            }
         }
-        sqlBuffer.deleteCharAt(sqlBuffer.length() - 1);
-        sqlBuffer.append(")");
         this.sql = sqlBuffer.toString();
     }
 
