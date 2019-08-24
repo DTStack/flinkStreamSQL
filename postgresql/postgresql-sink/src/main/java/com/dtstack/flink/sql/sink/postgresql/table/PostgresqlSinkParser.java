@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 
@@ -46,7 +47,7 @@ public class PostgresqlSinkParser extends RdbSinkParser {
         PgTableInfo pgTableInfo = new PgTableInfo();
         pgTableInfo.setType(CURR_TYPE);
         String isCC = (String) props.get(IS_COCKROACH.toLowerCase());
-        pgTableInfo.setCockroach(isCC.equals("true") ? true : false);
+        pgTableInfo.setCockroach(StringUtils.isEmpty(isCC) || isCC.equals("false") ? false : true);
         pgTableInfo.setKeyField((String) props.get(KEY_FIELD.toLowerCase()));
 
         pgTableInfo.setName(tableName);
