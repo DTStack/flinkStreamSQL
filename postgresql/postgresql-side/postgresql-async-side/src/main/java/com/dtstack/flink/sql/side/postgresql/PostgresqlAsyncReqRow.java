@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * Mysql dim table
  * Date: 2019-08-11
  * Company: mmg
  *
@@ -47,7 +46,7 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(PostgresqlAsyncReqRow.class);
 
-    private final static String postgresql_DRIVER = "org.postgresql.Driver";
+    private final static String POSTGRESQL_DRIVER = "org.postgresql.Driver";
 
     public PostgresqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new PostgresqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -57,10 +56,10 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        JsonObject mysqlClientConfig = new JsonObject();
+        JsonObject pgClientConfig = new JsonObject();
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
-        mysqlClientConfig.put("url", rdbSideTableInfo.getUrl())
-                .put("driver_class", postgresql_DRIVER)
+        pgClientConfig.put("url", rdbSideTableInfo.getUrl())
+                .put("driver_class", POSTGRESQL_DRIVER)
                 .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
                 .put("user", rdbSideTableInfo.getUserName())
                 .put("password", rdbSideTableInfo.getPassword());
@@ -69,7 +68,7 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, mysqlClientConfig));
+        setRdbSQLClient(JDBCClient.createNonShared(vertx, pgClientConfig));
     }
 
 }

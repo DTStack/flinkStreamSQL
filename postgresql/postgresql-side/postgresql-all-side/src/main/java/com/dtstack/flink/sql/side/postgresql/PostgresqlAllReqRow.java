@@ -47,7 +47,7 @@ public class PostgresqlAllReqRow extends RdbAllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(PostgresqlAllReqRow.class);
 
-    private static final String postgresql_DRIVER = "org.postgresql.Driver";
+    private static final String POSTGRESQL_DRIVER = "org.postgresql.Driver";
 
     public PostgresqlAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new PostgresqlAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -56,7 +56,7 @@ public class PostgresqlAllReqRow extends RdbAllReqRow {
     @Override
     public Connection getConn(String dbURL, String userName, String password) {
         try {
-            Class.forName(postgresql_DRIVER);
+            Class.forName(POSTGRESQL_DRIVER);
             //add param useCursorFetch=true
             Map<String, String> addParams = Maps.newHashMap();
             addParams.put("useCursorFetch", "true");

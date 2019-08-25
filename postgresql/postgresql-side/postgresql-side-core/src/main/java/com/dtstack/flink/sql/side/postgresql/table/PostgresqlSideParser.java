@@ -38,8 +38,8 @@ public class PostgresqlSideParser extends RdbSideParser {
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo mysqlTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-        mysqlTableInfo.setType(CURR_TYPE);
-        return mysqlTableInfo;
+        TableInfo pgTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+        pgTableInfo.setType(CURR_TYPE);
+        return pgTableInfo;
     }
 }
