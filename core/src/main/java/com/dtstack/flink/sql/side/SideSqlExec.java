@@ -372,25 +372,18 @@ public class SideSqlExec {
             return sqlIdentifier;
         }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
             return selectNode;
-        }else if(selectNode.getKind() == OTHER_FUNCTION
+        }else if(  AGGREGATE.contains(selectNode.getKind())
+                || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
+                || COMPARISON.contains(selectNode.getKind())
+                || selectNode.getKind() == OTHER_FUNCTION
                 || selectNode.getKind() == DIVIDE
                 || selectNode.getKind() == CAST
-                || selectNode.getKind() == SUM
-                || selectNode.getKind() == AVG
-                || selectNode.getKind() == MAX
-                || selectNode.getKind() == MIN
                 || selectNode.getKind() == TRIM
                 || selectNode.getKind() == TIMES
                 || selectNode.getKind() == PLUS
-                || selectNode.getKind() == IN
+                || selectNode.getKind() == NOT_IN
                 || selectNode.getKind() == OR
                 || selectNode.getKind() == AND
-                || selectNode.getKind() == COUNT
-                || selectNode.getKind() == SUM0
-                || selectNode.getKind() == LEAD
-                || selectNode.getKind() == LAG
-                || selectNode.getKind() == EQUALS
-                || selectNode.getKind() == NOT_EQUALS
                 || selectNode.getKind() == MINUS
                 || selectNode.getKind() == TUMBLE
                 || selectNode.getKind() == TUMBLE_START
@@ -398,13 +391,14 @@ public class SideSqlExec {
                 || selectNode.getKind() == SESSION
                 || selectNode.getKind() == SESSION_START
                 || selectNode.getKind() == SESSION_END
+                || selectNode.getKind() == HOP
+                || selectNode.getKind() == HOP_START
+                || selectNode.getKind() == HOP_END
                 || selectNode.getKind() == BETWEEN
                 || selectNode.getKind() == IS_NULL
                 || selectNode.getKind() == IS_NOT_NULL
-                || selectNode.getKind() == LESS_THAN
-                || selectNode.getKind() == GREATER_THAN
-                || selectNode.getKind() == LESS_THAN_OR_EQUAL
-                || selectNode.getKind() == GREATER_THAN_OR_EQUAL
+                || selectNode.getKind() == CONTAINS
+
                 ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
