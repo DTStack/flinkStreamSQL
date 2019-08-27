@@ -32,6 +32,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -66,9 +67,11 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private String insertQuery;
     public int[] typesArray;
 
+    /** 存储用于批量写入的数据 */
+    protected List<Row> rows = new ArrayList();
+
     private Connection dbConn;
     private PreparedStatement upload;
-    private AtomicInteger batchCount = new AtomicInteger(0);
     private transient ScheduledThreadPoolExecutor timerService;
 
 
@@ -107,7 +110,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 throw new SQLException("Table " + tableName + " doesn't exist");
             }
 
-            if (batchWaitInterval > 0) {
+            if (batchWaitInterval > 0 && batchNum > 1) {
                 LOG.info("open batch wait interval scheduled, interval is {} ms", batchWaitInterval);
 
                 timerService = new ScheduledThreadPoolExecutor(1);
@@ -134,6 +137,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         } else {
             dbConn = DriverManager.getConnection(dbURL, username, password);
         }
+        dbConn.setAutoCommit(false);
     }
 
     /**
@@ -150,35 +154,53 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
      * @see PreparedStatement
      */
     @Override
-    public void writeRecord(Tuple2 tuple2) throws IOException {
+    public void writeRecord(Tuple2 tuple2)  {
 
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
         Row row = tupleTrans.getField(1);
 
-
         if (typesArray != null && typesArray.length > 0 && typesArray.length != row.getArity()) {
             LOG.warn("Column SQL types array doesn't match arity of passed Row! Check the passed array...");
         }
-        try {
-            if (retract) {
-                insertWrite(row);
-                outRecords.inc();
-            } else {
-                //do nothing
-            }
-        } catch (SQLException | IllegalArgumentException e) {
-            throw new IllegalArgumentException("writeRecord() failed", e);
+
+        if (retract) {
+            insertWrite(row);
+            outRecords.inc();
+        } else {
+            //do nothing
         }
     }
 
 
-    private void insertWrite(Row row) throws SQLException {
-        updatePreparedStmt(row, upload);
-        upload.addBatch();
-        batchCount.incrementAndGet();
-        if (batchCount.get() >= batchNum) {
-            submitExecuteBatch();
+    private void insertWrite(Row row) {
+        checkConnectionOpen(dbConn);
+
+        if (batchNum == 1) {
+            writeSingleRecord(row);
+        } else {
+            try {
+                rows.add(row);
+                updatePreparedStmt(row, upload);
+                upload.addBatch();
+            } catch (SQLException e) {
+                LOG.error("", e);
+            }
+
+            if (rows.size() >= batchNum) {
+                submitExecuteBatch();
+            }
+        }
+    }
+
+    private void writeSingleRecord(Row row) {
+        try {
+            updatePreparedStmt(row, upload);
+            upload.execute();
+        } catch (SQLException e) {
+            outDirtyRecords.inc();
+            LOG.error("record insert failed ..", row.toString());
+            LOG.error("", e);
         }
     }
 
@@ -276,9 +298,30 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         try {
             LOG.info("submitExecuteBatch start......");
             this.upload.executeBatch();
-            this.batchCount.set(0);
+            dbConn.commit();
         } catch (SQLException e) {
-            LOG.error("", e);
+            try {
+                dbConn.rollback();
+            } catch (SQLException e1) {
+                LOG.error("rollback  data error !", e);
+            }
+            rows.forEach(this::writeSingleRecord);
+        } finally {
+            rows.clear();
+        }
+    }
+
+    private void checkConnectionOpen(Connection dbConn) {
+        try {
+            if (dbConn.isClosed()) {
+                LOG.info("db connection reconnect..");
+                establishConnection();
+                upload = dbConn.prepareStatement(insertQuery);
+            }
+        } catch (SQLException e) {
+            LOG.error("check connection open failed..", e);
+        } catch (ClassNotFoundException e) {
+            LOG.error("load jdbc class error when reconnect db..", e);
         }
     }
 
@@ -302,7 +345,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             LOG.info("Inputformat couldn't be closed - ", se);
         } finally {
             upload = null;
-            batchCount.set(0);
+            rows.clear();
         }
 
         try {
