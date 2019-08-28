@@ -98,7 +98,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
             LOG.info("PreparedStatement execute batch num is {}", batchNum);
-            establishConnection();
+            dbConn = establishConnection();
             initMetric();
 
             if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
@@ -130,14 +130,16 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     }
 
 
-    private void establishConnection() throws SQLException, ClassNotFoundException {
+    private Connection establishConnection() throws SQLException, ClassNotFoundException {
+        Connection connection ;
         Class.forName(drivername);
         if (username == null) {
-            dbConn = DriverManager.getConnection(dbURL);
+            connection = DriverManager.getConnection(dbURL);
         } else {
-            dbConn = DriverManager.getConnection(dbURL, username, password);
+            connection = DriverManager.getConnection(dbURL, username, password);
         }
-        dbConn.setAutoCommit(false);
+        connection.setAutoCommit(false);
+        return connection;
     }
 
     /**
@@ -175,22 +177,21 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private void insertWrite(Row row) {
         checkConnectionOpen(dbConn);
-
-        if (batchNum == 1) {
-            writeSingleRecord(row);
-        } else {
-            try {
-                rows.add(row);
+        try {
+            if (batchNum == 1) {
+                writeSingleRecord(row);
+            } else {
                 updatePreparedStmt(row, upload);
+                rows.add(row);
                 upload.addBatch();
-            } catch (SQLException e) {
-                LOG.error("", e);
+                if (rows.size() >= batchNum) {
+                    submitExecuteBatch();
+                }
             }
-
-            if (rows.size() >= batchNum) {
-                submitExecuteBatch();
-            }
+        } catch (SQLException e) {
+            LOG.error("", e);
         }
+
     }
 
     private void writeSingleRecord(Row row) {
@@ -305,6 +306,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             } catch (SQLException e1) {
                 LOG.error("rollback  data error !", e);
             }
+
             rows.forEach(this::writeSingleRecord);
         } finally {
             rows.clear();
@@ -315,7 +317,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         try {
             if (dbConn.isClosed()) {
                 LOG.info("db connection reconnect..");
-                establishConnection();
+                dbConn= establishConnection();
                 upload = dbConn.prepareStatement(insertQuery);
             }
         } catch (SQLException e) {
