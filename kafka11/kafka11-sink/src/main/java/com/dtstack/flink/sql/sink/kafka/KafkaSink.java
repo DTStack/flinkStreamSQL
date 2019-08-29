@@ -22,18 +22,16 @@ import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.api.common.serialization.TypeInformationSerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.formats.json.JsonRowSerializationSchema;
+import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
-
-import org.apache.flink.streaming.connectors.kafka.Kafka011TableSink;
 import org.apache.flink.streaming.connectors.kafka.KafkaTableSinkBase;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.table.api.TableSchema;
-import org.apache.flink.table.sinks.AppendStreamTableSink;
+import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
@@ -50,44 +48,42 @@ import java.util.Properties;
  * @modifyer maqi
  *
  */
-public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<KafkaSink> {
+public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener<KafkaSink> {
 
     protected String[] fieldNames;
 
     protected TypeInformation<?>[] fieldTypes;
 
-    /** The schema of the table. */
-    private TableSchema schema;
-
-    /** The Kafka topic to write to. */
     protected String topic;
 
-    /** Properties for the Kafka producer. */
     protected Properties properties;
 
     /** Serialization schema for encoding records to Kafka. */
     protected SerializationSchema serializationSchema;
 
+    /** The schema of the table. */
+    private TableSchema schema;
+
     /** Partitioner to select Kafka partition for each item. */
     protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
 
+
     @Override
     public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
-        KafkaSinkTableInfo kafka011SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
-        this.topic = kafka011SinkTableInfo.getTopic();
+        KafkaSinkTableInfo kafka11SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
+        this.topic = kafka11SinkTableInfo.getTopic();
 
-        Properties props = new Properties();
-        props.setProperty("bootstrap.servers", kafka011SinkTableInfo.getBootstrapServers());
+        properties = new Properties();
+        properties.setProperty("bootstrap.servers", kafka11SinkTableInfo.getBootstrapServers());
 
-        for (String key:kafka011SinkTableInfo.getKafkaParamKeys()) {
-            props.setProperty(key, kafka011SinkTableInfo.getKafkaParam(key));
+        for (String key : kafka11SinkTableInfo.getKafkaParamKeys()) {
+            properties.setProperty(key, kafka11SinkTableInfo.getKafkaParam(key));
         }
-        this.properties = props;
         this.partitioner = Optional.of(new FlinkFixedPartitioner<>());
-        this.fieldNames = kafka011SinkTableInfo.getFields();
-        TypeInformation[] types = new TypeInformation[kafka011SinkTableInfo.getFields().length];
-        for(int i = 0; i< kafka011SinkTableInfo.getFieldClasses().length; i++){
-            types[i] = TypeInformation.of(kafka011SinkTableInfo.getFieldClasses()[i]);
+        this.fieldNames = kafka11SinkTableInfo.getFields();
+        TypeInformation[] types = new TypeInformation[kafka11SinkTableInfo.getFields().length];
+        for (int i = 0; i < kafka11SinkTableInfo.getFieldClasses().length; i++) {
+            types[i] = TypeInformation.of(kafka11SinkTableInfo.getFieldClasses()[i]);
         }
         this.fieldTypes = types;
 
@@ -97,15 +93,17 @@ public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<
         }
         this.schema = schemaBuilder.build();
 
-        //this.serializationSchema = Optional.of(JsonRowSerializationSchema.class);
-        if ("json".equalsIgnoreCase(kafka011SinkTableInfo.getSinkDataType())) {
-            this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType());
-        }
+        this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType().getTypeAt(1));
         return this;
     }
 
     @Override
-    public void emitDataStream(DataStream<Row> dataStream) {
+    public TypeInformation<Row> getRecordType() {
+        return new RowTypeInfo(fieldTypes, fieldNames);
+    }
+
+    @Override
+    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         KafkaTableSinkBase kafkaTableSink = new CustomerKafka11JsonTableSink(
                 schema,
                 topic,
@@ -114,12 +112,17 @@ public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<
                 serializationSchema
         );
 
-        kafkaTableSink.emitDataStream(dataStream);
+
+        DataStream<Row> ds = dataStream.map((Tuple2<Boolean, Row> record) -> {
+            return record.f1;
+        }).returns(getOutputType().getTypeAt(1));
+
+        kafkaTableSink.emitDataStream(ds);
     }
 
     @Override
-    public TypeInformation<Row> getOutputType() {
-        return new RowTypeInfo(fieldTypes, fieldNames);
+    public TupleTypeInfo<Tuple2<Boolean, Row>> getOutputType() {
+       return new TupleTypeInfo(org.apache.flink.table.api.Types.BOOLEAN(), new RowTypeInfo(fieldTypes, fieldNames));
     }
 
     @Override
@@ -133,10 +136,9 @@ public class KafkaSink  implements AppendStreamTableSink<Row>, IStreamSinkGener<
     }
 
     @Override
-    public TableSink<Row> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
+    public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;
         return this;
     }
-
 }
