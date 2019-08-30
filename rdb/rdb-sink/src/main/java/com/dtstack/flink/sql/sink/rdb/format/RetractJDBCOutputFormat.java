@@ -85,7 +85,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
-            establishConnection();
+            dbConn = establishConnection();
             initMetric();
             if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
                 if (isReplaceInsertQuery()) {
@@ -104,13 +104,15 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     }
 
 
-    private void establishConnection() throws SQLException, ClassNotFoundException {
+    private Connection establishConnection() throws SQLException, ClassNotFoundException {
+        Connection connection ;
         Class.forName(drivername);
         if (username == null) {
-            dbConn = DriverManager.getConnection(dbURL);
+            connection = DriverManager.getConnection(dbURL);
         } else {
-            dbConn = DriverManager.getConnection(dbURL, username, password);
+            connection = DriverManager.getConnection(dbURL, username, password);
         }
+        return connection;
     }
 
     /**
@@ -151,13 +153,27 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
 
     private void insertWrite(Row row) throws SQLException {
-
+        checkConnectionOpen(dbConn);
         updatePreparedStmt(row, upload);
         upload.addBatch();
         batchCount++;
         if (batchCount >= batchInterval) {
             upload.executeBatch();
             batchCount = 0;
+        }
+    }
+
+    private void checkConnectionOpen(Connection dbConn) {
+        try {
+            if (dbConn.isClosed()) {
+                LOG.info("db connection reconnect..");
+                dbConn= establishConnection();
+                upload = dbConn.prepareStatement(insertQuery);
+            }
+        } catch (SQLException e) {
+            LOG.error("check connection open failed..", e);
+        } catch (ClassNotFoundException e) {
+            LOG.error("load jdbc class error when reconnect db..", e);
         }
     }
 
