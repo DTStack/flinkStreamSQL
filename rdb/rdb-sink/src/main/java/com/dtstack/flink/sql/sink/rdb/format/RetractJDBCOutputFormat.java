@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.sink.rdb.format;
 
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
+import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -31,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import java.sql.*;
 import java.util.*;
 import java.io.IOException;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.dtstack.flink.sql.sink.MetricOutputFormat;
 
@@ -53,6 +56,10 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private String tableName;
     private String dbType;
     private RdbSink dbSink;
+    // trigger preparedStatement execute batch interval
+    private long batchWaitInterval = 10000l;
+
+    // batchNum
     private int batchInterval = 5000;
     private String insertQuery;
     public int[] typesArray;
@@ -60,12 +67,15 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private Connection dbConn;
     private PreparedStatement upload;
 
-    private int batchCount = 0;
+    /** 存储用于批量写入的数据 */
+    protected List<Row> rows = new ArrayList();
 
     //index field
     private Map<String, List<String>> realIndexes = Maps.newHashMap();
     //full field
     private List<String> fullField = Lists.newArrayList();
+
+    private transient ScheduledThreadPoolExecutor timerService;
 
     public RetractJDBCOutputFormat() {
 
@@ -85,7 +95,8 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
-            establishConnection();
+            LOG.info("PreparedStatement execute batch num is {}", batchInterval);
+            dbConn = establishConnection();
             initMetric();
             if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
                 if (isReplaceInsertQuery()) {
@@ -96,6 +107,17 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 throw new SQLException("Table " + tableName + " doesn't exist");
             }
 
+            if (batchWaitInterval > 0 && batchInterval > 1) {
+                LOG.info("open batch wait interval scheduled, interval is {} ms", batchWaitInterval);
+
+                timerService = new ScheduledThreadPoolExecutor(1);
+                timerService.scheduleAtFixedRate(() -> {
+                    submitExecuteBatch();
+                }, 0, batchWaitInterval, TimeUnit.MILLISECONDS);
+
+            }
+
+
         } catch (SQLException sqe) {
             throw new IllegalArgumentException("open() failed.", sqe);
         } catch (ClassNotFoundException cnfe) {
@@ -104,13 +126,16 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     }
 
 
-    private void establishConnection() throws SQLException, ClassNotFoundException {
-        Class.forName(drivername);
+    private Connection establishConnection() throws SQLException, ClassNotFoundException {
+        Connection connection ;
+        JDBCUtils.forName(drivername, getClass().getClassLoader());
         if (username == null) {
-            dbConn = DriverManager.getConnection(dbURL);
+            connection = DriverManager.getConnection(dbURL);
         } else {
-            dbConn = DriverManager.getConnection(dbURL, username, password);
+            connection = DriverManager.getConnection(dbURL, username, password);
         }
+        connection.setAutoCommit(false);
+        return connection;
     }
 
     /**
@@ -127,7 +152,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
      * @see PreparedStatement
      */
     @Override
-    public void writeRecord(Tuple2 tuple2) throws IOException {
+    public void writeRecord(Tuple2 tuple2) {
 
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
@@ -137,27 +162,78 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         if (typesArray != null && typesArray.length > 0 && typesArray.length != row.getArity()) {
             LOG.warn("Column SQL types array doesn't match arity of passed Row! Check the passed array...");
         }
-        try {
-            if (retract) {
-                insertWrite(row);
-                outRecords.inc();
-            } else {
-                //do nothing
-            }
-        } catch (SQLException | IllegalArgumentException e) {
-            throw new IllegalArgumentException("writeRecord() failed", e);
+
+        if (retract) {
+            insertWrite(row);
+            outRecords.inc();
+        } else {
+            //do nothing
         }
+
     }
 
 
-    private void insertWrite(Row row) throws SQLException {
+    private void insertWrite(Row row) {
+        System.out.println("接受到数据row:" +row );
+        checkConnectionOpen(dbConn);
+        try {
+            if (batchInterval == 1) {
+                writeSingleRecord(row);
+            } else {
+                updatePreparedStmt(row, upload);
+                rows.add(row);
+                upload.addBatch();
+                if (rows.size() >= batchInterval) {
+                    submitExecuteBatch();
+                }
+            }
+        } catch (SQLException e) {
+            LOG.error("", e);
+        }
+    }
 
-        updatePreparedStmt(row, upload);
-        upload.addBatch();
-        batchCount++;
-        if (batchCount >= batchInterval) {
-            upload.executeBatch();
-            batchCount = 0;
+    private void writeSingleRecord(Row row) {
+        try {
+            updatePreparedStmt(row, upload);
+            upload.execute();
+            System.out.println("单条插入成功：" + row);
+        } catch (SQLException e) {
+            System.out.println("单条插入失败：" + row);
+            LOG.error("record insert failed ..", row.toString());
+            LOG.error("", e);
+        }
+    }
+
+    private synchronized void submitExecuteBatch() {
+        try {
+            LOG.info("submitExecuteBatch start......");
+            this.upload.executeBatch();
+            dbConn.commit();
+            rows.forEach(row -> System.out.println("批量插入成功："+ row));
+        } catch (SQLException e) {
+            try {
+                dbConn.rollback();
+            } catch (SQLException e1) {
+                LOG.error("rollback  data error !", e);
+            }
+
+            rows.forEach(this::writeSingleRecord);
+        } finally {
+            rows.clear();
+        }
+    }
+
+    private void checkConnectionOpen(Connection dbConn) {
+        try {
+            if (dbConn.isClosed()) {
+                LOG.info("db connection reconnect..");
+                dbConn= establishConnection();
+                upload = dbConn.prepareStatement(insertQuery);
+            }
+        } catch (SQLException e) {
+            LOG.error("check connection open failed..", e);
+        } catch (ClassNotFoundException e) {
+            LOG.error("load jdbc class error when reconnect db..", e);
         }
     }
 
@@ -266,7 +342,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             LOG.info("Inputformat couldn't be closed - " + se.getMessage());
         } finally {
             upload = null;
-            batchCount = 0;
+
         }
 
         try {
