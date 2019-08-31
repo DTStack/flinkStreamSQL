@@ -24,10 +24,12 @@ package com.dtstack.flink.sql.source.kafka;
 import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
@@ -43,6 +45,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -134,17 +139,18 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
                     }
                 } else {
                     // Read the value as specified type
-                    Object value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
+                    Object value = convert(node, fieldTypes[i]);
                     row.setField(i, value);
                 }
             }
 
             numInResolveRecord.inc();
             return row;
-        } catch (Throwable t) {
+        } catch (Exception e) {
             //add metric of dirty data
             if (dirtyDataCounter.getCount()%rowLenth == 0){
                 LOG.info("dirtyData: " + new String(message));
+                LOG.info(" " ,e);
             }
             dirtyDataCounter.inc();
             return null;
@@ -243,4 +249,31 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     private static String partitionLagMetricName(TopicPartition tp) {
         return tp + ".records-lag";
     }
+
+    private Object convert(JsonNode node, TypeInformation<?> info) {
+        if (info.getTypeClass().equals(Types.BOOLEAN.getTypeClass())) {
+            return node.asBoolean();
+        } else if (info.getTypeClass().equals(Types.STRING.getTypeClass())) {
+            return node.asText();
+        }  else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
+            return Date.valueOf(node.asText());
+        } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
+            // local zone
+            return Time.valueOf(node.asText());
+        } else if (info.getTypeClass().equals(Types.SQL_TIMESTAMP.getTypeClass())) {
+            // local zone
+            return Timestamp.valueOf(node.asText());
+        }  else {
+            // for types that were specified without JSON schema
+            // e.g. POJOs
+            try {
+                return objectMapper.treeToValue(node, info.getTypeClass());
+            } catch (JsonProcessingException e) {
+                throw new IllegalStateException("Unsupported type information '" + info + "' for node: " + node);
+            }
+        }
+    }
+
+
+
 }
