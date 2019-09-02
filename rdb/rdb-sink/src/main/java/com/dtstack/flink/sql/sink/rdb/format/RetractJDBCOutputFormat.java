@@ -197,7 +197,8 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private void writeSingleRecord(Row row) {
         try {
             updatePreparedStmt(row, upload);
-            upload.execute();
+            upload.executeUpdate();
+            dbConn.commit();
         } catch (SQLException e) {
             outDirtyRecords.inc();
             LOG.error("record insert failed ..", row.toString());
