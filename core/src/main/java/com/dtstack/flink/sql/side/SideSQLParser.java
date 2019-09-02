@@ -110,6 +110,16 @@ public class SideSQLParser {
                 aliasInfo.setAlias(alias.toString());
 
                 return aliasInfo;
+
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall)sqlNode).getOperands()[0];
+                SqlNode unionRight = ((SqlBasicCall)sqlNode).getOperands()[1];
+
+                parseSql(unionLeft, sideTableSet, queueInfo);
+
+                parseSql(unionRight, sideTableSet, queueInfo);
+
+                break;
         }
 
         return "";

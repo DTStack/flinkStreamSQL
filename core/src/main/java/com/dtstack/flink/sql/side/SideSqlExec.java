@@ -307,6 +307,16 @@ public class SideSqlExec {
                 }
 
                 break;
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
+
+                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
+
+                replaceFieldName(unionLeft, mappingTable, targetTableName, tableAlias);
+
+                replaceFieldName(unionRight, mappingTable, targetTableName, tableAlias);
+
+                break;
             default:
                 break;
         }
