@@ -92,7 +92,6 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
             schemaBuilder.field(fieldNames[i], fieldTypes[i]);
         }
         this.schema = schemaBuilder.build();
-
         this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType().getTypeAt(1));
         return this;
     }
@@ -111,8 +110,6 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
                 partitioner,
                 serializationSchema
         );
-
-
         DataStream<Row> ds = dataStream.map((Tuple2<Boolean, Row> record) -> {
             return record.f1;
         }).returns(getOutputType().getTypeAt(1));
@@ -122,7 +119,7 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
 
     @Override
     public TupleTypeInfo<Tuple2<Boolean, Row>> getOutputType() {
-       return new TupleTypeInfo(org.apache.flink.table.api.Types.BOOLEAN(), new RowTypeInfo(fieldTypes, fieldNames));
+        return new TupleTypeInfo(org.apache.flink.table.api.Types.BOOLEAN(), new RowTypeInfo(fieldTypes, fieldNames));
     }
 
     @Override
@@ -136,7 +133,7 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
     }
 
     @Override
-    public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
+    public TableSink<Tuple2<Boolean, Row>>configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;
         return this;
