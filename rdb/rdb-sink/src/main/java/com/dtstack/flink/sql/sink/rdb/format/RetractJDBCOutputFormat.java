@@ -203,6 +203,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             upload.execute();
             dbConn.commit();
         } catch (SQLException e) {
+            outDirtyRecords.inc();
             if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0) {
                 LOG.error("record insert failed ..", row.toString());
                 LOG.error("", e);
