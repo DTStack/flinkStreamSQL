@@ -34,8 +34,11 @@ public abstract  class MetricOutputFormat extends  RichOutputFormat<Tuple2>{
 
      protected transient Meter outRecordsRate;
 
+    protected  transient Counter outDirtyRecords;
+
      public void initMetric() {
         outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
+        outDirtyRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_DIRTY_RECORDS_OUT);
         outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
      }
 
