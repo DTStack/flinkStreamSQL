@@ -49,6 +49,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private static final Logger LOG = LoggerFactory.getLogger(RetractJDBCOutputFormat.class);
 
+    private static int dirtyDataPrintFrequency = 1000;
+    private static int receiveDataPrintFrequency = 1000;
+
     private String username;
     private String password;
     private String drivername;
@@ -164,8 +167,11 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         }
 
         if (retract) {
-            insertWrite(row);
             outRecords.inc();
+            if (outRecords.getCount() % receiveDataPrintFrequency == 0) {
+                LOG.info("Receive data : {}", row);
+            }
+            insertWrite(row);
         } else {
             //do nothing
         }
@@ -174,7 +180,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
 
     private void insertWrite(Row row) {
-        System.out.println("接受到数据row:" +row );
         checkConnectionOpen(dbConn);
         try {
             if (batchInterval == 1) {
@@ -196,20 +201,20 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         try {
             updatePreparedStmt(row, upload);
             upload.execute();
-            System.out.println("单条插入成功：" + row);
+            dbConn.commit();
         } catch (SQLException e) {
-            System.out.println("单条插入失败：" + row);
-            LOG.error("record insert failed ..", row.toString());
-            LOG.error("", e);
+            outDirtyRecords.inc();
+            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0) {
+                LOG.error("record insert failed ..", row.toString());
+                LOG.error("", e);
+            }
         }
     }
 
     private synchronized void submitExecuteBatch() {
         try {
-            LOG.info("submitExecuteBatch start......");
             this.upload.executeBatch();
             dbConn.commit();
-            rows.forEach(row -> System.out.println("批量插入成功："+ row));
         } catch (SQLException e) {
             try {
                 dbConn.rollback();
