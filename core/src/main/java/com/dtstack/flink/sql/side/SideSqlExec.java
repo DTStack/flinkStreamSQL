@@ -363,7 +363,7 @@ public class SideSqlExec {
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
             if(sqlIdentifier.names.size() == 1){
-                return null;
+                return selectNode;
             }
 
             String mappingFieldName = mappingTable.get(sqlIdentifier.getComponent(0).getSimple(), sqlIdentifier.getComponent(1).getSimple());
