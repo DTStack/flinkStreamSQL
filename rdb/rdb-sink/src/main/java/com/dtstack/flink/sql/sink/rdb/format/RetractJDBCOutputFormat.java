@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.sink.rdb.format;
 
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
+import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -136,7 +137,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private Connection establishConnection() throws SQLException, ClassNotFoundException {
         Connection connection ;
-        Class.forName(drivername);
+        JDBCUtils.forName(drivername, getClass().getClassLoader());
         if (username == null) {
             connection = DriverManager.getConnection(dbURL);
         } else {
