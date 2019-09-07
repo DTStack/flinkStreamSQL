@@ -71,8 +71,6 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         placeholder = placeholder.replaceFirst(",", "");
         sqlTmp = sqlTmp.replace("${fields}", fieldsStr).replace("${placeholder}", placeholder);
         this.sql = sqlTmp;
-        System.out.println("--------insert sqlTmp--------");
-        System.out.println(sql);
     }
 
     @Override
