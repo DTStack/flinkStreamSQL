@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -48,7 +49,11 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
         SqlNode conditionNode = joinInfo.getCondition();
 
         List<SqlNode> sqlNodeList = Lists.newArrayList();
+        List<String> sqlJoinCompareOperate= Lists.newArrayList();
+
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
+        ParseUtils.parseJoinCompareOperate(conditionNode, sqlJoinCompareOperate);
+
 
         for (SqlNode sqlNode : sqlNodeList) {
             dealOneEqualCon(sqlNode, sideTableName);
@@ -57,8 +62,7 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
         sqlCondition = "select ${selectField} from ${tableName} where ";
         for (int i = 0; i < equalFieldList.size(); i++) {
             String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
-
-            sqlCondition += dealLowerFiled(equalField) + "=? ";
+            sqlCondition += dealLowerFiled(equalField) + " " + sqlJoinCompareOperate.get(i) + " " + " ?";
             if (i != equalFieldList.size() - 1) {
                 sqlCondition += " and ";
             }

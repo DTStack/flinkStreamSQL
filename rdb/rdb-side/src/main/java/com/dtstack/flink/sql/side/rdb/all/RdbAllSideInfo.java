@@ -56,7 +56,6 @@ public class RdbAllSideInfo extends SideInfo {
 
         sqlCondition = "select ${selectField} from ${tableName} ";
         sqlCondition = sqlCondition.replace("${tableName}", rdbSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
     @Override
