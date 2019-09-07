@@ -79,7 +79,6 @@ public class RdbAsyncSideInfo extends SideInfo {
         }
 
         sqlCondition = sqlCondition.replace("${tableName}", rdbSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
 
