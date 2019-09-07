@@ -585,8 +585,8 @@ public class SideSqlExec {
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
         List<String> conditionFields = Lists.newArrayList();
         for(SqlNode sqlNode : sqlNodeList){
-            if(sqlNode.getKind() != SqlKind.EQUALS){
-                throw new RuntimeException("not equal operator.");
+            if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
+                throw new RuntimeException("not compare operator.");
             }
 
             SqlIdentifier left = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[0];
