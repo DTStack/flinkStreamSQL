@@ -54,7 +54,6 @@ public class CassandraAllSideInfo extends SideInfo {
         sqlCondition = "select ${selectField} from ${tableName} ";
         sqlCondition = sqlCondition.replace("${tableName}", cassandraSideTableInfo.getDatabase() + "."
                 + cassandraSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
     @Override

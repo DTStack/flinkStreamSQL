@@ -100,7 +100,6 @@ public class LauncherMain {
             clusterClient.shutdown();
         }
 
-        System.out.println("---submit end----");
     }
 
     private static String[] parseJson(String[] args) {

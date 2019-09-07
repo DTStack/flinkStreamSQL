@@ -58,7 +58,11 @@ public class RdbAsyncSideInfo extends SideInfo {
         SqlNode conditionNode = joinInfo.getCondition();
 
         List<SqlNode> sqlNodeList = Lists.newArrayList();
+
+        List<String> sqlJoinCompareOperate= Lists.newArrayList();
+
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
+        ParseUtils.parseJoinCompareOperate(conditionNode, sqlJoinCompareOperate);
 
         for (SqlNode sqlNode : sqlNodeList) {
             dealOneEqualCon(sqlNode, sideTableName);
@@ -68,21 +72,20 @@ public class RdbAsyncSideInfo extends SideInfo {
         for (int i = 0; i < equalFieldList.size(); i++) {
             String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
 
-            sqlCondition += equalField + "=? ";
+            sqlCondition += equalField + "\t" + sqlJoinCompareOperate.get(i) + " ？";
             if (i != equalFieldList.size() - 1) {
                 sqlCondition += " and ";
             }
         }
 
         sqlCondition = sqlCondition.replace("${tableName}", rdbSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
 
     @Override
     public void dealOneEqualCon(SqlNode sqlNode, String sideTableName) {
-        if (sqlNode.getKind() != SqlKind.EQUALS) {
-            throw new RuntimeException("not equal operator.");
+        if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
+            throw new RuntimeException("not compare operator.");
         }
 
         SqlIdentifier left = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[0];

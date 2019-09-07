@@ -109,8 +109,8 @@ public abstract class SideInfo implements Serializable{
     }
 
     public void dealOneEqualCon(SqlNode sqlNode, String sideTableName){
-        if(sqlNode.getKind() != SqlKind.EQUALS){
-            throw new RuntimeException("not equal operator.");
+        if(!SqlKind.COMPARISON.contains(sqlNode.getKind())){
+            throw new RuntimeException("not compare operator.");
         }
 
         SqlIdentifier left = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[0];
