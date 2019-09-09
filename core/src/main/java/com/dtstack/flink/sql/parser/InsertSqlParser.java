@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -131,6 +132,10 @@ public class InsertSqlParser implements IParser {
                 }else{
                     parseNode(unionRight, sqlParseResult);
                 }
+                break;
+            case ORDER_BY:
+                SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
+                parseNode(sqlOrderBy.query, sqlParseResult);
                 break;
             default:
                 //do nothing
