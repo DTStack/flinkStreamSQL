@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -240,8 +241,47 @@ public class SideSqlExec {
                 }
 
                 break;
+
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
+
+                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
+
+                replaceFieldName(unionLeft, mappingTable, targetTableName, tableAlias);
+
+                replaceFieldName(unionRight, mappingTable, targetTableName, tableAlias);
+
+                break;
+
+            case ORDER_BY:
+                SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
+                replaceFieldName(sqlOrderBy.query, mappingTable, targetTableName, tableAlias);
+                SqlNodeList orderFiledList = sqlOrderBy.orderList;
+                for (int i=0 ;i<orderFiledList.size();i++) {
+                    SqlNode replaceNode = replaceOrderByTableName(orderFiledList.get(i), tableAlias);
+                    orderFiledList.set(i, replaceNode);
+                }
             default:
                 break;
+        }
+    }
+
+    private SqlNode replaceOrderByTableName(SqlNode orderNode, String tableAlias) {
+        if(orderNode.getKind() == IDENTIFIER){
+            SqlIdentifier sqlIdentifier = (SqlIdentifier) orderNode;
+            if (sqlIdentifier.names.size() == 1) {
+                return orderNode;
+            }
+            return sqlIdentifier.setName(0, tableAlias);
+        } else if (orderNode instanceof  SqlBasicCall) {
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) orderNode;
+            for(int i=0; i<sqlBasicCall.getOperandList().size(); i++){
+                SqlNode sqlNode = sqlBasicCall.getOperandList().get(i);
+                sqlBasicCall.getOperands()[i] = replaceOrderByTableName(sqlNode , tableAlias);
+            }
+            return sqlBasicCall;
+        } else {
+            return orderNode;
         }
     }
 
@@ -359,7 +399,7 @@ public class SideSqlExec {
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
             if(sqlIdentifier.names.size() == 1){
-                return null;
+                return selectNode;
             }
 
             String mappingFieldName = mappingTable.get(sqlIdentifier.getComponent(0).getSimple(), sqlIdentifier.getComponent(1).getSimple());
