@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -110,6 +111,20 @@ public class SideSQLParser {
                 aliasInfo.setAlias(alias.toString());
 
                 return aliasInfo;
+
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
+                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
+
+                parseSql(unionLeft, sideTableSet, queueInfo);
+
+                parseSql(unionRight, sideTableSet, queueInfo);
+
+                break;
+
+            case ORDER_BY:
+                SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
+                parseSql(sqlOrderBy.query, sideTableSet, queueInfo);
         }
 
         return "";
