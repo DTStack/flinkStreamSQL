@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -240,8 +241,47 @@ public class SideSqlExec {
                 }
 
                 break;
+
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
+
+                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
+
+                replaceFieldName(unionLeft, mappingTable, targetTableName, tableAlias);
+
+                replaceFieldName(unionRight, mappingTable, targetTableName, tableAlias);
+
+                break;
+
+            case ORDER_BY:
+                SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
+                replaceFieldName(sqlOrderBy.query, mappingTable, targetTableName, tableAlias);
+                SqlNodeList orderFiledList = sqlOrderBy.orderList;
+                for (int i=0 ;i<orderFiledList.size();i++) {
+                    SqlNode replaceNode = replaceOrderByTableName(orderFiledList.get(i), tableAlias);
+                    orderFiledList.set(i, replaceNode);
+                }
             default:
                 break;
+        }
+    }
+
+    private SqlNode replaceOrderByTableName(SqlNode orderNode, String tableAlias) {
+        if(orderNode.getKind() == IDENTIFIER){
+            SqlIdentifier sqlIdentifier = (SqlIdentifier) orderNode;
+            if (sqlIdentifier.names.size() == 1) {
+                return orderNode;
+            }
+            return sqlIdentifier.setName(0, tableAlias);
+        } else if (orderNode instanceof  SqlBasicCall) {
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) orderNode;
+            for(int i=0; i<sqlBasicCall.getOperandList().size(); i++){
+                SqlNode sqlNode = sqlBasicCall.getOperandList().get(i);
+                sqlBasicCall.getOperands()[i] = replaceOrderByTableName(sqlNode , tableAlias);
+            }
+            return sqlBasicCall;
+        } else {
+            return orderNode;
         }
     }
 
@@ -359,7 +399,7 @@ public class SideSqlExec {
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
             if(sqlIdentifier.names.size() == 1){
-                return null;
+                return selectNode;
             }
 
             String mappingFieldName = mappingTable.get(sqlIdentifier.getComponent(0).getSimple(), sqlIdentifier.getComponent(1).getSimple());
@@ -372,25 +412,18 @@ public class SideSqlExec {
             return sqlIdentifier;
         }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
             return selectNode;
-        }else if(selectNode.getKind() == OTHER_FUNCTION
+        }else if(  AGGREGATE.contains(selectNode.getKind())
+                || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
+                || COMPARISON.contains(selectNode.getKind())
+                || selectNode.getKind() == OTHER_FUNCTION
                 || selectNode.getKind() == DIVIDE
                 || selectNode.getKind() == CAST
-                || selectNode.getKind() == SUM
-                || selectNode.getKind() == AVG
-                || selectNode.getKind() == MAX
-                || selectNode.getKind() == MIN
                 || selectNode.getKind() == TRIM
                 || selectNode.getKind() == TIMES
                 || selectNode.getKind() == PLUS
-                || selectNode.getKind() == IN
+                || selectNode.getKind() == NOT_IN
                 || selectNode.getKind() == OR
                 || selectNode.getKind() == AND
-                || selectNode.getKind() == COUNT
-                || selectNode.getKind() == SUM0
-                || selectNode.getKind() == LEAD
-                || selectNode.getKind() == LAG
-                || selectNode.getKind() == EQUALS
-                || selectNode.getKind() == NOT_EQUALS
                 || selectNode.getKind() == MINUS
                 || selectNode.getKind() == TUMBLE
                 || selectNode.getKind() == TUMBLE_START
@@ -398,13 +431,14 @@ public class SideSqlExec {
                 || selectNode.getKind() == SESSION
                 || selectNode.getKind() == SESSION_START
                 || selectNode.getKind() == SESSION_END
+                || selectNode.getKind() == HOP
+                || selectNode.getKind() == HOP_START
+                || selectNode.getKind() == HOP_END
                 || selectNode.getKind() == BETWEEN
                 || selectNode.getKind() == IS_NULL
                 || selectNode.getKind() == IS_NOT_NULL
-                || selectNode.getKind() == LESS_THAN
-                || selectNode.getKind() == GREATER_THAN
-                || selectNode.getKind() == LESS_THAN_OR_EQUAL
-                || selectNode.getKind() == GREATER_THAN_OR_EQUAL
+                || selectNode.getKind() == CONTAINS
+
                 ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
