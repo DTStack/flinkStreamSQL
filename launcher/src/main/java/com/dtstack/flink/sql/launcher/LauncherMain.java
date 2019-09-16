@@ -26,6 +26,8 @@ import com.alibaba.fastjson.TypeReference;
 import com.dtstack.flink.sql.ClusterMode;
 import com.dtstack.flink.sql.Main;
 import com.dtstack.flink.sql.launcher.perjob.PerJobSubmitter;
+import com.dtstack.flink.sql.option.OptionParser;
+import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
@@ -68,9 +70,8 @@ public class LauncherMain {
         if (args.length == 1 && args[0].endsWith(".json")){
             args = parseJson(args);
         }
-
-        LauncherOptionParser optionParser = new LauncherOptionParser(args);
-        LauncherOptions launcherOptions = optionParser.getLauncherOptions();
+        OptionParser optionParser = new OptionParser(args);
+        Options launcherOptions = optionParser.getOptions();
         String mode = launcherOptions.getMode();
         List<String> argList = optionParser.getProgramExeArgList();
 
