@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.launcher.perjob;
 
-import com.dtstack.flink.sql.launcher.LauncherOptions;
+import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
@@ -49,7 +49,7 @@ public class PerJobSubmitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(PerJobSubmitter.class);
 
-    public static String submit(LauncherOptions launcherOptions, JobGraph jobGraph) throws Exception {
+    public static String submit(Options launcherOptions, JobGraph jobGraph) throws Exception {
 
 		fillJobGraphClassPath(jobGraph);
 		if (!StringUtils.isBlank(launcherOptions.getAddjar())) {

@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.launcher;
+package com.dtstack.flink.sql.option;
 
 import com.dtstack.flink.sql.ClusterMode;
+
 
 /**
  * This class define commandline options for the Launcher program
@@ -26,34 +27,46 @@ import com.dtstack.flink.sql.ClusterMode;
  * Company: www.dtstack.com
  * @author huyifan.zju@163.com
  */
-public class LauncherOptions {
+public class Options {
 
+    @OptionRequired(description = "Running mode")
     private  String mode = ClusterMode.local.name();
 
+    @OptionRequired(required = true,description = "Job name")
     private  String name;
 
+    @OptionRequired(required = true,description = "Job sql file")
     private  String sql;
 
+    @OptionRequired(description = "Flink configuration directory")
     private  String flinkconf;
 
+    @OptionRequired(description = "Yarn and Hadoop configuration directory")
     private  String yarnconf;
 
+    @OptionRequired(required = true,description = "Sql local plugin root")
     private  String localSqlPluginPath;
 
+    @OptionRequired(required = true,description = "Sql remote plugin root")
     private  String remoteSqlPluginPath ;
 
+    @OptionRequired(description = "sql ext jar,eg udf jar")
     private  String addjar;
 
-    private  String confProp;
+    @OptionRequired(description = "sql ref prop,eg specify event time")
+    private  String confProp = "{}";
 
+    @OptionRequired(description = "Savepoint restore path")
     private  String savePointPath;
 
+    @OptionRequired(description = "Flag indicating whether non restored state is allowed if the savepoint")
     private  String allowNonRestoredState = "false";
 
-    //just use for per_job mode
+    @OptionRequired(description = "flink jar path for submit of perjob mode")
     private String flinkJarPath;
 
-    private String queue;
+    @OptionRequired(description = "yarn queue")
+    private String queue = "default";
 
     public String getMode() {
         return mode;

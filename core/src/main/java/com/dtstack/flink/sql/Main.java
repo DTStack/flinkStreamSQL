@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
 import com.dtstack.flink.sql.exec.FlinkSQLExec;
+import com.dtstack.flink.sql.option.OptionParser;
 import com.dtstack.flink.sql.parser.CreateFuncParser;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
 import com.dtstack.flink.sql.parser.InsertSqlParser;
@@ -43,10 +44,6 @@ import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
 import org.apache.commons.io.Charsets;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
@@ -56,7 +53,6 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.client.program.ContextEnvironment;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.shaded.guava18.com.google.common.base.Preconditions;
 import org.apache.flink.shaded.guava18.com.google.common.base.Strings;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
@@ -64,16 +60,13 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamContextEnvironment;
-
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
-
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -112,32 +105,15 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        Options options = new Options();
-        options.addOption("sql", true, "sql config");
-        options.addOption("name", true, "job name");
-        options.addOption("addjar", true, "add jar");
-        options.addOption("localSqlPluginPath", true, "local sql plugin path");
-        options.addOption("remoteSqlPluginPath", true, "remote sql plugin path");
-        options.addOption("confProp", true, "env properties");
-        options.addOption("mode", true, "deploy mode");
-
-        options.addOption("savePointPath", true, "Savepoint restore path");
-        options.addOption("allowNonRestoredState", true, "Flag indicating whether non restored state is allowed if the savepoint");
-
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cl = parser.parse(options, args);
-        String sql = cl.getOptionValue("sql");
-        String name = cl.getOptionValue("name");
-        String addJarListStr = cl.getOptionValue("addjar");
-        String localSqlPluginPath = cl.getOptionValue("localSqlPluginPath");
-        String remoteSqlPluginPath = cl.getOptionValue("remoteSqlPluginPath");
-        String deployMode = cl.getOptionValue("mode");
-        String confProp = cl.getOptionValue("confProp");
-
-        Preconditions.checkNotNull(sql, "parameters of sql is required");
-        Preconditions.checkNotNull(name, "parameters of name is required");
-        Preconditions.checkNotNull(localSqlPluginPath, "parameters of localSqlPluginPath is required");
-
+        OptionParser optionParser = new OptionParser(args);
+        com.dtstack.flink.sql.option.Options options = optionParser.getOptions();
+        String sql = options.getSql();
+        String name = options.getName();
+        String addJarListStr = options.getAddjar();
+        String localSqlPluginPath = options.getLocalSqlPluginPath();
+        String remoteSqlPluginPath = options.getRemoteSqlPluginPath();
+        String deployMode = options.getMode();
+        String confProp = options.getConfProp();
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
 
