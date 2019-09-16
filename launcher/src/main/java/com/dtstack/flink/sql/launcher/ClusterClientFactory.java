@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.launcher;
 
+import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import com.dtstack.flink.yarn.JobParameter;
 import com.dtstack.flink.yarn.YarnClusterConfiguration;
@@ -60,7 +61,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class ClusterClientFactory {
 
-    public static ClusterClient createClusterClient(LauncherOptions launcherOptions) throws Exception {
+    public static ClusterClient createClusterClient(Options launcherOptions) throws Exception {
         String mode = launcherOptions.getMode();
         if(mode.equals(ClusterMode.standalone.name())) {
             return createStandaloneClient(launcherOptions);
@@ -70,7 +71,7 @@ public class ClusterClientFactory {
         throw new IllegalArgumentException("Unsupported cluster client type: ");
     }
 
-    public static ClusterClient createStandaloneClient(LauncherOptions launcherOptions) throws Exception {
+    public static ClusterClient createStandaloneClient(Options launcherOptions) throws Exception {
         String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
         MiniClusterConfiguration.Builder configBuilder = new MiniClusterConfiguration.Builder();
@@ -85,7 +86,7 @@ public class ClusterClientFactory {
         return clusterClient;
     }
 
-    public static ClusterClient createYarnClient(LauncherOptions launcherOptions,String mode) {
+    public static ClusterClient createYarnClient(Options launcherOptions, String mode) {
         String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration flinkConf = GlobalConfiguration.loadConfiguration(flinkConfDir);
         String yarnConfDir = launcherOptions.getYarnconf();
