@@ -63,7 +63,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private long batchWaitInterval = 10000l;
 
     // batchNum
-    private int batchInterval = 5000;
+    private int batchNum = 100;
     private String insertQuery;
     public int[] typesArray;
 
@@ -98,7 +98,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
-            LOG.info("PreparedStatement execute batch num is {}", batchInterval);
+            LOG.info("PreparedStatement execute batch num is {}", batchNum);
             dbConn = establishConnection();
             initMetric();
             if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
@@ -110,7 +110,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 throw new SQLException("Table " + tableName + " doesn't exist");
             }
 
-            if (batchWaitInterval > 0 && batchInterval > 1) {
+            if (batchWaitInterval > 0 && batchNum > 1) {
                 LOG.info("open batch wait interval scheduled, interval is {} ms", batchWaitInterval);
 
                 timerService = new ScheduledThreadPoolExecutor(1);
@@ -182,13 +182,13 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private void insertWrite(Row row) {
         checkConnectionOpen(dbConn);
         try {
-            if (batchInterval == 1) {
+            if (batchNum == 1) {
                 writeSingleRecord(row);
             } else {
                 updatePreparedStmt(row, upload);
                 rows.add(row);
                 upload.addBatch();
-                if (rows.size() >= batchInterval) {
+                if (rows.size() >= batchNum) {
                     submitExecuteBatch();
                 }
             }
@@ -234,6 +234,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 LOG.info("db connection reconnect..");
                 dbConn= establishConnection();
                 upload = dbConn.prepareStatement(insertQuery);
+                this.dbConn = dbConn;
             }
         } catch (SQLException e) {
             LOG.error("check connection open failed..", e);
@@ -413,8 +414,12 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         this.dbSink = dbSink;
     }
 
-    public void setBatchInterval(int batchInterval) {
-        this.batchInterval = batchInterval;
+    public void setBatchNum(int batchNum) {
+        this.batchNum = batchNum;
+    }
+
+    public void setBatchWaitInterval(long batchWaitInterval) {
+        this.batchWaitInterval = batchWaitInterval;
     }
 
     public void setInsertQuery(String insertQuery) {
