@@ -57,6 +57,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     public final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
 
+    public final static int DEFAULT_IDLE_CONNECTION_TEST_PEROID = 60;
+
+    public final static boolean DEFAULT_TEST_CONNECTION_ON_CHECKIN = true;
+
+    public final static String DT_PROVIDER_CLASS = "com.dtstack.flink.sql.side.rdb.provider.DTC3P0DataSourceProvider";
+
+    public final static String PREFERRED_TEST_QUERY_SQL = "select 1 from dual";
+
     private transient SQLClient rdbSQLClient;
 
     public RdbAsyncReqRow(SideInfo sideInfo) {
