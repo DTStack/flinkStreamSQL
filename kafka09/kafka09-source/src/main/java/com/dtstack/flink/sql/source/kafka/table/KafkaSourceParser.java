@@ -45,7 +45,7 @@ public class KafkaSourceParser extends AbsSourceParser {
 
     private static final String KAFKA_NEST_FIELD_KEY = "nestFieldKey";
 
-    private static Pattern kafkaNestFieldKeyPattern = Pattern.compile("(?i)((@*\\w+\\.)*\\w+)\\s+(\\w+)\\s+AS\\s+(\\w+)$");
+    private static Pattern kafkaNestFieldKeyPattern = Pattern.compile("(?i)((@*\\w+\\.)*\\w+)\\s+(\\w+)(\\s+AS\\s+(\\w+))?(\\s+NOT\\s+NULL)?$");
 
     static {
         keyPatternMap.put(KAFKA_NEST_FIELD_KEY, kafkaNestFieldKeyPattern);
@@ -56,13 +56,18 @@ public class KafkaSourceParser extends AbsSourceParser {
     static void dealNestField(Matcher matcher, TableInfo tableInfo) {
         String physicalField = matcher.group(1);
         String fieldType = matcher.group(3);
-        String mappingField = matcher.group(4);
+        String mappingField = matcher.group(5);
+        mappingField = mappingField != null ? mappingField : physicalField;
         Class fieldClass= ClassUtil.stringConvertClass(fieldType);
+        boolean notNull = matcher.group(6) != null;
+        TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
+        fieldExtraInfo.setNotNull(notNull);
 
         tableInfo.addPhysicalMappings(mappingField, physicalField);
         tableInfo.addField(mappingField);
         tableInfo.addFieldClass(fieldClass);
         tableInfo.addFieldType(fieldType);
+        tableInfo.addFieldExtraInfo(fieldExtraInfo);
         if(LOG.isInfoEnabled()){
             LOG.info(physicalField + "--->" + mappingField + " Class: " + fieldClass.toString());
         }
