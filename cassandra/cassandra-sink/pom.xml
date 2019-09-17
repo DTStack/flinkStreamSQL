@@ -71,7 +71,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../plugins/cassandrasink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/cassandrasink/${project.name}.jar" />
+                                      tofile="${basedir}/../../plugins/cassandrasink/${project.name}.jar-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>
