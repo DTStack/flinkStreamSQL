@@ -57,6 +57,8 @@ public abstract class TableInfo implements Serializable {
 
     private final List<Class> fieldClassList = Lists.newArrayList();
 
+    private final List<FieldExtraInfo> fieldExtraInfoList = Lists.newArrayList();
+
     private List<String> primaryKeys;
 
     private Integer parallelism = 1;
@@ -143,6 +145,10 @@ public abstract class TableInfo implements Serializable {
         this.fieldClasses = fieldClasses;
     }
 
+    public void addFieldExtraInfo(FieldExtraInfo extraInfo) {
+        fieldExtraInfoList.add(extraInfo);
+    }
+
     public List<String> getFieldList() {
         return fieldList;
     }
@@ -159,6 +165,10 @@ public abstract class TableInfo implements Serializable {
         return physicalFields;
     }
 
+    public List<FieldExtraInfo> getFieldExtraInfoList() {
+        return fieldExtraInfoList;
+    }
+
     public void setPhysicalFields(Map<String, String> physicalFields) {
         this.physicalFields = physicalFields;
     }
@@ -167,5 +177,26 @@ public abstract class TableInfo implements Serializable {
         this.fields = fieldList.toArray(new String[fieldList.size()]);
         this.fieldClasses = fieldClassList.toArray(new Class[fieldClassList.size()]);
         this.fieldTypes = fieldTypeList.toArray(new String[fieldTypeList.size()]);
+    }
+
+    /**
+     * field extra info，used to store `not null` `default 0`...，
+     *
+     * now, only support not null
+     */
+    public static class FieldExtraInfo implements Serializable {
+
+        /**
+         * default false：allow field is null
+         */
+        boolean notNull;
+
+        public boolean getNotNull() {
+            return notNull;
+        }
+
+        public void setNotNull(boolean notNull) {
+            this.notNull = notNull;
+        }
     }
 }
