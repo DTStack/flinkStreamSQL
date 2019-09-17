@@ -78,7 +78,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
@@ -251,14 +250,11 @@ public class Main {
     private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, URLClassLoader parentClassloader,
                                     StreamTableEnvironment tableEnv)
             throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        //load jar
+        URLClassLoader classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
         //register urf
-        URLClassLoader classLoader = null;
         List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
         for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
-            //classloader
-            if (classLoader == null) {
-                classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
-            }
             FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
                     tableEnv, classLoader);
         }
@@ -335,19 +331,9 @@ public class Main {
                 new MyLocalStreamEnvironment();
         env.getConfig().disableClosureCleaner();
         env.setParallelism(FlinkUtil.getEnvParallelism(confProperties));
-        Configuration globalJobParameters = new Configuration();
-        Method method = Configuration.class.getDeclaredMethod("setValueInternal", String.class, Object.class);
-        method.setAccessible(true);
 
-        confProperties.forEach((key,val) -> {
-            try {
-                method.invoke(globalJobParameters, key, val);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
-                e.printStackTrace();
-            }
-        });
+        Configuration globalJobParameters = new Configuration();
+        globalJobParameters.addAllToProperties(confProperties);
 
         ExecutionConfig exeConfig = env.getConfig();
         if(exeConfig.getGlobalJobParameters() == null){
