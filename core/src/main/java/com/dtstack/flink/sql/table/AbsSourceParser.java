@@ -42,7 +42,7 @@ public abstract class AbsSourceParser extends AbsTableParser {
 
     private static Pattern virtualFieldKeyPattern = Pattern.compile("(?i)^(\\S+\\([^\\)]+\\))\\s+AS\\s+(\\w+)$");
     private static Pattern waterMarkKeyPattern = Pattern.compile("(?i)^\\s*WATERMARK\\s+FOR\\s+(\\S+)\\s+AS\\s+withOffset\\(\\s*(\\S+)\\s*,\\s*(\\d+)\\s*\\)$");
-    private static Pattern notNullKeyPattern = Pattern.compile("(?i)(\\w+)\\s+(\\w+)\\s+NOT\\s+NULL?$");
+    private static Pattern notNullKeyPattern = Pattern.compile("(?i)^(\\w+)\\s+(\\w+)\\s+NOT\\s+NULL?$");
 
     static {
         keyPatternMap.put(VIRTUAL_KEY, virtualFieldKeyPattern);

@@ -1,6 +1,6 @@
 CREATE TABLE MyTable(
-    channel varchar not null,
-    pv INT,
+    channel varchar as sss not null,
+    pv INT not null,
     xctime bigint,
     CHARACTER_LENGTH(channel) as timeLeng,
     WATERMARK FOR xctime AS withOffset(xctime,1000)
