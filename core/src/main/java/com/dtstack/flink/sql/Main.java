@@ -75,9 +75,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
@@ -328,7 +328,7 @@ public class Main {
         }
     }
 
-    private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException, NoSuchMethodException {
+    private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
@@ -336,7 +336,12 @@ public class Main {
         env.setParallelism(FlinkUtil.getEnvParallelism(confProperties));
 
         Configuration globalJobParameters = new Configuration();
-        globalJobParameters.addAllToProperties(confProperties);
+        //Configuration unsupported set properties key-value
+        Method method = Configuration.class.getDeclaredMethod("setValueInternal", String.class, Object.class);
+        method.setAccessible(true);
+        for (Map.Entry<Object, Object> prop : confProperties.entrySet()) {
+            method.invoke(globalJobParameters, prop.getKey(), prop.getValue());
+        }
 
         ExecutionConfig exeConfig = env.getConfig();
         if(exeConfig.getGlobalJobParameters() == null){

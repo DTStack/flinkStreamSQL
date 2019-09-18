@@ -189,7 +189,7 @@ public abstract class TableInfo implements Serializable {
         /**
          * default false：allow field is null
          */
-        boolean notNull;
+        boolean notNull = false;
 
         public boolean getNotNull() {
             return notNull;
