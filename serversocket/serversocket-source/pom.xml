@@ -70,7 +70,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../plugins/serversocketsource/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/serversocketsource/${project.name}.jar-${git.branch}.jar" />
+                                      tofile="${basedir}/../../plugins/serversocketsource/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>
