@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
@@ -98,12 +99,6 @@ public class Main {
     private static final ObjectMapper objMapper = new ObjectMapper();
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
-
-    private static final int failureRate = 3;
-
-    private static final int failureInterval = 6; //min
-
-    private static final int delayInterval = 10; //sec
 
     public static void main(String[] args) throws Exception {
 
@@ -337,9 +332,9 @@ public class Main {
             env.setBufferTimeout(FlinkUtil.getBufferTimeoutMillis(confProperties));
         }
         env.setRestartStrategy(RestartStrategies.failureRateRestart(
-                failureRate,
-                Time.of(failureInterval, TimeUnit.MINUTES),
-                Time.of(delayInterval, TimeUnit.SECONDS)
+                ConfigConstrant.failureRate,
+                Time.of(ConfigConstrant.failureInterval, TimeUnit.MINUTES),
+                Time.of(ConfigConstrant.delayInterval, TimeUnit.SECONDS)
         ));
         FlinkUtil.setStreamTimeCharacteristic(env, confProperties);
         FlinkUtil.openCheckpoint(env, confProperties);

@@ -20,8 +20,8 @@ package com.dtstack.flink.sql.launcher;
 
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
-import com.dtstack.flink.yarn.JobParameter;
-import com.dtstack.flink.yarn.YarnClusterConfiguration;
+import com.dtstack.flink.sql.yarn.JobParameter;
+import com.dtstack.flink.sql.yarn.YarnClusterConfiguration;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.program.ClusterClient;
@@ -129,7 +129,7 @@ public class ClusterClientFactory {
                         //jobmanager+taskmanager param
                         JobParameter appConf = new JobParameter(confProperties);
 
-                        com.dtstack.flink.yarn.YarnClusterDescriptor clusterDescriptor = new com.dtstack.flink.yarn.YarnClusterDescriptor(
+                        com.dtstack.flink.sql.yarn.YarnClusterDescriptor clusterDescriptor = new com.dtstack.flink.sql.yarn.YarnClusterDescriptor(
                                 clusterConf, yarnClient, appConf,applicationId,  launcherOptions.getName(),null );
                         clusterClient = clusterDescriptor.deploy();
 

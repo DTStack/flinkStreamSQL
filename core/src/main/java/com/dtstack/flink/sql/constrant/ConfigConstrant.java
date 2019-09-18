@@ -18,7 +18,7 @@
 
  
 
-package com.dtstack.flink.sql.util;
+package com.dtstack.flink.sql.constrant;
 
 
 /**
@@ -50,5 +50,12 @@ public class ConfigConstrant {
     public static final String SQL_BUFFER_TIMEOUT_MILLIS = "sql.buffer.timeout.millis";
 
     public static final String FLINK_TIME_CHARACTERISTIC_KEY = "time.characteristic";
+
+    // restart plocy
+    public static final int failureRate = 3;
+
+    public static final int failureInterval = 6; //min
+
+    public static final int delayInterval = 10; //sec
 
 }

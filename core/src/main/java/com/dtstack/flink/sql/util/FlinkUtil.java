@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.util;
 
 
+import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.runtime.state.filesystem.FsStateBackend;
