@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
 import com.dtstack.flink.sql.exec.FlinkSQLExec;
@@ -82,6 +83,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import com.dtstack.flink.sql.option.Options;
 
 /**
  * Date: 2018/6/26
@@ -106,7 +108,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
         OptionParser optionParser = new OptionParser(args);
-        com.dtstack.flink.sql.option.Options options = optionParser.getOptions();
+        Options options = optionParser.getOptions();
         String sql = options.getSql();
         String name = options.getName();
         String addJarListStr = options.getAddjar();
@@ -149,9 +151,20 @@ public class Main {
         //register table schema
         registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, sideTableMap, registerTableCache);
 
-        SideSqlExec sideSqlExec = new SideSqlExec();
-        sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
+        sqlTranslation(options,tableEnv,sqlTree,sideTableMap,registerTableCache);
 
+        if(env instanceof MyLocalStreamEnvironment) {
+            List<URL> urlList = new ArrayList<>();
+            urlList.addAll(Arrays.asList(parentClassloader.getURLs()));
+            ((MyLocalStreamEnvironment) env).setClasspaths(urlList);
+        }
+
+        env.execute(name);
+    }
+
+    private static void sqlTranslation(Options options,StreamTableEnvironment tableEnv,SqlTree sqlTree,Map<String, SideTableInfo> sideTableMap,Map<String, Table> registerTableCache) throws Exception {
+        SideSqlExec sideSqlExec = new SideSqlExec();
+        sideSqlExec.setLocalSqlPluginPath(options.getLocalSqlPluginPath());
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
             sideSqlExec.registerTmpTable(result, sideTableMap, tableEnv, registerTableCache);
         }
@@ -160,9 +173,7 @@ public class Main {
             if(LOG.isInfoEnabled()){
                 LOG.info("exe-sql:\n" + result.getExecSql());
             }
-
             boolean isSide = false;
-
             for (String tableName : result.getTargetTableList()) {
                 if (sqlTree.getTmpTableMap().containsKey(tableName)) {
                     CreateTmpTableParser.SqlParserResult tmp = sqlTree.getTmpTableMap().get(tableName);
@@ -183,7 +194,6 @@ public class Main {
                             break;
                         }
                     }
-
                     if(isSide){
                         //sql-dimensional table contains the dimension table of execution
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache);
@@ -197,15 +207,8 @@ public class Main {
             }
         }
 
-        if(env instanceof MyLocalStreamEnvironment) {
-            List<URL> urlList = new ArrayList<>();
-            urlList.addAll(Arrays.asList(parentClassloader.getURLs()));
-            ((MyLocalStreamEnvironment) env).setClasspaths(urlList);
-        }
 
-        env.execute(name);
     }
-
     /**
      * This part is just to add classpath for the jar when reading remote execution, and will not submit jar from a local
      * @param env
@@ -314,42 +317,32 @@ public class Main {
         Configuration globalJobParameters = new Configuration();
         Method method = Configuration.class.getDeclaredMethod("setValueInternal", String.class, Object.class);
         method.setAccessible(true);
-
         confProperties.forEach((key,val) -> {
             try {
                 method.invoke(globalJobParameters, key, val);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                LOG.error("set Configuration key:{},value:{} error:{}",key,val,e);
             }
         });
-
         ExecutionConfig exeConfig = env.getConfig();
         if(exeConfig.getGlobalJobParameters() == null){
             exeConfig.setGlobalJobParameters(globalJobParameters);
         }else if(exeConfig.getGlobalJobParameters() instanceof Configuration){
             ((Configuration) exeConfig.getGlobalJobParameters()).addAll(globalJobParameters);
         }
-
-
         if(FlinkUtil.getMaxEnvParallelism(confProperties) > 0){
             env.setMaxParallelism(FlinkUtil.getMaxEnvParallelism(confProperties));
         }
-
         if(FlinkUtil.getBufferTimeoutMillis(confProperties) > 0){
             env.setBufferTimeout(FlinkUtil.getBufferTimeoutMillis(confProperties));
         }
-
         env.setRestartStrategy(RestartStrategies.failureRateRestart(
                 failureRate,
                 Time.of(failureInterval, TimeUnit.MINUTES),
                 Time.of(delayInterval, TimeUnit.SECONDS)
         ));
-
         FlinkUtil.setStreamTimeCharacteristic(env, confProperties);
         FlinkUtil.openCheckpoint(env, confProperties);
-
         return env;
     }
 }

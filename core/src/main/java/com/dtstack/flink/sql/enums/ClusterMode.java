@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql;
+package com.dtstack.flink.sql.enums;
 
 /**
  * Created by sishu.yss on 2018/10/10.

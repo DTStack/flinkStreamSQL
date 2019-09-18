@@ -49,7 +49,7 @@ import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.util.*;
 
-import com.dtstack.flink.sql.ClusterMode;
+import com.dtstack.flink.sql.enums.ClusterMode;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import java.io.IOException;
 import java.util.stream.Collectors;
