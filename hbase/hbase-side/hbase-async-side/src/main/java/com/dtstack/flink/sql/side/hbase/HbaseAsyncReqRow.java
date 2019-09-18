@@ -30,7 +30,7 @@ import com.dtstack.flink.sql.side.hbase.rowkeydealer.AbsRowKeyModeDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
-import com.dtstack.flink.sql.threadFactory.DTThreadFactory;
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;

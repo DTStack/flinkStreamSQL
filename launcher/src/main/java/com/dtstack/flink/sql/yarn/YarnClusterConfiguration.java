@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.dtstack.flink.yarn;
+package com.dtstack.flink.sql.yarn;
 
 import org.apache.flink.configuration.Configuration;
 import org.apache.hadoop.fs.Path;

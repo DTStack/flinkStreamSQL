@@ -18,7 +18,7 @@
 
  
 
-package com.dtstack.flink.sql.threadFactory;
+package com.dtstack.flink.sql.factory;
 
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
