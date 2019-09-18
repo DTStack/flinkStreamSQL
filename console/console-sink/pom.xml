@@ -67,7 +67,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../plugins/consolesink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/consolesink/${project.name}.jar-${git.branch}.jar" />
+                                      tofile="${basedir}/../../plugins/consolesink/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

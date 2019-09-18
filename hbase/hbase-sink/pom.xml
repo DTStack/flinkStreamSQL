@@ -68,7 +68,7 @@
                                 </copy>
 
                                 <move file="${basedir}/../../plugins/hbasesink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/hbasesink/${project.name}.jar-${git.branch}.jar" />
+                                      tofile="${basedir}/../../plugins/hbasesink/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>
