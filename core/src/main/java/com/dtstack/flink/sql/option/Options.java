@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.option;
 
-import com.dtstack.flink.sql.ClusterMode;
+import com.dtstack.flink.sql.enums.ClusterMode;
 
 
 /**
