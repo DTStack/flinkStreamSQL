@@ -250,10 +250,13 @@ public class Main {
     private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, URLClassLoader parentClassloader,
                                     StreamTableEnvironment tableEnv)
             throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
+        if (funcList.isEmpty()) {
+            return;
+        }
         //load jar
         URLClassLoader classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
         //register urf
-        List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
         for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
             FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
                     tableEnv, classLoader);
