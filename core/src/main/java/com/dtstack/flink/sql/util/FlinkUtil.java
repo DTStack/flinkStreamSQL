@@ -136,6 +136,7 @@ public class FlinkUtil {
             if(characteristicStr.equalsIgnoreCase(tmp.toString())){
                 env.setStreamTimeCharacteristic(tmp);
                 flag = true;
+                break;
             }
         }
 
@@ -244,21 +245,9 @@ public class FlinkUtil {
     }
 
     public static URLClassLoader loadExtraJar(List<URL> jarURLList, URLClassLoader classLoader) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-
-        int size = 0;
         for(URL url : jarURLList){
             if(url.toString().endsWith(".jar")){
-                size++;
-            }
-        }
-
-        URL[] urlArray = new URL[size];
-        int i=0;
-        for(URL url : jarURLList){
-            if(url.toString().endsWith(".jar")){
-                urlArray[i] = url;
                 urlClassLoaderAddUrl(classLoader, url);
-                i++;
             }
         }
 
