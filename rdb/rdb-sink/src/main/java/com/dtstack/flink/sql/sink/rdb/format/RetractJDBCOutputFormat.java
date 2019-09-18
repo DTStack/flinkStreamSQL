@@ -234,6 +234,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 LOG.info("db connection reconnect..");
                 dbConn= establishConnection();
                 upload = dbConn.prepareStatement(insertQuery);
+                this.dbConn = dbConn;
             }
         } catch (SQLException e) {
             LOG.error("check connection open failed..", e);
@@ -413,6 +414,13 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         this.dbSink = dbSink;
     }
 
+    public void setBatchNum(int batchNum) {
+        this.batchNum = batchNum;
+    }
+
+    public void setBatchWaitInterval(long batchWaitInterval) {
+        this.batchWaitInterval = batchWaitInterval;
+    }
 
     public void setInsertQuery(String insertQuery) {
         this.insertQuery = insertQuery;
@@ -440,15 +448,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     public Map<String, List<String>> getRealIndexes() {
         return realIndexes;
-    }
-
-
-    public void setBatchNum(int batchNum) {
-        this.batchNum = batchNum;
-    }
-
-    public void setBatchWaitInterval(long batchWaitInterval) {
-        this.batchWaitInterval = batchWaitInterval;
     }
 
     public List<String> getFullField() {

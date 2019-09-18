@@ -61,7 +61,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     protected String dbType;
 
-    protected int batchNum = 1;
+    protected int batchNum = 100;
 
     protected long batchWaitInterval = 10000;
 
@@ -205,7 +205,6 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         this.fieldTypes = fieldTypes;
         return this;
     }
-
 
     public void setBatchNum(int batchNum) {
         this.batchNum = batchNum;
