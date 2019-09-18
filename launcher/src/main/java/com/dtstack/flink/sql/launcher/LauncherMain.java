@@ -23,7 +23,7 @@ package com.dtstack.flink.sql.launcher;
 import avro.shaded.com.google.common.collect.Lists;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import com.dtstack.flink.sql.ClusterMode;
+import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.Main;
 import com.dtstack.flink.sql.launcher.perjob.PerJobSubmitter;
 import com.dtstack.flink.sql.option.OptionParser;
