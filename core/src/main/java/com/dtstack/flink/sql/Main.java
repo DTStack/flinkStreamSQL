@@ -85,6 +85,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import com.dtstack.flink.sql.option.Options;
+import org.apache.calcite.sql.parser.SqlParser.Config;
 
 /**
  * Date: 2018/6/26
@@ -99,6 +100,11 @@ public class Main {
     private static final ObjectMapper objMapper = new ObjectMapper();
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+
+    private static Config config = org.apache.calcite.sql.parser.SqlParser
+            .configBuilder()
+            .setLex(Lex.MYSQL)
+            .build();
 
     public static void main(String[] args) throws Exception {
 
@@ -174,10 +180,6 @@ public class Main {
                     CreateTmpTableParser.SqlParserResult tmp = sqlTree.getTmpTableMap().get(tableName);
                     String realSql = DtStringUtil.replaceIgnoreQuota(result.getExecSql(), "`", "");
 
-                    org.apache.calcite.sql.parser.SqlParser.Config config = org.apache.calcite.sql.parser.SqlParser
-                            .configBuilder()
-                            .setLex(Lex.MYSQL)
-                            .build();
                     SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql,config).parseStmt();
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
                     tmp.setExecSql(tmpSql);
