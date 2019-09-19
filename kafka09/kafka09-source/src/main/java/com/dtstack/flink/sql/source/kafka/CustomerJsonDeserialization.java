@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
+import com.dtstack.flink.sql.table.TableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -49,6 +50,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -80,9 +82,6 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     /** Types to parse fields as. Indices match fieldNames indices. */
     private final TypeInformation<?>[] fieldTypes;
 
-    /** Flag indicating whether to fail on a missing field. */
-    private boolean failOnMissingField;
-
     private AbstractFetcher<Row, ?> fetcher;
 
     private boolean firstMsg = true;
@@ -91,15 +90,14 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private Map<String, String> rowAndFieldMapping;
 
+    private List<TableInfo.FieldExtraInfo> fieldExtraInfos;
 
-    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping){
+    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos){
         this.typeInfo = typeInfo;
-
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
-
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
-
         this.rowAndFieldMapping= rowAndFieldMapping;
+        this.fieldExtraInfos = fieldExtraInfos;
     }
 
     @Override
@@ -129,9 +127,10 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
             for (int i = 0; i < fieldNames.length; i++) {
                 JsonNode node = getIgnoreCase(fieldNames[i]);
+                TableInfo.FieldExtraInfo fieldExtraInfo = fieldExtraInfos.get(i);
 
                 if (node == null) {
-                    if (failOnMissingField) {
+                    if (fieldExtraInfo != null && fieldExtraInfo.getNotNull()) {
                         throw new IllegalStateException("Failed to find field with name '"
                                 + fieldNames[i] + "'.");
                     } else {
@@ -157,10 +156,6 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }finally {
             nodeAndJsonNodeMapping.clear();
         }
-    }
-
-    public void setFailOnMissingField(boolean failOnMissingField) {
-        this.failOnMissingField = failOnMissingField;
     }
 
     private JsonNode getIgnoreCase(String key) {
