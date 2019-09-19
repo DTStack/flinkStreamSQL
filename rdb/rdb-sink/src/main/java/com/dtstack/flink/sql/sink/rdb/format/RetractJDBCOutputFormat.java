@@ -329,6 +329,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 LOG.info("db connection reconnect..");
                 dbConn= establishConnection();
                 upload = dbConn.prepareStatement(insertQuery);
+                this.dbConn = dbConn;
             }
         } catch (SQLException e) {
             LOG.error("check connection open failed..", e);
