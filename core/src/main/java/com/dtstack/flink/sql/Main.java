@@ -70,7 +70,6 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -227,14 +226,14 @@ public class Main {
     private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, URLClassLoader parentClassloader,
                                     StreamTableEnvironment tableEnv)
             throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        //register urf
-        URLClassLoader classLoader = null;
         List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
+        if (funcList.isEmpty()) {
+            return;
+        }
+        //load jar
+        URLClassLoader classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
+        //register urf
         for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
-            //classloader
-            if (classLoader == null) {
-                classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
-            }
             FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
                     tableEnv, classLoader);
         }
@@ -305,22 +304,21 @@ public class Main {
         }
     }
 
-    private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException, NoSuchMethodException {
+    private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
         env.getConfig().disableClosureCleaner();
         env.setParallelism(FlinkUtil.getEnvParallelism(confProperties));
+
         Configuration globalJobParameters = new Configuration();
+        //Configuration unsupported set properties key-value
         Method method = Configuration.class.getDeclaredMethod("setValueInternal", String.class, Object.class);
         method.setAccessible(true);
-        confProperties.forEach((key,val) -> {
-            try {
-                method.invoke(globalJobParameters, key, val);
-            } catch (Exception e) {
-                LOG.error("set Configuration key:{},value:{} error:{}",key,val,e);
-            }
-        });
+        for (Map.Entry<Object, Object> prop : confProperties.entrySet()) {
+            method.invoke(globalJobParameters, prop.getKey(), prop.getValue());
+        }
+
         ExecutionConfig exeConfig = env.getConfig();
         if(exeConfig.getGlobalJobParameters() == null){
             exeConfig.setGlobalJobParameters(globalJobParameters);

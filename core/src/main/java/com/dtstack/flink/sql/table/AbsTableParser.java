@@ -105,6 +105,7 @@ public abstract class AbsTableParser {
             tableInfo.addField(fieldName);
             tableInfo.addFieldClass(fieldClass);
             tableInfo.addFieldType(fieldType);
+            tableInfo.addFieldExtraInfo(null);
         }
 
         tableInfo.finish();
