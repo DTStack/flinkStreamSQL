@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.util;
 
@@ -33,6 +33,9 @@ import org.apache.flink.table.api.java.BatchTableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.functions.ScalarFunction;
 import org.apache.flink.table.functions.TableFunction;
+import org.apache.flink.table.functions.UserDefinedFunction;
+import org.apache.flink.table.functions.AggregateFunction;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,13 +195,25 @@ public class FlinkUtil {
     public static void registerTableUDF(String classPath, String funcName, TableEnvironment tableEnv,
                                         ClassLoader classLoader){
         try {
-            TableFunction udfFunc = Class.forName(classPath, false, classLoader)
-                    .asSubclass(TableFunction.class).newInstance();
+            UserDefinedFunction udfFunc = Class.forName(classPath,false, classLoader)
+                    .asSubclass(UserDefinedFunction.class).newInstance();
 
             if(tableEnv instanceof StreamTableEnvironment){
-                ((StreamTableEnvironment)tableEnv).registerFunction(funcName, udfFunc);
+                if (udfFunc instanceof AggregateFunction){
+                    ((StreamTableEnvironment) tableEnv).registerFunction(funcName, (AggregateFunction)udfFunc);
+                }else if (udfFunc instanceof TableFunction) {
+                    ((StreamTableEnvironment) tableEnv).registerFunction(funcName, (TableFunction)udfFunc);
+                }else{
+                    throw new RuntimeException("no support UserDefinedFunction class for " + udfFunc.getClass().getName());
+                }
             }else if(tableEnv instanceof BatchTableEnvironment){
-                ((BatchTableEnvironment)tableEnv).registerFunction(funcName, udfFunc);
+                if (udfFunc instanceof AggregateFunction){
+                    ((BatchTableEnvironment) tableEnv).registerFunction(funcName, (AggregateFunction)udfFunc);
+                }else if (udfFunc instanceof TableFunction) {
+                    ((BatchTableEnvironment) tableEnv).registerFunction(funcName, (TableFunction)udfFunc);
+                }else{
+                    throw new RuntimeException("no support UserDefinedFunction class for " + udfFunc.getClass().getName());
+                }
             }else{
                 throw new RuntimeException("no support tableEnvironment class for " + tableEnv.getClass().getName());
             }
