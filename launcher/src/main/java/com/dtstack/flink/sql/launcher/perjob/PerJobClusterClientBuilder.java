@@ -30,7 +30,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import java.io.File;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -75,7 +74,7 @@ public class PerJobClusterClientBuilder {
 
         }
 
-        List<URL> classpaths = new ArrayList<>();
+         List<File> shipFiles = new ArrayList<>();
         if (flinkJarPath != null) {
             File[] jars = new File(flinkJarPath).listFiles();
 
@@ -83,15 +82,14 @@ public class PerJobClusterClientBuilder {
                 if (file.toURI().toURL().toString().contains("flink-dist")){
                     clusterDescriptor.setLocalJarPath(new Path(file.toURI().toURL().toString()));
                 } else {
-                    classpaths.add(file.toURI().toURL());
+                    shipFiles.add(file);
                 }
             }
 
         } else {
             throw new RuntimeException("The Flink jar path is null");
         }
-
-        //clusterDescriptor.setProvidedUserJarFiles(classpaths);
+        clusterDescriptor.addShipFiles(shipFiles);
 
         if(!Strings.isNullOrEmpty(queue)){
             clusterDescriptor.setQueue(queue);
