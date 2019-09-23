@@ -7,18 +7,24 @@
 >  >  * 支持原生FLinkSQL所有的语法
 >  >  * 扩展了输入和输出的性能指标到promethus
 
+ ## 新特性:
+  1.kafka源表支持not null语法,支持字符串类型的时间转换。
+  2.rdb维表与DB建立连接时，周期进行连接，防止连接断开。rdbsink写入时，对连接进行检查。
+  3.异步维表支持非等值连接，比如：<>,<,>。
+  
+ ## BUG修复：
+  1.修复不能解析sql中orderby,union语法。
+  2.修复yarnPer模式提交失败的异常。
  
 # 已支持
   * 源表：kafka 0.9，1.x版本
-  * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra
-  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra
+  * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra,serversocket
+  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra,console
 
 # 后续开发计划
   * 增加SQL支持CEP
   * 维表快照
   * sql优化（谓词下移等）
-  * serverSocket 源表
-  * console 结果表
   * kafka avro格式
   * topN
 
