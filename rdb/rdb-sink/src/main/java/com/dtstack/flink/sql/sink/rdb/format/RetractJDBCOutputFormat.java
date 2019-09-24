@@ -452,7 +452,11 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         return tableName;
     }
 
-    public Map<String, List<String>> getRealIndexes() {
+    public void realIndexesAdd(String index, List<String> fieldes) {
+        this.realIndexes.put(index, fieldes);
+    }
+
+    public Map<String,List<String>> getRealIndexes() {
         return realIndexes;
     }
 
@@ -463,5 +467,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     public List<String> getFullField() {
         return fullField;
+    }
+
+    public void fullFieldAdd(String colName) {
+        this.fullField.add(colName);
     }
 }
