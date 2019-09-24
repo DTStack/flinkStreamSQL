@@ -98,7 +98,7 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
 
         DataStream<Row> ds = dataStream.map((Tuple2<Boolean, Row> record) -> {
             return record.f1;
-        }).returns(getOutputType().getTypeAt(1));
+        }).returns(getOutputType().getTypeAt(1)).setParallelism(parallelism);
 
         kafkaTableSink.emitDataStream(ds);
     }
