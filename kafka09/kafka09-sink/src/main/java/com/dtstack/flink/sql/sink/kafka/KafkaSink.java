@@ -53,6 +53,9 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 	/** Serialization schema for encoding records to Kafka. */
 	protected SerializationSchema serializationSchema;
 
+	protected int parallelism;
+
+
 	@Override
 	public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
 		KafkaSinkTableInfo kafka09SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
@@ -63,6 +66,11 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 			types[i] = TypeInformation.of(kafka09SinkTableInfo.getFieldClasses()[i]);
 		}
 		this.fieldTypes = types;
+
+		Integer parallelism = kafka09SinkTableInfo.getParallelism();
+		if (parallelism != null) {
+			this.parallelism = parallelism;
+		}
 
 		properties = new Properties();
 		for (String key : kafka09SinkTableInfo.getKafkaParamKeys()) {
@@ -90,7 +98,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
 		DataStream<Row> ds = dataStream.map((Tuple2<Boolean, Row> record) -> {
 			return record.f1;
-		}).returns(getOutputType().getTypeAt(1));
+		}).returns(getOutputType().getTypeAt(1)).setParallelism(parallelism);
 
 		kafkaTableSink.emitDataStream(ds);
 	}
