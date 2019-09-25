@@ -64,6 +64,9 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 	/** Partitioner to select Kafka partition for each item. */
 	protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
 
+	protected int parallelism;
+
+
 
 	@Override
 	public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
@@ -85,10 +88,15 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 		this.fieldTypes = types;
 
 		TableSchema.Builder schemaBuilder = TableSchema.builder();
-		for (int i=0;i<fieldNames.length;i++){
-			schemaBuilder.field(fieldNames[i], fieldTypes[i]);
-		}
+		for (int i=0;i<fieldNames.length;i++) {
+            schemaBuilder.field(fieldNames[i], fieldTypes[i]);
+        }
 		this.schema = schemaBuilder.build();
+
+		Integer parallelism = kafka09SinkTableInfo.getParallelism();
+		if (parallelism != null) {
+			this.parallelism = parallelism;
+		}
 
 		this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType().getTypeAt(1));
 		return this;
@@ -111,7 +119,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
 		DataStream<Row> ds = dataStream.map((Tuple2<Boolean, Row> record) -> {
 			return record.f1;
-		}).returns(getOutputType().getTypeAt(1));
+		}).returns(getOutputType().getTypeAt(1)).setParallelism(parallelism);
 
 		kafkaTableSink.emitDataStream(ds);
 	}
