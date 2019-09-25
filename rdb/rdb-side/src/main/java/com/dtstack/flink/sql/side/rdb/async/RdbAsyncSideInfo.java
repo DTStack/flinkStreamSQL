@@ -72,7 +72,7 @@ public class RdbAsyncSideInfo extends SideInfo {
         for (int i = 0; i < equalFieldList.size(); i++) {
             String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
 
-            sqlCondition += equalField + "\t" + sqlJoinCompareOperate.get(i) + " ？";
+            sqlCondition += equalField + " " + sqlJoinCompareOperate.get(i) + " ? ";
             if (i != equalFieldList.size() - 1) {
                 sqlCondition += " and ";
             }
