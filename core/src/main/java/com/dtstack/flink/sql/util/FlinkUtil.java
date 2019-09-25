@@ -67,12 +67,14 @@ public class FlinkUtil {
         }
 
         //设置了时间间隔才表明开启了checkpoint
-        if(properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_INTERVAL_KEY) == null){
+        if(properties.getProperty(ConfigConstrant.SQL_CHECKPOINT_INTERVAL_KEY) == null && properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_INTERVAL_KEY) == null){
             return;
         }else{
-            Long interval = Long.valueOf(properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_INTERVAL_KEY));
+            Long sql_interval = Long.valueOf(properties.getProperty(ConfigConstrant.SQL_CHECKPOINT_INTERVAL_KEY,"0"));
+            Long flink_interval = Long.valueOf(properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_INTERVAL_KEY, "0"));
+            long checkpointInterval = Math.max(sql_interval, flink_interval);
             //start checkpoint every ${interval}
-            env.enableCheckpointing(interval);
+            env.enableCheckpointing(checkpointInterval);
         }
 
         String checkMode = properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_MODE_KEY);
@@ -100,7 +102,14 @@ public class FlinkUtil {
             env.getCheckpointConfig().setMaxConcurrentCheckpoints(maxConcurrCheckpoints);
         }
 
-        String cleanupModeStr = properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_CLEANUPMODE_KEY);
+        Boolean sqlCleanMode = MathUtil.getBoolean(properties.getProperty(ConfigConstrant.SQL_CHECKPOINT_CLEANUPMODE_KEY), false);
+        Boolean flinkCleanMode = MathUtil.getBoolean(properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_CLEANUPMODE_KEY), false);
+
+        String cleanupModeStr = "false";
+        if (sqlCleanMode || flinkCleanMode ){
+            cleanupModeStr = "true";
+        }
+
         if ("true".equalsIgnoreCase(cleanupModeStr)){
             env.getCheckpointConfig().enableExternalizedCheckpoints(
                     CheckpointConfig.ExternalizedCheckpointCleanup.DELETE_ON_CANCELLATION);
