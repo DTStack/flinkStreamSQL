@@ -69,6 +69,8 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     protected String tableName;
 
+    protected String registerTabName;
+
     protected String sql;
 
     protected List<String> primaryKeys;
@@ -112,6 +114,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         String tmpUserName = rdbTableInfo.getUserName();
         String tmpPassword = rdbTableInfo.getPassword();
         String tmpTableName = rdbTableInfo.getTableName();
+        String tmpRegisterName = rdbTableInfo.getName();
 
         Integer tmpSqlBatchSize = rdbTableInfo.getBatchSize();
         if (tmpSqlBatchSize != null) {
@@ -136,6 +139,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         this.userName = tmpUserName;
         this.password = tmpPassword;
         this.tableName = tmpTableName;
+        this.registerTabName = tmpRegisterName;
         this.primaryKeys = rdbTableInfo.getPrimaryKeys();
         this.dbType = rdbTableInfo.getType();
 
@@ -193,7 +197,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         RichSinkFunction richSinkFunction = createJdbcSinkFunc();
         DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
-        streamSink.name(tableName);
+        streamSink.name(registerTabName);
         if (parallelism > 0) {
             streamSink.setParallelism(parallelism);
         }
