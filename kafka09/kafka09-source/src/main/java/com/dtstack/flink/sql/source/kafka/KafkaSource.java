@@ -29,6 +29,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
@@ -114,6 +115,12 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 
         String fields = StringUtils.join(kafka09SourceTableInfo.getFields(), ",");
         String sourceOperatorName = SOURCE_OPERATOR_NAME_TPL.replace("${topic}", topicName).replace("${table}", sourceTableInfo.getName());
-        return tableEnv.fromDataStream(env.addSource(kafkaSrc, sourceOperatorName, typeInformation), fields);
+
+        DataStreamSource kafkaSource = env.addSource(kafkaSrc, sourceOperatorName, typeInformation);
+        Integer parallelism = kafka09SourceTableInfo.getParallelism();
+        if (parallelism != null) {
+            kafkaSource.setParallelism(parallelism);
+        }
+        return tableEnv.fromDataStream(kafkaSource, fields);
     }
 }
