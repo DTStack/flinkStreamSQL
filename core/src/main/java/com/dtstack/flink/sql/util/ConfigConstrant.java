@@ -29,7 +29,9 @@ package com.dtstack.flink.sql.util;
  */
 public class ConfigConstrant {
 	
-    public static final String FLINK_CHECKPOINT_INTERVAL_KEY = "sql.checkpoint.interval";
+    public static final String SQL_CHECKPOINT_INTERVAL_KEY = "sql.checkpoint.interval";
+    // 兼容上层
+    public static final String FLINK_CHECKPOINT_INTERVAL_KEY = "flink.checkpoint.interval";
 
     public static final String FLINK_CHECKPOINT_MODE_KEY = "sql.checkpoint.mode";
 
@@ -37,7 +39,11 @@ public class ConfigConstrant {
 
     public static final String FLINK_MAXCONCURRENTCHECKPOINTS_KEY = "sql.max.concurrent.checkpoints";
 
-    public static final String FLINK_CHECKPOINT_CLEANUPMODE_KEY = "sql.checkpoint.cleanup.mode";
+    public static final String SQL_CHECKPOINT_CLEANUPMODE_KEY = "sql.checkpoint.cleanup.mode";
+
+    public static final String FLINK_CHECKPOINT_CLEANUPMODE_KEY = "flink.checkpoint.cleanup.mode";
+
+
 
     public static final String FLINK_CHECKPOINT_DATAURI_KEY = "flinkCheckpointDataURI";
 
