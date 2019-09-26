@@ -329,6 +329,8 @@ public class Main {
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
+        confProperties = propertiesTrim(confProperties);
+
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
@@ -369,5 +371,15 @@ public class Main {
         FlinkUtil.openCheckpoint(env, confProperties);
 
         return env;
+    }
+
+    private static Properties propertiesTrim(Properties confProperties) {
+        Properties properties = new Properties();
+        confProperties.forEach(
+                (k, v) -> {
+                    properties.put(k.toString().trim(), v.toString().trim());
+                }
+        );
+        return properties;
     }
 }
