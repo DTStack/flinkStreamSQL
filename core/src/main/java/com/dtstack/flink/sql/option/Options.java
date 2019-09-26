@@ -68,6 +68,9 @@ public class Options {
     @OptionRequired(description = "yarn queue")
     private String queue = "default";
 
+    @OptionRequired(description = "yarn session configuration,such as yid")
+    private String yarnSessionConf = "{}";
+
     public String getMode() {
         return mode;
     }
@@ -170,5 +173,13 @@ public class Options {
 
     public void setQueue(String queue) {
         this.queue = queue;
+    }
+
+    public String getYarnSessionConf() {
+        return yarnSessionConf;
+    }
+
+    public void setYarnSessionConf(String yarnSessionConf) {
+        this.yarnSessionConf = yarnSessionConf;
     }
 }
