@@ -73,15 +73,36 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         this.sql = sqlTmp;
     }
 
+    /**
+     *   use MERGE INTO build oracle replace into sql
+     * @param tableName
+     * @param fieldNames   create table contained  column columns
+     * @param realIndexes  <key: indexName, value: index contains columns >
+     * @param fullField    real columns , query from db
+     * @return
+     */
     @Override
     public String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
         tableName = quoteTable(tableName);
-        return "MERGE INTO " + tableName + " T1 USING "
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("MERGE INTO " + tableName + " T1 USING "
                 + "(" + makeValues(fieldNames) + ") T2 ON ("
-                + updateKeySql(realIndexes) + ") WHEN MATCHED THEN UPDATE SET "
-                + getUpdateSql(fieldNames, fullField, "T1", "T2", keyColList(realIndexes)) + " WHEN NOT MATCHED THEN "
+                + updateKeySql(realIndexes) + ") ");
+
+
+        String updateSql = getUpdateSql(fieldNames, fullField, "T1", "T2", keyColList(realIndexes));
+
+        if (StringUtils.isNotEmpty(updateSql)) {
+            sb.append(" WHEN MATCHED THEN UPDATE SET ");
+            sb.append(updateSql);
+        }
+
+        sb.append(" WHEN NOT MATCHED THEN "
                 + "INSERT (" + quoteColumns(fieldNames) + ") VALUES ("
-                + quoteColumns(fieldNames, "T2") + ")";
+                + quoteColumns(fieldNames, "T2") + ")");
+
+        return sb.toString();
     }
 
 
@@ -98,9 +119,14 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         return StringUtils.join(list, ",");
     }
 
-    protected List<String> keyColList(Map<String, List<String>> updateKey) {
+    /**
+     *  extract all distinct index column
+     * @param realIndexes
+     * @return
+     */
+    protected List<String> keyColList(Map<String, List<String>> realIndexes) {
         List<String> keyCols = new ArrayList<>();
-        for (Map.Entry<String, List<String>> entry : updateKey.entrySet()) {
+        for (Map.Entry<String, List<String>> entry : realIndexes.entrySet()) {
             List<String> list = entry.getValue();
             for (String col : list) {
                 if (!containsIgnoreCase(keyCols,col)) {
@@ -111,15 +137,25 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         return keyCols;
     }
 
-    public String getUpdateSql(List<String> column, List<String> fullColumn, String leftTable, String rightTable, List<String> keyCols) {
+    /**
+     *  build update sql , such as UPDATE SET "T1".A="T2".A
+     * @param updateColumn       create table contained  column columns
+     * @param fullColumn   real columns , query from db
+     * @param leftTable    alias
+     * @param rightTable   alias
+     * @param indexCols   index column
+     * @return
+     */
+    public String getUpdateSql(List<String> updateColumn, List<String> fullColumn, String leftTable, String rightTable, List<String> indexCols) {
         String prefixLeft = StringUtils.isBlank(leftTable) ? "" : quoteTable(leftTable) + ".";
         String prefixRight = StringUtils.isBlank(rightTable) ? "" : quoteTable(rightTable) + ".";
         List<String> list = new ArrayList<>();
         for (String col : fullColumn) {
-            if (keyCols == null || keyCols.size() == 0 || containsIgnoreCase(keyCols,col)) {
+            // filter index column
+            if (indexCols == null || indexCols.size() == 0 || containsIgnoreCase(indexCols,col)) {
                 continue;
             }
-            if (fullColumn == null ||containsIgnoreCase(column,col)) {
+            if (containsIgnoreCase(updateColumn,col)) {
                 list.add(prefixLeft + col + "=" + prefixRight + col);
             } else {
                 list.add(prefixLeft + col + "=null");
@@ -140,7 +176,11 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         return sb.toString();
     }
 
-
+    /**
+     *  build connect sql by index column, such as    T1."A"=T2."A"
+     * @param updateKey
+     * @return
+     */
     public String updateKeySql(Map<String, List<String>> updateKey) {
         List<String> exprList = new ArrayList<>();
         for (Map.Entry<String, List<String>> entry : updateKey.entrySet()) {
@@ -153,7 +193,12 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         return StringUtils.join(exprList, " OR ");
     }
 
-
+    /**
+     *   build select sql , such as (SELECT ? "A",? "B" FROM DUAL)
+     *
+     * @param column   destination column
+     * @return
+     */
     public String makeValues(List<String> column) {
         StringBuilder sb = new StringBuilder("SELECT ");
         for (int i = 0; i < column.size(); ++i) {
