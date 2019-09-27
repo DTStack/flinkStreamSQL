@@ -76,12 +76,25 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     @Override
     public String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
         tableName = quoteTable(tableName);
-        return "MERGE INTO " + tableName + " T1 USING "
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("MERGE INTO " + tableName + " T1 USING "
                 + "(" + makeValues(fieldNames) + ") T2 ON ("
-                + updateKeySql(realIndexes) + ") WHEN MATCHED THEN UPDATE SET "
-                + getUpdateSql(fieldNames, fullField, "T1", "T2", keyColList(realIndexes)) + " WHEN NOT MATCHED THEN "
+                + updateKeySql(realIndexes) + ") ");
+
+
+        String updateSql = getUpdateSql(fieldNames, fullField, "T1", "T2", keyColList(realIndexes));
+
+        if (StringUtils.isNotEmpty(updateSql)) {
+            sb.append(" WHEN MATCHED THEN UPDATE SET ");
+            sb.append(updateSql);
+        }
+
+        sb.append(" WHEN NOT MATCHED THEN "
                 + "INSERT (" + quoteColumns(fieldNames) + ") VALUES ("
-                + quoteColumns(fieldNames, "T2") + ")";
+                + quoteColumns(fieldNames, "T2") + ")");
+
+        return sb.toString();
     }
 
 
