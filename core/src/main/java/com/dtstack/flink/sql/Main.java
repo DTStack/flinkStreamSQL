@@ -37,6 +37,7 @@ import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.dtstack.flink.sql.sink.StreamSinkFactory;
 import com.dtstack.flink.sql.source.StreamSourceFactory;
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.util.PropertiesUtils;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.dtstack.flink.sql.util.FlinkUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
@@ -329,6 +330,8 @@ public class Main {
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
+        confProperties = PropertiesUtils.propertiesTrim(confProperties);
+
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
@@ -370,4 +373,5 @@ public class Main {
 
         return env;
     }
+
 }
