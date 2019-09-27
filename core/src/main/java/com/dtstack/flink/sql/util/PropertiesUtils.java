@@ -17,27 +17,18 @@
  */
 
 
-package com.dtstack.flink.sql.udf;
+package com.dtstack.flink.sql.util;
 
-import org.apache.flink.table.functions.FunctionContext;
-import org.apache.flink.table.functions.ScalarFunction;
+import java.util.Properties;
 
-import java.sql.Timestamp;
-
-public class TimestampUdf extends ScalarFunction {
-    @Override
-    public void open(FunctionContext context) {
-    }
-    public static Timestamp eval(String timestamp) {
-        if (timestamp.length() == 13){
-            return new Timestamp(Long.parseLong(timestamp));
-        }else if (timestamp.length() == 10){
-            return new Timestamp(Long.parseLong(timestamp)*1000);
-        } else{
-            return Timestamp.valueOf(timestamp);
-        }
-    }
-    @Override
-    public void close() {
+public class PropertiesUtils {
+    public static Properties propertiesTrim(Properties confProperties) {
+        Properties properties = new Properties();
+        confProperties.forEach(
+                (k, v) -> {
+                    properties.put(k.toString().trim(), v.toString().trim());
+                }
+        );
+        return properties;
     }
 }
