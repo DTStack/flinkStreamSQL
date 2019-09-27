@@ -34,8 +34,8 @@ public class OracleSinkParser extends RdbSinkParser {
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo sqlserverTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-        sqlserverTableInfo.setType(CURR_TYPE);
-        return sqlserverTableInfo;
+        TableInfo oracleTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+        oracleTableInfo.setType(CURR_TYPE);
+        return oracleTableInfo;
     }
 }
