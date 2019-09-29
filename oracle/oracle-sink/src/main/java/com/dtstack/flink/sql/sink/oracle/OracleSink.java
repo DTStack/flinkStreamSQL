@@ -57,11 +57,11 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
     private void buildInsertSql(String tableName, List<String> fields) {
 
-        tableName = DtStringUtil.quoteTable(tableName);
+        tableName = DtStringUtil.addQuoteForTableName(tableName);
         String sqlTmp = "insert into " + tableName + " (${fields}) values (${placeholder})";
 
         List<String> adaptFields = Lists.newArrayList();
-        fields.forEach(field -> adaptFields.add(DtStringUtil.quoteColumn(field)));
+        fields.forEach(field -> adaptFields.add(DtStringUtil.addQuoteForColumn(field)));
 
         String fieldsStr = StringUtils.join(adaptFields, ",");
         String placeholder = "";
@@ -84,7 +84,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
      */
     @Override
     public String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
-        tableName = DtStringUtil.quoteTable(tableName);
+        tableName = DtStringUtil.addQuoteForTableName(tableName);
         StringBuilder sb = new StringBuilder();
 
         sb.append("MERGE INTO " + tableName + " T1 USING "
@@ -112,10 +112,10 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     }
 
     public String quoteColumns(List<String> column, String table) {
-        String prefix = StringUtils.isBlank(table) ? "" : DtStringUtil.quoteTable(table) + ".";
+        String prefix = StringUtils.isBlank(table) ? "" : DtStringUtil.addQuoteForTableName(table) + ".";
         List<String> list = new ArrayList<>();
         for (String col : column) {
-            list.add(prefix + DtStringUtil.quoteColumn(col));
+            list.add(prefix + DtStringUtil.addQuoteForColumn(col));
         }
         return StringUtils.join(list, ",");
     }
@@ -148,8 +148,8 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
      * @return
      */
     public String getUpdateSql(List<String> updateColumn, List<String> fullColumn, String leftTable, String rightTable, List<String> indexCols) {
-        String prefixLeft = StringUtils.isBlank(leftTable) ? "" : DtStringUtil.quoteTable(leftTable) + ".";
-        String prefixRight = StringUtils.isBlank(rightTable) ? "" : DtStringUtil.quoteTable(rightTable) + ".";
+        String prefixLeft = StringUtils.isBlank(leftTable) ? "" : DtStringUtil.addQuoteForTableName(leftTable) + ".";
+        String prefixRight = StringUtils.isBlank(rightTable) ? "" : DtStringUtil.addQuoteForTableName(rightTable) + ".";
         List<String> list = new ArrayList<>();
         for (String col : fullColumn) {
             // filter index column
@@ -157,9 +157,9 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
                 continue;
             }
             if (containsIgnoreCase(updateColumn,col)) {
-                list.add(prefixLeft + DtStringUtil.quoteColumn(col) + "=" + prefixRight + DtStringUtil.quoteColumn(col));
+                list.add(prefixLeft + DtStringUtil.addQuoteForColumn(col) + "=" + prefixRight + DtStringUtil.addQuoteForColumn(col));
             } else {
-                list.add(prefixLeft + DtStringUtil.quoteColumn(col) + "=null");
+                list.add(prefixLeft + DtStringUtil.addQuoteForColumn(col) + "=null");
             }
         }
         return StringUtils.join(list, ",");
@@ -176,7 +176,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         for (Map.Entry<String, List<String>> entry : updateKey.entrySet()) {
             List<String> colList = new ArrayList<>();
             for (String col : entry.getValue()) {
-                colList.add("T1." + DtStringUtil.quoteColumn(col) + "=T2." + DtStringUtil.quoteColumn(col));
+                colList.add("T1." + DtStringUtil.addQuoteForColumn(col) + "=T2." + DtStringUtil.addQuoteForColumn(col));
             }
             exprList.add(StringUtils.join(colList, " AND "));
         }
@@ -195,7 +195,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
             if (i != 0) {
                 sb.append(",");
             }
-            sb.append("? " + DtStringUtil.quoteColumn(column.get(i)));
+            sb.append("? " + DtStringUtil.addQuoteForColumn(column.get(i)));
         }
         sb.append(" FROM DUAL");
         return sb.toString();
