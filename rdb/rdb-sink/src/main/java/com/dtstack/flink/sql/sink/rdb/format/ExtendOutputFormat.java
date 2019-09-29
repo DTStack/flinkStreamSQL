@@ -63,7 +63,7 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
      */
     public void fillRealIndexes() throws SQLException {
         Map<String, List<String>> map = Maps.newHashMap();
-        ResultSet rs = getDbConn().getMetaData().getIndexInfo(null, null, DtStringUtil.quoteTable(getTableName()), true, false);
+        ResultSet rs = getDbConn().getMetaData().getIndexInfo(null, null, DtStringUtil.addQuoteForTableName(getTableName()), true, false);
 
         while (rs.next()) {
             String indexName = rs.getString("INDEX_NAME");

@@ -253,19 +253,19 @@ public class DtStringUtil {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 
-    public static String quoteTable(String table) {
+    public static String addQuoteForTableName(String table) {
         String[] parts = table.split("\\.");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < parts.length; ++i) {
             if (i != 0) {
                 sb.append(".");
             }
-            sb.append(DtStringUtil.quoteColumn(parts[i]));
+            sb.append(DtStringUtil.addQuoteForColumn(parts[i]));
         }
         return sb.toString();
     }
 
-    public static String quoteColumn(String column) {
+    public static String addQuoteForColumn(String column) {
         return getStartQuote() + column + getEndQuote();
     }
 
