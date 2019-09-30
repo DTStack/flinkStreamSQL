@@ -248,7 +248,32 @@ public class DtStringUtil {
         return object;
     }
 
+
     public static String firstUpperCase(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
+    public static String addQuoteForTableName(String table) {
+        String[] parts = table.split("\\.");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; ++i) {
+            if (i != 0) {
+                sb.append(".");
+            }
+            sb.append(DtStringUtil.addQuoteForColumn(parts[i]));
+        }
+        return sb.toString();
+    }
+
+    public static String addQuoteForColumn(String column) {
+        return getStartQuote() + column + getEndQuote();
+    }
+
+    public static String getStartQuote() {
+        return "\"";
+    }
+
+    public static String getEndQuote() {
+        return "\"";
     }
 }

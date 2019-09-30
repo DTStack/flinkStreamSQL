@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.rdb.format;
 
+import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 
@@ -62,7 +63,7 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
      */
     public void fillRealIndexes() throws SQLException {
         Map<String, List<String>> map = Maps.newHashMap();
-        ResultSet rs = getDbConn().getMetaData().getIndexInfo(null, null, getTableName(), true, false);
+        ResultSet rs = getDbConn().getMetaData().getIndexInfo(null, null, DtStringUtil.addQuoteForTableName(getTableName()), true, false);
 
         while (rs.next()) {
             String indexName = rs.getString("INDEX_NAME");
@@ -92,6 +93,7 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
      * @throws SQLException
      */
     public void fillFullColumns() throws SQLException {
+        // table name not quote
         ResultSet rs = getDbConn().getMetaData().getColumns(null, null, getTableName(), null);
         while (rs.next()) {
             String columnName = rs.getString("COLUMN_NAME");
