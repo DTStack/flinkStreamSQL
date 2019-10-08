@@ -51,6 +51,8 @@ import java.util.*;
 
 import com.dtstack.flink.sql.enums.ClusterMode;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.StringHelper;
+
 import java.io.IOException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -113,7 +115,15 @@ public class ClusterClientFactory {
                     ApplicationId applicationId = null;
                     ClusterClient clusterClient = null;
                     if(mode.equals(ClusterMode.yarn.name())) {//on yarn cluster mode
-                        applicationId = getYarnClusterApplicationId(yarnClient);
+                        String yarnSessionConf = launcherOptions.getYarnSessionConf();
+                        yarnSessionConf = URLDecoder.decode(yarnSessionConf, Charsets.UTF_8.toString());
+                        Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
+                        String yid = yarnSessionConfProperties.get("yid").toString();
+                        if(StringUtils.isNotBlank(yid)){
+                            applicationId = toApplicationId(yid);
+                        }else{
+                            applicationId = getYarnClusterApplicationId(yarnClient);
+                        }
                         System.out.println("applicationId="+applicationId.toString());
 
                         AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(
@@ -247,6 +257,23 @@ public class ClusterClientFactory {
             }
         }
         return yarnConf;
+    }
+
+    private static ApplicationId toApplicationId(String appIdStr) {
+        Iterator<String> it = StringHelper._split(appIdStr).iterator();
+        if (!(it.next()).equals("application")) {
+            throw new IllegalArgumentException("Invalid ApplicationId prefix: " + appIdStr + ". The valid ApplicationId should start with prefix " + "application");
+        } else {
+            try {
+                return toApplicationId(it);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid AppAttemptId: " + appIdStr, e);
+            }
+        }
+    }
+
+    private static ApplicationId toApplicationId(Iterator<String> it) throws NumberFormatException {
+        return ApplicationId.newInstance(Long.parseLong(it.next()), Integer.parseInt(it.next()));
     }
 
 }

@@ -29,9 +29,12 @@ import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -70,6 +73,17 @@ public class SideSQLParser {
     private Object parseSql(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo){
         SqlKind sqlKind = sqlNode.getKind();
         switch (sqlKind){
+            case WITH: {
+                SqlWith sqlWith = (SqlWith) sqlNode;
+                SqlNodeList sqlNodeList = sqlWith.withList;
+                for (SqlNode withAsTable : sqlNodeList) {
+                    SqlWithItem sqlWithItem = (SqlWithItem) withAsTable;
+                    parseSql(sqlWithItem.query, sideTableSet, queueInfo);
+                    queueInfo.add(sqlWithItem);
+                }
+                parseSql(sqlWith.body, sideTableSet, queueInfo);
+                break;
+            }
             case INSERT:
                 SqlNode sqlSource = ((SqlInsert)sqlNode).getSource();
                 return parseSql(sqlSource, sideTableSet, queueInfo);
