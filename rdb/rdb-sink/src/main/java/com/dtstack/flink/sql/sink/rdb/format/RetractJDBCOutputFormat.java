@@ -106,7 +106,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             dbConn = establishConnection();
             initMetric();
 
-            if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
+            if (existTabname()) {
                 if (isReplaceInsertQuery()) {
                     insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
                 }
@@ -398,6 +398,18 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    /**
+     *  username as default schema
+     * @return
+     */
+    public String getSchema() {
+        return username;
+    }
+
+    public boolean existTabname() throws SQLException {
+        return dbConn.getMetaData().getTables(null, null, tableName, null).next();
     }
 
     public void setPassword(String password) {
