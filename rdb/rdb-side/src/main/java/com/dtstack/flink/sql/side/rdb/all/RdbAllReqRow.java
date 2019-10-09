@@ -119,9 +119,8 @@ public abstract class RdbAllReqRow extends AllReqRow {
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = value.getField(conValIndex);
             if (equalObj == null) {
-                out.collect(null);
+                return;
             }
-
             inputParams.add(equalObj);
         }
 
