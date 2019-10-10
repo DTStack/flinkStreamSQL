@@ -253,19 +253,17 @@ public class DtStringUtil {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 
-    public static String addQuoteForTableName(String table) {
-        String[] parts = table.split("\\.");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length; ++i) {
-            if (i != 0) {
-                sb.append(".");
-            }
-            sb.append(DtStringUtil.addQuoteForColumn(parts[i]));
+    public static String getTableFullPath(String schema, String tableName) {
+        if (StringUtils.isEmpty(schema)){
+            return addQuoteForStr(tableName);
         }
-        return sb.toString();
+        String schemaAndTabName = addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
+        return schemaAndTabName;
     }
 
-    public static String addQuoteForColumn(String column) {
+
+
+    public static String addQuoteForStr(String column) {
         return getStartQuote() + column + getEndQuote();
     }
 

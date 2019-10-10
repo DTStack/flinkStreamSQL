@@ -361,6 +361,7 @@ public class SideSqlExec {
         if(groupNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) groupNode;
             String mappingFieldName = mappingTable.get(sqlIdentifier.getComponent(0).getSimple(), sqlIdentifier.getComponent(1).getSimple());
+
             sqlIdentifier = sqlIdentifier.setName(0, tableAlias);
             return sqlIdentifier.setName(1, mappingFieldName);
         }else if(groupNode instanceof  SqlBasicCall){

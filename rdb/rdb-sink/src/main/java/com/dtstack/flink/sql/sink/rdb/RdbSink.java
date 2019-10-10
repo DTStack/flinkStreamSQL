@@ -81,6 +81,8 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     private int parallelism = -1;
 
+    private String schema;
+
     public RichSinkFunction createJdbcSinkFunc() {
         if (driverName == null || dbURL == null || userName == null
                 || password == null || sqlTypes == null || tableName == null) {
@@ -98,6 +100,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         outputFormat.setTypesArray(sqlTypes);
         outputFormat.setTableName(tableName);
         outputFormat.setDbType(dbType);
+        outputFormat.setSchema(schema);
         outputFormat.setDbSink(this);
 
         outputFormat.verifyField();
@@ -142,8 +145,9 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         this.registerTabName = tmpRegisterName;
         this.primaryKeys = rdbTableInfo.getPrimaryKeys();
         this.dbType = rdbTableInfo.getType();
+        this.schema = rdbTableInfo.getSchema();
 
-        buildSql(tableName, fields);
+        buildSql(schema, tableName, fields);
         buildSqlTypes(fieldTypeArray);
         return this;
     }
@@ -254,7 +258,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
      * @param tableName
      * @param fields
      */
-    public abstract void buildSql(String tableName, List<String> fields);
+    public abstract void buildSql(String schema, String tableName, List<String> fields);
 
     /**
      * sqlserver and oracle maybe implement
@@ -264,7 +268,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
      * @param realIndexes
      * @return
      */
-    public abstract String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField);
+    public abstract String buildUpdateSql(String schema, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField);
 
     public abstract String getDriverName();
 
