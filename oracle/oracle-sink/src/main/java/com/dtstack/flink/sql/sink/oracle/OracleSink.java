@@ -51,13 +51,14 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     }
 
     @Override
-    public void buildSql(String tableName, List<String> fields) {
-        buildInsertSql(tableName, fields);
+    public void buildSql(String scheam, String tableName, List<String> fields) {
+        buildInsertSql(scheam, tableName, fields);
     }
 
-    private void buildInsertSql(String tableName, List<String> fields) {
+    private void buildInsertSql(String scheam, String tableName, List<String> fields) {
 
-        tableName = DtStringUtil.addQuoteForStr(tableName);
+        tableName = DtStringUtil.getTableFullPath(scheam,tableName);
+
         String sqlTmp = "insert into " + tableName + " (${fields}) values (${placeholder})";
 
         List<String> adaptFields = Lists.newArrayList();
@@ -83,8 +84,9 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
      * @return
      */
     @Override
-    public String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
-        tableName = DtStringUtil.addQuoteForStr(tableName);
+    public String buildUpdateSql(String scheam, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
+        tableName = DtStringUtil.getTableFullPath(scheam, tableName);
+
         StringBuilder sb = new StringBuilder();
 
         sb.append("MERGE INTO " + tableName + " T1 USING "

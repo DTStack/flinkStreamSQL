@@ -253,6 +253,15 @@ public class DtStringUtil {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 
+    public static String getTableFullPath(String schema, String tableName) {
+        if (StringUtils.isEmpty(schema)){
+            return addQuoteForStr(tableName);
+        }
+        String schemaAndTabName = addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
+        return schemaAndTabName;
+    }
+
+
 
     public static String addQuoteForStr(String column) {
         return getStartQuote() + column + getEndQuote();

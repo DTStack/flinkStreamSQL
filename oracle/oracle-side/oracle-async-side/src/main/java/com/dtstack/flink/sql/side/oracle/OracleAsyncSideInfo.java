@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -68,9 +69,11 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
             }
         }
 
-        sqlCondition = sqlCondition.replace("${tableName}", dealLowerFiled(rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
+        sqlCondition = sqlCondition.replace("${tableName}", DtStringUtil.getTableFullPath(rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
         System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
+
+
 
     private String dealLowerFiled(String field) {
         return   "\"" + field + "\"";
