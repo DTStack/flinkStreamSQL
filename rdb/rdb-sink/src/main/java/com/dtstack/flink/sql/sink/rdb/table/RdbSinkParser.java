@@ -46,6 +46,8 @@ public class RdbSinkParser extends AbsTableParser {
         rdbTableInfo.setBatchWaitInterval(MathUtil.getLongVal(props.get(RdbTableInfo.BATCH_WAIT_INTERVAL_KEY.toLowerCase())));
         rdbTableInfo.setBufferSize(MathUtil.getString(props.get(RdbTableInfo.BUFFER_SIZE_KEY.toLowerCase())));
         rdbTableInfo.setFlushIntervalMs(MathUtil.getString(props.get(RdbTableInfo.FLUSH_INTERVALMS_KEY.toLowerCase())));
+        rdbTableInfo.setSchema(MathUtil.getString(props.get(RdbTableInfo.SCHEMA_KEY.toLowerCase())));
+
 
         rdbTableInfo.check();
         return rdbTableInfo;
