@@ -63,7 +63,8 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
      */
     public void fillRealIndexes() throws SQLException {
         Map<String, List<String>> map = Maps.newHashMap();
-        ResultSet rs = getDbConn().getMetaData().getIndexInfo(null, null, DtStringUtil.addQuoteForTableName(getTableName()), true, false);
+
+        ResultSet rs = getDbConn().getMetaData().getIndexInfo(null, getSchema(), DtStringUtil.addQuoteForStr(getTableName()), true, false);
 
         while (rs.next()) {
             String indexName = rs.getString("INDEX_NAME");
@@ -94,7 +95,7 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
      */
     public void fillFullColumns() throws SQLException {
         // table name not quote
-        ResultSet rs = getDbConn().getMetaData().getColumns(null, null, getTableName(), null);
+        ResultSet rs = getDbConn().getMetaData().getColumns(null, getSchema(), getTableName(), null);
         while (rs.next()) {
             String columnName = rs.getString("COLUMN_NAME");
             if (StringUtils.isNotBlank(columnName)) {
@@ -111,4 +112,5 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
         }
         return false;
     }
+
 }

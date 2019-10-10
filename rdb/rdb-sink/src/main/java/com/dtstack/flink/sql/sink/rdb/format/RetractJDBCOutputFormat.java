@@ -64,6 +64,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private String dbURL;
     private String tableName;
     private String dbType;
+    private String schema;
     private RdbSink dbSink;
     // trigger preparedStatement execute batch interval
     private long batchWaitInterval = 10000l;
@@ -106,9 +107,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             dbConn = establishConnection();
             initMetric();
 
-            if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
+            if (existTabname()) {
                 if (isReplaceInsertQuery()) {
-                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
+                    insertQuery = dbSink.buildUpdateSql(schema , tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
                 }
                 upload = dbConn.prepareStatement(insertQuery);
             } else {
@@ -398,6 +399,21 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getSchema() {
+        if (StringUtils.isNotEmpty(schema)) {
+            return schema;
+        }
+        return null;
+    }
+
+    public void setSchema(String schema) {
+        this.schema = schema;
+    }
+
+    public boolean existTabname() throws SQLException {
+        return dbConn.getMetaData().getTables(null, getSchema(), tableName, null).next();
     }
 
     public void setPassword(String password) {
