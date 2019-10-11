@@ -155,7 +155,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             return row;
         } catch (Exception e) {
             //add metric of dirty data
-            if (dirtyDataCounter.getCount() % dirtyDataFrequency == 0) {
+            if (dirtyDataCounter.getCount() % dirtyDataFrequency == 0 || LOG.isDebugEnabled()) {
                 LOG.info("dirtyData: " + new String(message));
                 LOG.error("" , e);
             }
