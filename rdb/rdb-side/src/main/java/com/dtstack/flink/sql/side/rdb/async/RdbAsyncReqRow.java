@@ -78,7 +78,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
-                resultFuture.complete(null);
+                dealMissKey(input, resultFuture);
                 return;
             }
             inputParams.add(equalObj);
