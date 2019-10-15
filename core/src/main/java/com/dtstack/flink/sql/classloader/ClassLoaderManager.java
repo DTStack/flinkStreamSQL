@@ -19,10 +19,16 @@
 package com.dtstack.flink.sql.classloader;
 
 import com.dtstack.flink.sql.util.PluginUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -42,6 +48,11 @@ public class ClassLoaderManager {
         return ClassLoaderCallBackMethod.callbackAndReset(supplier, classLoader);
     }
 
+    public static <R> R newInstance(List<URL> jarUrls, DtSupplier<R> supplier) throws Exception {
+        ClassLoader classLoader = retrieveClassLoad(jarUrls);
+        return ClassLoaderCallBackMethod.callbackAndReset(supplier, classLoader);
+    }
+
     private static DtClassLoader retrieveClassLoad(String pluginJarPath) {
         return pluginClassLoader.computeIfAbsent(pluginJarPath, k -> {
             try {
@@ -55,5 +66,30 @@ public class ClassLoaderManager {
                 throw new RuntimeException("retrieve ClassLoad happens error");
             }
         });
+    }
+
+    private static DtClassLoader retrieveClassLoad(List<URL> jarUrls) {
+        jarUrls.sort(Comparator.comparing(URL::toString));
+        String jarUrlkey = StringUtils.join(jarUrls, "_");
+        return pluginClassLoader.computeIfAbsent(jarUrlkey, k -> {
+            try {
+                URL[] urls = jarUrls.toArray(new URL[jarUrls.size()]);
+                ClassLoader parentClassLoader = Thread.currentThread().getContextClassLoader();
+                DtClassLoader classLoader = new DtClassLoader(urls, parentClassLoader);
+                LOG.info("jarUrl:{} create ClassLoad successful...", jarUrlkey);
+                return classLoader;
+            } catch (Throwable e) {
+                LOG.error("retrieve ClassLoad happens error:{}", e);
+                throw new RuntimeException("retrieve ClassLoad happens error");
+            }
+        });
+    }
+
+    public static List<URL> getClassPath() {
+        List<URL> classPaths = new ArrayList<>();
+        for (Map.Entry<String, DtClassLoader> entry : pluginClassLoader.entrySet()) {
+            classPaths.addAll(Arrays.asList(entry.getValue().getURLs()));
+        }
+        return classPaths;
     }
 }
