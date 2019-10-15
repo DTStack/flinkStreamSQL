@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -43,14 +42,14 @@ public class ClassLoaderManager {
 
     private static Map<String, DtClassLoader> pluginClassLoader = new ConcurrentHashMap<>();
 
-    public static <R> R newInstance(String pluginJarPath, DtSupplier<R> supplier) throws Exception {
+    public static <R> R newInstance(String pluginJarPath, ClassLoaderSupplier<R> supplier) throws Exception {
         ClassLoader classLoader = retrieveClassLoad(pluginJarPath);
-        return ClassLoaderCallBackMethod.callbackAndReset(supplier, classLoader);
+        return ClassLoaderSupplierCallBack.callbackAndReset(supplier, classLoader);
     }
 
-    public static <R> R newInstance(List<URL> jarUrls, DtSupplier<R> supplier) throws Exception {
+    public static <R> R newInstance(List<URL> jarUrls, ClassLoaderSupplier<R> supplier) throws Exception {
         ClassLoader classLoader = retrieveClassLoad(jarUrls);
-        return ClassLoaderCallBackMethod.callbackAndReset(supplier, classLoader);
+        return ClassLoaderSupplierCallBack.callbackAndReset(supplier, classLoader);
     }
 
     private static DtClassLoader retrieveClassLoad(String pluginJarPath) {
