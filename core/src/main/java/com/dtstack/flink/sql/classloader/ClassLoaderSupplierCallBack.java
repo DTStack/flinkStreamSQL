@@ -20,25 +20,21 @@
 package com.dtstack.flink.sql.classloader;
 
 /**
- * Represents a supplier of results.
- *
- * <p>There is no requirement that a new or distinct result be returned each
- * time the supplier is invoked.
- *
- * <p>This is a <a href="package-summary.html">functional interface</a>
- * whose functional method is {@link #get()}.
- *
- * @param <T> the type of results supplied by this supplier
- *
- * @since 1.8
+ * company: www.dtstack.com
+ * author: toutian
+ * create: 2019/10/14
  */
-@FunctionalInterface
-public interface DtSupplier<T> {
+public class ClassLoaderSupplierCallBack {
 
-    /**
-     * Gets a result.
-     *
-     * @return a result
-     */
-    T get(ClassLoader cl) throws Exception;
+    public static <R> R callbackAndReset(ClassLoaderSupplier<R> supplier, ClassLoader toSetClassLoader) throws Exception {
+        ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(toSetClassLoader);
+        try {
+            return supplier.get(toSetClassLoader);
+        } finally {
+            Thread.currentThread().setContextClassLoader(oldClassLoader);
+        }
+    }
+
+
 }
