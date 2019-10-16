@@ -101,7 +101,7 @@ public class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
-    private static Config config = org.apache.calcite.sql.parser.SqlParser
+    public static Config config = org.apache.calcite.sql.parser.SqlParser
             .configBuilder()
             .setLex(Lex.MYSQL)
             .build();
