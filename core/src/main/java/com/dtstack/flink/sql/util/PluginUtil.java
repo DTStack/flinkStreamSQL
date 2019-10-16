@@ -33,6 +33,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -144,6 +146,25 @@ public class PluginUtil {
         }
     }
 
+    public static URL[] getPluginJarUrls(String pluginDir) throws MalformedURLException {
+        List<URL> urlList = new ArrayList<>();
+        File dirFile = new File(pluginDir);
+        if(!dirFile.exists() || !dirFile.isDirectory()){
+            throw new RuntimeException("plugin path:" + pluginDir + "is not exist.");
+        }
+
+        File[] files = dirFile.listFiles(tmpFile -> tmpFile.isFile() && tmpFile.getName().endsWith(JAR_SUFFIX));
+        if(files == null || files.length == 0){
+            throw new RuntimeException("plugin path:" + pluginDir + " is null.");
+        }
+
+        for(File file : files){
+            URL pluginJarURL = file.toURI().toURL();
+            urlList.add(pluginJarURL);
+        }
+        return urlList.toArray(new URL[urlList.size()]);
+    }
+    
     public static String getCoreJarFileName (String path, String prefix) throws Exception {
         String coreJarFileName = null;
         File pluginDir = new File(path);
