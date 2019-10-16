@@ -112,6 +112,8 @@ public class SideSqlExec {
                 }
 
                 if(pollSqlNode.getKind() == INSERT){
+                    System.out.println("----------real exec sql-----------" );
+                    System.out.println(pollSqlNode.toString());
                     FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
