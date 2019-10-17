@@ -20,9 +20,8 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.Main;
+import com.dtstack.flink.sql.config.CalciteConfig;
 import com.dtstack.flink.sql.util.ParseUtils;
-import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -41,6 +40,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
@@ -48,6 +48,7 @@ import org.apache.flink.calcite.shaded.com.google.common.collect.Queues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -72,12 +73,11 @@ public class SideSQLParser {
     public Queue<Object> getExeQueue(String exeSql, Set<String> sideTableSet) throws SqlParseException {
         System.out.println("---exeSql---");
         System.out.println(exeSql);
+        LOG.info("---exeSql---");
+        LOG.info(exeSql);
+
         Queue<Object> queueInfo = Queues.newLinkedBlockingQueue();
-        SqlParser.Config config = SqlParser
-                .configBuilder()
-                .setLex(Lex.MYSQL)
-                .build();
-        SqlParser sqlParser = SqlParser.create(exeSql,Main.config);
+        SqlParser sqlParser = SqlParser.create(exeSql, CalciteConfig.MYSQL_LEX_CONFIG);
         SqlNode sqlNode = sqlParser.parseStmt();
         parseSql(sqlNode, sideTableSet, queueInfo);
         queueInfo.offer(sqlNode);
@@ -163,30 +163,40 @@ public class SideSQLParser {
         JoinType joinType = joinNode.getJoinType();
         String leftTbName = "";
         String leftTbAlias = "";
+        String rightTableName = "";
+        String rightTableAlias = "";
         Map<String, String> midTableMapping = null ;
         boolean leftIsMidTable = false;
+        // 右节点已经被解析
+        boolean rightIsParse = false;
+        Tuple2<String, String> rightTableNameAndAlias = null;
 
 
         if(leftNode.getKind() == IDENTIFIER){
             leftTbName = leftNode.toString();
         }else if(leftNode.getKind() == JOIN){
             JoinInfo leftNodeJoinInfo = (JoinInfo)parseSql(leftNode, sideTableSet, queueInfo);//解析多JOIN
-            //  select * from xxx
-            SqlNode sqlNode = buildSelectByLeftNode(leftNode);
-            //  ( select * from xxx) as xxx_0
-            SqlBasicCall newAsNode = buildAsNodeByJoinInfo(leftNodeJoinInfo, sqlNode);
 
-            leftNode = newAsNode;
+            rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo);
+            rightIsParse = true;
+            if (checkIsSideTable(rightTableNameAndAlias.f0, sideTableSet)) {
+                //  select * from xxx
+                SqlNode sqlNode = buildSelectByLeftNode(leftNode);
+                //  ( select * from xxx) as xxx_0
+                SqlBasicCall newAsNode = buildAsNodeByJoinInfo(leftNodeJoinInfo, sqlNode);
+                leftNode = newAsNode;
+                joinNode.setLeft(leftNode);
 
-            joinNode.setLeft(leftNode);
+                leftIsMidTable = true;
+                midTableMapping = saveTabMapping(leftNodeJoinInfo);
 
-            leftIsMidTable = true;
-
-            midTableMapping = saveTabMapping(leftNodeJoinInfo);
-
-            AliasInfo aliasInfo = (AliasInfo) parseSql(newAsNode, sideTableSet, queueInfo);
-            leftTbName = aliasInfo.getName();
-            leftTbAlias = aliasInfo.getAlias();
+                AliasInfo aliasInfo = (AliasInfo) parseSql(newAsNode, sideTableSet, queueInfo);
+                leftTbName = aliasInfo.getName();
+                leftTbAlias = aliasInfo.getAlias();
+            } else {
+                leftTbName = leftNodeJoinInfo.getRightTableName();
+                leftTbAlias = leftNodeJoinInfo.getRightTableAlias();
+            }
 
         }else if(leftNode.getKind() == AS){
             AliasInfo aliasInfo = (AliasInfo) parseSql(leftNode, sideTableSet, queueInfo);
@@ -201,16 +211,11 @@ public class SideSQLParser {
             throw new RuntimeException("side-table must be at the right of join operator");
         }
 
-        String rightTableName = "";
-        String rightTableAlias = "";
-
-        if(rightNode.getKind() == IDENTIFIER){
-            rightTableName = rightNode.toString();
-        }else{
-            AliasInfo aliasInfo = (AliasInfo)parseSql(rightNode, sideTableSet, queueInfo);
-            rightTableName = aliasInfo.getName();
-            rightTableAlias = aliasInfo.getAlias();
+        if (!rightIsParse) {
+            rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo);
         }
+        rightTableName = rightTableNameAndAlias.f0;
+        rightTableAlias = rightTableNameAndAlias.f1;
 
         boolean rightIsSide = checkIsSideTable(rightTableName, sideTableSet);
         if(joinType == JoinType.RIGHT){
@@ -249,25 +254,44 @@ public class SideSQLParser {
         return tableInfo;
     }
 
+    private Tuple2<String, String> parseRightNode(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo) {
+        Tuple2<String, String> tabName = new Tuple2<>("", "");
+        if(sqlNode.getKind() == IDENTIFIER){
+            tabName.f0 = sqlNode.toString();
+        }else{
+            AliasInfo aliasInfo = (AliasInfo)parseSql(sqlNode, sideTableSet, queueInfo);
+            tabName.f0 = aliasInfo.getName();
+            tabName.f1 = aliasInfo.getAlias();
+        }
+        return tabName;
+    }
+
     private Map<String, String> saveTabMapping(JoinInfo leftNodeJoinInfo) {
-        Map<String, String> midTableMapping;
+        Map<String, String> midTableMapping = Maps.newHashMap();;
 
         String midTab = buidTableName(leftNodeJoinInfo.getLeftTableAlias(), SPLIT, leftNodeJoinInfo.getRightTableAlias());
-        midTab += "_0";
-
-        midTableMapping = Maps.newHashMap();
+        String finalMidTab = midTab + "_0";
 
         if(leftNodeJoinInfo.isLeftIsMidTable()) {
             midTableMapping.putAll(leftNodeJoinInfo.getLeftTabMapping());
         }
-
-        midTableMapping.put(leftNodeJoinInfo.getLeftTableAlias(), midTab);
-        midTableMapping.put(leftNodeJoinInfo.getRightTableAlias(), midTab);
+        fillLeftAllTable(leftNodeJoinInfo, midTableMapping, finalMidTab);
         return midTableMapping;
     }
 
+    private void fillLeftAllTable(JoinInfo leftNodeJoinInfo, Map<String, String> midTableMapping, String finalMidTab) {
+        List<String> tablesName = Lists.newArrayList();
+        ParseUtils.parseLeftNodeTableName(leftNodeJoinInfo.getLeftNode(), tablesName);
+
+        tablesName.forEach(tab ->{
+            midTableMapping.put(tab, finalMidTab);
+        });
+        midTableMapping.put(leftNodeJoinInfo.getRightTableAlias(), finalMidTab);
+    }
+
+
     private SqlNode buildSelectByLeftNode(SqlNode leftNode) {
-        SqlParser sqlParser = SqlParser.create(tempSQL, Main.config);
+        SqlParser sqlParser = SqlParser.create(tempSQL, CalciteConfig.MYSQL_LEX_CONFIG);
         SqlNode sqlNode = null;
         try {
             sqlNode = sqlParser.parseStmt();

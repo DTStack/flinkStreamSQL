@@ -41,7 +41,7 @@ public class JoinInfo implements Serializable {
 
     //左表是否是维表
     private boolean leftIsSideTable;
-
+    //左表是 转换后的中间表
     private boolean leftIsMidTable;
 
     //右表是否是维表
