@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.side.operator;
 
-import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.side.AsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
@@ -49,14 +49,13 @@ public class SideAsyncOperator {
 
     private static AsyncReqRow loadAsyncReq(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,
                                             JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         String pathOfType = String.format(PATH_FORMAT, sideType);
         String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir);
-        DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
-        PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
         String className = PluginUtil.getSqlSideClassName(sideType, "side", "Async");
-        return dtClassLoader.loadClass(className).asSubclass(AsyncReqRow.class)
-                .getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, SideTableInfo.class).newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+        return ClassLoaderManager.newInstance(pluginJarPath, (cl) ->
+                cl.loadClass(className).asSubclass(AsyncReqRow.class)
+                        .getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, SideTableInfo.class)
+                        .newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     public static DataStream getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,  JoinInfo joinInfo,
