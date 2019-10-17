@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.side.operator;
 
-import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.side.AllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
@@ -28,7 +28,6 @@ import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 
-import java.net.MalformedURLException;
 import java.util.List;
 
 /**
@@ -47,18 +46,13 @@ public class SideWithAllCacheOperator {
                                          JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
                                          SideTableInfo sideTableInfo) throws Exception {
 
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         String pathOfType = String.format(PATH_FORMAT, sideType);
         String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir);
-
-        DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
-        PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
         String className = PluginUtil.getSqlSideClassName(sideType, "side", "All");
 
-        return dtClassLoader.loadClass(className).asSubclass(AllReqRow.class).getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, SideTableInfo.class)
-                .newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
-
-
+        return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> cl.loadClass(className).asSubclass(AllReqRow.class)
+                .getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, SideTableInfo.class)
+                .newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     public static DataStream getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo, JoinInfo joinInfo,
