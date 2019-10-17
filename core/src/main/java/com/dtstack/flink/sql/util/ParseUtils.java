@@ -40,6 +40,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -246,5 +247,18 @@ public class ParseUtils {
             key = res;
         }
         return res;
+    }
+
+    public static void parseLeftNodeTableName(SqlNode leftJoin, List<String> tablesName) {
+        if (leftJoin.getKind() == IDENTIFIER) {
+            SqlIdentifier sqlIdentifier = (SqlIdentifier) leftJoin;
+            tablesName.add(sqlIdentifier.names.get(0));
+        } else if (leftJoin.getKind() == AS) {
+            SqlNode sqlNode = ((SqlBasicCall) leftJoin).getOperands()[1];
+            tablesName.add(sqlNode.toString());
+        } else if (leftJoin.getKind() == JOIN) {
+            parseLeftNodeTableName(((SqlJoin) leftJoin).getLeft(), tablesName);
+            parseLeftNodeTableName(((SqlJoin) leftJoin).getRight(), tablesName);
+        }
     }
 }
