@@ -21,10 +21,11 @@ package com.dtstack.flink.sql.config;
 
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParser.Config;
 
 public class CalciteConfig {
 
-    public static SqlParser.Config MYSQL_LEX_CONFIG = org.apache.calcite.sql.parser.SqlParser
+    public static Config MYSQL_LEX_CONFIG = SqlParser
             .configBuilder()
             .setLex(Lex.MYSQL)
             .build();
