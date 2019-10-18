@@ -17,6 +17,7 @@
  */
 
 
+
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
@@ -238,7 +239,7 @@ public class SideSqlExec {
                 replaceFieldName(sqlSource, mappingTable, targetTableName, tableAlias);
                 break;
             case AS:
-                SqlNode asNode = ((SqlBasicCall) sqlNode).getOperands()[0];
+                SqlNode asNode = ((SqlBasicCall)sqlNode).getOperands()[0];
                 replaceFieldName(asNode, mappingTable, targetTableName, tableAlias);
                 break;
             case SELECT:
@@ -354,7 +355,16 @@ public class SideSqlExec {
     private SqlNode replaceNodeInfo(SqlNode groupNode, HashBasedTable<String, String, String> mappingTable, String tableAlias){
         if(groupNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) groupNode;
+            // 如果没有表别名前缀，直接返回字段名称
+            if (sqlIdentifier.names.size() == 1) {
+                return groupNode;
+            }
             String mappingFieldName = mappingTable.get(sqlIdentifier.getComponent(0).getSimple(), sqlIdentifier.getComponent(1).getSimple());
+            // 如果有表别名前缀，但是在宽表中找不到映射，只需要设置别名，不需要替换映射
+            if (null == mappingFieldName){
+                // return sqlIdentifier.setName(0, tableAlias);
+                throw new RuntimeException("Column '" + sqlIdentifier.getComponent(1).getSimple() + "' not found in table '" + sqlIdentifier.getComponent(0).getSimple() + "'");
+            }
             sqlIdentifier = sqlIdentifier.setName(0, tableAlias);
             return sqlIdentifier.setName(1, mappingFieldName);
         }else if(groupNode instanceof  SqlBasicCall){
@@ -569,6 +579,7 @@ public class SideSqlExec {
         if(CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo))){
             return true;
         }
+
         return false;
     }
 
