@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql;
 
+import com.dtstack.flink.sql.config.CalciteConfig;
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
@@ -98,10 +99,6 @@ public class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
-    private static Config config = org.apache.calcite.sql.parser.SqlParser
-            .configBuilder()
-            .setLex(Lex.MYSQL)
-            .build();
 
     public static void main(String[] args) throws Exception {
 
@@ -171,7 +168,7 @@ public class Main {
                     CreateTmpTableParser.SqlParserResult tmp = sqlTree.getTmpTableMap().get(tableName);
                     String realSql = DtStringUtil.replaceIgnoreQuota(result.getExecSql(), "`", "");
 
-                    SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql,config).parseStmt();
+                    SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql, CalciteConfig.MYSQL_LEX_CONFIG).parseStmt();
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
                     tmp.setExecSql(tmpSql);
                     sideSqlExec.registerTmpTable(tmp, sideTableMap, tableEnv, registerTableCache);
