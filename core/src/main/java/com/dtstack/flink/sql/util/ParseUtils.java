@@ -78,12 +78,12 @@ public class ParseUtils {
                 parseJoinCompareOperate(sqlNode, sqlJoinCompareOperate);
             }
         } else {
-            String operator = parseOperator(joinCondition.getKind());
+            String operator = transformNotEqualsOperator(joinCondition.getKind());
             sqlJoinCompareOperate.add(operator);
         }
     }
 
-    public static String parseOperator(SqlKind sqlKind) {
+    public static String transformNotEqualsOperator(SqlKind sqlKind) {
         if (StringUtils.equalsIgnoreCase(sqlKind.toString(), "NOT_EQUALS")){
             return "!=";
         }
@@ -188,21 +188,8 @@ public class ParseUtils {
             SqlNodeList thenOperands = sqlCase.getThenOperands();
             SqlNode elseNode = sqlCase.getElseOperand();
 
-            for(int i=0; i<whenOperands.size(); i++){
-                SqlNode oneOperand = whenOperands.get(i);
-                SqlNode replaceNode = replaceSelectFieldTabName(oneOperand, mapTab);
-                if (replaceNode != null) {
-                    whenOperands.set(i, replaceNode);
-                }
-            }
-
-            for(int i=0; i<thenOperands.size(); i++){
-                SqlNode oneOperand = thenOperands.get(i);
-                SqlNode replaceNode = replaceSelectFieldTabName(oneOperand, mapTab);
-                if (replaceNode != null) {
-                    thenOperands.set(i, replaceNode);
-                }
-            }
+            replaceWhenOrThenSelectFieldTabName(mapTab, whenOperands);
+            replaceWhenOrThenSelectFieldTabName(mapTab, thenOperands);
 
             ((SqlCase) selectNode).setOperand(3, replaceSelectFieldTabName(elseNode, mapTab));
             return selectNode;
@@ -211,6 +198,16 @@ public class ParseUtils {
             return selectNode;
         }else{
             throw new RuntimeException(String.format("not support node kind of %s to replace name now.", selectNode.getKind()));
+        }
+    }
+
+    private static void replaceWhenOrThenSelectFieldTabName(Map<String, String> mapTab, SqlNodeList thenOperands) {
+        for(int i=0; i<thenOperands.size(); i++){
+            SqlNode oneOperand = thenOperands.get(i);
+            SqlNode replaceNode = replaceSelectFieldTabName(oneOperand, mapTab);
+            if (replaceNode != null) {
+                thenOperands.set(i, replaceNode);
+            }
         }
     }
 
