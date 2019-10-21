@@ -41,8 +41,12 @@ import java.util.List;
 
 public class ParserJoinField {
 
+
     /**
-     * Need to parse the fields of information and where selectlist
+     *  build row by field
+     * @param sqlNode  select node
+     * @param scope    join left and right table all info
+     * @param getAll  true,get all fields from two tables; false, extract useful field from select node
      * @return
      */
     public static List<FieldInfo> getRowTypeInfo(SqlNode sqlNode, JoinScope scope, boolean getAll){
