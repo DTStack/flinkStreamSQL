@@ -21,12 +21,11 @@
 package com.dtstack.flink.sql.source;
 
 
-import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.table.AbsSourceParser;
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -46,21 +45,16 @@ public class StreamSourceFactory {
 
     public static AbsSourceParser getSqlParser(String pluginType, String sqlRootDir) throws Exception {
 
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-
         String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), sqlRootDir);
-
-        DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
-        PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
-
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
         String className = PluginUtil.getSqlParserClassName(typeNoVersion, CURR_TYPE);
-        Class<?> sourceParser = dtClassLoader.loadClass(className);
-        if(!AbsSourceParser.class.isAssignableFrom(sourceParser)){
-            throw new RuntimeException("class " + sourceParser.getName() + " not subClass of AbsSourceParser");
-        }
-
-        return sourceParser.asSubclass(AbsSourceParser.class).newInstance();
+        return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {
+            Class<?> sourceParser = cl.loadClass(className);
+            if(!AbsSourceParser.class.isAssignableFrom(sourceParser)){
+                throw new RuntimeException("class " + sourceParser.getName() + " not subClass of AbsSourceParser");
+            }
+            return sourceParser.asSubclass(AbsSourceParser.class).newInstance();
+        });
     }
 
     /**
@@ -73,21 +67,17 @@ public class StreamSourceFactory {
 
         String sourceTypeStr = sourceTableInfo.getType();
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(sourceTypeStr);
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-
         String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, sourceTypeStr), sqlRootDir);
         String className = PluginUtil.getGenerClassName(typeNoVersion, CURR_TYPE);
 
-        DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
-        PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
-        Class<?> sourceClass = dtClassLoader.loadClass(className);
+        return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {
+            Class<?> sourceClass = cl.loadClass(className);
+            if(!IStreamSourceGener.class.isAssignableFrom(sourceClass)){
+                throw new RuntimeException("class " + sourceClass.getName() + " not subClass of IStreamSourceGener");
+            }
 
-        if(!IStreamSourceGener.class.isAssignableFrom(sourceClass)){
-            throw new RuntimeException("class " + sourceClass.getName() + " not subClass of IStreamSourceGener");
-        }
-
-        IStreamSourceGener sourceGener = sourceClass.asSubclass(IStreamSourceGener.class).newInstance();
-        Object object = sourceGener.genStreamSource(sourceTableInfo, env, tableEnv);
-        return (Table) object;
+            IStreamSourceGener sourceGener = sourceClass.asSubclass(IStreamSourceGener.class).newInstance();
+            return (Table) sourceGener.genStreamSource(sourceTableInfo, env, tableEnv);
+        });
     }
 }
