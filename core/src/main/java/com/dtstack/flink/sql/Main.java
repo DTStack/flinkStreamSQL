@@ -20,8 +20,8 @@
 
 package com.dtstack.flink.sql;
 
-import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.config.CalciteConfig;
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
@@ -76,10 +76,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -123,10 +120,6 @@ public class Main {
             addJarFileList = objMapper.readValue(addJarListStr, List.class);
         }
 
-        ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
-        DtClassLoader parentClassloader = new DtClassLoader(new URL[]{}, threadClassLoader);
-        Thread.currentThread().setContextClassLoader(parentClassloader);
-
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
         StreamExecutionEnvironment env = getStreamExeEnv(confProperties, deployMode);
@@ -145,16 +138,14 @@ public class Main {
         Map<String, Table> registerTableCache = Maps.newHashMap();
 
         //register udf
-        registerUDF(sqlTree, jarURList, parentClassloader, tableEnv);
+        registerUDF(sqlTree, jarURList, tableEnv);
         //register table schema
         registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, sideTableMap, registerTableCache);
 
         sqlTranslation(options,tableEnv,sqlTree,sideTableMap,registerTableCache);
 
         if(env instanceof MyLocalStreamEnvironment) {
-            List<URL> urlList = new ArrayList<>();
-            urlList.addAll(Arrays.asList(parentClassloader.getURLs()));
-            ((MyLocalStreamEnvironment) env).setClasspaths(urlList);
+            ((MyLocalStreamEnvironment) env).setClasspaths(ClassLoaderManager.getClassPath());
         }
 
         env.execute(name);
@@ -221,19 +212,12 @@ public class Main {
         }
     }
 
-    private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, URLClassLoader parentClassloader,
-                                    StreamTableEnvironment tableEnv)
+    private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, StreamTableEnvironment tableEnv)
             throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
-        if (funcList.isEmpty()) {
-            return;
-        }
-        //load jar
-        URLClassLoader classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
         //register urf
+        List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
         for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
-            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
-                    tableEnv, classLoader);
+            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(), tableEnv, jarURList);
         }
     }
 
