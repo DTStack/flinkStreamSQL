@@ -249,12 +249,14 @@ public class Main {
                                     StreamTableEnvironment tableEnv)
             throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         //register urf
+        // udf函数只能由appclassloader加载
+        ClassLoader superClassLoader = Thread.currentThread().getContextClassLoader().getParent();
         URLClassLoader classLoader = null;
         List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
         for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
             //classloader
             if (classLoader == null) {
-                classLoader = FlinkUtil.loadExtraJar(jarURList, parentClassloader);
+                classLoader = FlinkUtil.loadExtraJar(jarURList, (URLClassLoader)superClassLoader);
             }
             FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(),
                     tableEnv, classLoader);
