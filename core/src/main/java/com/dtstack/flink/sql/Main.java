@@ -76,6 +76,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
@@ -213,11 +214,18 @@ public class Main {
     }
 
     private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, StreamTableEnvironment tableEnv)
-            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         //register urf
+        // udf和tableEnv须由同一个类加载器加载
+        ClassLoader levelClassLoader = tableEnv.getClass().getClassLoader();
+        URLClassLoader classLoader = null;
         List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
         for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
-            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(), tableEnv, jarURList);
+            //classloader
+            if (classLoader == null) {
+                classLoader = FlinkUtil.loadExtraJar(jarURList, (URLClassLoader)levelClassLoader);
+            }
+            FlinkUtil.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(), tableEnv, classLoader);
         }
     }
 
