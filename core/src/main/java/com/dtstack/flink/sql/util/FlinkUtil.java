@@ -152,11 +152,11 @@ public class FlinkUtil {
      * TABLE|SCALA
      * 注册UDF到table env
      */
-    public static void registerUDF(String type, String classPath, String funcName, TableEnvironment tableEnv, List<URL> jarURList){
+    public static void registerUDF(String type, String classPath, String funcName, TableEnvironment tableEnv, ClassLoader classLoader){
         if("SCALA".equalsIgnoreCase(type)){
-            registerScalaUDF(classPath, funcName, tableEnv, jarURList);
+            registerScalaUDF(classPath, funcName, tableEnv, classLoader);
         }else if("TABLE".equalsIgnoreCase(type)){
-            registerTableUDF(classPath, funcName, tableEnv, jarURList);
+            registerTableUDF(classPath, funcName, tableEnv, classLoader);
         }else{
             throw new RuntimeException("not support of UDF which is not in (TABLE, SCALA)");
         }
@@ -169,9 +169,10 @@ public class FlinkUtil {
      * @param funcName
      * @param tableEnv
      */
-    public static void registerScalaUDF(String classPath, String funcName, TableEnvironment tableEnv, List<URL> jarURList){
+    public static void registerScalaUDF(String classPath, String funcName, TableEnvironment tableEnv, ClassLoader classLoader){
         try{
-            ScalarFunction udfFunc = ClassLoaderManager.newInstance(jarURList, (cl) -> cl.loadClass(classPath).asSubclass(ScalarFunction.class).newInstance());
+            ScalarFunction udfFunc = Class.forName(classPath, false, classLoader)
+                    .asSubclass(ScalarFunction.class).newInstance();
             tableEnv.registerFunction(funcName, udfFunc);
             logger.info("register scala function:{} success.", funcName);
         }catch (Exception e){
@@ -187,9 +188,10 @@ public class FlinkUtil {
      * @param funcName
      * @param tableEnv
      */
-    public static void registerTableUDF(String classPath, String funcName, TableEnvironment tableEnv, List<URL> jarURList){
+    public static void registerTableUDF(String classPath, String funcName, TableEnvironment tableEnv, ClassLoader classLoader){
         try {
-            TableFunction udfFunc = ClassLoaderManager.newInstance(jarURList, (cl) -> cl.loadClass(classPath).asSubclass(TableFunction.class).newInstance());
+            ScalarFunction udfFunc = Class.forName(classPath, false, classLoader)
+                    .asSubclass(ScalarFunction.class).newInstance();
             if(tableEnv instanceof StreamTableEnvironment){
                 ((StreamTableEnvironment)tableEnv).registerFunction(funcName, udfFunc);
             }else if(tableEnv instanceof BatchTableEnvironment){
