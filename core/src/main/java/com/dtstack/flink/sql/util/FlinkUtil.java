@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.util;
 
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
+import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.runtime.state.filesystem.FsStateBackend;
@@ -32,6 +33,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.BatchTableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.functions.AggregateFunction;
 import org.apache.flink.table.functions.ScalarFunction;
 import org.apache.flink.table.functions.TableFunction;
 import org.slf4j.Logger;
@@ -148,17 +150,18 @@ public class FlinkUtil {
 
 
     /**
-     * FIXME 暂时不支持 UDF 实现类--有参构造方法
-     * TABLE|SCALA
+     * TABLE|SCALA|AGGREGATE
      * 注册UDF到table env
      */
-    public static void registerUDF(String type, String classPath, String funcName, TableEnvironment tableEnv, List<URL> jarURList){
+    public static void registerUDF(String type, String classPath, String funcName, TableEnvironment tableEnv, ClassLoader classLoader){
         if("SCALA".equalsIgnoreCase(type)){
-            registerScalaUDF(classPath, funcName, tableEnv, jarURList);
+            registerScalaUDF(classPath, funcName, tableEnv, classLoader);
         }else if("TABLE".equalsIgnoreCase(type)){
-            registerTableUDF(classPath, funcName, tableEnv, jarURList);
+            registerTableUDF(classPath, funcName, tableEnv, classLoader);
+        }else if("AGGREGATE".equalsIgnoreCase(type)){
+            registerAggregateUDF(classPath, funcName, tableEnv, classLoader);
         }else{
-            throw new RuntimeException("not support of UDF which is not in (TABLE, SCALA)");
+            throw new RuntimeException("not support of UDF which is not in (TABLE, SCALA, AGGREGATE)");
         }
 
     }
@@ -169,9 +172,10 @@ public class FlinkUtil {
      * @param funcName
      * @param tableEnv
      */
-    public static void registerScalaUDF(String classPath, String funcName, TableEnvironment tableEnv, List<URL> jarURList){
+    public static void registerScalaUDF(String classPath, String funcName, TableEnvironment tableEnv, ClassLoader classLoader){
         try{
-            ScalarFunction udfFunc = ClassLoaderManager.newInstance(jarURList, (cl) -> cl.loadClass(classPath).asSubclass(ScalarFunction.class).newInstance());
+            ScalarFunction udfFunc = Class.forName(classPath, false, classLoader)
+                    .asSubclass(ScalarFunction.class).newInstance();
             tableEnv.registerFunction(funcName, udfFunc);
             logger.info("register scala function:{} success.", funcName);
         }catch (Exception e){
@@ -182,14 +186,15 @@ public class FlinkUtil {
 
     /**
      * 注册自定义TABLEFFUNC方法到env上
-     * TODO 对User-Defined Aggregate Functions的支持
+     *
      * @param classPath
      * @param funcName
      * @param tableEnv
      */
-    public static void registerTableUDF(String classPath, String funcName, TableEnvironment tableEnv, List<URL> jarURList){
+    public static void registerTableUDF(String classPath, String funcName, TableEnvironment tableEnv, ClassLoader classLoader){
         try {
-            TableFunction udfFunc = ClassLoaderManager.newInstance(jarURList, (cl) -> cl.loadClass(classPath).asSubclass(TableFunction.class).newInstance());
+            TableFunction udfFunc = Class.forName(classPath, false, classLoader)
+                    .asSubclass(TableFunction.class).newInstance();
             if(tableEnv instanceof StreamTableEnvironment){
                 ((StreamTableEnvironment)tableEnv).registerFunction(funcName, udfFunc);
             }else if(tableEnv instanceof BatchTableEnvironment){
@@ -205,6 +210,31 @@ public class FlinkUtil {
         }
     }
 
+    /**
+     * 注册自定义Aggregate FUNC方法到env上
+     *
+     * @param classPath
+     * @param funcName
+     * @param tableEnv
+     */
+    public static void registerAggregateUDF(String classPath, String funcName, TableEnvironment tableEnv, ClassLoader classLoader) {
+        try {
+            AggregateFunction udfFunc = Class.forName(classPath, false, classLoader)
+                    .asSubclass(AggregateFunction.class).newInstance();
+            if (tableEnv instanceof StreamTableEnvironment) {
+                ((StreamTableEnvironment) tableEnv).registerFunction(funcName,  udfFunc);
+            } else if (tableEnv instanceof BatchTableEnvironment) {
+                ((BatchTableEnvironment) tableEnv).registerFunction(funcName,  udfFunc);
+            } else {
+                throw new RuntimeException("no support tableEnvironment class for " + tableEnv.getClass().getName());
+            }
+
+            logger.info("register Aggregate function:{} success.", funcName);
+        } catch (Exception e) {
+            logger.error("", e);
+            throw new RuntimeException("register Aggregate UDF exception:", e);
+        }
+    }
 
     /**
      *
