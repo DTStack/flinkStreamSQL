@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql;
 
-import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.parser.CreateFuncParser;
