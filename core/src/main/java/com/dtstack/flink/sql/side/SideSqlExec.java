@@ -17,6 +17,7 @@
  */
 
 
+
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
@@ -112,6 +113,8 @@ public class SideSqlExec {
                 }
 
                 if(pollSqlNode.getKind() == INSERT){
+                    System.out.println("----------real exec sql-----------" );
+                    System.out.println(pollSqlNode.toString());
                     FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
@@ -360,8 +363,14 @@ public class SideSqlExec {
     private SqlNode replaceNodeInfo(SqlNode groupNode, HashBasedTable<String, String, String> mappingTable, String tableAlias){
         if(groupNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) groupNode;
+            if(sqlIdentifier.names.size() == 1){
+                return sqlIdentifier;
+            }
             String mappingFieldName = mappingTable.get(sqlIdentifier.getComponent(0).getSimple(), sqlIdentifier.getComponent(1).getSimple());
 
+            if(mappingFieldName == null){
+                throw new RuntimeException("can't find mapping fieldName:" + sqlIdentifier.toString() );
+            }
             sqlIdentifier = sqlIdentifier.setName(0, tableAlias);
             return sqlIdentifier.setName(1, mappingFieldName);
         }else if(groupNode instanceof  SqlBasicCall){
