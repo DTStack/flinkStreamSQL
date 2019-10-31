@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.enums.PluginLoadMode;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
 import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.option.OptionParser;
@@ -45,10 +46,10 @@ import com.dtstack.flink.sql.util.PropertiesUtils;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.dtstack.flink.sql.util.FlinkUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
-import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.time.Time;
@@ -84,7 +85,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import com.dtstack.flink.sql.option.Options;
-import org.apache.calcite.sql.parser.SqlParser.Config;
 
 /**
  * Date: 2018/6/26
@@ -109,9 +109,9 @@ public class Main {
         String name = options.getName();
         String addJarListStr = options.getAddjar();
         String localSqlPluginPath = options.getLocalSqlPluginPath();
-        String remoteSqlPluginPath = options.getRemoteSqlPluginPath();
         String deployMode = options.getMode();
         String confProp = options.getConfProp();
+
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
 
@@ -141,7 +141,7 @@ public class Main {
         //register udf
         registerUDF(sqlTree, jarURList, tableEnv);
         //register table schema
-        registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, sideTableMap, registerTableCache);
+        registerTable(sqlTree, env, tableEnv, options, sideTableMap, registerTableCache);
 
         sqlTranslation(options,tableEnv,sqlTree,sideTableMap,registerTableCache);
 
@@ -230,8 +230,7 @@ public class Main {
     }
 
 
-    private static void registerTable(SqlTree sqlTree, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv,
-                                      String localSqlPluginPath, String remoteSqlPluginPath,
+    private static void registerTable(SqlTree sqlTree, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv, Options options,
                                       Map<String, SideTableInfo> sideTableMap, Map<String, Table> registerTableCache) throws Exception {
         Set<URL> classPathSet = Sets.newHashSet();
         WaterMarkerAssigner waterMarkerAssigner = new WaterMarkerAssigner();
@@ -240,7 +239,7 @@ public class Main {
             if (tableInfo instanceof SourceTableInfo) {
 
                 SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
-                Table table = StreamSourceFactory.getStreamSource(sourceTableInfo, env, tableEnv, localSqlPluginPath);
+                Table table = StreamSourceFactory.getStreamSource(sourceTableInfo, env, tableEnv, options.getLocalSqlPluginPath());
                 tableEnv.registerTable(sourceTableInfo.getAdaptName(), table);
                 //Note --- parameter conversion function can not be used inside a function of the type of polymerization
                 //Create table in which the function is arranged only need adaptation sql
@@ -267,18 +266,18 @@ public class Main {
                     LOG.info("registe table {} success.", tableInfo.getName());
                 }
                 registerTableCache.put(tableInfo.getName(), regTable);
-                classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
+                classPathSet.add(buildSourceAndSinkPathByLoadMode(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, options));
             } else if (tableInfo instanceof TargetTableInfo) {
 
-                TableSink tableSink = StreamSinkFactory.getTableSink((TargetTableInfo) tableInfo, localSqlPluginPath);
+                TableSink tableSink = StreamSinkFactory.getTableSink((TargetTableInfo) tableInfo, options.getLocalSqlPluginPath());
                 TypeInformation[] flinkTypes = FlinkUtil.transformTypes(tableInfo.getFieldClasses());
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
-                classPathSet.add( PluginUtil.getRemoteJarFilePath(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
+                classPathSet.add(buildSourceAndSinkPathByLoadMode(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, options));
             } else if(tableInfo instanceof SideTableInfo){
 
                 String sideOperator = ECacheType.ALL.name().equals(((SideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
                 sideTableMap.put(tableInfo.getName(), (SideTableInfo) tableInfo);
-                classPathSet.add(PluginUtil.getRemoteSideJarFilePath(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, remoteSqlPluginPath, localSqlPluginPath));
+                classPathSet.add(buildSidePathByLoadMode(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, options));
             }else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
@@ -292,6 +291,22 @@ public class Main {
             env.registerCachedFile(url.getPath(),  classFileName, true);
             i++;
         }
+    }
+
+    private static URL buildSourceAndSinkPathByLoadMode(String type, String suffix, Options options) throws Exception {
+        String pluginLoadMode = options.getPluginLoadMode();
+        if (StringUtils.equalsIgnoreCase(pluginLoadMode, PluginLoadMode.classpath.name())) {
+            return PluginUtil.getRemoteJarFilePath(type, suffix, options.getRemoteSqlPluginPath(), options.getLocalSqlPluginPath());
+        }
+        return PluginUtil.getLocalJarFilePath(type, suffix, options.getLocalSqlPluginPath());
+    }
+
+    private static URL buildSidePathByLoadMode(String type, String operator, String suffix, Options options) throws Exception {
+        String pluginLoadMode = options.getPluginLoadMode();
+        if (StringUtils.equalsIgnoreCase(pluginLoadMode, PluginLoadMode.classpath.name())) {
+            return PluginUtil.getRemoteSideJarFilePath(type, operator, suffix, options.getRemoteSqlPluginPath(), options.getLocalSqlPluginPath());
+        }
+        return PluginUtil.getLocalSideJarFilePath(type, operator, suffix, options.getLocalSqlPluginPath());
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
