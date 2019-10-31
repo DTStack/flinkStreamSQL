@@ -52,8 +52,6 @@ public class PerJobSubmitter {
     private static final Logger LOG = LoggerFactory.getLogger(PerJobSubmitter.class);
 
     public static String submit(Options launcherOptions, JobGraph jobGraph) throws Exception {
-
-		fillJobGraphClassPath(jobGraph);
 		if (!StringUtils.isBlank(launcherOptions.getAddjar())) {
 			String addjarPath = URLDecoder.decode(launcherOptions.getAddjar(), Charsets.UTF_8.toString());
 			List<String> paths = getJarPaths(addjarPath);
@@ -61,8 +59,6 @@ public class PerJobSubmitter {
 				jobGraph.addJar(new Path("file://" + path));
 			});
 		}
-
-
 
 		String confProp = launcherOptions.getConfProp();
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
@@ -74,7 +70,7 @@ public class PerJobSubmitter {
 
         String flinkJarPath = launcherOptions.getFlinkJarPath();
 
-        AbstractYarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(confProperties, flinkJarPath, launcherOptions.getQueue());
+        AbstractYarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(confProperties, flinkJarPath, launcherOptions, jobGraph);
         ClusterClient<ApplicationId> clusterClient = yarnClusterDescriptor.deployJobCluster(clusterSpecification, jobGraph,true);
 
         String applicationId = clusterClient.getClusterId().toString();
@@ -95,12 +91,4 @@ public class PerJobSubmitter {
 		return paths;
 	}
 
-	private static void fillJobGraphClassPath(JobGraph jobGraph) throws MalformedURLException {
-        Map<String, DistributedCache.DistributedCacheEntry> jobCacheFileConfig = jobGraph.getUserArtifacts();
-        for(Map.Entry<String,  DistributedCache.DistributedCacheEntry> tmp : jobCacheFileConfig.entrySet()){
-            if(tmp.getKey().startsWith("class_path")){
-                jobGraph.getClasspaths().add(new URL("file:" + tmp.getValue().filePath));
-            }
-        }
-	}
 }
