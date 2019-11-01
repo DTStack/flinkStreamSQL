@@ -83,12 +83,6 @@ public class DtStringUtil {
             }else if(c == '\'' && '\\'!=flag && !inQuotes){
                 inSingleQuotes = !inSingleQuotes;
                 b.append(c);
-            }else if(c == '('){
-                bracketLeftNum++;
-                b.append(c);
-            }else if(c == ')'){
-                bracketLeftNum--;
-                b.append(c);
             }else{
                 b.append(c);
             }
