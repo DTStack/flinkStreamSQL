@@ -23,6 +23,7 @@
         <module>sqlserver</module>
         <module>oracle</module>
         <module>cassandra</module>
+        <module>kudu</module>
         <!--<module>kafka08</module>-->
         <module>serversocket</module>
         <module>console</module>
