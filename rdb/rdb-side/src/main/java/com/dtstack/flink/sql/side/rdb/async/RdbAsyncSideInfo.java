@@ -93,8 +93,11 @@ public class RdbAsyncSideInfo extends SideInfo {
             // 如果where条件中第一个符合条件的是维表中的条件
             String firstCondition = whereConditionList.get(0);
             if (!"and".equalsIgnoreCase(firstCondition) && !"or".equalsIgnoreCase(firstCondition)) {
-                sqlCondition += " and ";
+                whereConditionList.add(0, "and (");
+            } else {
+                whereConditionList.add(1, "(");
             }
+            whereConditionList.add(whereConditionList.size(), ")");
             sqlCondition += String.join(" ", whereConditionList);
         }
 
