@@ -17,24 +17,16 @@
  */
 
 
-package com.dtstack.flink.sql.side.clickhouse.table;
+package com.dtstack.flink.sql.sink.clickhouse.table;
 
-import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
+import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import ru.yandex.clickhouse.domain.ClickHouseDataType;
 
 import java.util.Map;
 
-/**
- * Reason:
- * Date: 2019/11/04
- * Company: www.dtstack.com
- *
- * @author maqi
- */
 
-public class ClickhouseSideParser extends RdbSideParser {
-
+public class ClickhouseSinkParser extends RdbSinkParser {
     private static final String CURR_TYPE = "clickhouse";
 
     @Override
