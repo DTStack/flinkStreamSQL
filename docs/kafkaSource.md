@@ -1,4 +1,3 @@
-# 一、json格式数据源
 ## 1.格式：
 ```
 数据现在支持json格式{"xx":"bb","cc":"dd"}
@@ -69,6 +68,75 @@ CREATE TABLE MyTable(
     --patterntopic='true'
     parallelism ='1',
     sourcedatatype ='json' #可不设置
+ );
+```
+## 6.支持嵌套json、数据类型字段解析
+
+嵌套json解析示例
+
+json: {"name":"tom", "obj":{"channel": "root"}, "pv": 4, "xctime":1572932485}
+```
+CREATE TABLE MyTable(
+    name varchar,
+    obj.channel varchar as channel,
+    pv INT,
+    xctime bigint,
+    CHARACTER_LENGTH(channel) AS timeLeng
+ )WITH(
+    type ='kafka09',
+    bootstrapServers ='172.16.8.198:9092',
+    zookeeperQuorum ='172.16.8.198:2181/kafka',
+    offsetReset ='latest',
+    groupId='nbTest',
+    topic ='nbTest1,nbTest2,nbTest3',
+    --- topic ='mqTest.*',
+    ---topicIsPattern='true',
+    parallelism ='1'
+ );
+```
+
+数组类型字段解析示例
+
+json: {"name":"tom", "obj":{"channel": "root"}, "user": [{"pv": 4}, {"pv": 10}], "xctime":1572932485}
+```
+CREATE TABLE MyTable(
+    name varchar,
+    obj.channel varchar as channel,
+    user[1].pv INT as pv,
+    xctime bigint,
+    CHARACTER_LENGTH(channel) AS timeLeng
+ )WITH(
+    type ='kafka09',
+    bootstrapServers ='172.16.8.198:9092',
+    zookeeperQuorum ='172.16.8.198:2181/kafka',
+    offsetReset ='latest',
+    groupId='nbTest',
+    topic ='nbTest1,nbTest2,nbTest3',
+    --- topic ='mqTest.*',
+    ---topicIsPattern='true',
+    parallelism ='1'
+ );
+```
+or
+
+json: {"name":"tom", "obj":{"channel": "root"}, "pv": [4, 7, 10], "xctime":1572932485}
+```
+CREATE TABLE MyTable(
+    name varchar,
+    obj.channel varchar as channel,
+    pv[1] INT as pv,
+    xctime bigint,
+    CHARACTER_LENGTH(channel) AS timeLeng
+ )WITH(
+    type ='kafka09',
+    bootstrapServers ='172.16.8.198:9092',
+    zookeeperQuorum ='172.16.8.198:2181/kafka',
+    offsetReset ='latest',
+    groupId='nbTest',
+    topic ='nbTest1,nbTest2,nbTest3',
+    --- topic ='mqTest.*',
+    ---topicIsPattern='true',
+    parallelism ='1'
  );
 ```
 # 二、csv格式数据源
