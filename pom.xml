@@ -10,22 +10,22 @@
     <url>http://maven.apache.org</url>
     <modules>
         <module>core</module>
-        <!--<module>kafka09</module>-->
-        <!--<module>kafka10</module>-->
-        <!--<module>kafka11</module>-->
-        <!--<module>mysql</module>-->
-        <!--<module>hbase</module>-->
-        <!--<module>elasticsearch5</module>-->
-        <!--<module>mongo</module>-->
-        <!--<module>redis5</module>-->
+        <module>kafka09</module>
+        <module>kafka10</module>
+        <module>kafka11</module>
+        <module>mysql</module>
+        <module>hbase</module>
+        <module>elasticsearch5</module>
+        <module>mongo</module>
+        <module>redis5</module>
         <module>launcher</module>
         <module>rdb</module>
-        <!--<module>sqlserver</module>-->
-        <!--<module>oracle</module>-->
-        <!--<module>cassandra</module>-->
+        <module>sqlserver</module>
+        <module>oracle</module>
+        <module>cassandra</module>
         <!--<module>kafka08</module>-->
         <module>serversocket</module>
-        <!--<module>console</module>-->
+        <module>console</module>
         <module>clickhouse</module>
     </modules>
 
