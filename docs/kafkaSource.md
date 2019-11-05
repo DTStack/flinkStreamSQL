@@ -21,7 +21,7 @@ CREATE TABLE tableName(
 ```
 
 ## 2.支持的版本
-    kafka08,kafka09,kafka10,kafka11    
+    kafka08,kafka09,kafka10,kafka11及以上版本    
  **kafka读取和写入的版本必须一致，否则会有兼容性错误。**
 
 ## 3.表结构定义
