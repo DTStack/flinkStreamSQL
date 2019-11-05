@@ -83,10 +83,10 @@ public class DtStringUtil {
             } else if (c == '\'' && '\\' != flag && !inQuotes) {
                 inSingleQuotes = !inSingleQuotes;
                 b.append(c);
-            } else if (c == '(') {
+            } else if (c == '(' && !inSingleQuotes && !inQuotes) {
                 bracketLeftNum++;
                 b.append(c);
-            } else if (c == ')') {
+            } else if (c == ')' && !inSingleQuotes && !inQuotes) {
                 bracketLeftNum--;
                 b.append(c);
             } else {
