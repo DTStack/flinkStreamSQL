@@ -13,6 +13,7 @@
         <module>kafka09</module>
         <module>kafka10</module>
         <module>kafka11</module>
+        <module>kafka</module>
         <module>mysql</module>
         <module>hbase</module>
         <module>elasticsearch5</module>
