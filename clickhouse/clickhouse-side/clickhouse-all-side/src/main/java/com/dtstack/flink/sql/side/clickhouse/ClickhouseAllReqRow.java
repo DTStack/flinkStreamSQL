@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.slf4j.Logger;
@@ -32,7 +33,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
 import java.util.Map;
-
 
 public class ClickhouseAllReqRow extends RdbAllReqRow {
 
@@ -45,22 +45,21 @@ public class ClickhouseAllReqRow extends RdbAllReqRow {
     }
 
     @Override
-    public Connection getConn(String dbURL, String userName, String password) {
+    public Connection getConn(String dbURL, String userName, String passWord) {
         try {
-            Class.forName(CLICKHOUSE_DRIVER);
-            //add param useCursorFetch=true
-            Map<String, String> addParams = Maps.newHashMap();
-            addParams.put("useCursorFetch", "true");
-            String targetDbUrl = DtStringUtil.addJdbcParam(dbURL, addParams, true);
-            return DriverManager.getConnection(targetDbUrl, userName, password);
+            Connection connection ;
+            JDBCUtils.forName(CLICKHOUSE_DRIVER, getClass().getClassLoader());
+            // ClickHouseProperties contains all properties
+            if (userName == null) {
+                connection = DriverManager.getConnection(dbURL);
+            } else {
+                connection = DriverManager.getConnection(dbURL, userName, passWord);
+            }
+            return connection;
         } catch (Exception e) {
             LOG.error("", e);
             throw new RuntimeException("", e);
         }
     }
 
-    @Override
-    public int getFetchSize() {
-        return Integer.MIN_VALUE;
-    }
 }
