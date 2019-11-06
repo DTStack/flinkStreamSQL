@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.launcher.perjob;
 
+import com.dtstack.flink.sql.enums.EPluginLoadMode;
 import com.dtstack.flink.sql.launcher.YarnConfLoader;
 import com.dtstack.flink.sql.option.Options;
 import org.apache.commons.lang3.StringUtils;
@@ -47,8 +48,6 @@ import java.util.Properties;
  */
 
 public class PerJobClusterClientBuilder {
-    private static final String FLINK_PLUGIN_CLASSPATH_LOAD = "classpath";
-
     private YarnClient yarnClient;
 
     private YarnConfiguration yarnConf;
@@ -93,11 +92,14 @@ public class PerJobClusterClientBuilder {
         }
         // classpath , all node need contain plugin jar
         String pluginLoadMode = launcherOptions.getPluginLoadMode();
-        if (StringUtils.equalsIgnoreCase(pluginLoadMode, FLINK_PLUGIN_CLASSPATH_LOAD)){
+        if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
             fillJobGraphClassPath(jobGraph);
-        } else {
+        } else if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.SHIPFILE.name())) {
             List<File> pluginPaths = getPluginPathToShipFiles(jobGraph);
             shipFiles.addAll(pluginPaths);
+        } else {
+            throw new IllegalArgumentException("Unsupported plugin loading mode " + pluginLoadMode
+                    + " Currently only classpath and shipfile are supported.");
         }
 
         clusterDescriptor.addShipFiles(shipFiles);
