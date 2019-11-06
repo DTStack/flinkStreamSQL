@@ -19,7 +19,7 @@
 package com.dtstack.flink.sql.option;
 
 import com.dtstack.flink.sql.enums.ClusterMode;
-import com.dtstack.flink.sql.enums.PluginLoadMode;
+import com.dtstack.flink.sql.enums.EPluginLoadMode;
 
 
 /**
@@ -73,7 +73,7 @@ public class Options {
     private String yarnSessionConf = "{}";
 
     @OptionRequired(description = "plugin load mode, by classpath or shipfile")
-    private String pluginLoadMode = PluginLoadMode.classpath.name();
+    private String pluginLoadMode = EPluginLoadMode.CLASSPATH.name();
 
     public String getMode() {
         return mode;

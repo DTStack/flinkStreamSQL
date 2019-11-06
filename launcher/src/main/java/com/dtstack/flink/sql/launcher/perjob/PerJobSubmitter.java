@@ -22,7 +22,6 @@ import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.core.fs.Path;
@@ -31,13 +30,9 @@ import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 /**

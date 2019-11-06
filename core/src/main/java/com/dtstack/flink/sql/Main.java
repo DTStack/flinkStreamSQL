@@ -25,7 +25,7 @@ import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.enums.PluginLoadMode;
+import com.dtstack.flink.sql.enums.EPluginLoadMode;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
 import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.option.OptionParser;
@@ -296,14 +296,14 @@ public class Main {
     }
 
     private static URL buildSourceAndSinkPathByLoadMode(String type, String suffix, String localSqlPluginPath, String remoteSqlPluginPath, String pluginLoadMode) throws Exception {
-        if (StringUtils.equalsIgnoreCase(pluginLoadMode, PluginLoadMode.classpath.name())) {
+        if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
             return PluginUtil.getRemoteJarFilePath(type, suffix, remoteSqlPluginPath, localSqlPluginPath);
         }
         return PluginUtil.getLocalJarFilePath(type, suffix, localSqlPluginPath);
     }
 
     private static URL buildSidePathByLoadMode(String type, String operator, String suffix, String localSqlPluginPath, String remoteSqlPluginPath, String pluginLoadMode) throws Exception {
-        if (StringUtils.equalsIgnoreCase(pluginLoadMode, PluginLoadMode.classpath.name())) {
+        if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
             return PluginUtil.getRemoteSideJarFilePath(type, operator, suffix, remoteSqlPluginPath, localSqlPluginPath);
         }
         return PluginUtil.getLocalSideJarFilePath(type, operator, suffix, localSqlPluginPath);
