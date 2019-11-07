@@ -17,9 +17,9 @@
   2.修复yarnPer模式提交失败的异常。
  
 # 已支持
-  * 源表：kafka 0.9，1.x及以上版本
-  * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra,serversocket
-  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra,console
+  * 源表：kafka 0.9、0.10、0.11、1.x版本
+  * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra, kudu
+  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra, kudu
 
 # 后续开发计划
   * 增加SQL支持CEP
@@ -28,7 +28,6 @@
   * kafka avro格式
   * topN
 
-  
 ## 1 快速起步
 ### 1.1 运行模式
 
@@ -166,6 +165,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [mongo 结果表插件](docs/mongoSink.md)
 * [redis 结果表插件](docs/redisSink.md)
 * [cassandra 结果表插件](docs/cassandraSink.md)
+* [kudu 结果表插件](docs/kuduSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
@@ -173,6 +173,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [mongo 维表插件](docs/mongoSide.md)
 * [redis 维表插件](docs/redisSide.md)
 * [cassandra 维表插件](docs/cassandraSide.md)
+* [kudu 维表插件](docs/kuduSide.md)
 
 ## 3 性能指标(新增)
 
@@ -203,7 +204,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 ```
 
-CREATE (scala|table) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun
+CREATE (scala|table|aggregate) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun;
 
 
 CREATE TABLE MyTable(
