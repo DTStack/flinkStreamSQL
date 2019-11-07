@@ -16,10 +16,7 @@
  * limitations under the License.
  */
 
-
-
 package com.dtstack.flink.sql.source.kafka;
-
 
 import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
@@ -32,8 +29,9 @@ import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
@@ -54,17 +52,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.dtstack.flink.sql.metric.MetricConstant.DT_PARTITION_GROUP;
-import static com.dtstack.flink.sql.metric.MetricConstant.DT_TOPIC_GROUP;
-import static com.dtstack.flink.sql.metric.MetricConstant.DT_TOPIC_PARTITION_LAG_GAUGE;
+import static com.dtstack.flink.sql.metric.MetricConstant.*;
 
 /**
- * json string parsing custom
- * Date: 2018/09/18
- * Company: www.dtstack.com
- * @author sishu.yss
- */
-
+ * @author: chuixue
+ * @create: 2019-11-05 10:57
+ * @description:
+ **/
 public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
@@ -168,7 +162,6 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     }
 
     private void parseTree(JsonNode jsonNode, String prefix){
-
         if (jsonNode.isArray()) {
             ArrayNode array = (ArrayNode) jsonNode;
             for (int i = 0; i < array.size(); i++) {
@@ -212,17 +205,15 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     }
 
     private String getNodeKey(String prefix, int i) {
-      if (Strings.isNullOrEmpty(prefix)) {
-        return "[" + i + "]";
-      }
-
-      return prefix + "[" + i + "]";
+        if (Strings.isNullOrEmpty(prefix)) {
+            return "[" + i + "]";
+        }
+        return prefix + "[" + i + "]";
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
         this.fetcher = fetcher;
     }
-
 
     protected void registerPtMetric(AbstractFetcher<Row, ?> fetcher) throws Exception {
 
@@ -286,5 +277,4 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             }
         }
     }
-
 }
