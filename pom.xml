@@ -25,6 +25,7 @@
         <module>oracle</module>
         <module>cassandra</module>
         <module>kudu</module>
+        <module>postgresql</module>
         <!--<module>kafka08</module>-->
         <module>serversocket</module>
         <module>console</module>
