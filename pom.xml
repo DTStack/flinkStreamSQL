@@ -24,6 +24,7 @@
         <module>oracle</module>
         <module>cassandra</module>
         <module>kudu</module>
+        <module>postgresql</module>
     </modules>
 
 
