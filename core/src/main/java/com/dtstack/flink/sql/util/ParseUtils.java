@@ -159,6 +159,8 @@ public class ParseUtils {
                 || selectNode.getKind() == IS_NULL
                 || selectNode.getKind() == IS_NOT_NULL
                 || selectNode.getKind() == CONTAINS
+                || selectNode.getKind() == TIMESTAMP_ADD
+                || selectNode.getKind() == TIMESTAMP_DIFF
 
                 ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
