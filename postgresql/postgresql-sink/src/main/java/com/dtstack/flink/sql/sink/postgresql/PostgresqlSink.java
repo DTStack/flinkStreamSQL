@@ -63,15 +63,12 @@ public class PostgresqlSink extends RdbSink implements IStreamSinkGener<RdbSink>
     }
 
     @Override
-    public void buildSql(String tableName, List<String> fields) {
+    public void buildSql(String scheam, String tableName, List<String> fields) {
         buildInsertSql(tableName, fields);
     }
 
     @Override
-    public String buildUpdateSql(String tableName,
-                                 List<String> fieldNames,
-                                 Map<String, List<String>> realIndexes,
-                                 List<String> fullField) {
+    public String buildUpdateSql(String schema, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
         return null;
     }
 
