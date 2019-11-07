@@ -66,24 +66,30 @@ public class DtStringUtil {
             if (idx > 0) {
                 flag = chars[idx - 1];
             }
-            if(c == delimiter){
+            if (c == delimiter) {
                 if (inQuotes) {
                     b.append(c);
-                } else if(inSingleQuotes){
+                } else if (inSingleQuotes) {
                     b.append(c);
-                } else if(bracketLeftNum > 0){
+                } else if (bracketLeftNum > 0) {
                     b.append(c);
-                }else {
+                } else {
                     tokensList.add(b.toString());
                     b = new StringBuilder();
                 }
-            }else if(c == '\"' && '\\'!=flag && !inSingleQuotes){
+            } else if (c == '\"' && '\\' != flag && !inSingleQuotes) {
                 inQuotes = !inQuotes;
                 b.append(c);
-            }else if(c == '\'' && '\\'!=flag && !inQuotes){
+            } else if (c == '\'' && '\\' != flag && !inQuotes) {
                 inSingleQuotes = !inSingleQuotes;
                 b.append(c);
-            }else{
+            } else if (c == '(' && !inSingleQuotes && !inQuotes) {
+                bracketLeftNum++;
+                b.append(c);
+            } else if (c == ')' && !inSingleQuotes && !inQuotes) {
+                bracketLeftNum--;
+                b.append(c);
+            } else {
                 b.append(c);
             }
             idx++;
