@@ -29,6 +29,7 @@
         <!--<module>kafka08</module>-->
         <module>serversocket</module>
         <module>console</module>
+        <module>clickhouse</module>
     </modules>
 
 
