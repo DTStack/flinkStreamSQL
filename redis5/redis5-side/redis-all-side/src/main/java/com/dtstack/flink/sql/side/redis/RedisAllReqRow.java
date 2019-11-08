@@ -98,7 +98,7 @@ public class RedisAllReqRow extends AllReqRow{
                 out.collect(null);
             }
             String columnName = sideInfo.getEqualFieldList().get(conValIndex);
-            inputParams.put(columnName, (String) equalObj);
+            inputParams.put(columnName, equalObj.toString());
         }
         String key = buildKey(inputParams);
 
