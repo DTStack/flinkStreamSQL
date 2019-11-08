@@ -124,7 +124,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.getField(conValIndex);
             if(equalObj == null){
-                resultFuture.complete(null);
+                dealMissKey(input, resultFuture);
                 return;
             }
 
