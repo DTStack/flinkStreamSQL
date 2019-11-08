@@ -134,7 +134,11 @@ public class CassandraAllReqRow extends AllReqRow {
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = value.getField(conValIndex);
             if (equalObj == null) {
-                out.collect(null);
+                if(sideInfo.getJoinType() == JoinType.LEFT){
+                    Row data = fillData(value, null);
+                    out.collect(data);
+                }
+                return;
             }
 
             inputParams.add(equalObj);

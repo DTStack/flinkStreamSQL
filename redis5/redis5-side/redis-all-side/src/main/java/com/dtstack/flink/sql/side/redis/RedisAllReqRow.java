@@ -95,7 +95,11 @@ public class RedisAllReqRow extends AllReqRow{
         for(Integer conValIndex : sideInfo.getEqualValIndex()){
             Object equalObj = row.getField(conValIndex);
             if(equalObj == null){
-                out.collect(null);
+                if(sideInfo.getJoinType() == JoinType.LEFT){
+                    Row data = fillData(row, null);
+                    out.collect(data);
+                }
+                return;
             }
             String columnName = sideInfo.getEqualFieldList().get(conValIndex);
             inputParams.put(columnName, (String) equalObj);
