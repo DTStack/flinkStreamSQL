@@ -171,7 +171,13 @@ public class RedisOutputFormat extends MetricOutputFormat {
         for (int i = 0; i < fieldNames.length; i++) {
             StringBuilder key = new StringBuilder();
             key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
-            jedis.set(key.toString(), row.getField(i).toString());
+
+            String value = "null";
+            Object field = row.getField(i);
+            if (field != null) {
+                value = field.toString();
+            }
+            jedis.set(key.toString(), value);
         }
 
         if (outRecords.getCount()%rowLenth == 0){
