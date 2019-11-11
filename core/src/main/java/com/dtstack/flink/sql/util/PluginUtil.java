@@ -110,19 +110,37 @@ public class PluginUtil {
     }
 
     public static URL getRemoteJarFilePath(String pluginType, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
+        return buildFinalJarFilePath(pluginType, tableType, remoteSqlRootDir, localSqlPluginPath);
+    }
+
+    public static URL getLocalJarFilePath(String pluginType, String tableType, String localSqlPluginPath) throws Exception {
+        return buildFinalJarFilePath(pluginType, tableType, null, localSqlPluginPath);
+    }
+
+    public static URL buildFinalJarFilePath(String pluginType, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
         String dirName = pluginType + tableType.toLowerCase();
         String prefix = String.format("%s-%s", pluginType, tableType.toLowerCase());
         String jarPath = localSqlPluginPath + SP + dirName;
         String jarName = getCoreJarFileName(jarPath, prefix);
-        return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
+        String sqlRootDir = remoteSqlRootDir == null ? localSqlPluginPath : remoteSqlRootDir;
+        return new URL("file:" + sqlRootDir + SP + dirName + SP + jarName);
     }
 
     public static URL getRemoteSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
+        return buildFinalSideJarFilePath(pluginType, sideOperator, tableType, remoteSqlRootDir, localSqlPluginPath);
+    }
+
+    public static URL getLocalSideJarFilePath(String pluginType, String sideOperator,  String tableType, String localSqlPluginPath) throws Exception {
+        return buildFinalSideJarFilePath(pluginType, sideOperator, tableType, null, localSqlPluginPath);
+    }
+
+    public static URL buildFinalSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
         String dirName = pluginType + sideOperator + tableType.toLowerCase();
         String prefix = String.format("%s-%s-%s", pluginType, sideOperator, tableType.toLowerCase());
         String jarPath = localSqlPluginPath + SP + dirName;
         String jarName = getCoreJarFileName(jarPath, prefix);
-        return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
+        String sqlRootDir = remoteSqlRootDir == null ? localSqlPluginPath : remoteSqlRootDir;
+        return new URL("file:" + sqlRootDir + SP + dirName + SP + jarName);
     }
 
     public static String upperCaseFirstChar(String str){
