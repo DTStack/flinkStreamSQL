@@ -22,10 +22,10 @@ package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonGenerationException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonParseException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonMappingException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

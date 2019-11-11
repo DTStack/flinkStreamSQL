@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.side;
 
-import org.apache.flink.calcite.shaded.com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashBasedTable;
 
 /**
  * Reason:

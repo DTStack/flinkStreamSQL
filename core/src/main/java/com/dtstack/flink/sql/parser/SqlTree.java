@@ -22,8 +22,8 @@ package com.dtstack.flink.sql.parser;
 
 
 import com.dtstack.flink.sql.table.TableInfo;
-import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Maps;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 import java.util.Map;

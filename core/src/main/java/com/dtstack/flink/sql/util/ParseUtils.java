@@ -36,12 +36,11 @@
 
 package com.dtstack.flink.sql.util;
 
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-
 import java.util.List;
 import java.util.Map;
 

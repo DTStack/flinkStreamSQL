@@ -22,9 +22,8 @@ package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.util.List;
 import java.util.Map;
