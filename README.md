@@ -8,13 +8,21 @@
 >  >  * 扩展了输入和输出的性能指标到promethus
 
  ## 新特性:
-  1.kafka源表支持not null语法,支持字符串类型的时间转换。
-  2.rdb维表与DB建立连接时，周期进行连接，防止连接断开。rdbsink写入时，对连接进行检查。
-  3.异步维表支持非等值连接，比如：<>,<,>。
+  * 1.kafka源表支持not null语法,支持字符串类型的时间转换。
+  * 2.rdb维表与DB建立连接时，周期进行连接，防止连接断开。rdbsink写入时，对连接进行检查。
+  * 3.异步维表支持非等值连接，比如：<>,<,>。
+  * 4.增加kafka数组解析
+  * 5.增加kafka1.0以上版本的支持
+  * 6.增加postgresql、kudu、clickhouse维表、结果表的支持
+  * 7.支持插件的依赖方式,参考pluginLoadMode参数
+  * 8.支持cep处理
+  * 9.支持udaf
+  * 10.支持谓词下移
   
  ## BUG修复：
-  1.修复不能解析sql中orderby,union语法。
-  2.修复yarnPer模式提交失败的异常。
+  * 1.修复不能解析sql中orderby,union语法。
+  * 2.修复yarnPer模式提交失败的异常。
+  * 3.一些bug的修复
  
 # 已支持
   * 源表：kafka 0.9、0.10、0.11、1.x版本
@@ -23,7 +31,6 @@
 
 # 后续开发计划
   * 维表快照
-  * sql优化（谓词下移等）
   * kafka avro格式
   * topN
 
@@ -147,6 +154,11 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 描述：per_job 模式下指定的yarn queue
 	* 必选：否
 	* 默认值：false	
+	
+* **pluginLoadMode**
+	* 描述：per_job 模式下的插件包加载方式。classpath:从每台机器加载插件包，shipfile:将需要插件从提交的节点上传到hdfs,不需要每台安装插件
+	* 必选：否
+	* 默认值：classpath
 	
 * **yarnSessionConf**
 	* 描述：yarn session 模式下指定的运行的一些参数，[可参考](https://ci.apache.org/projects/flink/flink-docs-release-1.8/ops/cli.html),目前只支持指定yid
