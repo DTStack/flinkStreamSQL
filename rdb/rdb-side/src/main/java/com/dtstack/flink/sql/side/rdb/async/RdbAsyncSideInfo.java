@@ -28,10 +28,14 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.*;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+
 
 /**
  * Reason:
@@ -68,6 +72,14 @@ public class RdbAsyncSideInfo extends SideInfo {
             dealOneEqualCon(sqlNode, sideTableName);
         }
 
+        List<String> whereConditionList = Lists.newArrayList();;
+        Map<String, String> physicalFields = rdbSideTableInfo.getPhysicalFields();
+        SqlNode whereNode = ((SqlSelect) joinInfo.getSelectNode()).getWhere();
+        if (whereNode != null) {
+            // 解析维表中的过滤条件
+            ParseUtils.parseSideWhere(whereNode, physicalFields, whereConditionList);
+        }
+
         sqlCondition = "select ${selectField} from ${tableName} where ";
         for (int i = 0; i < equalFieldList.size(); i++) {
             String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
@@ -76,6 +88,17 @@ public class RdbAsyncSideInfo extends SideInfo {
             if (i != equalFieldList.size() - 1) {
                 sqlCondition += " and ";
             }
+        }
+        if (0 != whereConditionList.size()) {
+            // 如果where条件中第一个符合条件的是维表中的条件
+            String firstCondition = whereConditionList.get(0);
+            if (!"and".equalsIgnoreCase(firstCondition) && !"or".equalsIgnoreCase(firstCondition)) {
+                whereConditionList.add(0, "and (");
+            } else {
+                whereConditionList.add(1, "(");
+            }
+            whereConditionList.add(whereConditionList.size(), ")");
+            sqlCondition += String.join(" ", whereConditionList);
         }
 
         sqlCondition = sqlCondition.replace("${tableName}", rdbSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
