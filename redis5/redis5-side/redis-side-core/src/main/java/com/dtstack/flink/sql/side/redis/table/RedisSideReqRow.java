@@ -24,6 +24,8 @@ import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Map;
 
@@ -63,10 +65,50 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
                 row.setField(entry.getKey(), null);
             }else{
                 String key = sideInfo.getSideFieldNameIndex().get(entry.getKey());
-                row.setField(entry.getKey(), sideInputMap.get(key));
+                setRowField(row, entry.getKey(), sideInfo, sideInputMap.get(key));
             }
         }
 
         return row;
     }
+
+    public void setRowField(Row row, Integer index, SideInfo sideInfo, String value) {
+        Integer keyIndex = sideInfo.getSideFieldIndex().get(index);
+        String classType = sideInfo.getSideTableInfo().getFieldClassList().get(keyIndex).getName();
+        switch (classType){
+            case "java.lang.Integer":
+                row.setField(index, Integer.valueOf(value));
+                break;
+            case "java.lang.String":
+                row.setField(index, value);
+                break;
+            case "java.lang.Double":
+                row.setField(index, Double.valueOf(value));
+                break;
+            case "java.lang.Long":
+                row.setField(index, Long.valueOf(value));
+                break;
+            case "java.lang.Byte":
+                row.setField(index, Byte.valueOf(value));
+                break;
+            case "java.lang.Short":
+                row.setField(index, Short.valueOf(value));
+                break;
+            case "java.lang.Float":
+                row.setField(index, Float.valueOf(value));
+                break;
+            case "java.math.BigDecimal":
+                row.setField(index, BigDecimal.valueOf(Long.valueOf(value)));
+                break;
+            case "java.sql.Timestamp":
+                row.setField(index, Timestamp.valueOf(value));
+                break;
+            case "java.sql.Date":
+                row.setField(index, Date.valueOf(value));
+                break;
+            default:
+                throw new RuntimeException("no support field type. the type: " + classType);
+        }
+    }
+
 }
