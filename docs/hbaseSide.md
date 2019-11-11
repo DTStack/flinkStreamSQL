@@ -35,7 +35,7 @@
 
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
-| type | 表明维表的类型[hbase\|mysql]|是||
+| type | 表明维表的类型[hbase&#124;mysql]|是||
 | zookeeperQuorum | hbase 的zk地址;格式ip:port[;ip:port]|是||
 | zookeeperParent | hbase 的zk parent路径|是||
 | tableName | hbase 的表名称|是||

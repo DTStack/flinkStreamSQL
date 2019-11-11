@@ -64,21 +64,21 @@ kudu 1.9.0+cdh6.2.0
 
 |参数名称|含义|是否必填|默认值|
 |----|---|---|-----|
-|type | 表明维表的类型[hbase\|mysql|\kudu]|是||
+|type | 表明维表的类型[hbase&#124;mysql&#124;kudu]|是||
 | kuduMasters | kudu master节点的地址;格式ip[ip，ip2]|是||
 | tableName | kudu 的表名称|是||
-| workerCount | 工作线程数 |否|
-| defaultOperationTimeoutMs | 写入操作超时时间 |否|
-| defaultSocketReadTimeoutMs | socket读取超时时间 |否|
-| primaryKey | 需要过滤的主键 ALL模式独有 |否|
-| lowerBoundPrimaryKey | 需要过滤的主键的最小值 ALL模式独有 |否|
-| upperBoundPrimaryKey | 需要过滤的主键的最大值(不包含) ALL模式独有 |否|
-| workerCount | 工作线程数 |否|
-| defaultOperationTimeoutMs | 写入操作超时时间 |否|
-| defaultSocketReadTimeoutMs | socket读取超时时间 |否|
-| batchSizeBytes |返回数据的大小 | 否|
-| limitNum |返回数据的条数 | 否|
-| isFaultTolerant |查询是否容错  查询失败是否扫描第二个副本  默认false  容错 | 否|
+| workerCount | 工作线程数 |否||
+| defaultOperationTimeoutMs | 写入操作超时时间 |否||
+| defaultSocketReadTimeoutMs | socket读取超时时间 |否||
+| primaryKey | 需要过滤的主键 ALL模式独有 |否||
+| lowerBoundPrimaryKey | 需要过滤的主键的最小值 ALL模式独有 |否||
+| upperBoundPrimaryKey | 需要过滤的主键的最大值(不包含) ALL模式独有 |否||
+| workerCount | 工作线程数 |否||
+| defaultOperationTimeoutMs | 写入操作超时时间 |否||
+| defaultSocketReadTimeoutMs | socket读取超时时间 |否||
+| batchSizeBytes |返回数据的大小 | 否||
+| limitNum |返回数据的条数 | 否||
+| isFaultTolerant |查询是否容错  查询失败是否扫描第二个副本  默认false  容错 | 否||
 | cache | 维表缓存策略(NONE/LRU/ALL)|否|NONE|
 | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
 
