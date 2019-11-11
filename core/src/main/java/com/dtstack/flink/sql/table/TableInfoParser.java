@@ -27,8 +27,8 @@ import com.dtstack.flink.sql.side.StreamSideFactory;
 import com.dtstack.flink.sql.sink.StreamSinkFactory;
 import com.dtstack.flink.sql.source.StreamSourceFactory;
 import com.dtstack.flink.sql.util.MathUtil;
-import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
-import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Maps;
+import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
 
 import java.util.Map;
 import java.util.regex.Matcher;

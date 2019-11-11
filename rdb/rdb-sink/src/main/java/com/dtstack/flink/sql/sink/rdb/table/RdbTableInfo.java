@@ -18,7 +18,7 @@
 package com.dtstack.flink.sql.sink.rdb.table;
 
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions;
 
 /**
  * Reason:

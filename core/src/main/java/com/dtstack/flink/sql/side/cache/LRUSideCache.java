@@ -21,8 +21,8 @@
 package com.dtstack.flink.sql.side.cache;
 
 import com.dtstack.flink.sql.side.SideTableInfo;
-import org.apache.flink.calcite.shaded.com.google.common.cache.Cache;
-import org.apache.flink.calcite.shaded.com.google.common.cache.CacheBuilder;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import java.util.concurrent.TimeUnit;
 

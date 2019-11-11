@@ -30,7 +30,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.*;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 
 import java.util.Arrays;
 import java.util.List;

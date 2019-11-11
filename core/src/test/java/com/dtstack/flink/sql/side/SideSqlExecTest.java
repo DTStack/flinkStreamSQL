@@ -22,12 +22,10 @@ package com.dtstack.flink.sql.side;
 import com.dtstack.flink.sql.Main;
 import com.dtstack.flink.sql.parser.SqlParser;
 import com.dtstack.flink.sql.parser.SqlTree;
-import org.apache.flink.calcite.shaded.com.google.common.base.Charsets;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
+import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
 import org.junit.Test;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.List;
 

@@ -21,13 +21,10 @@
 package com.dtstack.flink.sql.watermarker;
 
 import com.dtstack.flink.sql.table.SourceTableInfo;
-import com.google.common.collect.Lists;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.shaded.guava18.com.google.common.base.Strings;
+import com.google.common.base.Strings;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;

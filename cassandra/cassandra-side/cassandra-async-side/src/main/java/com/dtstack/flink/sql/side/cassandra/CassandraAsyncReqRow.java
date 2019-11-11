@@ -45,7 +45,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.vertx.core.json.JsonArray;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;

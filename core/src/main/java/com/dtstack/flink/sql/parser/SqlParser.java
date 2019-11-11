@@ -25,8 +25,8 @@ import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.table.TableInfoParser;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
-import org.apache.flink.shaded.guava18.com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.base.Strings;
 
 import java.util.List;
 import java.util.Set;

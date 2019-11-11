@@ -23,7 +23,7 @@ import com.dtstack.flink.sql.sink.rdb.format.ExtendOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Iterator;
