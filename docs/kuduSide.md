@@ -64,7 +64,7 @@ kudu 1.9.0+cdh6.2.0
 
 |参数名称|含义|是否必填|默认值|
 |----|---|---|-----|
-|type | 表明维表的类型[hbase\|mysql|\kudu]|是||
+|type | 表明维表的类型[hbase&#124;mysql&#124;kudu]|是||
 | kuduMasters | kudu master节点的地址;格式ip[ip，ip2]|是||
 | tableName | kudu 的表名称|是||
 | workerCount | 工作线程数 |否|
