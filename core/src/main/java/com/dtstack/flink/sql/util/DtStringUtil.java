@@ -22,9 +22,9 @@ package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.enums.ColumnType;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
 import java.math.BigDecimal;
 import java.util.ArrayList;

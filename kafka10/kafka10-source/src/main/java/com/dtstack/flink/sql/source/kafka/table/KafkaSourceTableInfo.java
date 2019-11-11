@@ -21,7 +21,7 @@
 package com.dtstack.flink.sql.source.kafka.table;
 
 import com.dtstack.flink.sql.table.SourceTableInfo;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions;
 
 /**
  * Reason:

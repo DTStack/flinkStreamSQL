@@ -20,7 +20,7 @@
 package com.dtstack.flink.sql.side.mongo.table;
 
 import com.dtstack.flink.sql.side.SideTableInfo;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions;
 
 /**
  * Reason:

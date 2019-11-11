@@ -47,7 +47,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.calcite.shaded.com.google.common.collect.HashBasedTable;
 
 import java.util.List;
 import java.util.Map;

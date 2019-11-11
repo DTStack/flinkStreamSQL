@@ -21,7 +21,7 @@
 package com.dtstack.flink.sql.side;
 
 import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Sets;
+import com.google.common.collect.Sets;
 import org.junit.Test;
 
 import java.util.Set;

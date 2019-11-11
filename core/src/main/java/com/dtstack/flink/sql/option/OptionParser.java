@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.option;
 
-import avro.shaded.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
