@@ -122,12 +122,12 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.getField(conValIndex);
             if(equalObj == null){
-                resultFuture.complete(null);
+                dealMissKey(input, resultFuture);
                 return;
             }
-
+            String value = equalObj.toString();
             keyData.add(sideInfo.getEqualFieldList().get(i));
-            keyData.add((String) equalObj);
+            keyData.add(value);
         }
 
         String key = buildCacheKey(keyData);
@@ -157,29 +157,33 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         Map<String, String> keyValue = Maps.newHashMap();
         List<String> value = async.keys(key + ":*").get();
         String[] values = value.toArray(new String[value.size()]);
-        RedisFuture<List<KeyValue<String, String>>> future =  ((RedisStringAsyncCommands) async).mget(values);
-        future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
-            @Override
-            public void accept(List<KeyValue<String, String>> keyValues) {
-                if (keyValues.size() != 0){
-                    for (int i=0; i<keyValues.size(); i++){
-                        String[] splitKeys = keyValues.get(i).getKey().split(":");
-                        keyValue.put(splitKeys[1], splitKeys[2]);
-                        keyValue.put(splitKeys[3], keyValues.get(i).getValue());
-                    }
-                    Row row = fillData(input, keyValue);
-                    resultFuture.complete(Collections.singleton(row));
-                    if(openCache()){
-                        putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
-                    }
-                } else {
-                    dealMissKey(input, resultFuture);
-                    if(openCache()){
-                        putCache(key, CacheMissVal.getMissKeyObj());
+        if (values.length == 0){
+            dealMissKey(input, resultFuture);
+        } else {
+            RedisFuture<List<KeyValue<String, String>>> future = ((RedisStringAsyncCommands) async).mget(values);
+            future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
+                @Override
+                public void accept(List<KeyValue<String, String>> keyValues) {
+                    if (keyValues.size() != 0) {
+                        for (int i = 0; i < keyValues.size(); i++) {
+                            String[] splitKeys = keyValues.get(i).getKey().split(":");
+                            keyValue.put(splitKeys[1], splitKeys[2]);
+                            keyValue.put(splitKeys[3], keyValues.get(i).getValue());
+                        }
+                        Row row = fillData(input, keyValue);
+                        resultFuture.complete(Collections.singleton(row));
+                        if (openCache()) {
+                            putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
+                        }
+                    } else {
+                        dealMissKey(input, resultFuture);
+                        if (openCache()) {
+                            putCache(key, CacheMissVal.getMissKeyObj());
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 
     private String buildCacheKey(List<String> keyData) {
