@@ -22,7 +22,6 @@
   * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql
 
 # 后续开发计划
-  * 增加SQL支持CEP
   * 维表快照
   * sql优化（谓词下移等）
   * kafka avro格式
@@ -39,7 +38,7 @@
 ### 1.2 执行环境
 
 * Java: JDK8及以上
-* Flink集群: 1.4,1.5（单机模式不需要安装Flink集群）
+* Flink集群: 1.4,1.5,1.8（单机模式不需要安装Flink集群）
 * 操作系统：理论上不限
 
 ### 1.3 打包
@@ -167,6 +166,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [cassandra 结果表插件](docs/cassandraSink.md)
 * [kudu 结果表插件](docs/kuduSink.md)
 * [postgresql 结果表插件](docs/postgresqlSink.md)
+* [clickhouse 结果表插件](docs/clickhouseSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
@@ -176,6 +176,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [cassandra 维表插件](docs/cassandraSide.md)
 * [kudu 维表插件](docs/kuduSide.md)
 * [postgresql 维表插件](docs/postgresqlSide.md)
+* [clickhouse 维表插件](docs/clickhouseSide.md)
 
 ## 3 性能指标(新增)
 
