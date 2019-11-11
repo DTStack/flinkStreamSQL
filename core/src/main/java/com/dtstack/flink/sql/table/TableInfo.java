@@ -20,8 +20,8 @@
 
 package com.dtstack.flink.sql.table;
 
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.util.List;

@@ -25,8 +25,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
-
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

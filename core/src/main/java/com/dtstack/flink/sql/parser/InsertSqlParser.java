@@ -25,7 +25,7 @@ import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 

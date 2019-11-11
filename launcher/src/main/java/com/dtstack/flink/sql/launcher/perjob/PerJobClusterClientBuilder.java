@@ -24,7 +24,7 @@ import com.dtstack.flink.sql.option.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.hadoop.shaded.com.google.common.base.Strings;
+import com.google.common.base.Strings;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;

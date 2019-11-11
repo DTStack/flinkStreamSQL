@@ -23,7 +23,7 @@ package com.dtstack.flink.sql.side.hbase.rowkeydealer;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.cache.AbsSideCache;
 import org.apache.calcite.sql.JoinType;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.types.Row;
 import org.hbase.async.HBaseClient;
