@@ -27,11 +27,11 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.formats.json.JsonRowDeserializationSchema;
 import org.apache.flink.formats.json.JsonRowSchemaConverter;
 import org.apache.flink.metrics.Counter;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ContainerNode;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ContainerNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 

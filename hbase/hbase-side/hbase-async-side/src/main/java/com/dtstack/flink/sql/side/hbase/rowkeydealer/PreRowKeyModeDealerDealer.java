@@ -28,7 +28,7 @@ import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.types.Row;
 import org.hbase.async.BinaryPrefixComparator;

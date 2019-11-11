@@ -32,14 +32,12 @@ import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
-import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

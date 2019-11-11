@@ -20,9 +20,9 @@
 
 package com.dtstack.flink.sql.table;
 
-import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.flink.util.StringUtils;
 
 import java.util.ArrayList;
