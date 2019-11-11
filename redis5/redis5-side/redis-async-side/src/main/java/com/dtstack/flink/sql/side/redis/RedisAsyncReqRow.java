@@ -31,6 +31,7 @@ import io.lettuce.core.api.async.RedisKeyAsyncCommands;
 import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import org.apache.calcite.sql.JoinType;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
@@ -165,6 +166,9 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         List<String> value = async.keys(key + ":*").get();
         String[] values = value.toArray(new String[value.size()]);
         if (values.length == 0){
+            if (sideInfo.getJoinType() != JoinType.LEFT) {
+                return;
+            }
             Row row = fillData(input, null);
             resultFuture.complete(Collections.singleton(row));
         } else {
