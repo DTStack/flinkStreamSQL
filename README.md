@@ -173,6 +173,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [elasticsearch 结果表插件](docs/elasticsearchSink.md)
 * [hbase 结果表插件](docs/hbaseSink.md)
 * [mysql 结果表插件](docs/mysqlSink.md)
+* [oracle 结果表插件](docs/oracleSink.md)
 * [mongo 结果表插件](docs/mongoSink.md)
 * [redis 结果表插件](docs/redisSink.md)
 * [cassandra 结果表插件](docs/cassandraSink.md)
@@ -183,6 +184,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
 * [mysql 维表插件](docs/mysqlSide.md)
+* [oracle 维表插件](docs/oracleSide.md)
 * [mongo 维表插件](docs/mongoSide.md)
 * [redis 维表插件](docs/redisSide.md)
 * [cassandra 维表插件](docs/cassandraSide.md)
