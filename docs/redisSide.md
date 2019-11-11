@@ -33,7 +33,7 @@
 
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
-| type | 表明维表的类型[hbase\|mysql\|redis]|是||
+| type | 表明维表的类型[hbase&#124;mysql&#124;redis]|是||
 | url | redis 的地址;格式ip:port[,ip:port]|是||
 | password | redis 的密码 |是||
 | redisType | redis模式（1 单机，2 哨兵， 3 集群）| 是 |

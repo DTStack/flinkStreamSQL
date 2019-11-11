@@ -18,8 +18,8 @@
  
 # 已支持
   * 源表：kafka 0.9、0.10、0.11、1.x版本
-  * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql
-  * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql
+  * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse
+  * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse
 
 # 后续开发计划
   * 维表快照
