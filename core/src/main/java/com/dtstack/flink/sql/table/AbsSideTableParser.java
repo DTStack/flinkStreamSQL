@@ -23,8 +23,6 @@ package com.dtstack.flink.sql.table;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

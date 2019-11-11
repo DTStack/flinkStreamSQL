@@ -22,7 +22,7 @@ package com.dtstack.flink.sql.side;
 
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
+import com.google.common.base.Strings;
 
 import java.io.Serializable;
 import java.util.Map;
