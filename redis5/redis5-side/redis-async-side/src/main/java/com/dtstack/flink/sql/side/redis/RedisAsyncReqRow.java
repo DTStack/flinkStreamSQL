@@ -125,15 +125,11 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.getField(conValIndex);
 
-            String value = "";
-
             if(equalObj == null){
-                resultFuture.complete(null);
-                value = "null";
-            } else {
-                value = equalObj.toString();
+                dealMissKey(input, resultFuture);
+                return;
             }
-
+            String value = equalObj.toString();
             keyData.add(sideInfo.getEqualFieldList().get(i));
             keyData.add(value);
         }
@@ -166,11 +162,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         List<String> value = async.keys(key + ":*").get();
         String[] values = value.toArray(new String[value.size()]);
         if (values.length == 0){
-            if (sideInfo.getJoinType() != JoinType.LEFT) {
-                return;
-            }
-            Row row = fillData(input, null);
-            resultFuture.complete(Collections.singleton(row));
+            dealMissKey(input, resultFuture);
         } else {
             RedisFuture<List<KeyValue<String, String>>> future = ((RedisStringAsyncCommands) async).mget(values);
             future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
