@@ -98,7 +98,7 @@ public abstract class AbsTableParser {
             System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
             String fieldName = String.join(" ", filedNameArr);
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
-            Class fieldClass = ClassUtil.stringConvertClass(fieldType);
+            Class fieldClass = dbTypeConvertToJavaType(fieldType);
 
             tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
             tableInfo.addField(fieldName);
@@ -116,4 +116,9 @@ public abstract class AbsTableParser {
         List<String> primaryKes = Lists.newArrayList(splitArry);
         tableInfo.setPrimaryKeys(primaryKes);
     }
+
+    public Class dbTypeConvertToJavaType(String fieldType) {
+        return ClassUtil.stringConvertClass(fieldType);
+    }
+
 }
