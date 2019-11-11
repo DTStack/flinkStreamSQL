@@ -37,7 +37,7 @@
 
   |参数名称|含义|是否必填|默认值|
   |----|---|---|----|
-  | type | 表明维表的类型[hbase\|mysql] |是||
+  | type | 表明维表的类型[hbase&#124;mysql] |是||
   | url | 连接mysql数据库 jdbcUrl |是||
   | userName | mysql连接用户名 |是||
   | password | mysql连接密码|是||

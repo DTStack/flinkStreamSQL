@@ -30,7 +30,7 @@ CREATE TABLE tableName(
 
 |参数名称|含义|是否必填|默认值|
 |----|----|----|----|
-|type |表明 输出表类型[mysql\|hbase\|elasticsearch]|是||
+|type |表明 输出表类型[mysql&#124;hbase&#124;elasticsearch]|是||
 |url | 连接mysql数据库 jdbcUrl |是||
 |userName | mysql连接用户名 |是||
 | password | mysql连接密码|是||
