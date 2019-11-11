@@ -59,7 +59,7 @@ public abstract class TableInfo implements Serializable {
 
     private List<String> primaryKeys;
 
-    private Integer parallelism = 1;
+    private Integer parallelism = -1;
 
     public String[] getFieldTypes() {
         return fieldTypes;
