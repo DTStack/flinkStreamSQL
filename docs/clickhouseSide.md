@@ -7,7 +7,7 @@
      PRIMARY KEY(keyInfo),
      PERIOD FOR SYSTEM_TIME
   )WITH(
-     type='mysql',
+     type='clickhouse',
      url='jdbcUrl',
      userName='dbUserName',
      password='dbPwd',
@@ -21,13 +21,13 @@
 ```
 
 # 2.支持版本
- mysql-5.6.35
+ 19.14.x、19.15.x、19.16.x
  
 ## 3.表结构定义
   
  |参数名称|含义|
  |----|---|
- | tableName | mysql表名称|
+ | tableName | clickhouse表名称|
  | colName | 列名称|
  | colType | 列类型 [colType支持的类型](colType.md)|
  | PERIOD FOR SYSTEM_TIME | 关键字表明该定义的表为维表信息|
@@ -37,12 +37,12 @@
 
   |参数名称|含义|是否必填|默认值|
   |----|---|---|----|
-  | type | 表明维表的类型 mysql |是||
-  | url | 连接mysql数据库 jdbcUrl |是||
-  | userName | mysql连接用户名 |是||
-  | password | mysql连接密码|是||
-  | tableName | mysql表名称|是||
-  | tableName | mysql 的表名称|是||
+  | type | 表明维表的类型 clickhouse |是||
+  | url | 连接clickhouse数据库 jdbcUrl |是||
+  | userName | clickhouse连接用户名 |是||
+  | password | clickhouse连接密码|是||
+  | tableName | clickhouse表名称|是||
+  | tableName | clickhouse 的表名称|是||
   | cache | 维表缓存策略(NONE/LRU)|否|NONE|
   | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
   
@@ -64,8 +64,8 @@ create table sideTable(
     PRIMARY KEY(channel),
     PERIOD FOR SYSTEM_TIME
  )WITH(
-    type='mysql',
-    url='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',
+    type='clickhouse',
+    url='jdbc:clickhouse://172.16.8.104:3306/test?charset=utf8',
     userName='dtstack',
     password='abc123',
     tableName='sidetest',

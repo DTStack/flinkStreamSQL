@@ -38,7 +38,7 @@ CREATE TABLE tableName(
  
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
-|type | kafka09 | 是||
+|type | kafka09 | 是|kafka08、kafka09、kafka10、kafka11、kafka(对应kafka1.0及以上版本)|
 |kafka.group.id | 需要读取的 groupId 名称|否||
 |kafka.bootstrap.servers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
 |kafka.zookeeper.quorum | kafka zk地址信息(多个之间用逗号分隔)|是||
