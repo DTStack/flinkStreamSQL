@@ -118,6 +118,10 @@ public abstract class TableInfo implements Serializable {
     }
 
     public void addField(String fieldName){
+        if (fieldList.contains(fieldName)) {
+            throw new RuntimeException("redundancy field name " + fieldName + " in table " + getName());
+        }
+
         fieldList.add(fieldName);
     }
 
