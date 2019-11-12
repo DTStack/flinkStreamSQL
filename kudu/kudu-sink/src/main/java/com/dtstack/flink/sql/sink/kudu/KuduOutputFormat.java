@@ -34,8 +34,6 @@ public class KuduOutputFormat extends MetricOutputFormat {
 
     public enum WriteMode {INSERT, UPDATE, UPSERT}
 
-//    public enum Consistency {EVENTUAL, STRONG}
-
     private String kuduMasters;
 
     private String tableName;
@@ -46,14 +44,9 @@ public class KuduOutputFormat extends MetricOutputFormat {
 
     TypeInformation<?>[] fieldTypes;
 
-//    protected List<String> primaryKeys;
-
-//    private Consistency consistency = Consistency.STRONG;
-
     private AsyncKuduClient client;
 
     private KuduTable table;
-
 
     private Integer workerCount;
 
@@ -158,11 +151,6 @@ public class KuduOutputFormat extends MetricOutputFormat {
             kuduOutputFormat.fieldTypes = fieldTypes;
             return this;
         }
-//
-//        public KuduOutputFormatBuilder setPrimaryKeys(List<String> primaryKeys) {
-//            kuduOutputFormat.primaryKeys = primaryKeys;
-//            return this;
-//        }
 
         public KuduOutputFormatBuilder setWriteMode(WriteMode writeMode) {
             if (null == writeMode) {
@@ -176,21 +164,6 @@ public class KuduOutputFormat extends MetricOutputFormat {
             kuduOutputFormat.workerCount = workerCount;
             return this;
         }
-
-//        public KuduOutputFormatBuilder setConsistency(String consistency) {
-//            switch (consistency) {
-//                case "EVENTUAL":
-//                    kuduOutputFormat.consistency = Consistency.EVENTUAL;
-//                    break;
-//                case "STRONG":
-//                    kuduOutputFormat.consistency = Consistency.STRONG;
-//                    break;
-//                default:
-//                    kuduOutputFormat.consistency = Consistency.STRONG;
-//            }
-//            return this;
-//        }
-
 
         public KuduOutputFormatBuilder setDefaultOperationTimeoutMs(Integer defaultOperationTimeoutMs) {
             kuduOutputFormat.defaultOperationTimeoutMs = defaultOperationTimeoutMs;
