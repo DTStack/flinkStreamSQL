@@ -29,11 +29,6 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
 
     TypeInformation<?>[] fieldTypes;
 
-//    protected List<String> primaryKeys;
-
-//    private KuduOutputFormat.Consistency consistency = KuduOutputFormat.Consistency.STRONG;
-
-
     private Integer workerCount;
 
     private Integer defaultOperationTimeoutMs;
@@ -77,7 +72,6 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.fieldTypes = fieldTypes;
         return this;
     }
-
 
     @Override
     public TupleTypeInfo<Tuple2<Boolean, Row>> getOutputType() {
