@@ -24,8 +24,8 @@ import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -119,9 +119,12 @@ public abstract class RdbAllReqRow extends AllReqRow {
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = value.getField(conValIndex);
             if (equalObj == null) {
-                out.collect(null);
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
+                    Row row = fillData(value, null);
+                    out.collect(row);
+                }
+                return;
             }
-
             inputParams.add(equalObj);
         }
 
@@ -171,7 +174,6 @@ public abstract class RdbAllReqRow extends AllReqRow {
 
         try {
             for (int i = 0; i < CONN_RETRY_NUM; i++) {
-
                 try {
                     connection = getConn(tableInfo.getUrl(), tableInfo.getUserName(), tableInfo.getPassword());
                     break;
@@ -179,7 +181,6 @@ public abstract class RdbAllReqRow extends AllReqRow {
                     if (i == CONN_RETRY_NUM - 1) {
                         throw new RuntimeException("", e);
                     }
-
                     try {
                         String connInfo = "url:" + tableInfo.getUrl() + ";userName:" + tableInfo.getUserName() + ",pwd:" + tableInfo.getPassword();
                         LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);

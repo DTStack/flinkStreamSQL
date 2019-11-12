@@ -17,6 +17,7 @@
  */
 
 
+
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
@@ -47,9 +48,9 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.HashBasedTable;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -112,6 +113,8 @@ public class SideSqlExec {
                 }
 
                 if(pollSqlNode.getKind() == INSERT){
+                    System.out.println("----------real exec sql-----------" );
+                    System.out.println(pollSqlNode.toString());
                     FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
@@ -360,7 +363,14 @@ public class SideSqlExec {
     private SqlNode replaceNodeInfo(SqlNode groupNode, HashBasedTable<String, String, String> mappingTable, String tableAlias){
         if(groupNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) groupNode;
+            if(sqlIdentifier.names.size() == 1){
+                return sqlIdentifier;
+            }
             String mappingFieldName = mappingTable.get(sqlIdentifier.getComponent(0).getSimple(), sqlIdentifier.getComponent(1).getSimple());
+
+            if(mappingFieldName == null){
+                throw new RuntimeException("can't find mapping fieldName:" + sqlIdentifier.toString() );
+            }
             sqlIdentifier = sqlIdentifier.setName(0, tableAlias);
             return sqlIdentifier.setName(1, mappingFieldName);
         }else if(groupNode instanceof  SqlBasicCall){
@@ -510,6 +520,8 @@ public class SideSqlExec {
                 || selectNode.getKind() == IS_NULL
                 || selectNode.getKind() == IS_NOT_NULL
                 || selectNode.getKind() == CONTAINS
+                || selectNode.getKind() == TIMESTAMP_ADD
+                || selectNode.getKind() == TIMESTAMP_DIFF
 
                 ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;

@@ -22,10 +22,10 @@ package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonGenerationException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonParseException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonMappingException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -33,6 +33,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -108,19 +110,37 @@ public class PluginUtil {
     }
 
     public static URL getRemoteJarFilePath(String pluginType, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
+        return buildFinalJarFilePath(pluginType, tableType, remoteSqlRootDir, localSqlPluginPath);
+    }
+
+    public static URL getLocalJarFilePath(String pluginType, String tableType, String localSqlPluginPath) throws Exception {
+        return buildFinalJarFilePath(pluginType, tableType, null, localSqlPluginPath);
+    }
+
+    public static URL buildFinalJarFilePath(String pluginType, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
         String dirName = pluginType + tableType.toLowerCase();
         String prefix = String.format("%s-%s", pluginType, tableType.toLowerCase());
         String jarPath = localSqlPluginPath + SP + dirName;
         String jarName = getCoreJarFileName(jarPath, prefix);
-        return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
+        String sqlRootDir = remoteSqlRootDir == null ? localSqlPluginPath : remoteSqlRootDir;
+        return new URL("file:" + sqlRootDir + SP + dirName + SP + jarName);
     }
 
     public static URL getRemoteSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
+        return buildFinalSideJarFilePath(pluginType, sideOperator, tableType, remoteSqlRootDir, localSqlPluginPath);
+    }
+
+    public static URL getLocalSideJarFilePath(String pluginType, String sideOperator,  String tableType, String localSqlPluginPath) throws Exception {
+        return buildFinalSideJarFilePath(pluginType, sideOperator, tableType, null, localSqlPluginPath);
+    }
+
+    public static URL buildFinalSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir, String localSqlPluginPath) throws Exception {
         String dirName = pluginType + sideOperator + tableType.toLowerCase();
         String prefix = String.format("%s-%s-%s", pluginType, sideOperator, tableType.toLowerCase());
         String jarPath = localSqlPluginPath + SP + dirName;
         String jarName = getCoreJarFileName(jarPath, prefix);
-        return new URL("file:" + remoteSqlRootDir + SP + dirName + SP + jarName);
+        String sqlRootDir = remoteSqlRootDir == null ? localSqlPluginPath : remoteSqlRootDir;
+        return new URL("file:" + sqlRootDir + SP + dirName + SP + jarName);
     }
 
     public static String upperCaseFirstChar(String str){
@@ -144,6 +164,25 @@ public class PluginUtil {
         }
     }
 
+    public static URL[] getPluginJarUrls(String pluginDir) throws MalformedURLException {
+        List<URL> urlList = new ArrayList<>();
+        File dirFile = new File(pluginDir);
+        if(!dirFile.exists() || !dirFile.isDirectory()){
+            throw new RuntimeException("plugin path:" + pluginDir + "is not exist.");
+        }
+
+        File[] files = dirFile.listFiles(tmpFile -> tmpFile.isFile() && tmpFile.getName().endsWith(JAR_SUFFIX));
+        if(files == null || files.length == 0){
+            throw new RuntimeException("plugin path:" + pluginDir + " is null.");
+        }
+
+        for(File file : files){
+            URL pluginJarURL = file.toURI().toURL();
+            urlList.add(pluginJarURL);
+        }
+        return urlList.toArray(new URL[urlList.size()]);
+    }
+    
     public static String getCoreJarFileName (String path, String prefix) throws Exception {
         String coreJarFileName = null;
         File pluginDir = new File(path);

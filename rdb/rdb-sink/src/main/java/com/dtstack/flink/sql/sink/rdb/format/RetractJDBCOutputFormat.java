@@ -23,8 +23,8 @@ import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +64,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private String dbURL;
     private String tableName;
     private String dbType;
+    private String schema;
     private RdbSink dbSink;
     // trigger preparedStatement execute batch interval
     private long batchWaitInterval = 10000l;
@@ -106,9 +107,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             dbConn = establishConnection();
             initMetric();
 
-            if (dbConn.getMetaData().getTables(null, null, tableName, null).next()) {
+            if (existTabname()) {
                 if (isReplaceInsertQuery()) {
-                    insertQuery = dbSink.buildUpdateSql(tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
+                    insertQuery = dbSink.buildUpdateSql(schema , tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
                 }
                 upload = dbConn.prepareStatement(insertQuery);
             } else {
@@ -209,7 +210,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             dbConn.commit();
         } catch (SQLException e) {
             outDirtyRecords.inc();
-            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0) {
+            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0 || LOG.isDebugEnabled()) {
                 LOG.error("record insert failed ..", row.toString());
                 LOG.error("", e);
             }
@@ -400,6 +401,21 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         this.username = username;
     }
 
+    public String getSchema() {
+        if (StringUtils.isNotEmpty(schema)) {
+            return schema;
+        }
+        return null;
+    }
+
+    public void setSchema(String schema) {
+        this.schema = schema;
+    }
+
+    public boolean existTabname() throws SQLException {
+        return dbConn.getMetaData().getTables(null, getSchema(), tableName, null).next();
+    }
+
     public void setPassword(String password) {
         this.password = password;
     }
@@ -452,7 +468,11 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         return tableName;
     }
 
-    public Map<String, List<String>> getRealIndexes() {
+    public void realIndexesAdd(String index, List<String> fieldes) {
+        this.realIndexes.put(index, fieldes);
+    }
+
+    public Map<String,List<String>> getRealIndexes() {
         return realIndexes;
     }
 
@@ -463,5 +483,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     public List<String> getFullField() {
         return fullField;
+    }
+
+    public void fullFieldAdd(String colName) {
+        this.fullField.add(colName);
     }
 }

@@ -22,6 +22,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.RdbAllSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
@@ -40,14 +41,10 @@ public class OracleAllSideInfo extends RdbAllSideInfo {
         sqlCondition = "select ${selectField} from ${tableName} ";
 
 
-        sqlCondition = sqlCondition.replace("${tableName}", dealFiled(rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
+        sqlCondition = sqlCondition.replace("${tableName}", DtStringUtil.getTableFullPath(rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
         System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
-
-    private String dealFiled(String field) {
-        return   "\"" + field + "\"";
-    }
 
     private String dealLowerSelectFiled(String fieldsStr) {
         StringBuilder sb = new StringBuilder();

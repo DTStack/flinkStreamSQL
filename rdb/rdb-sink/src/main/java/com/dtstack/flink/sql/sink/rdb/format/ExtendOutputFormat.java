@@ -18,8 +18,9 @@
 
 package com.dtstack.flink.sql.sink.rdb.format;
 
+import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+import com.google.common.collect.Maps;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -62,28 +63,30 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
      */
     public void fillRealIndexes() throws SQLException {
         Map<String, List<String>> map = Maps.newHashMap();
-        ResultSet rs = getDbConn().getMetaData().getIndexInfo(null, null, getTableName(), true, false);
+
+        ResultSet rs = getDbConn().getMetaData().getIndexInfo(null, getSchema(), DtStringUtil.addQuoteForStr(getTableName()), true, false);
 
         while (rs.next()) {
             String indexName = rs.getString("INDEX_NAME");
-            if (!map.containsKey(indexName)) {
+            if (StringUtils.isNotBlank(indexName) && !map.containsKey(indexName)) {
                 map.put(indexName, new ArrayList<>());
             }
             String column_name = rs.getString("COLUMN_NAME");
             if (StringUtils.isNotBlank(column_name)) {
-                column_name = column_name.toUpperCase();
+                map.get(indexName).add(column_name);
             }
-            map.get(indexName).add(column_name);
         }
 
         for (Map.Entry<String, List<String>> entry : map.entrySet()) {
             String k = entry.getKey();
             List<String> v = entry.getValue();
             if (v != null && v.size() != 0 && v.get(0) != null) {
-                getRealIndexes().put(k, v);
+                realIndexesAdd(k, v);
             }
         }
     }
+
+
 
     /**
      * get db all column name
@@ -91,11 +94,12 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
      * @throws SQLException
      */
     public void fillFullColumns() throws SQLException {
-        ResultSet rs = getDbConn().getMetaData().getColumns(null, null, getTableName(), null);
+        // table name not quote
+        ResultSet rs = getDbConn().getMetaData().getColumns(null, getSchema(), getTableName(), null);
         while (rs.next()) {
             String columnName = rs.getString("COLUMN_NAME");
             if (StringUtils.isNotBlank(columnName)) {
-                getFullField().add(columnName.toUpperCase());
+                fullFieldAdd(columnName);
             }
         }
     }
@@ -108,4 +112,5 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
         }
         return false;
     }
+
 }

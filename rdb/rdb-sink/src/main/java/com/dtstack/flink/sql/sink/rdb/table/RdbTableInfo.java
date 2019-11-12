@@ -18,7 +18,7 @@
 package com.dtstack.flink.sql.sink.rdb.table;
 
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions;
 
 /**
  * Reason:
@@ -45,6 +45,8 @@ public class RdbTableInfo extends TargetTableInfo {
 
     public static final String FLUSH_INTERVALMS_KEY = "flushIntervalMs";
 
+    public static final String SCHEMA_KEY = "schema";
+
     private String url;
 
     private String tableName;
@@ -60,6 +62,8 @@ public class RdbTableInfo extends TargetTableInfo {
     private String bufferSize;
 
     private String flushIntervalMs;
+
+    private String schema;
 
     public String getUrl() {
         return url;
@@ -124,6 +128,14 @@ public class RdbTableInfo extends TargetTableInfo {
 
     public void setBatchWaitInterval(Long batchWaitInterval) {
         this.batchWaitInterval = batchWaitInterval;
+    }
+
+    public String getSchema() {
+        return schema;
+    }
+
+    public void setSchema(String schema) {
+        this.schema = schema;
     }
 
     @Override

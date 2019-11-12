@@ -26,8 +26,7 @@ import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -78,7 +77,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
-                resultFuture.complete(null);
+                dealMissKey(input, resultFuture);
                 return;
             }
             inputParams.add(equalObj);

@@ -23,6 +23,8 @@ package com.dtstack.flink.sql.sink.mysql;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
+import com.dtstack.flink.sql.util.DtStringUtil;
+
 import java.util.List;
 import java.util.Map;
 
@@ -46,17 +48,17 @@ public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     }
 
     @Override
-    public void buildSql(String tableName, List<String> fields) {
+    public void buildSql(String scheam, String tableName, List<String> fields) {
         buildInsertSql(tableName, fields);
     }
 
     @Override
-    public String buildUpdateSql(String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
+    public String buildUpdateSql(String schema, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
         return null;
     }
 
     private void buildInsertSql(String tableName, List<String> fields) {
-        String sqlTmp = "replace into " + tableName + " (${fields}) values (${placeholder})";
+        String sqlTmp = "replace into " +  tableName + " (${fields}) values (${placeholder})";
         String fieldsStr = "";
         String placeholder = "";
 

@@ -22,7 +22,7 @@ CREATE TABLE tableName(
  
 |参数名称|含义|
 |----|---|
-| tableName| 在 sql 中使用的名称;即注册到flink-table-env上的名称|
+| tableName| mysql表名称|
 | colName | 列名称|
 | colType | 列类型 [colType支持的类型](colType.md)|
 
@@ -30,7 +30,7 @@ CREATE TABLE tableName(
 
 |参数名称|含义|是否必填|默认值|
 |----|----|----|----|
-|type |表明 输出表类型[mysql\|hbase\|elasticsearch]|是||
+|type |表名 输出表类型[mysq&#124;hbase&#124;elasticsearch]|是||
 |url | 连接mysql数据库 jdbcUrl |是||
 |userName | mysql连接用户名 |是||
 | password | mysql连接密码|是||

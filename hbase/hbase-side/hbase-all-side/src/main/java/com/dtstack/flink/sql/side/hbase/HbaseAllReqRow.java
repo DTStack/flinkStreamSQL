@@ -24,7 +24,7 @@ import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import com.google.common.collect.Maps;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;

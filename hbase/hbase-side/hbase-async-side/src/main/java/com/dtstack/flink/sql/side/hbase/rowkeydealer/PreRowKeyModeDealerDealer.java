@@ -28,7 +28,7 @@ import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.types.Row;
 import org.hbase.async.BinaryPrefixComparator;
@@ -88,6 +88,7 @@ public class PreRowKeyModeDealerDealer extends AbsRowKeyModeDealer {
         }
 
         List<Object> cacheContent = Lists.newArrayList();
+        List<Row> rowList = Lists.newArrayList();
 
         for(List<KeyValue> oneRow : args){
             try {
@@ -120,14 +121,17 @@ public class PreRowKeyModeDealerDealer extends AbsRowKeyModeDealer {
                     if (openCache) {
                         cacheContent.add(sideVal);
                     }
-
-                    resultFuture.complete(Collections.singleton(row));
+                    rowList.add(row);
                 }
             } catch (Exception e) {
                 resultFuture.complete(null);
                 LOG.error("record:" + input);
                 LOG.error("get side record exception:", e);
             }
+        }
+
+        if (rowList.size() > 0){
+            resultFuture.complete(rowList);
         }
 
         if(openCache){

@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.launcher;
 
-import avro.shaded.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.dtstack.flink.sql.enums.ClusterMode;

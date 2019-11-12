@@ -24,17 +24,16 @@ package com.dtstack.flink.sql.source.kafka;
 import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
 import com.dtstack.flink.sql.table.TableInfo;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.base.Strings;
+import com.google.common.base.Strings;
 import org.apache.flink.metrics.MetricGroup;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.collect.Maps;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
@@ -43,7 +42,6 @@ import org.apache.kafka.clients.consumer.internals.SubscriptionState;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.sql.Date;
@@ -158,24 +156,31 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
     }
 
-    private JsonNode getIgnoreCase(String key) {
+    public JsonNode getIgnoreCase(String key) {
         String nodeMappingKey = rowAndFieldMapping.getOrDefault(key, key);
-        JsonNode node = nodeAndJsonNodeMapping.get(nodeMappingKey);
-        if(node == null){
-            return null;
-        }
-
-        JsonNodeType nodeType = node.getNodeType();
-
-        if (nodeType == JsonNodeType.ARRAY){
-            throw new IllegalStateException("Unsupported  type information  array .") ;
-        }
-
-        return node;
+        return nodeAndJsonNodeMapping.get(nodeMappingKey);
     }
 
 
     private void parseTree(JsonNode jsonNode, String prefix){
+
+        if (jsonNode.isArray()) {
+            ArrayNode array = (ArrayNode) jsonNode;
+            for (int i = 0; i < array.size(); i++) {
+                JsonNode child = array.get(i);
+                String nodeKey = getNodeKey(prefix, i);
+
+                if (child.isValueNode()) {
+                    nodeAndJsonNodeMapping.put(nodeKey, child);
+                } else {
+                    if (rowAndFieldMapping.containsValue(nodeKey)) {
+                        nodeAndJsonNodeMapping.put(nodeKey, child);
+                    }
+                    parseTree(child, nodeKey);
+                }
+            }
+            return;
+        }
 
         Iterator<String> iterator = jsonNode.fieldNames();
         while (iterator.hasNext()){
@@ -186,7 +191,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             if (child.isValueNode()){
                 nodeAndJsonNodeMapping.put(nodeKey, child);
             } else if(child.isArray()){
-                nodeAndJsonNodeMapping.put(nodeKey, new TextNode(child.toString()));
+                parseTree(child, nodeKey);
             }else {
                 parseTree(child, nodeKey);
             }
@@ -199,6 +204,14 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
 
         return prefix + "." + nodeName;
+    }
+
+    private String getNodeKey(String prefix, int i) {
+      if (Strings.isNullOrEmpty(prefix)) {
+        return "[" + i + "]";
+      }
+
+      return prefix + "[" + i + "]";
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {

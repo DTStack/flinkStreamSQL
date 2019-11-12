@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.option;
 
 import com.dtstack.flink.sql.enums.ClusterMode;
+import com.dtstack.flink.sql.enums.EPluginLoadMode;
 
 
 /**
@@ -70,6 +71,9 @@ public class Options {
 
     @OptionRequired(description = "yarn session configuration,such as yid")
     private String yarnSessionConf = "{}";
+
+    @OptionRequired(description = "plugin load mode, by classpath or shipfile")
+    private String pluginLoadMode = EPluginLoadMode.CLASSPATH.name();
 
     public String getMode() {
         return mode;
@@ -181,5 +185,13 @@ public class Options {
 
     public void setYarnSessionConf(String yarnSessionConf) {
         this.yarnSessionConf = yarnSessionConf;
+    }
+
+    public String getPluginLoadMode() {
+        return pluginLoadMode;
+    }
+
+    public void setPluginLoadMode(String pluginLoadMode) {
+        this.pluginLoadMode = pluginLoadMode;
     }
 }

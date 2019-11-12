@@ -18,7 +18,7 @@
 package com.dtstack.flink.sql.side.rdb.table;
 
 import com.dtstack.flink.sql.side.SideTableInfo;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions;
 
 /**
  * Reason:
@@ -39,6 +39,8 @@ public class RdbSideTableInfo extends SideTableInfo {
 
     public static final String PASSWORD_KEY = "password";
 
+    public static final String SCHEMA_KEY = "schema";
+
     @Override
     public boolean check() {
         Preconditions.checkNotNull(url, "rdb of URL is required");
@@ -55,6 +57,16 @@ public class RdbSideTableInfo extends SideTableInfo {
     private String userName;
 
     private String password;
+
+    private String schema;
+
+    public String getSchema() {
+        return schema;
+    }
+
+    public void setSchema(String schema) {
+        this.schema = schema;
+    }
 
     public String getUrl() {
         return url;

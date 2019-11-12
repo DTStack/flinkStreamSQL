@@ -27,7 +27,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 
 import java.util.Iterator;
 import java.util.List;
@@ -41,8 +41,12 @@ import java.util.List;
 
 public class ParserJoinField {
 
+
     /**
-     * Need to parse the fields of information and where selectlist
+     *  build row by field
+     * @param sqlNode  select node
+     * @param scope    join left and right table all info
+     * @param getAll  true,get all fields from two tables; false, extract useful field from select node
      * @return
      */
     public static List<FieldInfo> getRowTypeInfo(SqlNode sqlNode, JoinScope scope, boolean getAll){

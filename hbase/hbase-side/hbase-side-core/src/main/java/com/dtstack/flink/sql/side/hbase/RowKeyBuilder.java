@@ -21,7 +21,7 @@
 package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
-import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 
 import java.io.Serializable;
 import java.util.List;

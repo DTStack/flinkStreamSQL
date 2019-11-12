@@ -59,9 +59,13 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
                 .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
                 .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
 
+
+        System.setProperty("vertx.disableFileCPResolving", "true");
+
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
+        vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
         setRdbSQLClient(JDBCClient.createNonShared(vertx, sqlserverClientConfig));
     }
