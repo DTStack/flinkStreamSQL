@@ -93,7 +93,7 @@ public class KuduAllReqRow extends AllReqRow {
         loadData(newCache);
 
         cacheRef.set(newCache);
-        LOG.info("----- Mongo all cacheRef reload end:{}", Calendar.getInstance());
+        LOG.info("----- kudu all cacheRef reload end:{}", Calendar.getInstance());
     }
 
 
@@ -177,15 +177,6 @@ public class KuduAllReqRow extends AllReqRow {
                     LOG.error("Error while closing scanner.", e);
                 }
             }
-            //放置到close中关闭  每次刷新时间较长则可以选择在这里关闭
-//            if (null != client) {
-//                try {
-//                    client.close();
-//                } catch (Exception e) {
-//                    LOG.error("Error while closing client.", e);
-//                }
-//            }
-
         }
 
 
