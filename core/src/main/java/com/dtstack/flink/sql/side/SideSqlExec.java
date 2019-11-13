@@ -522,6 +522,7 @@ public class SideSqlExec {
                 || selectNode.getKind() == CONTAINS
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
+                || selectNode.getKind() == LIKE
 
                 ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
