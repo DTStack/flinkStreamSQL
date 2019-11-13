@@ -66,6 +66,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamContextEnvironment;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.StreamQueryConfig;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.sinks.TableSink;
@@ -126,7 +127,7 @@ public class Main {
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
         StreamExecutionEnvironment env = getStreamExeEnv(confProperties, deployMode);
-        StreamTableEnvironment tableEnv = StreamTableEnvironment.getTableEnvironment(env);
+        StreamTableEnvironment tableEnv = getStreamTableEnv(confProperties, env);
 
         List<URL> jarURList = Lists.newArrayList();
         SqlTree sqlTree = SqlParser.parseSql(sql);
@@ -348,4 +349,17 @@ public class Main {
         return env;
     }
 
+    /**
+     * 获取StreamTableEnvironment并设置相关属性
+     *
+     * @param confProperties
+     * @param env
+     * @return
+     */
+    private static StreamTableEnvironment getStreamTableEnv(Properties confProperties, StreamExecutionEnvironment env) {
+        confProperties = PropertiesUtils.propertiesTrim(confProperties);
+        StreamTableEnvironment tableEnv = StreamTableEnvironment.getTableEnvironment(env);
+        FlinkUtil.setTableEnvTTL(confProperties, tableEnv);
+        return tableEnv;
+    }
 }
