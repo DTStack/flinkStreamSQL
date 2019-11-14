@@ -18,6 +18,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.package.name>core</project.package.name>
         <calcite.server.version>1.16.0</calcite.server.version>
+        <jackson.version>2.7.9</jackson.version>
         <guava.version>19.0</guava.version>
     </properties>
 
@@ -53,12 +54,6 @@
             <version>${flink.version}</version>
         </dependency>
 
-        <!--<dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-table_2.11</artifactId>
-            <version>1.7.2</version>
-        </dependency>-->
-
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-table-planner_2.11</artifactId>
@@ -76,6 +71,24 @@
             <artifactId>calcite-server</artifactId>
             <!-- When updating the Calcite version, make sure to update the dependency exclusions -->
             <version>${calcite.server.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>jackson-databind</artifactId>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
         </dependency>
 
         <dependency>
@@ -125,7 +138,8 @@
                             </transformers>
                             <artifactSet>
                                 <includes>
-                                    <include>*:guava</include>
+                                    <include>com.fasterxml.jackson.*</include>
+                                    <include>com.google.guava</include>
                                 </includes>
                             </artifactSet>
                             <filters>
