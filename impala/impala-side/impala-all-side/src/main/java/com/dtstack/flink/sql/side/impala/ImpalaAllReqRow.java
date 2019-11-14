@@ -21,13 +21,18 @@ package com.dtstack.flink.sql.side.impala;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.util.JDBCUtils;
 import com.google.common.collect.Maps;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
@@ -49,22 +54,81 @@ public class ImpalaAllReqRow extends RdbAllReqRow {
 
     private static final String IMPALA_DRIVER = "com.cloudera.impala.jdbc41.Driver";
 
+    private ImpalaSideTableInfo impalaSideTableInfo;
+
     public ImpalaAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new ImpalaAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
+        this.impalaSideTableInfo = (ImpalaSideTableInfo) sideTableInfo;
     }
 
     @Override
     public Connection getConn(String dbURL, String userName, String password) {
         try {
-            Class.forName(IMPALA_DRIVER);
-            //add param useCursorFetch=true
-            Map<String, String> addParams = Maps.newHashMap();
-            addParams.put("useCursorFetch", "true");
-            //String targetDbUrl = DtStringUtil.addJdbcParam(dbURL, addParams, true);
-            return DriverManager.getConnection(dbURL, userName, password);
+            Connection connection ;
+            String url = getUrl();
+            JDBCUtils.forName(IMPALA_DRIVER);
+            connection = DriverManager.getConnection(url);
+            connection.setAutoCommit(false);
+            return connection;
         } catch (Exception e) {
             LOG.error("", e);
             throw new RuntimeException("", e);
         }
+    }
+
+    public String getUrl() throws IOException {
+
+        String newUrl = "";
+        Integer authMech = impalaSideTableInfo.getAuthMech();
+
+        StringBuffer urlBuffer = new StringBuffer(impalaSideTableInfo.getUrl());
+        if (authMech == 0) {
+            newUrl = urlBuffer.toString();
+
+        } else if (authMech == 1) {
+            String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
+            String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
+            String principal = impalaSideTableInfo.getPrincipal();
+            String krbRealm = impalaSideTableInfo.getKrbRealm();
+            String krbHostFQDN = impalaSideTableInfo.getKrbHostFQDN();
+            String krbServiceName = impalaSideTableInfo.getKrbServiceName();
+            urlBuffer.append(";"
+                    .concat("AuthMech=1;")
+                    .concat("KrbRealm=").concat(krbRealm).concat(";")
+                    .concat("KrbHostFQDN=").concat(krbHostFQDN).concat(";")
+                    .concat("KrbServiceName=").concat(krbServiceName).concat(";")
+            );
+            newUrl = urlBuffer.toString();
+            System.setProperty("java.security.krb5.conf", krb5FilePath);
+            Configuration configuration = new Configuration();
+            configuration.set("hadoop.security.authentication" , "Kerberos");
+            UserGroupInformation.setConfiguration(configuration);
+            UserGroupInformation.loginUserFromKeytab(principal, keyTabFilePath);
+
+        } else if (authMech == 2) {
+            String uName = impalaSideTableInfo.getUserName();
+            urlBuffer.append(";"
+                    .concat("AuthMech=3;")
+                    .concat("UID=").concat(uName).concat(";")
+                    .concat("PWD=;")
+                    .concat("UseSasl=0")
+            );
+            newUrl = urlBuffer.toString();
+
+        } else if (authMech == 3) {
+            String uName = impalaSideTableInfo.getUserName();
+            String pwd = impalaSideTableInfo.getPassword();
+            urlBuffer.append(";"
+                    .concat("AuthMech=3;")
+                    .concat("UID=").concat(uName).concat(";")
+                    .concat("PWD=").concat(pwd)
+            );
+            newUrl = urlBuffer.toString();
+
+        } else {
+            throw new IllegalArgumentException("The value of authMech is illegal, Please select 0, 1, 2, 3");
+        }
+
+        return newUrl;
     }
 }

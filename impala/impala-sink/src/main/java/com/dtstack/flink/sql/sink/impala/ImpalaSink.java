@@ -19,8 +19,12 @@
 package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
+import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
+import com.dtstack.flink.sql.table.TargetTableInfo;
+import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
+import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 
 import java.util.List;
 import java.util.Map;
@@ -36,7 +40,39 @@ public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
     private static final String IMPALA_DRIVER = "com.cloudera.impala.jdbc41.Driver";
 
+    private ImpalaTableInfo impalaTableInfo;
+
     public ImpalaSink() {
+    }
+
+    @Override
+    public RichSinkFunction createJdbcSinkFunc() {
+        ImpalaOutputFormat outputFormat = (ImpalaOutputFormat) getOutputFormat();
+        outputFormat.setDbURL(dbURL);
+        outputFormat.setDrivername(driverName);
+        outputFormat.setUsername(userName);
+        outputFormat.setPassword(password);
+        outputFormat.setInsertQuery(sql);
+        outputFormat.setBatchNum(batchNum);
+        outputFormat.setBatchWaitInterval(batchWaitInterval);
+        outputFormat.setTypesArray(sqlTypes);
+        outputFormat.setTableName(tableName);
+        outputFormat.setDbType(dbType);
+        outputFormat.setSchema(impalaTableInfo.getSchema());
+        outputFormat.setDbSink(this);
+        outputFormat.setImpalaTableInfo(impalaTableInfo);
+
+        outputFormat.verifyField();
+        OutputFormatSinkFunction outputFormatSinkFunc = new OutputFormatSinkFunction(outputFormat);
+        return outputFormatSinkFunc;
+    }
+
+    @Override
+    public RdbSink genStreamSink(TargetTableInfo targetTableInfo) {
+        ImpalaTableInfo impalaTableInfo = (ImpalaTableInfo) targetTableInfo;
+        this.impalaTableInfo = impalaTableInfo;
+        super.genStreamSink(targetTableInfo);
+        return this;
     }
 
     @Override
@@ -73,6 +109,15 @@ public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
     @Override
     public RetractJDBCOutputFormat getOutputFormat() {
-        return new RetractJDBCOutputFormat();
+        return new ImpalaOutputFormat();
+    }
+
+
+    public ImpalaTableInfo getImpalaTableInfo() {
+        return impalaTableInfo;
+    }
+
+    public void setImpalaTableInfo(ImpalaTableInfo impalaTableInfo) {
+        this.impalaTableInfo = impalaTableInfo;
     }
 }
