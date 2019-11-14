@@ -57,6 +57,11 @@ public class ConfigConstrant {
 
     public static final String FLINK_TIME_CHARACTERISTIC_KEY = "time.characteristic";
 
+    public static final String SQL_TTL_MINTIME = "sql.ttl.min";
+
+    public static final String SQL_TTL_MAXTIME = "sql.ttl.max";
+
+
     // restart plocy
     public static final int failureRate = 3;
 
