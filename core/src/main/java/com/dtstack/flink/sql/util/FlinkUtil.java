@@ -22,10 +22,15 @@ package com.dtstack.flink.sql.util;
 
 
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
+import com.dtstack.flink.sql.enums.EStateBackend;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
+import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.runtime.state.filesystem.FsStateBackend;
+import org.apache.flink.runtime.state.memory.MemoryStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
@@ -50,6 +55,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 
 /**
  * Reason:
@@ -130,10 +136,13 @@ public class FlinkUtil {
             throw new RuntimeException("not support value of cleanup mode :" + cleanupModeStr);
         }
 
-        String backendPath = properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_DATAURI_KEY);
-        if(backendPath != null){
-            //set checkpoint save path on file system, 根据实际的需求设定文件路径,hdfs://, file://
-            env.setStateBackend(new FsStateBackend(backendPath));
+        String backendType = properties.getProperty(ConfigConstrant.STATE_BACKEND_KEY);
+        String checkpointDataUri = properties.getProperty(ConfigConstrant.CHECKPOINTS_DIRECTORY_KEY);
+        String backendIncremental = properties.getProperty(ConfigConstrant.STATE_BACKEND_INCREMENTAL_KEY, "true");
+
+        if(!StringUtils.isEmpty(backendType)){
+            StateBackend stateBackend = createStateBackend(backendType, checkpointDataUri, backendIncremental);
+            env.setStateBackend(stateBackend);
         }
 
     }
@@ -377,4 +386,28 @@ public class FlinkUtil {
         return types;
     }
 
+    private static StateBackend createStateBackend(String backendType, String checkpointDataUri, String backendIncremental) throws IOException {
+        EStateBackend stateBackendType = EStateBackend.convertFromString(backendType);
+        StateBackend stateBackend = null;
+        switch (stateBackendType) {
+            case MEMORY:
+                stateBackend = new MemoryStateBackend();
+                break;
+            case FILESYSTEM:
+                checkpointDataUriEmptyCheck(checkpointDataUri, backendType);
+                stateBackend = new FsStateBackend(checkpointDataUri);
+                break;
+            case ROCKSDB:
+                checkpointDataUriEmptyCheck(checkpointDataUri, backendType);
+                stateBackend = new RocksDBStateBackend(checkpointDataUri, BooleanUtils.toBoolean(backendIncremental));
+                break;
+        }
+        return stateBackend;
+    }
+
+    private static void checkpointDataUriEmptyCheck(String checkpointDataUri, String backendType) {
+        if (StringUtils.isEmpty(checkpointDataUri)) {
+            throw new RuntimeException(backendType + " backend checkpointDataUri not null!");
+        }
+    }
 }
