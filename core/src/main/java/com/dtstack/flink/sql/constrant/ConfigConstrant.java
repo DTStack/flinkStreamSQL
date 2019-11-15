@@ -43,10 +43,6 @@ public class ConfigConstrant {
 
     public static final String FLINK_CHECKPOINT_CLEANUPMODE_KEY = "flink.checkpoint.cleanup.mode";
 
-
-
-    public static final String FLINK_CHECKPOINT_DATAURI_KEY = "flinkCheckpointDataURI";
-
     public static final String SQL_ENV_PARALLELISM = "sql.env.parallelism";
 
     public static final String SQL_MAX_ENV_PARALLELISM = "sql.max.env.parallelism";
@@ -60,6 +56,10 @@ public class ConfigConstrant {
     public static final String SQL_TTL_MINTIME = "sql.ttl.min";
 
     public static final String SQL_TTL_MAXTIME = "sql.ttl.max";
+
+    public static final String STATE_BACKEND_KEY = "state.backend";
+    public static final String CHECKPOINTS_DIRECTORY_KEY = "state.checkpoints.dir";
+    public static final String STATE_BACKEND_INCREMENTAL_KEY = "state.backend.incremental";
 
 
     // restart plocy
