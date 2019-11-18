@@ -76,6 +76,8 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private int parallelism = -1;
 
+    private ElasticsearchTableInfo esTableInfo;
+
 
     @Override
     public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
@@ -130,9 +132,17 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
             }
         }
 
+        boolean authMesh = esTableInfo.isAuthMesh();
+        if (authMesh) {
+            String username = esTableInfo.getUserName();
+            String password = esTableInfo.getPassword();
+            String authPassword = esTableInfo.getUserName() + ":" + esTableInfo.getPassword();
+            userConfig.put("xpack.security.user", authPassword);
+        }
+
         CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), idIndexList);
 
-        return new MetricElasticsearchSink(userConfig, transports, customerSinkFunc);
+        return new MetricElasticsearchSink(userConfig, transports, customerSinkFunc, esTableInfo);
     }
 
     @Override
@@ -155,6 +165,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     @Override
     public ElasticsearchSink genStreamSink(TargetTableInfo targetTableInfo) {
         ElasticsearchTableInfo elasticsearchTableInfo = (ElasticsearchTableInfo) targetTableInfo;
+        esTableInfo = elasticsearchTableInfo;
         clusterName = elasticsearchTableInfo.getClusterName();
         String address = elasticsearchTableInfo.getAddress();
         String[] addr = address.split(",");
