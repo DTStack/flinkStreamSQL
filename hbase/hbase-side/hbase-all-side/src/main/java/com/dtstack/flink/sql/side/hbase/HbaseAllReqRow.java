@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
+import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
@@ -119,7 +120,11 @@ public class HbaseAllReqRow extends AllReqRow {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = value.getField(conValIndex);
             if(equalObj == null){
-                out.collect(null);
+                if(sideInfo.getJoinType() == JoinType.LEFT){
+                    Row data = fillData(value, null);
+                    out.collect(data);
+                }
+                return;
             }
             refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
