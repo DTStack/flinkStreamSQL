@@ -4,6 +4,9 @@ import com.dtstack.flink.sql.table.AbsSideTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.Map;
 
 import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
@@ -70,5 +73,41 @@ public class KuduSideParser extends AbsSideTableParser {
         kuduSideTableInfo.setUpperBoundPrimaryKey(MathUtil.getString(props.get(UPPER_BOUND_PRIMARY_KEY.toLowerCase())));
         return kuduSideTableInfo;
 
+    }
+
+    @Override
+    public Class dbTypeConvertToJavaType(String fieldType) {
+
+        switch (fieldType.toLowerCase()) {
+            case "boolean":
+            case "bool":
+                return Boolean.class;
+            case "int8":
+                return Byte.class;
+            case "int16":
+                return Short.class;
+            case "int":
+            case "int32":
+                return Integer.class;
+            case "long":
+            case "int64":
+                return Long.class;
+            case "varchar":
+            case "binary":
+            case "string":
+                return String.class;
+            case "float":
+                return Float.class;
+            case "double":
+                return Double.class;
+            case "date":
+                return Date.class;
+            case "unixtime_micros":
+                return Timestamp.class;
+            case "decimal":
+                return BigDecimal.class;
+        }
+
+        throw new RuntimeException("不支持 " + fieldType + " 类型");
     }
 }
