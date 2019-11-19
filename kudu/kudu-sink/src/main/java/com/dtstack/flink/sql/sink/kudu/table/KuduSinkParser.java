@@ -72,7 +72,6 @@ public class KuduSinkParser extends AbsTableParser {
             case "int64":
                 return Long.class;
             case "varchar":
-            case "binary":
             case "string":
                 return String.class;
             case "float":
@@ -85,6 +84,8 @@ public class KuduSinkParser extends AbsTableParser {
                 return Timestamp.class;
             case "decimal":
                 return BigDecimal.class;
+            case "binary":
+                return byte[].class;
         }
 
         throw new RuntimeException("不支持 " + fieldType + " 类型");
