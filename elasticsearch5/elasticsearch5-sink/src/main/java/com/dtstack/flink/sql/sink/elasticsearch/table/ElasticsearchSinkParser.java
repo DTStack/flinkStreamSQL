@@ -23,6 +23,8 @@ package com.dtstack.flink.sql.sink.elasticsearch.table;
 
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.util.MathUtil;
+
 import java.util.Map;
 
 /**
@@ -42,6 +44,12 @@ public class ElasticsearchSinkParser extends AbsTableParser {
 
     private static final String KEY_ES_ID_FIELD_INDEX_LIST = "id";
 
+    private static final String KEY_ES_AUTHMESH = "authMesh";
+
+    private static final String KEY_ES_USERNAME = "userName";
+
+    private static final String KEY_ES_PASSWORD = "password";
+
     @Override
     protected boolean fieldNameNeedsUpperCase() {
         return false;
@@ -57,6 +65,14 @@ public class ElasticsearchSinkParser extends AbsTableParser {
         elasticsearchTableInfo.setId((String) props.get(KEY_ES_ID_FIELD_INDEX_LIST.toLowerCase()));
         elasticsearchTableInfo.setIndex((String) props.get(KEY_ES_INDEX.toLowerCase()));
         elasticsearchTableInfo.setEsType((String) props.get(KEY_ES_TYPE.toLowerCase()));
+
+        String authMeshStr = (String)props.get(KEY_ES_AUTHMESH.toLowerCase());
+        if (authMeshStr != null & "true".equals(authMeshStr)) {
+            elasticsearchTableInfo.setAuthMesh(MathUtil.getBoolean(authMeshStr));
+            elasticsearchTableInfo.setUserName(MathUtil.getString(props.get(KEY_ES_USERNAME.toLowerCase())));
+            elasticsearchTableInfo.setPassword(MathUtil.getString(props.get(KEY_ES_PASSWORD.toLowerCase())));
+        }
+        elasticsearchTableInfo.check();
         return elasticsearchTableInfo;
     }
 }
