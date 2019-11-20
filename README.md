@@ -18,6 +18,7 @@
   * 8.支持cep处理
   * 9.支持udaf
   * 10.支持谓词下移
+  * 11.支持状态的ttl
   
  ## BUG修复：
   * 1.修复不能解析sql中orderby,union语法。
@@ -109,6 +110,11 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
     * 必选：是 （如无参数填写空json即可）
     * 默认值：无
     * 可选参数:
+        * sql.ttl.min: 最小过期时间,大于0的整数,如1d、1h(d\D:天,h\H:小时,m\M:分钟,s\s:秒)
+        * sql.ttl.max: 最大过期时间,大于0的整数,如2d、2h(d\D:天,h\H:小时,m\M:分钟,s\s:秒),需同时设置最小时间,且比最小时间大5分钟
+        * state.backend: 任务状态后端，可选为MEMORY,FILESYSTEM,ROCKSDB，默认为flinkconf中的配置。
+        * state.checkpoints.dir: FILESYSTEM,ROCKSDB状态后端文件系统存储路径，例如：hdfs://ns1/dtInsight/flink180/checkpoints。
+        * state.backend.incremental: ROCKSDB状态后端是否开启增量checkpoint,默认为true。
         * sql.env.parallelism: 默认并行度设置
         * sql.max.env.parallelism: 最大并行度设置
         * time.characteristic: 可选值[ProcessingTime|IngestionTime|EventTime]

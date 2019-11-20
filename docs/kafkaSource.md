@@ -9,10 +9,11 @@ CREATE TABLE tableName(
     WATERMARK FOR colName AS withOffset( colName , delayTime )
  )WITH(
     type ='kafka09',
-    kafka.bootstrap.servers ='ip:port,ip:port...',
-    kafka.zookeeper.quorum ='ip:port,ip:port/zkparent',
-    kafka.auto.offset.reset ='latest',
-    kafka.topic ='topicName',
+    bootstrapServers ='ip:port,ip:port...',
+    zookeeperQuorum ='ip:port,ip:port/zkparent',
+    offsetReset ='latest',
+    topic ='topicName',
+    groupId='test',
     parallelism ='parllNum',
     --timezone='America/Los_Angeles',
     timezone='Asia/Shanghai',
@@ -39,16 +40,45 @@ CREATE TABLE tableName(
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
 |type | kafka09 | 是|kafka08、kafka09、kafka10、kafka11、kafka(对应kafka1.0及以上版本)|
-|kafka.group.id | 需要读取的 groupId 名称|否||
-|kafka.bootstrap.servers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
-|kafka.zookeeper.quorum | kafka zk地址信息(多个之间用逗号分隔)|是||
-|kafka.topic | 需要读取的 topic 名称|是||
-|patterntopic | topic是否是正则表达式格式(true&#124;false)  |否| false
-|kafka.auto.offset.reset  | 读取的topic 的offset初始位置[latest&#124;earliest&#124;指定offset值({"0":12312,"1":12321,"2":12312},{"partition_no":offset_value})]|否|latest|
+|groupId | 需要读取的 groupId 名称|否||
+|bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
+|zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||
+|topic | 需要读取的 topic 名称|是||
+|topicIsPattern | topic是否是正则表达式格式(true&#124;false)  |否| false
+|offsetReset  | 读取的topic 的offset初始位置[latest&#124;earliest&#124;指定offset值({"0":12312,"1":12321,"2":12312},{"partition_no":offset_value})]|否|latest|
 |parallelism | 并行度设置|否|1|
 |sourcedatatype | 数据类型|否|json|
 |timezone|时区设置[timezone支持的参数](timeZone.md)|否|'Asia/Shanghai'
 **kafka相关参数可以自定义，使用kafka.开头即可。**
+```
+kafka.consumer.id
+kafka.socket.timeout.ms
+kafka.fetch.message.max.bytes
+kafka.num.consumer.fetchers
+kafka.auto.commit.enable
+kafka.auto.commit.interval.ms
+kafka.queued.max.message.chunks
+kafka.rebalance.max.retries
+kafka.fetch.min.bytes
+kafka.fetch.wait.max.ms
+kafka.rebalance.backoff.ms
+kafka.refresh.leader.backoff.ms
+kafka.consumer.timeout.ms
+kafka.exclude.internal.topics
+kafka.partition.assignment.strategy
+kafka.client.id
+kafka.zookeeper.session.timeout.ms
+kafka.zookeeper.connection.timeout.ms
+kafka.zookeeper.sync.time.ms
+kafka.offsets.storage
+kafka.offsets.channel.backoff.ms
+kafka.offsets.channel.socket.timeout.ms
+kafka.offsets.commit.max.retries
+kafka.dual.commit.enabled
+kafka.partition.assignment.strategy
+kafka.socket.receive.buffer.bytes
+kafka.fetch.min.bytes
+```
 
 ## 5.样例：
 ```
@@ -60,12 +90,12 @@ CREATE TABLE MyTable(
     CHARACTER_LENGTH(channel) AS timeLeng
  )WITH(
     type ='kafka09',
-    kafka.bootstrap.servers ='172.16.8.198:9092',
-    kafka.zookeeper.quorum ='172.16.8.198:2181/kafka',
-    kafka.auto.offset.reset ='latest',
-    kafka.topic ='nbTest1,nbTest2,nbTest3',
-    --kafka.topic ='mqTest.*',
-    --patterntopic='true'
+    bootstrapServers ='172.16.8.198:9092',
+    zookeeperQuorum ='172.16.8.198:2181/kafka',
+    offsetReset ='latest',
+    topic ='nbTest1,nbTest2,nbTest3',
+    --topic ='mqTest.*',
+    --topicIsPattern='true'
     parallelism ='1',
     sourcedatatype ='json' #可不设置
  );
@@ -146,10 +176,10 @@ CREATE TABLE MyTable(
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
 |type | kafka09 | 是||
-|kafka.bootstrap.servers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
-|kafka.zookeeper.quorum | kafka zk地址信息(多个之间用逗号分隔)|是||
-|kafka.topic | 需要读取的 topic 名称|是||
-|kafka.auto.offset.reset | 读取的topic 的offset初始位置[latest&#124;earliest]|否|latest|
+|bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
+|zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||
+|topic | 需要读取的 topic 名称|是||
+|offsetReset | 读取的topic 的offset初始位置[latest&#124;earliest]|否|latest|
 |parallelism | 并行度设置 |否|1|
 |sourcedatatype | 数据类型|是 |csv|
 |fielddelimiter | 字段分隔符|是 ||
@@ -166,12 +196,12 @@ CREATE TABLE MyTable(
     CHARACTER_LENGTH(channel) AS timeLeng
  )WITH(
     type ='kafka09',
-    kafka.bootstrap.servers ='172.16.8.198:9092',
-    kafka.zookeeper.quorum ='172.16.8.198:2181/kafka',
-    kafka.auto.offset.reset ='latest',
-    kafka.topic ='nbTest1',
-    --kafka.topic ='mqTest.*',
-    --kafka.topicIsPattern='true'
+    bootstrapServers ='172.16.8.198:9092',
+    zookeeperQuorum ='172.16.8.198:2181/kafka',
+    offsetReset ='latest',
+    topic ='nbTest1',
+    --topic ='mqTest.*',
+    --topicIsPattern='true'
     parallelism ='1',
     sourcedatatype ='csv',
     fielddelimiter ='\|',
@@ -192,10 +222,10 @@ create table kafka_stream(
      _offset BIGINT,
 ) with (
      type ='kafka09',
-     kafka.bootstrap.servers ='172.16.8.198:9092',
-     kafka.zookeeper.quorum ='172.16.8.198:2181/kafka',
-     kafka.auto.offset.reset ='latest',
-     kafka.topic ='nbTest1',
+     bootstrapServers ='172.16.8.198:9092',
+     zookeeperQuorum ='172.16.8.198:2181/kafka',
+     offsetReset ='latest',
+     topic ='nbTest1',
      parallelism ='1',
      sourcedatatype='text' 
  ）
@@ -205,10 +235,10 @@ create table kafka_stream(
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
 |type | kafka09 | 是||
-|kafka.bootstrap.servers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
-|kafka.zookeeper.quorum | kafka zk地址信息(多个之间用逗号分隔)|是||
-|kafka.topic | 需要读取的 topic 名称|是||
-|kafka.auto.offset.reset | 读取的topic 的offset初始位置[latest&#124;earliest]|否|latest|
+|bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
+|zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||
+|topic | 需要读取的 topic 名称|是||
+|offsetReset | 读取的topic 的offset初始位置[latest&#124;earliest]|否|latest|
 |parallelism | 并行度设置|否|1|
 |sourcedatatype | 数据类型|否|text|
 **kafka相关参数可以自定义，使用kafka.开头即可。**

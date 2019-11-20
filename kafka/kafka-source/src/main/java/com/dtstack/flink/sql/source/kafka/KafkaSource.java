@@ -64,6 +64,9 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         String topicName = kafkaSourceTableInfo.getTopic();
 
         Properties props = new Properties();
+        for (String key : kafkaSourceTableInfo.getKafkaParamKeys()) {
+            props.setProperty(key, kafkaSourceTableInfo.getKafkaParam(key));
+        }
         props.setProperty("bootstrap.servers", kafkaSourceTableInfo.getBootstrapServers());
         if (DtStringUtil.isJosn(kafkaSourceTableInfo.getOffsetReset())) {
             props.setProperty("auto.offset.reset", "none");

@@ -2,7 +2,7 @@ package com.dtstack.flink.sql.sink.kudu.table;
 
 import com.dtstack.flink.sql.sink.kudu.KuduOutputFormat;
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions;
 
 public class KuduTableInfo extends TargetTableInfo {
 
@@ -13,10 +13,6 @@ public class KuduTableInfo extends TargetTableInfo {
     private String tableName;
 
     private KuduOutputFormat.WriteMode writeMode;
-
-
-//    private KuduOutputFormat.Consistency consistency = KuduOutputFormat.Consistency.STRONG;
-
 
     private Integer workerCount;
 
@@ -79,14 +75,13 @@ public class KuduTableInfo extends TargetTableInfo {
 
     @Override
     public boolean check() {
-        Preconditions.checkNotNull(kuduMasters, "Cassandra field of kuduMasters is required");
-        Preconditions.checkNotNull(tableName, "Cassandra field of tableName is required");
+        Preconditions.checkNotNull(kuduMasters, "kudu field of kuduMasters is required");
+        Preconditions.checkNotNull(tableName, "kudu field of tableName is required");
         return true;
     }
 
     @Override
     public String getType() {
-        // return super.getType().toLowerCase() + TARGET_SUFFIX;
         return super.getType().toLowerCase();
     }
 }
