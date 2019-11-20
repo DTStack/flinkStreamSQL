@@ -22,6 +22,10 @@ package com.dtstack.flink.sql.source.kafka.table;
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import com.google.common.base.Preconditions;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Reason:
  * Date: 2018/6/22
@@ -115,6 +119,20 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
 	public void setOffset(String offset) {
 		this.offset = offset;
+	}
+
+	public Map<String, String> kafkaParam = new HashMap<>();
+
+	public void addKafkaParam(String key, String value) {
+		kafkaParam.put(key, value);
+	}
+
+	public String getKafkaParam(String key) {
+		return kafkaParam.get(key);
+	}
+
+	public Set<String> getKafkaParamKeys() {
+		return kafkaParam.keySet();
 	}
 
 	@Override

@@ -21,15 +21,21 @@
 package com.dtstack.flink.sql.util;
 
 
-import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
+import com.dtstack.flink.sql.enums.EStateBackend;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
+import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.runtime.state.filesystem.FsStateBackend;
+import org.apache.flink.runtime.state.memory.MemoryStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.StreamQueryConfig;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.BatchTableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -47,6 +53,9 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 /**
  * Reason:
@@ -58,6 +67,9 @@ import java.util.Properties;
 public class FlinkUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(FlinkUtil.class);
+
+    private static final String TTL_PATTERN_STR = "^+?([1-9][0-9]*)([dDhHmMsS])$";
+    private static final Pattern TTL_PATTERN = Pattern.compile(TTL_PATTERN_STR);
 
     /**
      * 开启checkpoint
@@ -124,10 +136,13 @@ public class FlinkUtil {
             throw new RuntimeException("not support value of cleanup mode :" + cleanupModeStr);
         }
 
-        String backendPath = properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_DATAURI_KEY);
-        if(backendPath != null){
-            //set checkpoint save path on file system, 根据实际的需求设定文件路径,hdfs://, file://
-            env.setStateBackend(new FsStateBackend(backendPath));
+        String backendType = properties.getProperty(ConfigConstrant.STATE_BACKEND_KEY);
+        String checkpointDataUri = properties.getProperty(ConfigConstrant.CHECKPOINTS_DIRECTORY_KEY);
+        String backendIncremental = properties.getProperty(ConfigConstrant.STATE_BACKEND_INCREMENTAL_KEY, "true");
+
+        if(!StringUtils.isEmpty(backendType)){
+            StateBackend stateBackend = createStateBackend(backendType, checkpointDataUri, backendIncremental);
+            env.setStateBackend(stateBackend);
         }
 
     }
@@ -257,6 +272,68 @@ public class FlinkUtil {
         return StringUtils.isNotBlank(parallelismStr)?Integer.parseInt(parallelismStr):1;
     }
 
+    /**
+     * 设置ttl
+     * @param properties
+     * @param tableEnv
+     * @return
+     */
+    public static void setTableEnvTTL(Properties properties, StreamTableEnvironment tableEnv) {
+        String ttlMintimeStr = properties.getProperty(ConfigConstrant.SQL_TTL_MINTIME);
+        String ttlMaxtimeStr = properties.getProperty(ConfigConstrant.SQL_TTL_MAXTIME);
+        if (StringUtils.isNotEmpty(ttlMintimeStr) || StringUtils.isNotEmpty(ttlMaxtimeStr)) {
+            verityTtl(ttlMintimeStr, ttlMaxtimeStr);
+            Matcher ttlMintimeStrMatcher = TTL_PATTERN.matcher(ttlMintimeStr);
+            Matcher ttlMaxtimeStrMatcher = TTL_PATTERN.matcher(ttlMaxtimeStr);
+
+            Long ttlMintime = 0L;
+            Long ttlMaxtime = 0L;
+            if (ttlMintimeStrMatcher.find()) {
+                ttlMintime = getTtlTime(Integer.parseInt(ttlMintimeStrMatcher.group(1)), ttlMintimeStrMatcher.group(2));
+            }
+            if (ttlMaxtimeStrMatcher.find()) {
+                ttlMaxtime = getTtlTime(Integer.parseInt(ttlMaxtimeStrMatcher.group(1)), ttlMaxtimeStrMatcher.group(2));
+            }
+            if (0L != ttlMintime && 0L != ttlMaxtime) {
+                StreamQueryConfig qConfig = tableEnv.queryConfig();
+                qConfig.withIdleStateRetentionTime(Time.milliseconds(ttlMintime), Time.milliseconds(ttlMaxtime));
+            }
+        }
+    }
+
+    /**
+     * ttl 校验
+     * @param ttlMintimeStr 最小时间
+     * @param ttlMaxtimeStr 最大时间
+     */
+    private static void verityTtl(String ttlMintimeStr, String ttlMaxtimeStr) {
+        if (null == ttlMintimeStr
+                || null == ttlMaxtimeStr
+                || !TTL_PATTERN.matcher(ttlMintimeStr).find()
+                || !TTL_PATTERN.matcher(ttlMaxtimeStr).find()) {
+            throw new RuntimeException("sql.ttl.min 、sql.ttl.max must be set at the same time . example sql.ttl.min=1h,sql.ttl.max=2h");
+        }
+    }
+
+    /**
+     * 不同单位时间到毫秒的转换
+     * @param timeNumber 时间值，如：30
+     * @param timeUnit 单位，d:天，h:小时，m:分，s:秒
+     * @return
+     */
+    private static Long getTtlTime(Integer timeNumber,String timeUnit) {
+        if (timeUnit.equalsIgnoreCase("d")) {
+            return timeNumber * 1000l * 60 * 60 * 24;
+        } else if (timeUnit.equalsIgnoreCase("h")) {
+            return timeNumber * 1000l * 60 * 60;
+        } else if (timeUnit.equalsIgnoreCase("m")) {
+            return timeNumber * 1000l * 60;
+        } else if (timeUnit.equalsIgnoreCase("s")) {
+            return timeNumber * 1000l;
+        } else {
+            throw new RuntimeException("not support "+timeNumber+timeUnit);
+        }
+    }
 
     /**
      * 最大并发度
@@ -309,4 +386,28 @@ public class FlinkUtil {
         return types;
     }
 
+    private static StateBackend createStateBackend(String backendType, String checkpointDataUri, String backendIncremental) throws IOException {
+        EStateBackend stateBackendType = EStateBackend.convertFromString(backendType);
+        StateBackend stateBackend = null;
+        switch (stateBackendType) {
+            case MEMORY:
+                stateBackend = new MemoryStateBackend();
+                break;
+            case FILESYSTEM:
+                checkpointDataUriEmptyCheck(checkpointDataUri, backendType);
+                stateBackend = new FsStateBackend(checkpointDataUri);
+                break;
+            case ROCKSDB:
+                checkpointDataUriEmptyCheck(checkpointDataUri, backendType);
+                stateBackend = new RocksDBStateBackend(checkpointDataUri, BooleanUtils.toBoolean(backendIncremental));
+                break;
+        }
+        return stateBackend;
+    }
+
+    private static void checkpointDataUriEmptyCheck(String checkpointDataUri, String backendType) {
+        if (StringUtils.isEmpty(checkpointDataUri)) {
+            throw new RuntimeException(backendType + " backend checkpointDataUri not null!");
+        }
+    }
 }

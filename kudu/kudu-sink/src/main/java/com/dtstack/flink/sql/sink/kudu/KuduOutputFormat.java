@@ -24,6 +24,8 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.kudu.client.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -32,9 +34,11 @@ import java.util.Date;
 
 public class KuduOutputFormat extends MetricOutputFormat {
 
-    public enum WriteMode {INSERT, UPDATE, UPSERT}
+    private static final long serialVersionUID = 1L;
 
-//    public enum Consistency {EVENTUAL, STRONG}
+    private static final Logger LOG = LoggerFactory.getLogger(KuduOutputFormat.class);
+
+    public enum WriteMode {INSERT, UPDATE, UPSERT}
 
     private String kuduMasters;
 
@@ -46,14 +50,9 @@ public class KuduOutputFormat extends MetricOutputFormat {
 
     TypeInformation<?>[] fieldTypes;
 
-//    protected List<String> primaryKeys;
-
-//    private Consistency consistency = Consistency.STRONG;
-
     private AsyncKuduClient client;
 
     private KuduTable table;
-
 
     private Integer workerCount;
 
@@ -111,9 +110,17 @@ public class KuduOutputFormat extends MetricOutputFormat {
 
         Operation operation = toOperation(writeMode, row);
         AsyncKuduSession session = client.newSession();
-        session.apply(operation);
-        session.close();
-        outRecords.inc();
+
+        try {
+            session.apply(operation);
+            session.close();
+            outRecords.inc();
+        } catch (KuduException e) {
+            outDirtyRecords.inc();
+            LOG.error("record insert failed ..", row.toString().substring(0, 100));
+            LOG.error("", e);
+        }
+
     }
 
     @Override
@@ -158,11 +165,6 @@ public class KuduOutputFormat extends MetricOutputFormat {
             kuduOutputFormat.fieldTypes = fieldTypes;
             return this;
         }
-//
-//        public KuduOutputFormatBuilder setPrimaryKeys(List<String> primaryKeys) {
-//            kuduOutputFormat.primaryKeys = primaryKeys;
-//            return this;
-//        }
 
         public KuduOutputFormatBuilder setWriteMode(WriteMode writeMode) {
             if (null == writeMode) {
@@ -176,21 +178,6 @@ public class KuduOutputFormat extends MetricOutputFormat {
             kuduOutputFormat.workerCount = workerCount;
             return this;
         }
-
-//        public KuduOutputFormatBuilder setConsistency(String consistency) {
-//            switch (consistency) {
-//                case "EVENTUAL":
-//                    kuduOutputFormat.consistency = Consistency.EVENTUAL;
-//                    break;
-//                case "STRONG":
-//                    kuduOutputFormat.consistency = Consistency.STRONG;
-//                    break;
-//                default:
-//                    kuduOutputFormat.consistency = Consistency.STRONG;
-//            }
-//            return this;
-//        }
-
 
         public KuduOutputFormatBuilder setDefaultOperationTimeoutMs(Integer defaultOperationTimeoutMs) {
             kuduOutputFormat.defaultOperationTimeoutMs = defaultOperationTimeoutMs;

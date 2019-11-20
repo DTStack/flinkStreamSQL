@@ -8,8 +8,8 @@ import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -93,7 +93,7 @@ public class KuduAllReqRow extends AllReqRow {
         loadData(newCache);
 
         cacheRef.set(newCache);
-        LOG.info("----- Mongo all cacheRef reload end:{}", Calendar.getInstance());
+        LOG.info("----- kudu all cacheRef reload end:{}", Calendar.getInstance());
     }
 
 
@@ -177,15 +177,6 @@ public class KuduAllReqRow extends AllReqRow {
                     LOG.error("Error while closing scanner.", e);
                 }
             }
-            //放置到close中关闭  每次刷新时间较长则可以选择在这里关闭
-//            if (null != client) {
-//                try {
-//                    client.close();
-//                } catch (Exception e) {
-//                    LOG.error("Error while closing client.", e);
-//                }
-//            }
-
         }
 
 
