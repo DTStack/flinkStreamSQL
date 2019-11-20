@@ -30,6 +30,7 @@
         <module>serversocket</module>
         <module>console</module>
         <module>clickhouse</module>
+        <module>db2</module>
     </modules>
 
 
