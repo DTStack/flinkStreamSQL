@@ -28,6 +28,7 @@ import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
 //import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
+import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.option.OptionParser;
 import com.dtstack.flink.sql.parser.CreateFuncParser;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
@@ -188,8 +189,7 @@ public class Main {
                         //sql-dimensional table contains the dimension table of execution
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache);
                     }else{
-//                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
-                        tableEnv.sqlUpdate(result.getExecSql());
+                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
                         if(LOG.isInfoEnabled()){
                             LOG.info("exec sql: " + result.getExecSql());
                         }

@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
 import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
@@ -117,8 +118,8 @@ public class SideSqlExec {
                 if(pollSqlNode.getKind() == INSERT){
                     System.out.println("----------real exec sql-----------" );
                     System.out.println(pollSqlNode.toString());
-//                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
-                    tableEnv.sqlUpdate(pollSqlNode.toString());
+                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
+//                    tableEnv.sqlUpdate(pollSqlNode.toString());
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
                     }
@@ -677,7 +678,8 @@ public class SideSqlExec {
                 }
 
                 if(pollSqlNode.getKind() == INSERT){
-                    tableEnv.sqlUpdate(pollSqlNode.toString());
+//                    tableEnv.sqlUpdate(pollSqlNode.toString());
+                    FlinkSQLExec.sqlUpdate(tableEnv,pollSqlNode.toString());
                 }else if(pollSqlNode.getKind() == AS){
                     AliasInfo aliasInfo = parseASNode(pollSqlNode);
                     Table table = tableEnv.sqlQuery(aliasInfo.getName());
