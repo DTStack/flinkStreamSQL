@@ -197,15 +197,6 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
     }
 
 
-    @Override
-    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        RichSinkFunction richSinkFunction = createJdbcSinkFunc();
-        DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
-        streamSink.name(registerTabName);
-        if (parallelism > 0) {
-            streamSink.setParallelism(parallelism);
-        }
-    }
 
     @Override
     public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
@@ -273,5 +264,21 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
     public abstract String getDriverName();
 
     public abstract RetractJDBCOutputFormat getOutputFormat();
+
+    @Override
+    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        consumeDataStream(dataStream);
+    }
+
+    @Override
+    public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        RichSinkFunction richSinkFunction = createJdbcSinkFunc();
+        DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
+        streamSink.name(registerTabName);
+        if (parallelism > 0) {
+            streamSink.setParallelism(parallelism);
+        }
+        return streamSink;
+    }
 
 }

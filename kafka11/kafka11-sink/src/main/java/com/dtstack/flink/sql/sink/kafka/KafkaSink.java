@@ -27,6 +27,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.connectors.kafka.KafkaTableSinkBase;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
@@ -111,6 +112,11 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        consumeDataStream(dataStream);
+    }
+
+    @Override
+    public DataStreamSink<Row> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         KafkaTableSinkBase kafkaTableSink = new CustomerKafka11JsonTableSink(
                 schema,
                 topic,
@@ -123,7 +129,8 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
             return record.f1;
         }).returns(getOutputType().getTypeAt(1)).setParallelism(parallelism);
 
-        kafkaTableSink.emitDataStream(ds);
+        DataStreamSink<Row> dataStreamSink = (DataStreamSink<Row>) kafkaTableSink.consumeDataStream(ds);
+        return dataStreamSink;
     }
 
     @Override

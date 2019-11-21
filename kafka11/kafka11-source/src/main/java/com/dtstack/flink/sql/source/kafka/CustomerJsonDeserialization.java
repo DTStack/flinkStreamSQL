@@ -286,4 +286,9 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         }
     }
 
+    @Override
+    public TypeInformation<Row> getProducedType() {
+        return typeInfo;
+    }
+
 }

@@ -19,6 +19,7 @@ package com.dtstack.flink.sql.sink.kafka;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.kafka.Kafka011TableSink;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
@@ -59,9 +60,15 @@ public class CustomerKafka11JsonTableSink extends Kafka011TableSink {
 
 	@Override
 	public void emitDataStream(DataStream<Row> dataStream) {
+		consumeDataStream(dataStream);
+	}
+
+	@Override
+	public DataStreamSink<Row> consumeDataStream(DataStream<Row> dataStream) {
 		SinkFunction<Row> kafkaProducer = createKafkaProducer(topic, properties, schema, partitioner);
 		// always enable flush on checkpoint to achieve at-least-once if query runs with checkpointing enabled.
 		//kafkaProducer.setFlushOnCheckpoint(true);
-		dataStream.addSink(kafkaProducer).name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));
+		DataStreamSink<Row> dataStreamSink = dataStream.addSink(kafkaProducer).name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));
+		return dataStreamSink;
 	}
 }

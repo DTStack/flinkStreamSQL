@@ -26,8 +26,8 @@ import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
+//import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
-import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.option.OptionParser;
 import com.dtstack.flink.sql.parser.CreateFuncParser;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
@@ -66,8 +66,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamContextEnvironment;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.table.api.StreamQueryConfig;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
@@ -187,7 +188,8 @@ public class Main {
                         //sql-dimensional table contains the dimension table of execution
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache);
                     }else{
-                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
+//                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
+                        tableEnv.sqlUpdate(result.getExecSql());
                         if(LOG.isInfoEnabled()){
                             LOG.info("exec sql: " + result.getExecSql());
                         }
@@ -216,7 +218,7 @@ public class Main {
         }
     }
 
-    private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, StreamTableEnvironment tableEnv)
+    private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, TableEnvironment tableEnv)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         //register urf
         // udf和tableEnv须由同一个类加载器加载
@@ -249,7 +251,7 @@ public class Main {
                 String adaptSql = sourceTableInfo.getAdaptSelectSql();
                 Table adaptTable = adaptSql == null ? table : tableEnv.sqlQuery(adaptSql);
 
-                RowTypeInfo typeInfo = new RowTypeInfo(adaptTable.getSchema().getTypes(), adaptTable.getSchema().getColumnNames());
+                RowTypeInfo typeInfo = new RowTypeInfo(adaptTable.getSchema().getFieldTypes(), adaptTable.getSchema().getFieldNames());
                 DataStream adaptStream = tableEnv.toRetractStream(adaptTable, typeInfo)
                         .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
                         .returns(typeInfo);
@@ -353,12 +355,16 @@ public class Main {
      * 获取StreamTableEnvironment并设置相关属性
      *
      * @param confProperties
-     * @param env
      * @return
      */
     private static StreamTableEnvironment getStreamTableEnv(Properties confProperties, StreamExecutionEnvironment env) {
+        EnvironmentSettings settings = EnvironmentSettings.newInstance()
+                .useBlinkPlanner()
+                .inStreamingMode()
+                .build();
+        StreamTableEnvironment tableEnv =  StreamTableEnvironment.create(env, settings);
+
         confProperties = PropertiesUtils.propertiesTrim(confProperties);
-        StreamTableEnvironment tableEnv = StreamTableEnvironment.getTableEnvironment(env);
         FlinkUtil.setTableEnvTTL(confProperties, tableEnv);
         return tableEnv;
     }

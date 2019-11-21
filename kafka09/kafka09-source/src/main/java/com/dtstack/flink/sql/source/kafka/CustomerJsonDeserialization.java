@@ -122,7 +122,6 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
             parseTree(root, null);
             Row row = new Row(fieldNames.length);
-
             for (int i = 0; i < fieldNames.length; i++) {
                 JsonNode node = getIgnoreCase(fieldNames[i]);
                 TableInfo.FieldExtraInfo fieldExtraInfo = fieldExtraInfos.get(i);

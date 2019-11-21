@@ -26,17 +26,21 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.datatype.DatatypeConstants;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -73,10 +77,10 @@ public abstract class RdbAllReqRow extends AllReqRow {
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
-            if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                obj = ((Timestamp) obj).getTime();
+            // flink1.9 blink  proctime type convert to SqlTimeTypeInfo ,so covert to SqlTimeTypeInfo.TIMESTAMP type.
+            if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+                obj = Timestamp.valueOf(((LocalDateTime) obj));
             }
-
             row.setField(entry.getKey(), obj);
         }
 

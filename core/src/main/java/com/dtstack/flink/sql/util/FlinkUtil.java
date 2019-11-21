@@ -36,6 +36,7 @@ import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.StreamQueryConfig;
+import org.apache.flink.table.api.TableConfig;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.BatchTableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -278,7 +279,7 @@ public class FlinkUtil {
      * @param tableEnv
      * @return
      */
-    public static void setTableEnvTTL(Properties properties, StreamTableEnvironment tableEnv) {
+    public static void setTableEnvTTL(Properties properties, TableEnvironment tableEnv) {
         String ttlMintimeStr = properties.getProperty(ConfigConstrant.SQL_TTL_MINTIME);
         String ttlMaxtimeStr = properties.getProperty(ConfigConstrant.SQL_TTL_MAXTIME);
         if (StringUtils.isNotEmpty(ttlMintimeStr) || StringUtils.isNotEmpty(ttlMaxtimeStr)) {
@@ -295,8 +296,10 @@ public class FlinkUtil {
                 ttlMaxtime = getTtlTime(Integer.parseInt(ttlMaxtimeStrMatcher.group(1)), ttlMaxtimeStrMatcher.group(2));
             }
             if (0L != ttlMintime && 0L != ttlMaxtime) {
-                StreamQueryConfig qConfig = tableEnv.queryConfig();
-                qConfig.withIdleStateRetentionTime(Time.milliseconds(ttlMintime), Time.milliseconds(ttlMaxtime));
+//                StreamQueryConfig qConfig = tableEnv.queryConfig();
+//                qConfig.withIdleStateRetentionTime(Time.milliseconds(ttlMintime), Time.milliseconds(ttlMaxtime));
+                TableConfig qConfig = tableEnv.getConfig();
+                qConfig.setIdleStateRetentionTime(Time.milliseconds(ttlMintime), Time.milliseconds(ttlMaxtime));
             }
         }
     }

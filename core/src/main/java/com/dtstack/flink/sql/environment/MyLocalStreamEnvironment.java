@@ -93,7 +93,11 @@ public class MyLocalStreamEnvironment extends StreamExecutionEnvironment {
         // transform the streaming program into a JobGraph
         StreamGraph streamGraph = getStreamGraph();
         streamGraph.setJobName(jobName);
+        return execute(streamGraph);
+    }
 
+    @Override
+    public JobExecutionResult execute(StreamGraph streamGraph) throws Exception {
         JobGraph jobGraph = streamGraph.getJobGraph();
         jobGraph.setClasspaths(classpaths);
 

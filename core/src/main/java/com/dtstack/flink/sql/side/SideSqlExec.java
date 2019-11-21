@@ -21,7 +21,6 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
 import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
@@ -45,6 +44,7 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.flink.api.common.typeinfo.SqlTimeTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -53,7 +53,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +117,8 @@ public class SideSqlExec {
                 if(pollSqlNode.getKind() == INSERT){
                     System.out.println("----------real exec sql-----------" );
                     System.out.println(pollSqlNode.toString());
-                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
+//                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
+                    tableEnv.sqlUpdate(pollSqlNode.toString());
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
                     }
@@ -231,11 +234,23 @@ public class SideSqlExec {
 
             mappingTable.put(tableName, fieldName, mappingFieldName);
 
-            sideOutTypes[i] = fieldInfo.getTypeInformation();
+            sideOutTypes[i] = convertTimeAttributeType(fieldInfo.getTypeInformation());
             sideOutNames[i] = mappingFieldName;
         }
 
         return new RowTypeInfo(sideOutTypes, sideOutNames);
+    }
+
+    /**
+     *  对protime和rowtime做类型转换
+     * @param typeInformation
+     * @return
+     */
+    private TypeInformation convertTimeAttributeType(TypeInformation typeInformation) {
+        if (typeInformation instanceof TimeIndicatorTypeInfo) {
+            return SqlTimeTypeInfo.TIMESTAMP;
+        }
+        return typeInformation;
     }
 
     //需要考虑更多的情况
@@ -705,7 +720,7 @@ public class SideSqlExec {
         leftScopeChild.setTableName(joinInfo.getLeftTableName());
 
         Table leftTable = getTableFromCache(localTableCache, joinInfo.getLeftTableAlias(), joinInfo.getLeftTableName());
-        RowTypeInfo leftTypeInfo = new RowTypeInfo(leftTable.getSchema().getTypes(), leftTable.getSchema().getColumnNames());
+        RowTypeInfo leftTypeInfo = new RowTypeInfo(leftTable.getSchema().getFieldTypes(), leftTable.getSchema().getFieldNames());
         leftScopeChild.setRowTypeInfo(leftTypeInfo);
 
         JoinScope.ScopeChild rightScopeChild = new JoinScope.ScopeChild();
@@ -738,7 +753,7 @@ public class SideSqlExec {
             targetTable = localTableCache.get(joinInfo.getLeftTableName());
         }
 
-        RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getTypes(), targetTable.getSchema().getColumnNames());
+        RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getFieldTypes(), targetTable.getSchema().getFieldNames());
 
         DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
                                 .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
@@ -772,9 +787,11 @@ public class SideSqlExec {
 
         replaceInfoList.add(replaceInfo);
 
-        if (!tableEnv.isRegistered(joinInfo.getNewTableName())){
+        List<String> registeredTableName = Arrays.asList(tableEnv.listTables());
+        if (!registeredTableName.contains(joinInfo.getNewTableName())) {
             tableEnv.registerDataStream(joinInfo.getNewTableName(), dsOut, String.join(",", sideOutTypeInfo.getFieldNames()));
         }
+
     }
 
     private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table) {
@@ -783,7 +800,7 @@ public class SideSqlExec {
         String[] fields = fieldsInfo.split(",");
         for (int i = 0; i < fields.length; i++) {
             String[] filed = fields[i].split("\\s");
-            if (filed.length < 2 || fields.length != table.getSchema().getColumnNames().length){
+            if (filed.length < 2 || fields.length != table.getSchema().getFieldNames().length){
                 return false;
             } else {
                 String[] filedNameArr = new String[filed.length - 1];
