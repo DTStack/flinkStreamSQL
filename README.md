@@ -27,8 +27,8 @@
  
 # 已支持
   * 源表：kafka 0.9、0.10、0.11、1.x版本
-  * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse
-  * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse
+  * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse, sqlserver
+  * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse, sqlserver
 
 # 后续开发计划
   * 维表快照
@@ -186,6 +186,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [kudu 结果表插件](docs/kuduSink.md)
 * [postgresql 结果表插件](docs/postgresqlSink.md)
 * [clickhouse 结果表插件](docs/clickhouseSink.md)
+* [sqlserver 结果表插件](docs/sqlserverSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
@@ -197,6 +198,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [kudu 维表插件](docs/kuduSide.md)
 * [postgresql 维表插件](docs/postgresqlSide.md)
 * [clickhouse 维表插件](docs/clickhouseSide.md)
+* [sqlserver 维表插件](docs/sqlserverSide.md)
 
 ## 3 性能指标(新增)
 
