@@ -771,11 +771,12 @@ public class SideSqlExec {
         DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
                                 .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
                                 .returns(Row.class);
-        RowTypeInfo leftTableOutType = buildLeftTableOutType(leftTypeInfo);
-        adaptStream.getTransformation().setOutputType(leftTableOutType);
+
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if(sideTableInfo.isPartitionedJoin()){
+            RowTypeInfo leftTableOutType = buildLeftTableOutType(leftTypeInfo);
+            adaptStream.getTransformation().setOutputType(leftTableOutType);
             List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias(), sideTableInfo);
             String[] leftJoinColArr = leftJoinColList.toArray(new String[leftJoinColList.size()]);
             adaptStream = adaptStream.keyBy(leftJoinColArr);
