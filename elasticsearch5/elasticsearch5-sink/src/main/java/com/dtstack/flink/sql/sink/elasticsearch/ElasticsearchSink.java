@@ -27,11 +27,9 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
-import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-import org.apache.flink.table.sinks.AppendStreamTableSink;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
@@ -75,6 +73,8 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     private TypeInformation[] fieldTypes;
 
     private int parallelism = -1;
+
+    private ElasticsearchTableInfo esTableInfo;
 
 
     @Override
@@ -130,9 +130,17 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
             }
         }
 
+        boolean authMesh = esTableInfo.isAuthMesh();
+        if (authMesh) {
+            String username = esTableInfo.getUserName();
+            String password = esTableInfo.getPassword();
+            String authPassword = esTableInfo.getUserName() + ":" + esTableInfo.getPassword();
+            userConfig.put("xpack.security.user", authPassword);
+        }
+
         CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), idIndexList);
 
-        return new MetricElasticsearchSink(userConfig, transports, customerSinkFunc);
+        return new MetricElasticsearchSink(userConfig, transports, customerSinkFunc, esTableInfo);
     }
 
     @Override
@@ -162,6 +170,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     @Override
     public ElasticsearchSink genStreamSink(TargetTableInfo targetTableInfo) {
         ElasticsearchTableInfo elasticsearchTableInfo = (ElasticsearchTableInfo) targetTableInfo;
+        esTableInfo = elasticsearchTableInfo;
         clusterName = elasticsearchTableInfo.getClusterName();
         String address = elasticsearchTableInfo.getAddress();
         String[] addr = address.split(",");

@@ -33,6 +33,9 @@ CREATE TABLE tableName(
 |index | 选择的ES上的index名称|是||
 |estype | 选择ES上的type名称|是||
 |id | 生成id的规则(当前是根据指定的字段pos获取字段信息,拼接生成id)|是||
+|authMesh | 是否进行用户名密码认证 | 否 | false|
+|userName | 用户名 | 否，authMesh='true'时为必填 ||
+|password | 密码 | 否，authMesh='true'时为必填 ||
 |parallelism | 并行度设置|否|1|
   
 ## 5.样例：
