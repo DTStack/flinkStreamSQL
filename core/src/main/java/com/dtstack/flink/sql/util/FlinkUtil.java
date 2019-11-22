@@ -148,31 +148,6 @@ public class FlinkUtil {
 
     }
 
-    /**
-     * #ProcessingTime(默认),IngestionTime,EventTime
-     * @param env
-     * @param properties
-     */
-    public static void setStreamTimeCharacteristic(StreamExecutionEnvironment env, Properties properties){
-        if(!properties.containsKey(ConfigConstrant.FLINK_TIME_CHARACTERISTIC_KEY)){
-            //走默认值
-            return;
-        }
-
-        String characteristicStr = properties.getProperty(ConfigConstrant.FLINK_TIME_CHARACTERISTIC_KEY);
-        Boolean flag = false;
-        for(TimeCharacteristic tmp : TimeCharacteristic.values()){
-            if(characteristicStr.equalsIgnoreCase(tmp.toString())){
-                env.setStreamTimeCharacteristic(tmp);
-                flag = true;
-                break;
-            }
-        }
-
-        if(!flag){
-            throw new RuntimeException("illegal property :" + ConfigConstrant.FLINK_TIME_CHARACTERISTIC_KEY);
-        }
-    }
 
 
     /**
@@ -262,16 +237,7 @@ public class FlinkUtil {
         }
     }
 
-    /**
-     *
-     * FIXME 仅针对sql执行方式,暂时未找到区分设置source,transform,sink 并行度的方式
-     * 设置job运行的并行度
-     * @param properties
-     */
-    public static int getEnvParallelism(Properties properties){
-        String parallelismStr = properties.getProperty(ConfigConstrant.SQL_ENV_PARALLELISM);
-        return StringUtils.isNotBlank(parallelismStr)?Integer.parseInt(parallelismStr):1;
-    }
+
 
     /**
      * 设置ttl
@@ -336,25 +302,9 @@ public class FlinkUtil {
         }
     }
 
-    /**
-     * 最大并发度
-     * @param properties
-     * @return
-     */
-    public static int getMaxEnvParallelism(Properties properties){
-        String parallelismStr = properties.getProperty(ConfigConstrant.SQL_MAX_ENV_PARALLELISM);
-        return StringUtils.isNotBlank(parallelismStr)?Integer.parseInt(parallelismStr):0;
-    }
 
-    /**
-     *
-     * @param properties
-     * @return
-     */
-    public static long getBufferTimeoutMillis(Properties properties){
-        String mills = properties.getProperty(ConfigConstrant.SQL_BUFFER_TIMEOUT_MILLIS);
-        return StringUtils.isNotBlank(mills)?Long.parseLong(mills):0L;
-    }
+
+
 
     public static URLClassLoader loadExtraJar(List<URL> jarURLList, URLClassLoader classLoader) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         for(URL url : jarURLList){

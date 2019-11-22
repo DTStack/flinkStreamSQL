@@ -28,6 +28,7 @@ import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
 //import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
+import com.dtstack.flink.sql.environment.StreamEnvConfigManager;
 import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.option.OptionParser;
 import com.dtstack.flink.sql.parser.CreateFuncParser;
@@ -129,7 +130,7 @@ public class Main {
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
         StreamExecutionEnvironment env = getStreamExeEnv(confProperties, deployMode);
-        StreamTableEnvironment tableEnv = getStreamTableEnv(confProperties, env);
+        StreamTableEnvironment tableEnv = getStreamTableEnv(env, confProperties);
 
         List<URL> jarURList = Lists.newArrayList();
         SqlTree sqlTree = SqlParser.parseSql(sql);
@@ -294,59 +295,24 @@ public class Main {
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
-        confProperties = PropertiesUtils.propertiesTrim(confProperties);
-
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
-        env.getConfig().disableClosureCleaner();
-        env.setParallelism(FlinkUtil.getEnvParallelism(confProperties));
 
-        Configuration globalJobParameters = new Configuration();
-        //Configuration unsupported set properties key-value
-        Method method = Configuration.class.getDeclaredMethod("setValueInternal", String.class, Object.class);
-        method.setAccessible(true);
-        for (Map.Entry<Object, Object> prop : confProperties.entrySet()) {
-            method.invoke(globalJobParameters, prop.getKey(), prop.getValue());
-        }
-
-        ExecutionConfig exeConfig = env.getConfig();
-        if(exeConfig.getGlobalJobParameters() == null){
-            exeConfig.setGlobalJobParameters(globalJobParameters);
-        }else if(exeConfig.getGlobalJobParameters() instanceof Configuration){
-            ((Configuration) exeConfig.getGlobalJobParameters()).addAll(globalJobParameters);
-        }
-        if(FlinkUtil.getMaxEnvParallelism(confProperties) > 0){
-            env.setMaxParallelism(FlinkUtil.getMaxEnvParallelism(confProperties));
-        }
-        if(FlinkUtil.getBufferTimeoutMillis(confProperties) > 0){
-            env.setBufferTimeout(FlinkUtil.getBufferTimeoutMillis(confProperties));
-        }
-        env.setRestartStrategy(RestartStrategies.failureRateRestart(
-                ConfigConstrant.failureRate,
-                Time.of(ConfigConstrant.failureInterval, TimeUnit.MINUTES),
-                Time.of(ConfigConstrant.delayInterval, TimeUnit.SECONDS)
-        ));
-        FlinkUtil.setStreamTimeCharacteristic(env, confProperties);
-        FlinkUtil.openCheckpoint(env, confProperties);
+        StreamEnvConfigManager.streamExecutionEnvironmentConfig(env, confProperties);
         return env;
     }
 
-    /**
-     * 获取StreamTableEnvironment并设置相关属性
-     *
-     * @param confProperties
-     * @return
-     */
-    private static StreamTableEnvironment getStreamTableEnv(Properties confProperties, StreamExecutionEnvironment env) {
+    private static StreamTableEnvironment getStreamTableEnv(StreamExecutionEnvironment env, Properties confProperties) {
+        // use blink and streammode
         EnvironmentSettings settings = EnvironmentSettings.newInstance()
                 .useBlinkPlanner()
                 .inStreamingMode()
                 .build();
-        StreamTableEnvironment tableEnv =  StreamTableEnvironment.create(env, settings);
 
-        confProperties = PropertiesUtils.propertiesTrim(confProperties);
-        FlinkUtil.setTableEnvTTL(confProperties, tableEnv);
+        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, settings);
+        StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties);
+
         return tableEnv;
     }
 }
