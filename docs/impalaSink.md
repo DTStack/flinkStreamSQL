@@ -16,7 +16,7 @@ CREATE TABLE tableName(
 ```
 
 ## 2.支持版本
- todo
+ 2.10.0-cdh5.13.0
  
 ## 3.表结构定义
  
@@ -42,6 +42,8 @@ CREATE TABLE tableName(
 | krbHostFQDN | 主机的标准域名（authMech=1时独有） |authMech=1为必填 ||
 | krbServiceName | Impala服务器的Kerberos principal名称（authMech=1时独有） |authMech=1为必填||
 | krbRealm | Kerberos的域名（authMech=1时独有） |否| HADOOP.COM |
+| enablePartition | 是否支持分区 |否|false|
+| partitionFields | 分区字段名|否，enablePartition='true'时为必填||
 | parallelism | 并行度设置|否|1|
 
 

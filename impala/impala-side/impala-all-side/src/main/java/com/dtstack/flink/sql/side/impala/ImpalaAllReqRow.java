@@ -66,7 +66,7 @@ public class ImpalaAllReqRow extends RdbAllReqRow {
         try {
             Connection connection ;
             String url = getUrl();
-            JDBCUtils.forName(IMPALA_DRIVER);
+            JDBCUtils.forName(IMPALA_DRIVER, getClass().getClassLoader());
             connection = DriverManager.getConnection(url);
             connection.setAutoCommit(false);
             return connection;

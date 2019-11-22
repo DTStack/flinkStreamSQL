@@ -77,6 +77,14 @@ public class ImpalaSinkParser extends RdbSinkParser {
             impalaTableInfo.setPassword(MathUtil.getString(props.get(ImpalaTableInfo.PASSWORD_KEY.toLowerCase())));
         }
 
+        String enablePartitionStr  = (String) props.get(ImpalaTableInfo.ENABLEPARITION_KEY.toLowerCase());
+        boolean enablePartition = MathUtil.getBoolean(enablePartitionStr == null? "false":enablePartitionStr);
+        impalaTableInfo.setEnablePartition(enablePartition);
+        if(enablePartition){
+            String partitionFields = MathUtil.getString(props.get(ImpalaTableInfo.PARTITIONFIELDS_KEY.toLowerCase()));
+            impalaTableInfo.setPartitionFields(partitionFields);
+        }
+
         impalaTableInfo.check();
         return impalaTableInfo;
     }

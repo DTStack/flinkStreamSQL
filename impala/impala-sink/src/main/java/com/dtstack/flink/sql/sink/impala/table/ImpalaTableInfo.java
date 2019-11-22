@@ -45,6 +45,10 @@ public class ImpalaTableInfo extends RdbTableInfo {
 
     public static final String KRBSERVICENAME_KEY = "krbServiceName";
 
+    public static final String ENABLEPARITION_KEY = "enablePartition";
+
+    public static final String PARTITIONFIELDS_KEY = "partitionFields";
+
     private static final String CURR_TYPE = "impala";
 
     private Integer authMech;
@@ -60,6 +64,10 @@ public class ImpalaTableInfo extends RdbTableInfo {
     private String krbHostFQDN;
 
     private String krbServiceName;
+
+    private boolean enablePartition;
+
+    private String partitionFields;
 
     public ImpalaTableInfo() {
         setType(CURR_TYPE);
@@ -121,6 +129,22 @@ public class ImpalaTableInfo extends RdbTableInfo {
         this.krbServiceName = krbServiceName;
     }
 
+    public boolean isEnablePartition() {
+        return enablePartition;
+    }
+
+    public void setEnablePartition(boolean enablePartition) {
+        this.enablePartition = enablePartition;
+    }
+
+    public String getPartitionFields() {
+        return partitionFields;
+    }
+
+    public void setPartitionFields(String partitionFields) {
+        this.partitionFields = partitionFields;
+    }
+
     @Override
     public boolean check() {
         Preconditions.checkNotNull(this.getUrl(), "impala field of url is required");
@@ -140,6 +164,11 @@ public class ImpalaTableInfo extends RdbTableInfo {
             Preconditions.checkNotNull(this.getUserName(), "impala field of userName is required");
             Preconditions.checkNotNull(this.getPassword(), "impala field of password is required");
         }
+
+        if (isEnablePartition()) {
+            Preconditions.checkNotNull(this.getPartitionFields(), "impala field of partitionFields is required");
+        }
+
         return true;
     }
 }

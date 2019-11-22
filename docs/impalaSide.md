@@ -21,7 +21,7 @@
 ```
 
 # 2.支持版本
- todo
+ 2.10.0-cdh5.13.0
  
 ## 3.表结构定义
   
@@ -48,6 +48,10 @@
   | krb5FilePath | krb5.conf文件路径（authMech=1时独有） |authMech=1为必填||
   | krbServiceName | Impala服务器的Kerberos principal名称（authMech=1时独有） |authMech=1为必填||
   | krbRealm | Kerberos的域名（authMech=1时独有） |否| HADOOP.COM |
+  | enablePartition | 是否支持分区|否|false|
+  | partitionfields | 分区字段名|否,enablePartition='true'时为必填||
+  | partitionFieldTypes | 分区字段类型 |否,enablePartition='true'时为必填||
+  | partitionValues | 分区值|否,enablePartition='true'时为必填||
   | cache | 维表缓存策略(NONE/LRU/ALL)|否|NONE|
   | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
   
@@ -80,6 +84,35 @@ create table sideTable(
     partitionedJoin='false'
  );
 
+
+```
+
+## 6.分区样例
+
+```
+create table sideTable(
+    channel varchar,
+    xccount int,
+    name varchar,
+    PRIMARY KEY(channel),
+    PERIOD FOR SYSTEM_TIME
+ )WITH(
+    type='impala',
+    url='jdbc:impala://localhost:21050/mytest',
+    userName='dtstack',
+    password='abc123',
+    tableName='sidetest',
+    authMech='3',
+    cache ='LRU',
+    cacheSize ='10000',
+    cacheTTLMs ='60000',
+    parallelism ='1',
+    enablePartition='true',
+    partitionfields='name',
+    partitionFieldTypes='varchar',
+    partitionValues='{"name":["tom","jeck"]}',
+    partitionedJoin='false'
+ );
 
 ```
 

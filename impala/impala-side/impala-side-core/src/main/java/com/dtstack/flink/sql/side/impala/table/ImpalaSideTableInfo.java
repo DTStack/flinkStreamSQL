@@ -22,6 +22,10 @@ package com.dtstack.flink.sql.side.impala.table;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.google.common.base.Preconditions;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Date: 2019/11/13
  * Company: www.dtstack.com
@@ -44,6 +48,15 @@ public class ImpalaSideTableInfo extends RdbSideTableInfo {
 
     public static final String KRBSERVICENAME_KEY = "krbServiceName";
 
+    public static final String ENABLEPARTITION_KEY = "enablePartition";
+
+    public static final String PARTITIONFIELDS_KEY = "partitionfields";
+
+    public static final String PARTITIONFIELDTYPES_KEY = "partitionFieldTypes";
+
+    public static final String PARTITIONVALUES_KEY = "partitionValues";
+
+
     private Integer authMech;
 
     private String krb5FilePath;
@@ -57,6 +70,15 @@ public class ImpalaSideTableInfo extends RdbSideTableInfo {
     private String krbHostFQDN;
 
     private String krbServiceName;
+
+    private boolean enablePartition;
+
+    private String[] partitionfields;
+
+    private String[] partitionFieldTypes;
+
+    private Map<String, List> partitionValues = new HashMap<>();
+
 
     public ImpalaSideTableInfo() {
     }
@@ -117,6 +139,38 @@ public class ImpalaSideTableInfo extends RdbSideTableInfo {
         this.krbServiceName = krbServiceName;
     }
 
+    public boolean isEnablePartition() {
+        return enablePartition;
+    }
+
+    public void setEnablePartition(boolean enablePartition) {
+        this.enablePartition = enablePartition;
+    }
+
+    public String[] getPartitionfields() {
+        return partitionfields;
+    }
+
+    public void setPartitionfields(String[] partitionfields) {
+        this.partitionfields = partitionfields;
+    }
+
+    public String[] getPartitionFieldTypes() {
+        return partitionFieldTypes;
+    }
+
+    public void setPartitionFieldTypes(String[] partitionFieldTypes) {
+        this.partitionFieldTypes = partitionFieldTypes;
+    }
+
+    public Map<String, List> getPartitionValues() {
+        return partitionValues;
+    }
+
+    public void setPartitionValues(Map<String, List> partitionValues) {
+        this.partitionValues = partitionValues;
+    }
+
     @Override
     public boolean check() {
         Preconditions.checkNotNull(this.getUrl(), "impala of URL is required");
@@ -133,6 +187,13 @@ public class ImpalaSideTableInfo extends RdbSideTableInfo {
             Preconditions.checkNotNull(this.getUserName(), "impala field of userName is required");
             Preconditions.checkNotNull(this.getPassword(), "impala field of password is required");
         }
+
+        if (enablePartition){
+            Preconditions.checkNotNull(this.getPartitionfields(), "impala field of partitionfields is required");
+            Preconditions.checkNotNull(this.getPartitionfields(), "impala field of partitionfields is required");
+            Preconditions.checkNotNull(this.getPartitionfields(), "impala field of partitionfields is required");
+        }
+
         return true;
     }
 }

@@ -21,14 +21,61 @@ package com.dtstack.flink.sql.side.impala;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.RdbAllSideInfo;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.util.List;
+import java.util.Map;
 
 public class ImpalaAllSideInfo extends RdbAllSideInfo {
 
     public ImpalaAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+    }
+
+    @Override
+    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
+        ImpalaSideTableInfo impalaSideTableInfo = (ImpalaSideTableInfo) sideTableInfo;
+
+        boolean enablePartiton = impalaSideTableInfo.isEnablePartition();
+
+        String sqlTmp = "select ${selectField} from ${tableName} ";
+        sqlCondition = sqlTmp.replace("${tableName}", impalaSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
+
+        if (enablePartiton){
+            String whereTmp = "where ";
+            String[] partitionfields = impalaSideTableInfo.getPartitionfields();
+            String[] partitionFieldTypes = impalaSideTableInfo.getPartitionFieldTypes();
+            Map<String, List> partitionVaules = impalaSideTableInfo.getPartitionValues();
+            int fieldsSize = partitionfields.length;
+            for (int i=0; i < fieldsSize; i++) {
+                String fieldName = partitionfields[i];
+                String fieldType = partitionFieldTypes[i];
+                List values = partitionVaules.get(fieldName);
+                String vauleAppend = getVauleAppend(fieldType, values);
+                if (fieldsSize - 1 == i) {
+                    whereTmp = whereTmp + String.format("%s in (%s)", fieldName, vauleAppend);
+                }else {
+                    whereTmp = whereTmp + String.format("%s in (%s) and ", fieldName, vauleAppend);
+                }
+
+            }
+            sqlCondition = sqlCondition + whereTmp;
+        }
+    }
+
+    public String getVauleAppend(String fieldType, List values) {
+        String vauleAppend = "";
+        for(int i=0; i < values.size(); i++) {
+            if (fieldType.toLowerCase().equals("string") || fieldType.toLowerCase().equals("varchar")) {
+                vauleAppend = vauleAppend + "," + "'" + values.get(i) + "'";
+                continue;
+            }
+            vauleAppend = vauleAppend + "," + values.get(i).toString();
+        }
+        vauleAppend = vauleAppend.replaceFirst(",", "");
+        return vauleAppend;
     }
 }

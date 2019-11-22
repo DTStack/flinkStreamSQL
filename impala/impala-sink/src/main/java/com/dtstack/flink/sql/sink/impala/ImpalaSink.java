@@ -26,6 +26,8 @@ import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -81,19 +83,39 @@ public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     }
 
     public void buildInsertSql(String tableName, List<String> fields) {
-        String sqlTmp = "insert into " +  tableName + " (${fields}) values (${placeholder})";
-        String fieldsStr = "";
-        String placeholder = "";
 
-        for (String fieldName : fields) {
-            fieldsStr += ",`" + fieldName + "`";
-            placeholder += ",?";
+        String sqlTmp = "insert into " + tableName + " (${fields}) " + "${partition}"+ " values (${placeholder})";
+        int fieldsSize = fields.size();
+        boolean enablePartition = impalaTableInfo.isEnablePartition();
+        if (enablePartition) {
+            String partitionFieldsStr = impalaTableInfo.getPartitionFields();
+            List<String> partitionFields = Arrays.asList(partitionFieldsStr.split(","));
+            List<String> newFields = new ArrayList<>();
+            for (String field : fields) {
+                if (partitionFields.contains(field)){
+                    continue;
+                }
+                newFields.add(field);
+            }
+            fields = newFields;
+            String partition = String.format("partition(%s)", partitionFieldsStr);
+            sqlTmp = sqlTmp.replace("${partition}", partition);
+        } else {
+            sqlTmp = sqlTmp.replace("${partition}", "");
         }
 
+        String fieldsStr = "";
+        String placeholder = "";
+        for (int i= 0; i < fieldsSize; i++) {
+            placeholder += ",?";
+        }
+        for (String fieldName : fields) {
+            fieldsStr += "," + fieldName;
+        }
         fieldsStr = fieldsStr.replaceFirst(",", "");
         placeholder = placeholder.replaceFirst(",", "");
-
         sqlTmp = sqlTmp.replace("${fields}", fieldsStr).replace("${placeholder}", placeholder);
+
         this.sql = sqlTmp;
     }
 
