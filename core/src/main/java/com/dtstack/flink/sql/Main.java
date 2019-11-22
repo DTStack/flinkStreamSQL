@@ -200,23 +200,6 @@ public class Main {
 
 
     }
-    /**
-     * This part is just to add classpath for the jar when reading remote execution, and will not submit jar from a local
-     * @param env
-     * @param classPathSet
-     * @throws NoSuchFieldException
-     * @throws IllegalAccessException
-     */
-    private static void addEnvClassPath(StreamExecutionEnvironment env, Set<URL> classPathSet) throws NoSuchFieldException, IllegalAccessException {
-        if(env instanceof StreamContextEnvironment){
-            Field field = env.getClass().getDeclaredField("ctx");
-            field.setAccessible(true);
-            ContextEnvironment contextEnvironment= (ContextEnvironment) field.get(env);
-            for(URL url : classPathSet){
-                contextEnvironment.getClasspaths().add(url);
-            }
-        }
-    }
 
     private static void registerUDF(SqlTree sqlTree, List<URL> jarURList, TableEnvironment tableEnv)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
@@ -288,8 +271,6 @@ public class Main {
             }
         }
 
-        //The plug-in information corresponding to the table is loaded into the classPath env
-        addEnvClassPath(env, classPathSet);
         int i = 0;
         for(URL url : classPathSet){
             String classFileName = String.format(CLASS_FILE_NAME_FMT, i);
