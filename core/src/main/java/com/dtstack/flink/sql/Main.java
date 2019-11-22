@@ -312,7 +312,6 @@ public class Main {
 
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, settings);
         StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties);
-
         return tableEnv;
     }
 }
