@@ -229,14 +229,12 @@ public class KuduAllReqRow extends AllReqRow {
                 table = client.openTable(tableName);
             }
             Schema schema = table.getSchema();
-            LOG.info("connect kudu is successed!");
             KuduScanner.KuduScannerBuilder tokenBuilder = client.newScannerBuilder(table);
             return buildScanner(tokenBuilder, schema, tableInfo);
-        } catch (
-                Exception e) {
+        } catch (Exception e) {
             LOG.error("connect kudu is error:" + e.getMessage());
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
 
@@ -280,13 +278,15 @@ public class KuduAllReqRow extends AllReqRow {
             String[] primaryKey = splitString(primaryKeys);
             String[] lowerBounds = splitString(lowerBoundPrimaryKey);
             String[] upperBounds = splitString(upperBoundPrimaryKey);
+            PartialRow lowerPartialRow = schema.newPartialRow();
+            PartialRow upperPartialRow = schema.newPartialRow();
             for (int i = 0; i < primaryKey.length; i++) {
                 Integer index = columnName.get(primaryKey[i]);
-                if (null != index) {
-                    builder.lowerBound(primaryKeyRange(columnSchemas.get(index).getType(), primaryKey[i], lowerBounds[i], schema));
-                    builder.exclusiveUpperBound(primaryKeyRange(columnSchemas.get(index).getType(), primaryKey[i], upperBounds[i], schema));
-                }
+                primaryKeyRange(lowerPartialRow, columnSchemas.get(index).getType(), primaryKey[i], lowerBounds[i]);
+                primaryKeyRange(upperPartialRow, columnSchemas.get(index).getType(), primaryKey[i], upperBounds[i]);
             }
+            builder.lowerBound(lowerPartialRow);
+            builder.exclusiveUpperBound(upperPartialRow);
         }
         List<String> projectColumns = Arrays.asList(sideFieldNames);
         return builder.setProjectedColumnNames(projectColumns).build();
@@ -296,8 +296,7 @@ public class KuduAllReqRow extends AllReqRow {
         return data.split(",");
     }
 
-    private PartialRow primaryKeyRange(Type type, String primaryKey, String value, Schema schema) {
-        PartialRow partialRow = schema.newPartialRow();
+    private void primaryKeyRange(PartialRow partialRow, Type type, String primaryKey, String value) {
         switch (type) {
             case STRING:
                 partialRow.addString(primaryKey, value);
@@ -332,7 +331,6 @@ public class KuduAllReqRow extends AllReqRow {
             default:
                 throw new IllegalArgumentException("Illegal var type: " + type);
         }
-        return partialRow;
     }
 
     private void setMapValue(Type type, Map<String, Object> oneRow, String sideFieldName, RowResult result) {
