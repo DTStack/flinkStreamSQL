@@ -70,6 +70,10 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         KuduOutputFormat kuduOutputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(kuduOutputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
+        dataStreamSink.name(tableName);
+        if (parallelism > 0) {
+            dataStreamSink.setParallelism(parallelism);
+        }
         return dataStreamSink;
     }
 
