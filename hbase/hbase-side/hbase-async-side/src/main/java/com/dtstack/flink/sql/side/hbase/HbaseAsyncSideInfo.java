@@ -6,12 +6,10 @@ import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.util.List;
 import java.util.Map;

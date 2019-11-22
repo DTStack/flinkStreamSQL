@@ -24,8 +24,7 @@ import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import com.google.common.collect.Maps;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -35,7 +34,6 @@ import redis.clients.jedis.*;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -95,10 +93,14 @@ public class RedisAllReqRow extends AllReqRow{
         for(Integer conValIndex : sideInfo.getEqualValIndex()){
             Object equalObj = row.getField(conValIndex);
             if(equalObj == null){
-                out.collect(null);
+                if(sideInfo.getJoinType() == JoinType.LEFT){
+                    Row data = fillData(row, null);
+                    out.collect(data);
+                }
+                return;
             }
             String columnName = sideInfo.getEqualFieldList().get(conValIndex);
-            inputParams.put(columnName, (String) equalObj);
+            inputParams.put(columnName, equalObj.toString());
         }
         String key = buildKey(inputParams);
 

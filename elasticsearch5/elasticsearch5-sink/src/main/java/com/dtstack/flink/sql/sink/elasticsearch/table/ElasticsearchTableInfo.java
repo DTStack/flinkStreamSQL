@@ -22,7 +22,7 @@ package com.dtstack.flink.sql.sink.elasticsearch.table;
 
 
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions;
 
 /**
  * @date 2018/09/12
@@ -42,6 +42,12 @@ public class ElasticsearchTableInfo extends TargetTableInfo {
     private String clusterName;
 
     private String esType;
+
+    private boolean authMesh = false;
+
+    private String userName;
+
+    private String password;
 
     public String getEsType() {
         return esType;
@@ -89,6 +95,30 @@ public class ElasticsearchTableInfo extends TargetTableInfo {
         this.clusterName = clusterName;
     }
 
+    public boolean isAuthMesh() {
+        return authMesh;
+    }
+
+    public void setAuthMesh(boolean authMesh) {
+        this.authMesh = authMesh;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     public ElasticsearchTableInfo() {
         setType(CURR_TYPE);
     }
@@ -100,6 +130,12 @@ public class ElasticsearchTableInfo extends TargetTableInfo {
         Preconditions.checkNotNull(esType, "elasticsearch type of type is required");
         Preconditions.checkNotNull(id, "elasticsearch type of id is required");
         Preconditions.checkNotNull(clusterName, "elasticsearch type of clusterName is required");
+
+        if (isAuthMesh()) {
+            Preconditions.checkNotNull(userName, "elasticsearch type of userName is required");
+            Preconditions.checkNotNull(password, "elasticsearch type of password is required");
+        }
+
         return true;
     }
 

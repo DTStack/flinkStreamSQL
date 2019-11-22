@@ -19,12 +19,15 @@
 package com.dtstack.flink.sql.sink.elasticsearch;
 
 import com.dtstack.flink.sql.metric.MetricConstant;
+import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkFunction;
+import org.apache.flink.streaming.connectors.elasticsearch.util.NoOpFailureHandler;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 
@@ -32,16 +35,23 @@ import java.util.Map;
  * @Auther: jiangjunjie
  * @Date: 2018/11/29 14:15
  * @Description:
+ *
  */
-public class MetricElasticsearchSink extends org.apache.flink.streaming.connectors.elasticsearch5.ElasticsearchSink {
+public class MetricElasticsearchSink extends org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkBase {
 
     protected CustomerSinkFunc customerSinkFunc;
 
     protected transient Meter outRecordsRate;
 
-    public MetricElasticsearchSink(Map userConfig, List transportAddresses, ElasticsearchSinkFunction elasticsearchSinkFunction) {
-        super(userConfig, transportAddresses, elasticsearchSinkFunction);
+    protected Map userConfig;
+
+
+    public MetricElasticsearchSink(Map userConfig, List transportAddresses,
+                                   ElasticsearchSinkFunction elasticsearchSinkFunction,
+                                   ElasticsearchTableInfo esTableInfo) {
+        super(new ExtendES5ApiCallBridge(transportAddresses, esTableInfo), userConfig, elasticsearchSinkFunction, new NoOpFailureHandler());
         this.customerSinkFunc = (CustomerSinkFunc) elasticsearchSinkFunction;
+        this.userConfig = userConfig;
     }
 
     @Override
@@ -49,6 +59,20 @@ public class MetricElasticsearchSink extends org.apache.flink.streaming.connecto
         super.open(parameters);
         initMetric();
     }
+
+    /*public void setXPackTransportClient() throws Exception {
+        String authPassword = esTableInfo.getUserName() + ":" + esTableInfo.getPassword();
+        Settings settings = Settings.builder().put(userConfig).put("xpack.security.user", authPassword).build();
+        Class clz = Class.forName("org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkBase");
+        Field clientField = clz.getDeclaredField("client");
+        clientField.setAccessible(true);
+        PreBuiltXPackTransportClient transportClient = new PreBuiltXPackTransportClient(settings);
+        for (TransportAddress transport : ElasticsearchUtils.convertInetSocketAddresses(transportAddresses)) {
+            transportClient.addTransportAddress(transport);
+        }
+
+        clientField.set(this, transportClient);
+    }*/
 
     public void initMetric() {
         Counter counter = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);

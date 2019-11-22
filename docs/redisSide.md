@@ -11,6 +11,7 @@
      password = 'redisPwd',
      database = 'dbName',
      tableName ='sideTableName',
+     redisType = '1',
      cache ='LRU',
      cacheSize ='10000',
      cacheTTLMs ='60000'
@@ -32,9 +33,11 @@
 
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
-| type | 表明维表的类型[hbase\|mysql\|redis]|是||
+| type | 表明维表的类型[hbase&#124;mysql&#124;redis]|是||
 | url | redis 的地址;格式ip:port[,ip:port]|是||
 | password | redis 的密码 |是||
+| redisType | redis模式（1 单机，2 哨兵， 3 集群）| 是 |
+| masterName | 主节点名称（哨兵模式下为必填项） | 否 |
 | database | reids 的数据库地址|否||
 | tableName | redis 的表名称|是||
 | cache | 维表缓存策略(NONE/LRU/ALL)|否|NONE|
@@ -60,6 +63,7 @@ create table sideTable(
     url='172.16.10.79:6379',
     password='abc123',
     database='0',
+    redisType = '1',
     tableName='sidetest',
     cache = 'LRU',
     cacheTTLMs='10000'

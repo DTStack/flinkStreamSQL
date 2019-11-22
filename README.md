@@ -8,27 +8,33 @@
 >  >  * 扩展了输入和输出的性能指标到promethus
 
  ## 新特性:
-  1.kafka源表支持not null语法,支持字符串类型的时间转换。
-  2.rdb维表与DB建立连接时，周期进行连接，防止连接断开。rdbsink写入时，对连接进行检查。
-  3.异步维表支持非等值连接，比如：<>,<,>。
+  * 1.kafka源表支持not null语法,支持字符串类型的时间转换。
+  * 2.rdb维表与DB建立连接时，周期进行连接，防止连接断开。rdbsink写入时，对连接进行检查。
+  * 3.异步维表支持非等值连接，比如：<>,<,>。
+  * 4.增加kafka数组解析
+  * 5.增加kafka1.0以上版本的支持
+  * 6.增加postgresql、kudu、clickhouse维表、结果表的支持
+  * 7.支持插件的依赖方式,参考pluginLoadMode参数
+  * 8.支持cep处理
+  * 9.支持udaf
+  * 10.支持谓词下移
+  * 11.支持状态的ttl
   
  ## BUG修复：
-  1.修复不能解析sql中orderby,union语法。
-  2.修复yarnPer模式提交失败的异常。
+  * 1.修复不能解析sql中orderby,union语法。
+  * 2.修复yarnPer模式提交失败的异常。
+  * 3.一些bug的修复
  
 # 已支持
-  * 源表：kafka 0.9，1.x版本
-  * 维表：mysql，SQlServer,oracle,hbase，mongo，redis,cassandra,serversocket
-  * 结果表：mysql，SQlServer,oracle,hbase，elasticsearch5.x，mongo，redis,cassandra,console
+  * 源表：kafka 0.9、0.10、0.11、1.x版本
+  * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse
+  * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse
 
 # 后续开发计划
-  * 增加SQL支持CEP
   * 维表快照
-  * sql优化（谓词下移等）
   * kafka avro格式
   * topN
 
-  
 ## 1 快速起步
 ### 1.1 运行模式
 
@@ -40,7 +46,7 @@
 ### 1.2 执行环境
 
 * Java: JDK8及以上
-* Flink集群: 1.4,1.5（单机模式不需要安装Flink集群）
+* Flink集群: 1.4,1.5,1.8（单机模式不需要安装Flink集群）
 * 操作系统：理论上不限
 
 ### 1.3 打包
@@ -104,6 +110,11 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
     * 必选：是 （如无参数填写空json即可）
     * 默认值：无
     * 可选参数:
+        * sql.ttl.min: 最小过期时间,大于0的整数,如1d、1h(d\D:天,h\H:小时,m\M:分钟,s\s:秒)
+        * sql.ttl.max: 最大过期时间,大于0的整数,如2d、2h(d\D:天,h\H:小时,m\M:分钟,s\s:秒),需同时设置最小时间,且比最小时间大5分钟
+        * state.backend: 任务状态后端，可选为MEMORY,FILESYSTEM,ROCKSDB，默认为flinkconf中的配置。
+        * state.checkpoints.dir: FILESYSTEM,ROCKSDB状态后端文件系统存储路径，例如：hdfs://ns1/dtInsight/flink180/checkpoints。
+        * state.backend.incremental: ROCKSDB状态后端是否开启增量checkpoint,默认为true。
         * sql.env.parallelism: 默认并行度设置
         * sql.max.env.parallelism: 最大并行度设置
         * time.characteristic: 可选值[ProcessingTime|IngestionTime|EventTime]
@@ -150,6 +161,11 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 必选：否
 	* 默认值：false	
 	
+* **pluginLoadMode**
+	* 描述：per_job 模式下的插件包加载方式。classpath:从每台机器加载插件包，shipfile:将需要插件从提交的节点上传到hdfs,不需要每台安装插件
+	* 必选：否
+	* 默认值：classpath
+	
 * **yarnSessionConf**
 	* 描述：yarn session 模式下指定的运行的一些参数，[可参考](https://ci.apache.org/projects/flink/flink-docs-release-1.8/ops/cli.html),目前只支持指定yid
 	* 必选：否
@@ -163,16 +179,24 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [elasticsearch 结果表插件](docs/elasticsearchSink.md)
 * [hbase 结果表插件](docs/hbaseSink.md)
 * [mysql 结果表插件](docs/mysqlSink.md)
+* [oracle 结果表插件](docs/oracleSink.md)
 * [mongo 结果表插件](docs/mongoSink.md)
 * [redis 结果表插件](docs/redisSink.md)
 * [cassandra 结果表插件](docs/cassandraSink.md)
+* [kudu 结果表插件](docs/kuduSink.md)
+* [postgresql 结果表插件](docs/postgresqlSink.md)
+* [clickhouse 结果表插件](docs/clickhouseSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
 * [mysql 维表插件](docs/mysqlSide.md)
+* [oracle 维表插件](docs/oracleSide.md)
 * [mongo 维表插件](docs/mongoSide.md)
 * [redis 维表插件](docs/redisSide.md)
 * [cassandra 维表插件](docs/cassandraSide.md)
+* [kudu 维表插件](docs/kuduSide.md)
+* [postgresql 维表插件](docs/postgresqlSide.md)
+* [clickhouse 维表插件](docs/clickhouseSide.md)
 
 ## 3 性能指标(新增)
 
@@ -203,7 +227,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 
 ```
 
-CREATE (scala|table) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun
+CREATE (scala|table|aggregate) FUNCTION CHARACTER_LENGTH WITH com.dtstack.Kun;
 
 
 CREATE TABLE MyTable(

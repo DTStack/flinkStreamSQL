@@ -20,8 +20,8 @@
 
 package com.dtstack.flink.sql.table;
 
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.util.List;
@@ -61,7 +61,7 @@ public abstract class TableInfo implements Serializable {
 
     private List<String> primaryKeys;
 
-    private Integer parallelism = 1;
+    private Integer parallelism = -1;
 
     public String[] getFieldTypes() {
         return fieldTypes;
@@ -118,6 +118,10 @@ public abstract class TableInfo implements Serializable {
     }
 
     public void addField(String fieldName){
+        if (fieldList.contains(fieldName)) {
+            throw new RuntimeException("redundancy field name " + fieldName + " in table " + getName());
+        }
+
         fieldList.add(fieldName);
     }
 

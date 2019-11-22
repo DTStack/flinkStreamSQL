@@ -44,7 +44,7 @@ public class KafkaSourceParser extends AbsSourceParser {
 
     private static final String KAFKA_NEST_FIELD_KEY = "nestFieldKey";
 
-    private static Pattern kafkaNestFieldKeyPattern = Pattern.compile("(?i)((@*\\w+\\.)*\\w+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
+    private static Pattern kafkaNestFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
 
     static {
         keyPatternMap.put(KAFKA_NEST_FIELD_KEY, kafkaNestFieldKeyPattern);
@@ -95,6 +95,11 @@ public class KafkaSourceParser extends AbsSourceParser {
         kafka11SourceTableInfo.setOffsetReset(MathUtil.getString(props.get(KafkaSourceTableInfo.OFFSETRESET_KEY.toLowerCase())));
         kafka11SourceTableInfo.setTopicIsPattern(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.TOPICISPATTERN_KEY.toLowerCase())));
         kafka11SourceTableInfo.setTimeZone(MathUtil.getString(props.get(KafkaSourceTableInfo.TIME_ZONE_KEY.toLowerCase())));
+        for (String key : props.keySet()) {
+            if (!key.isEmpty() && key.startsWith("kafka.")) {
+                kafka11SourceTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
+            }
+        }
         kafka11SourceTableInfo.check();
         return kafka11SourceTableInfo;
     }

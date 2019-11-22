@@ -23,8 +23,8 @@ import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -210,7 +210,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             dbConn.commit();
         } catch (SQLException e) {
             outDirtyRecords.inc();
-            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0) {
+            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0 || LOG.isDebugEnabled()) {
                 LOG.error("record insert failed ..", row.toString());
                 LOG.error("", e);
             }

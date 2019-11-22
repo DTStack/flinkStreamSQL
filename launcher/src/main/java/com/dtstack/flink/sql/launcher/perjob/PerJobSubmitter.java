@@ -22,7 +22,6 @@ import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.core.fs.Path;
@@ -31,13 +30,9 @@ import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -52,8 +47,6 @@ public class PerJobSubmitter {
     private static final Logger LOG = LoggerFactory.getLogger(PerJobSubmitter.class);
 
     public static String submit(Options launcherOptions, JobGraph jobGraph) throws Exception {
-
-		fillJobGraphClassPath(jobGraph);
 		if (!StringUtils.isBlank(launcherOptions.getAddjar())) {
 			String addjarPath = URLDecoder.decode(launcherOptions.getAddjar(), Charsets.UTF_8.toString());
 			List<String> paths = getJarPaths(addjarPath);
@@ -61,8 +54,6 @@ public class PerJobSubmitter {
 				jobGraph.addJar(new Path("file://" + path));
 			});
 		}
-
-
 
 		String confProp = launcherOptions.getConfProp();
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
@@ -74,7 +65,7 @@ public class PerJobSubmitter {
 
         String flinkJarPath = launcherOptions.getFlinkJarPath();
 
-        AbstractYarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(confProperties, flinkJarPath, launcherOptions.getQueue());
+        AbstractYarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(confProperties, flinkJarPath, launcherOptions, jobGraph);
         ClusterClient<ApplicationId> clusterClient = yarnClusterDescriptor.deployJobCluster(clusterSpecification, jobGraph,true);
 
         String applicationId = clusterClient.getClusterId().toString();
@@ -95,12 +86,4 @@ public class PerJobSubmitter {
 		return paths;
 	}
 
-	private static void fillJobGraphClassPath(JobGraph jobGraph) throws MalformedURLException {
-        Map<String, DistributedCache.DistributedCacheEntry> jobCacheFileConfig = jobGraph.getUserArtifacts();
-        for(Map.Entry<String,  DistributedCache.DistributedCacheEntry> tmp : jobCacheFileConfig.entrySet()){
-            if(tmp.getKey().startsWith("class_path")){
-                jobGraph.getClasspaths().add(new URL("file:" + tmp.getValue().filePath));
-            }
-        }
-	}
 }

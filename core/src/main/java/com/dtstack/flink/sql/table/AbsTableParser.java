@@ -22,9 +22,8 @@ package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.util.List;
 import java.util.Map;
@@ -99,7 +98,7 @@ public abstract class AbsTableParser {
             System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
             String fieldName = String.join(" ", filedNameArr);
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
-            Class fieldClass = ClassUtil.stringConvertClass(fieldType);
+            Class fieldClass = dbTypeConvertToJavaType(fieldType);
 
             tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
             tableInfo.addField(fieldName);
@@ -117,4 +116,9 @@ public abstract class AbsTableParser {
         List<String> primaryKes = Lists.newArrayList(splitArry);
         tableInfo.setPrimaryKeys(primaryKes);
     }
+
+    public Class dbTypeConvertToJavaType(String fieldType) {
+        return ClassUtil.stringConvertClass(fieldType);
+    }
+
 }

@@ -36,8 +36,8 @@ import com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
-import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -134,7 +134,11 @@ public class CassandraAllReqRow extends AllReqRow {
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = value.getField(conValIndex);
             if (equalObj == null) {
-                out.collect(null);
+                if(sideInfo.getJoinType() == JoinType.LEFT){
+                    Row data = fillData(value, null);
+                    out.collect(data);
+                }
+                return;
             }
 
             inputParams.add(equalObj);
