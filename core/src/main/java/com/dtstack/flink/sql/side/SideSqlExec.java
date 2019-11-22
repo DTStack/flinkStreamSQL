@@ -45,6 +45,7 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.flink.api.common.typeinfo.SqlTimeTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -55,11 +56,13 @@ import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -239,6 +242,28 @@ public class SideSqlExec {
         }
 
         return new RowTypeInfo(sideOutTypes, sideOutNames);
+    }
+
+    /**
+     *  对时间类型进行类型转换
+     * @param leftTypeInfo
+     * @return
+     */
+    private RowTypeInfo buildLeftTableOutType(RowTypeInfo leftTypeInfo) {
+        TypeInformation[] sideOutTypes = new TypeInformation[leftTypeInfo.getFieldNames().length];
+        TypeInformation<?>[] fieldTypes = leftTypeInfo.getFieldTypes();
+        for (int i = 0; i < sideOutTypes.length; i++) {
+            sideOutTypes[i] = convertTimeAttributeType(fieldTypes[i]);
+        }
+        RowTypeInfo rowTypeInfo = new RowTypeInfo(sideOutTypes, leftTypeInfo.getFieldNames());
+        return rowTypeInfo;
+    }
+
+    private TypeInformation convertTimeAttributeType(TypeInformation typeInformation) {
+        if (typeInformation instanceof TimeIndicatorTypeInfo) {
+            return TypeInformation.of(Timestamp.class);
+        }
+        return typeInformation;
     }
 
     //需要考虑更多的情况
@@ -746,7 +771,8 @@ public class SideSqlExec {
         DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
                                 .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
                                 .returns(Row.class);
-        adaptStream.getTransformation().setOutputType(leftTypeInfo);
+        RowTypeInfo leftTableOutType = buildLeftTableOutType(leftTypeInfo);
+        adaptStream.getTransformation().setOutputType(leftTableOutType);
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if(sideTableInfo.isPartitionedJoin()){
@@ -779,6 +805,8 @@ public class SideSqlExec {
             tableEnv.registerDataStream(joinInfo.getNewTableName(), dsOut, String.join(",", sideOutTypeInfo.getFieldNames()));
         }
     }
+
+
 
     private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table) {
         List<String> fieldNames = new LinkedList<>();
