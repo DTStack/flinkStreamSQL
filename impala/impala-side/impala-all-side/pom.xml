@@ -41,7 +41,8 @@
                         <configuration>
                             <artifactSet>
                                 <excludes>
-
+                                    <exclude>com.fasterxml.jackson.*</exclude>
+                                    <exclude>org.slf4j</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>
