@@ -21,10 +21,7 @@ package com.dtstack.flink.sql.exec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.TableEnvironment;
-import org.apache.flink.table.api.TableException;
-import org.apache.flink.table.api.ValidationException;
+import org.apache.flink.table.api.*;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.plan.logical.LogicalRelNode;
@@ -41,7 +38,7 @@ import java.lang.reflect.Method;
  */
 public class FlinkSQLExec {
 
-    public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt) throws Exception {
+    public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt, StreamQueryConfig queryConfig) throws Exception {
 
         FlinkPlannerImpl planner = new FlinkPlannerImpl(tableEnv.getFrameworkConfig(), tableEnv.getPlanner(), tableEnv.getTypeFactory());
         SqlNode insert = planner.parse(stmt);
@@ -78,7 +75,7 @@ public class FlinkSQLExec {
                     "Query result schema: " + String.join(",", queryResult.getSchema().getColumnNames()) + "\n" +
                     "TableSink schema: " + String.join(",", fieldNames));
         }
-
-        tableEnv.insertInto(newTable, targetTableName, tableEnv.queryConfig());
+        StreamQueryConfig config = null == queryConfig ? tableEnv.queryConfig() : queryConfig;
+        tableEnv.insertInto(newTable, targetTableName, config);
     }
 }

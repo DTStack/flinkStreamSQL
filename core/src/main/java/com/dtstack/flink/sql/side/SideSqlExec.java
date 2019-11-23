@@ -46,19 +46,23 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.table.api.StreamQueryConfig;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -82,7 +86,7 @@ public class SideSqlExec {
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
     public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
-                     Map<String, Table> tableCache)
+                     Map<String, Table> tableCache, StreamQueryConfig queryConfig)
             throws Exception {
 
         if(localSqlPluginPath == null){
@@ -115,7 +119,7 @@ public class SideSqlExec {
                 if(pollSqlNode.getKind() == INSERT){
                     System.out.println("----------real exec sql-----------" );
                     System.out.println(pollSqlNode.toString());
-                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
+                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString(), queryConfig);
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
                     }
@@ -522,6 +526,7 @@ public class SideSqlExec {
                 || selectNode.getKind() == CONTAINS
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
+                || selectNode.getKind() == LIKE
 
                 ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
@@ -742,12 +747,12 @@ public class SideSqlExec {
         DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
                                 .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
                                 .returns(Row.class);
+        //adaptStream.getTransformation().setOutputType(leftTypeInfo);
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if(sideTableInfo.isPartitionedJoin()){
             List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias(), sideTableInfo);
-            String[] leftJoinColArr = new String[leftJoinColList.size()];
-            leftJoinColArr = leftJoinColList.toArray(leftJoinColArr);
+            String[] leftJoinColArr = leftJoinColList.toArray(new String[leftJoinColList.size()]);
             adaptStream = adaptStream.keyBy(leftJoinColArr);
         }
 

@@ -34,14 +34,14 @@ kudu 1.9.0+cdh6.2.0
   
 |参数名称|含义|是否必填|默认值|
 |----|---|---|-----|
-|type | 表名 输出表类型[mysq&#124;hbase&#124;elasticsearch&#124;redis&#124;kudu]|是||
+| type | 表名 输出表类型[mysq&#124;hbase&#124;elasticsearch&#124;redis&#124;kudu]|是||
 | kuduMasters | kudu master节点的地址;格式ip[ip，ip2]|是||
 | tableName | kudu 的表名称|是||
 | writeMode | 写入kudu的模式 insert&#124;update&#124;upsert |否 |upsert
 | workerCount | 工作线程数 |否|
-| defaultOperationTimeoutMs | 写入操作超时时间 |否|
+| defaultOperationTimeoutMs | 操作超时时间 |否|
 | defaultSocketReadTimeoutMs | socket读取超时时间 |否|
-|parallelism | 并行度设置|否|1|
+| parallelism | 并行度设置|否|1|
       
   
 ## 5.样例：

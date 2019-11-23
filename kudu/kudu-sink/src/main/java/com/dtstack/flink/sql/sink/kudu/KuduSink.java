@@ -9,6 +9,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
@@ -28,11 +29,6 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
     protected String[] fieldNames;
 
     TypeInformation<?>[] fieldTypes;
-
-//    protected List<String> primaryKeys;
-
-//    private KuduOutputFormat.Consistency consistency = KuduOutputFormat.Consistency.STRONG;
-
 
     private Integer workerCount;
 
@@ -68,7 +64,11 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
                 .setFieldTypes(this.fieldTypes);
         KuduOutputFormat kuduOutputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(kuduOutputFormat);
-        dataStream.addSink(richSinkFunction);
+        DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
+        dataStreamSink.name(tableName);
+        if (parallelism > 0) {
+            dataStreamSink.setParallelism(parallelism);
+        }
     }
 
     @Override
@@ -77,7 +77,6 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.fieldTypes = fieldTypes;
         return this;
     }
-
 
     @Override
     public TupleTypeInfo<Tuple2<Boolean, Row>> getOutputType() {
