@@ -35,7 +35,7 @@ CREATE TABLE tableName(
 | userName | postgresql连接用户名 |是||
 | password | postgresql连接密码|是||
 | tableName | postgresqll表名称|是||
-| authMech | 身份验证机制 (0, 1, 2, 3) |是|0|
+| authMech | 身份验证机制 (0, 1, 2, 3),暂不支持kerberos |是|0|
 | principal | kerberos用于登录的principal（authMech=1时独有） |authMech=1为必填|
 | keyTabFilePath | keytab文件的路径（authMech=1时独有） |authMech=1为必填 ||
 | krb5FilePath | krb5.conf文件路径（authMech=1时独有） |authMech=1为必填||
