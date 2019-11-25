@@ -62,7 +62,7 @@ create table sideTable(
     PERIOD FOR SYSTEM_TIME
  )WITH(
     type='sqlserver',
-    url='jdbc:sqlserver://172.16.8.104:1433/test?charset=utf8',
+    url='jdbc:jtds:sqlserver://172.16.8.104:1433;DatabaseName=mytest',
     userName='dtstack',
     password='abc123',
     tableName='sidetest',
