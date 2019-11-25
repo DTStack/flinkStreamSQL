@@ -136,7 +136,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     }
 
 
-    private Connection establishConnection() throws SQLException, ClassNotFoundException {
+    public Connection establishConnection() throws SQLException, ClassNotFoundException, IOException {
         Connection connection ;
         JDBCUtils.forName(drivername, getClass().getClassLoader());
         if (username == null) {
@@ -336,6 +336,8 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             LOG.error("check connection open failed..", e);
         } catch (ClassNotFoundException e) {
             LOG.error("load jdbc class error when reconnect db..", e);
+        } catch (IOException e) {
+            LOG.error("kerberos authentication failed..", e);
         }
     }
 
@@ -380,16 +382,16 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     public void verifyField() {
         if (StringUtils.isBlank(username)) {
-            LOG.info("Username was not supplied separately.");
+            LOG.warn("Username was not supplied separately.");
         }
         if (StringUtils.isBlank(password)) {
-            LOG.info("Password was not supplied separately.");
+            LOG.warn("Username was not supplied separately.");
         }
         if (StringUtils.isBlank(dbURL)) {
             throw new IllegalArgumentException("No dababase URL supplied.");
         }
         if (StringUtils.isBlank(insertQuery)) {
-            throw new IllegalArgumentException("No insertQuery suplied");
+            throw new IllegalArgumentException("No insertQuery supplied");
         }
         if (StringUtils.isBlank(drivername)) {
             throw new IllegalArgumentException("No driver supplied");
@@ -422,6 +424,10 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     public void setDrivername(String drivername) {
         this.drivername = drivername;
+    }
+
+    public String getDrivername() {
+        return this.drivername;
     }
 
     public void setDbURL(String dbURL) {

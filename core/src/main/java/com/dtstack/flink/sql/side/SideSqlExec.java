@@ -54,6 +54,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.table.api.StreamQueryConfig;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -88,7 +89,7 @@ public class SideSqlExec {
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
     public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
-                     Map<String, Table> tableCache)
+                     Map<String, Table> tableCache, StreamQueryConfig queryConfig)
             throws Exception {
 
         if(localSqlPluginPath == null){
@@ -121,7 +122,7 @@ public class SideSqlExec {
                 if(pollSqlNode.getKind() == INSERT){
                     System.out.println("----------real exec sql-----------" );
                     System.out.println(pollSqlNode.toString());
-                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
+                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString(), queryConfig);
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
                     }

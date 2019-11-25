@@ -278,7 +278,8 @@ public class FlinkUtil {
      * @param tableEnv
      * @return
      */
-    public static void setTableEnvTTL(Properties properties, StreamTableEnvironment tableEnv) {
+    public static StreamQueryConfig getTableEnvTTL(Properties properties, StreamTableEnvironment tableEnv) {
+        StreamQueryConfig qConfig = null;
         String ttlMintimeStr = properties.getProperty(ConfigConstrant.SQL_TTL_MINTIME);
         String ttlMaxtimeStr = properties.getProperty(ConfigConstrant.SQL_TTL_MAXTIME);
         if (StringUtils.isNotEmpty(ttlMintimeStr) || StringUtils.isNotEmpty(ttlMaxtimeStr)) {
@@ -295,10 +296,11 @@ public class FlinkUtil {
                 ttlMaxtime = getTtlTime(Integer.parseInt(ttlMaxtimeStrMatcher.group(1)), ttlMaxtimeStrMatcher.group(2));
             }
             if (0L != ttlMintime && 0L != ttlMaxtime) {
-                StreamQueryConfig qConfig = tableEnv.queryConfig();
+                qConfig = tableEnv.queryConfig();
                 qConfig.withIdleStateRetentionTime(Time.milliseconds(ttlMintime), Time.milliseconds(ttlMaxtime));
             }
         }
+        return qConfig;
     }
 
     /**
