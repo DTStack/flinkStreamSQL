@@ -186,7 +186,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [kudu 结果表插件](docs/kuduSink.md)
 * [postgresql 结果表插件](docs/postgresqlSink.md)
 * [clickhouse 结果表插件](docs/clickhouseSink.md)
-* [impalahouse 结果表插件](docs/impalaSink.md)
+* [impala 结果表插件](docs/impalaSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
@@ -198,7 +198,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [kudu 维表插件](docs/kuduSide.md)
 * [postgresql 维表插件](docs/postgresqlSide.md)
 * [clickhouse 维表插件](docs/clickhouseSide.md)
-* [impalahouse 维表插件](docs/impalaSide.md)
+* [impala 维表插件](docs/impalaSide.md)
 
 ## 3 性能指标(新增)
 
