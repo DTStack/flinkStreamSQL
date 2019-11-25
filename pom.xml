@@ -31,6 +31,7 @@
         <module>console</module>
         <module>clickhouse</module>
         <module>impala</module>
+        <module>db2</module>
     </modules>
 
 
