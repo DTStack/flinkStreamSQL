@@ -89,6 +89,8 @@ create table sideTable(
 
 ## 6.分区样例
 
+注：分区字段放在最后面，如下，name是分区字段，放在channel，xccount字段的后面
+
 ```
 create table sideTable(
     channel varchar,
