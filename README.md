@@ -27,8 +27,8 @@
  
 # 已支持
   * 源表：kafka 0.9、0.10、0.11、1.x版本
-  * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse, impala, db2
-  * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse, impala, db2
+  * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse, impala, db2, sqlserver
+  * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse, impala, db2, sqlserver
 
 # 后续开发计划
   * 维表快照
@@ -188,6 +188,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [clickhouse 结果表插件](docs/clickhouseSink.md)
 * [impala 结果表插件](docs/impalaSink.md)
 * [db2 结果表插件](docs/db2Sink.md)
+* [sqlserver 结果表插件](docs/sqlserverSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
@@ -201,6 +202,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [clickhouse 维表插件](docs/clickhouseSide.md)
 * [impala 维表插件](docs/impalaSide.md)
 * [db2 维表插件](docs/db2Side.md)
+* [sqlserver 维表插件](docs/sqlserverSide.md)
 
 ## 3 性能指标(新增)
 
