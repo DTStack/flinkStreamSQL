@@ -38,6 +38,7 @@ package com.dtstack.flink.sql.util;
 
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
@@ -85,7 +86,15 @@ public class ParseUtils {
                 for (int i = 0; i < sqlNodes.length; i++) {
                     sqlNodesClone[i] = sqlNodes[i];
                 }
-                SqlBasicCall sqlBasicCallClone = new SqlBasicCall(sqlBasicCall.getOperator(), sqlNodesClone, sqlParserPos);
+                SqlOperator sqlOperator = sqlBasicCall.getOperator();
+                if (sqlOperator instanceof SqlBetweenOperator) {
+                    // Between(ASYMMETRIC) node can not resolve
+                    // SqlBetweenOperator sqlBetweenOperator = new SqlBetweenOperator(null, false);
+                    // sqlBasicCallClone = new SqlBasicCall(sqlBetweenOperator, sqlNodesClone, sqlParserPos);
+                    whereConditionList.clear();
+                    return;
+                }
+                SqlBasicCall sqlBasicCallClone = new SqlBasicCall(sqlOperator, sqlNodesClone, sqlParserPos);
                 // 替换维表中真实字段名
                 List<String> names = Lists.newArrayList();
                 names.add(sideFieldName);
