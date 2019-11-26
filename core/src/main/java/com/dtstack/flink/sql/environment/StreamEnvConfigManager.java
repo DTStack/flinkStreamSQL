@@ -117,7 +117,7 @@ public final class StreamEnvConfigManager {
 
         // checkpoint config
         Optional<Boolean> checkpointingEnabled = isCheckpointingEnabled(confProperties);
-        if (checkpointingEnabled.get()) {
+        if (!checkpointingEnabled.get()) {
             Optional<Long> checkpointInterval = getCheckpointInterval(confProperties);
             streamEnv.enableCheckpointing(checkpointInterval.get());
 
