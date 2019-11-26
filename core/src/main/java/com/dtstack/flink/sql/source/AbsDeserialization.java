@@ -18,12 +18,17 @@
 
 package com.dtstack.flink.sql.source;
 
+import com.dtstack.flink.sql.dirty.DirtyDataManager;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
+import org.apache.hadoop.fs.FSDataOutputStream;
+
+import java.io.IOException;
+import java.util.Map;
 
 /**
  * add metric for source, customer Deserialization which want add metric need to extends this abs class
@@ -36,6 +41,9 @@ import org.apache.flink.metrics.MeterView;
 public abstract class AbsDeserialization<T> extends AbstractDeserializationSchema<T> {
 
     private static final long serialVersionUID = 2176278128811784415L;
+
+    private static final String JOB_ID = "<job_id>";
+    private static final String SOURCE_DIRTYDATA_PREFIX = "source";
 
     private transient RuntimeContext runtimeContext;
 
@@ -55,6 +63,10 @@ public abstract class AbsDeserialization<T> extends AbstractDeserializationSchem
 
     protected transient Meter numInBytesRate;
 
+    protected FSDataOutputStream fsDataOutputStream;
+
+    protected String jobId;
+
     public RuntimeContext getRuntimeContext() {
         return runtimeContext;
     }
@@ -63,16 +75,32 @@ public abstract class AbsDeserialization<T> extends AbstractDeserializationSchem
         this.runtimeContext = runtimeContext;
     }
 
-    public void initMetric(){
+    public void initMetric() {
         dirtyDataCounter = runtimeContext.getMetricGroup().counter(MetricConstant.DT_DIRTY_DATA_COUNTER);
 
         numInRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_IN_COUNTER);
-        numInRate = runtimeContext.getMetricGroup().meter( MetricConstant.DT_NUM_RECORDS_IN_RATE, new MeterView(numInRecord, 20));
+        numInRate = runtimeContext.getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_IN_RATE, new MeterView(numInRecord, 20));
 
         numInBytes = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_BYTES_IN_COUNTER);
-        numInBytesRate = runtimeContext.getMetricGroup().meter(MetricConstant.DT_NUM_BYTES_IN_RATE , new MeterView(numInBytes, 20));
+        numInBytesRate = runtimeContext.getMetricGroup().meter(MetricConstant.DT_NUM_BYTES_IN_RATE, new MeterView(numInBytes, 20));
 
         numInResolveRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_COUNTER);
         numInResolveRate = runtimeContext.getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_RATE, new MeterView(numInResolveRecord, 20));
     }
+
+    public void initDirtyDataOutputStream() {
+        Map<String, String> vars = runtimeContext.getMetricGroup().getAllVariables();
+        if (vars != null && vars.get(JOB_ID) != null) {
+            jobId = vars.get(JOB_ID);
+        }
+        fsDataOutputStream = DirtyDataManager.createFileSystem(SOURCE_DIRTYDATA_PREFIX, jobId);
+    }
+
+    public void closefsDataOutputStream() throws IOException {
+        if (null != fsDataOutputStream) {
+            fsDataOutputStream.close();
+        }
+    }
+
+
 }

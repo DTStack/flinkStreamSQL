@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.option;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.cli.BasicParser;
@@ -31,7 +32,7 @@ import java.util.Map;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URLEncoder;
-import org.apache.commons.codec.Charsets;
+//import org.apache.commons.codec.Charsets;
 
 
 /**

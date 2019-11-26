@@ -22,7 +22,9 @@ package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.config.CalciteConfig;
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
+import com.dtstack.flink.sql.config.DirtyConfig;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
+import com.dtstack.flink.sql.dirty.DirtyDataManager;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
@@ -48,6 +50,7 @@ import com.dtstack.flink.sql.util.FlinkUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.ExecutionConfig;
@@ -114,6 +117,7 @@ public class Main {
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
         String confProp = options.getConfProp();
+        String dirtyProp = options.getDirtyProp();
 
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
@@ -123,12 +127,16 @@ public class Main {
             addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
             addJarFileList = objMapper.readValue(addJarListStr, List.class);
         }
-
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
+
+        dirtyProp = URLDecoder.decode(dirtyProp, Charsets.UTF_8.toString());
+        Map dirtyCofig = PluginUtil.jsonStrToObject(dirtyProp, Map.class);
+
         StreamExecutionEnvironment env = getStreamExeEnv(confProperties, deployMode);
         StreamTableEnvironment tableEnv = StreamTableEnvironment.getTableEnvironment(env);
         StreamQueryConfig queryConfig = getStreamTableEnvTTL(confProperties, tableEnv);
+
 
         List<URL> jarURList = Lists.newArrayList();
         SqlTree sqlTree = SqlParser.parseSql(sql);
@@ -141,7 +149,8 @@ public class Main {
 
         Map<String, SideTableInfo> sideTableMap = Maps.newHashMap();
         Map<String, Table> registerTableCache = Maps.newHashMap();
-
+        // set DirtyDataManager hadoopconfig
+        setDirtyDataManagerHadoopConfig(dirtyCofig);
         //register udf
         registerUDF(sqlTree, jarURList, tableEnv);
         //register table schema
@@ -154,6 +163,18 @@ public class Main {
         }
 
         env.execute(name);
+    }
+
+    private static void setDirtyDataManagerHadoopConfig(Map dirtyCofig) {
+        DirtyConfig dirtyConfig = new DirtyConfig(dirtyCofig);
+        String path = dirtyConfig.getPath();
+        if (!StringUtils.isEmpty(path)) {
+            DirtyDataManager.savePath = path;
+        }
+        Map<String, Object> hadoopConfig = dirtyConfig.getHadoopConfig();
+        if (!MapUtils.isEmpty(hadoopConfig)) {
+            DirtyDataManager.hadoopConfig = hadoopConfig;
+        }
     }
 
     private static void sqlTranslation(String localSqlPluginPath, StreamTableEnvironment tableEnv,SqlTree sqlTree,Map<String, SideTableInfo> sideTableMap,Map<String, Table> registerTableCache, StreamQueryConfig queryConfig) throws Exception {

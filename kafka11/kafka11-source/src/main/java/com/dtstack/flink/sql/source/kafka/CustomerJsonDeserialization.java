@@ -21,6 +21,8 @@
 package com.dtstack.flink.sql.source.kafka;
 
 
+import com.dtstack.flink.sql.dirty.DirtyDataManager;
+import com.dtstack.flink.sql.exception.ParseOrWriteRecordException;
 import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
 import com.dtstack.flink.sql.table.TableInfo;
@@ -154,6 +156,11 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
                 LOG.info("dirtyData: " + new String(message));
                 LOG.error("" , e);
             }
+
+            if (fsDataOutputStream != null) {
+                DirtyDataManager.writeData(fsDataOutputStream, new String(message), new ParseOrWriteRecordException(e.getMessage(), e));
+            }
+
             dirtyDataCounter.inc();
             return null;
         }finally {
