@@ -23,9 +23,12 @@ package com.dtstack.flink.sql.side;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -63,5 +66,16 @@ public abstract class AllReqRow extends RichFlatMapFunction<Row, Row> implements
         es = Executors.newSingleThreadScheduledExecutor(new DTThreadFactory("cache-all-reload"));
         es.scheduleAtFixedRate(() -> reloadCache(), sideTableInfo.getCacheTimeout(), sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS);
     }
+
+    protected Object convertTimeIndictorTypeInfo(Integer index, Object obj) {
+        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(index).getClass());
+
+        //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
+        if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+            obj = Timestamp.valueOf(((LocalDateTime) obj));
+        }
+        return obj;
+    }
+
 
 }

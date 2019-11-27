@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -54,8 +55,8 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
             Object obj = input.getField(entry.getValue());
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
-            if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
-                obj = ((Timestamp)obj).getTime();
+            if(obj instanceof LocalDateTime && isTimeIndicatorTypeInfo){
+                obj = Timestamp.valueOf((LocalDateTime)obj);
             }
             row.setField(entry.getKey(), obj);
         }

@@ -29,8 +29,11 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.TimeoutException;
@@ -80,6 +83,17 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         }
 
         sideCache.initCache();
+    }
+
+
+    protected Object convertTimeIndictorTypeInfo(Integer index, Object obj) {
+        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(index).getClass());
+
+        //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
+        if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+            obj = Timestamp.valueOf(((LocalDateTime) obj));
+        }
+        return obj;
     }
 
     protected CacheObj getFromCache(String key){

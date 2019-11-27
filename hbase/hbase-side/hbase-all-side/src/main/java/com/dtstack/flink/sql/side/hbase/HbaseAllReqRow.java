@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -75,8 +76,8 @@ public class HbaseAllReqRow extends AllReqRow {
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
-            if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
-                obj = ((Timestamp)obj).getTime();
+            if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+                obj = Timestamp.valueOf(((LocalDateTime) obj));
             }
             row.setField(entry.getKey(), obj);
         }

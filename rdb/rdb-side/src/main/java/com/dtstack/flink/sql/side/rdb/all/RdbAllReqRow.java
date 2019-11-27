@@ -74,13 +74,7 @@ public abstract class RdbAllReqRow extends AllReqRow {
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
             Object obj = input.getField(entry.getValue());
-            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
-
-            //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
-            // flink1.9 blink  proctime type convert to SqlTimeTypeInfo ,so covert to SqlTimeTypeInfo.TIMESTAMP type.
-            if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
-                obj = Timestamp.valueOf(((LocalDateTime) obj));
-            }
+            obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
 

@@ -238,23 +238,11 @@ public class SideSqlExec {
 
             mappingTable.put(tableName, fieldName, mappingFieldName);
 
-            sideOutTypes[i] = convertTimeAttributeType(fieldInfo.getTypeInformation());
+            sideOutTypes[i] = fieldInfo.getTypeInformation();
             sideOutNames[i] = mappingFieldName;
         }
 
         return new RowTypeInfo(sideOutTypes, sideOutNames);
-    }
-
-    /**
-     *  对protime和rowtime做类型转换
-     * @param typeInformation
-     * @return
-     */
-    private TypeInformation convertTimeAttributeType(TypeInformation typeInformation) {
-        if (typeInformation instanceof TimeIndicatorTypeInfo) {
-            return SqlTimeTypeInfo.TIMESTAMP;
-        }
-        return typeInformation;
     }
 
     //需要考虑更多的情况

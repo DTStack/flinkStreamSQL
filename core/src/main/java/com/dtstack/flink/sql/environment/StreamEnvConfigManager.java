@@ -73,6 +73,8 @@ public final class StreamEnvConfigManager {
 
         confProperties = PropertiesUtils.propertiesTrim(confProperties);
         streamEnv.getConfig().disableClosureCleaner();
+        // Disables reusing object
+        streamEnv.getConfig().enableObjectReuse();
 
         Configuration globalJobParameters = new Configuration();
         //Configuration unsupported set properties key-value
@@ -198,8 +200,8 @@ public final class StreamEnvConfigManager {
     }
 
     public static Optional<Boolean> isCheckpointingEnabled(Properties properties) {
-        boolean checkpointEnabled = properties.getProperty(ConfigConstrant.SQL_CHECKPOINT_INTERVAL_KEY) == null
-                && properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_INTERVAL_KEY) == null;
+        boolean checkpointEnabled = !(properties.getProperty(ConfigConstrant.SQL_CHECKPOINT_INTERVAL_KEY) == null
+                && properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_INTERVAL_KEY) == null);
         return Optional.of(checkpointEnabled);
     }
 
