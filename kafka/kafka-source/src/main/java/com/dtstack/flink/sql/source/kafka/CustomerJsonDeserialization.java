@@ -217,7 +217,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     protected void registerPtMetric(AbstractFetcher<Row, ?> fetcher) throws Exception {
 
-        Field consumerThreadField = fetcher.getClass().getSuperclass().getDeclaredField("consumerThread");
+        Field consumerThreadField = fetcher.getClass().getDeclaredField("consumerThread");
         consumerThreadField.setAccessible(true);
         KafkaConsumerThread consumerThread = (KafkaConsumerThread) consumerThreadField.get(fetcher);
 
