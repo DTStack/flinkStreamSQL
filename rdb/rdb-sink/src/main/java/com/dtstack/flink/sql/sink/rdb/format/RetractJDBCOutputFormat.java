@@ -54,10 +54,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private static final Logger LOG = LoggerFactory.getLogger(RetractJDBCOutputFormat.class);
 
-    private static int dirtyDataPrintFrequency = 1000;
-
-    private static int receiveDataPrintFrequency = 1000;
-
     private String username;
     private String password;
     private String drivername;
@@ -106,6 +102,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             LOG.info("PreparedStatement execute batch num is {}", batchNum);
             dbConn = establishConnection();
             initMetric();
+            initDirtyDataOutputStream();
 
             if (existTabname()) {
                 if (isReplaceInsertQuery()) {
@@ -203,17 +200,13 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     }
 
-    private void writeSingleRecord(Row row) {
+    private void writeSingleRecord(Row row)  {
         try {
             updatePreparedStmt(row, upload);
             upload.executeUpdate();
             dbConn.commit();
         } catch (SQLException e) {
-            outDirtyRecords.inc();
-            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0 || LOG.isDebugEnabled()) {
-                LOG.error("record insert failed ..", row.toString());
-                LOG.error("", e);
-            }
+            dealInsertError(row.toString() ,e);
         }
     }
 
@@ -373,6 +366,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         } finally {
             dbConn = null;
         }
+        // close dirty data outputstream
+        closeFsDataOutputStream();
+
     }
 
 

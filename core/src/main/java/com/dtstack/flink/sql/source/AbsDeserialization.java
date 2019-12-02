@@ -18,14 +18,18 @@
 
 package com.dtstack.flink.sql.source;
 
+import com.dtstack.flink.sql.config.DirtyConfig;
+import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.dirty.DirtyDataManager;
+import com.dtstack.flink.sql.exception.ParseOrWriteRecordException;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
-import org.apache.hadoop.fs.FSDataOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -40,9 +44,9 @@ import java.util.Map;
 
 public abstract class AbsDeserialization<T> extends AbstractDeserializationSchema<T> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AbsDeserialization.class);
     private static final long serialVersionUID = 2176278128811784415L;
 
-    private static final String JOB_ID = "<job_id>";
     private static final String SOURCE_DIRTYDATA_PREFIX = "source";
 
     private transient RuntimeContext runtimeContext;
@@ -63,7 +67,10 @@ public abstract class AbsDeserialization<T> extends AbstractDeserializationSchem
 
     protected transient Meter numInBytesRate;
 
-    protected FSDataOutputStream fsDataOutputStream;
+    protected DirtyConfig dirtyConfig;
+    protected DirtyDataManager dirtyDataManager;
+
+    protected int dirtyDataFrequency = 1000;
 
     protected String jobId;
 
@@ -89,18 +96,41 @@ public abstract class AbsDeserialization<T> extends AbstractDeserializationSchem
     }
 
     public void initDirtyDataOutputStream() {
-        Map<String, String> vars = runtimeContext.getMetricGroup().getAllVariables();
-        if (vars != null && vars.get(JOB_ID) != null) {
-            jobId = vars.get(JOB_ID);
-        }
-        fsDataOutputStream = DirtyDataManager.createFileSystem(SOURCE_DIRTYDATA_PREFIX, jobId);
-    }
-
-    public void closefsDataOutputStream() throws IOException {
-        if (null != fsDataOutputStream) {
-            fsDataOutputStream.close();
+        if (null != dirtyConfig) {
+            Map<String, String> vars = runtimeContext.getMetricGroup().getAllVariables();
+            if (vars != null && vars.get(ConfigConstrant.METRIC_JOB_ID) != null) {
+                jobId = vars.get(ConfigConstrant.METRIC_JOB_ID);
+            }
+            dirtyDataManager = new DirtyDataManager(dirtyConfig);
+            dirtyDataManager.createFsOutputStream(SOURCE_DIRTYDATA_PREFIX, jobId);
         }
     }
 
+    /**
+     *  对json解析失败时的异常处理
+     * @param message
+     * @param e
+     * @throws IOException
+     */
+    protected void dealParseError(byte[] message, Exception e) throws IOException {
+        if (null != dirtyDataManager) {
+            dirtyDataManager.writeData(new String(message), new ParseOrWriteRecordException(e.getMessage(), e));
+        }
 
+        if (null == dirtyDataManager && (dirtyDataCounter.getCount() % dirtyDataFrequency == 0)) {
+            LOG.info("dirtyData: " + new String(message));
+            LOG.error("", e);
+        }
+        dirtyDataCounter.inc();
+    }
+
+    public void closefsDataOutputStream() {
+        if (null != dirtyDataManager) {
+            dirtyDataManager.close();
+        }
+    }
+
+    public void setDirtyConfig(DirtyConfig dirtyConfig) {
+        this.dirtyConfig = dirtyConfig;
+    }
 }

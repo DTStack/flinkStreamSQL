@@ -61,6 +61,7 @@ public class ConfigConstrant {
     public static final String CHECKPOINTS_DIRECTORY_KEY = "state.checkpoints.dir";
     public static final String STATE_BACKEND_INCREMENTAL_KEY = "state.backend.incremental";
 
+    public static final String METRIC_JOB_ID = "<job_id>";
 
     // restart plocy
     public static final int failureRate = 3;

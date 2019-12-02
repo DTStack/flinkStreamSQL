@@ -18,21 +18,20 @@
 
 package com.dtstack.flink.sql.dirty;
 
+import com.dtstack.flink.sql.config.DirtyConfig;
 import com.dtstack.flink.sql.exception.ParseOrWriteRecordException;
 import com.dtstack.flink.sql.util.DateUtil;
 import com.dtstack.flink.sql.util.FileSystemUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.types.Row;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FSOutputSummer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSOutputStream;
 import org.apache.hadoop.hdfs.client.HdfsDataOutputStream;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
@@ -45,41 +44,69 @@ import java.util.UUID;
  * Company: www.dtstack.com
  * @author huyifan.zju@163.com
  */
-public class DirtyDataManager implements Serializable{
+public class DirtyDataManager {
+
     private static final EnumSet<HdfsDataOutputStream.SyncFlag> syncFlags = EnumSet.of(HdfsDataOutputStream.SyncFlag.UPDATE_LENGTH);
 
     private static final String FIELD_DELIMITER = "\u0001";
     private static final String LINE_DELIMITER = "\n";
 
     private static final ObjectMapper objMapper = new ObjectMapper();
-    public static Map<String, Object> hadoopConfig = null;
-    public static String savePath = "/default";
+    private Optional<FSDataOutputStream> fsOutputStream;
+    private Map<String, Object> hadoopConfig;
+    private String defaultSavePath = "/dirtydata";
 
-    public static FSDataOutputStream createFileSystem(String prefix, String jobId) {
+    public DirtyDataManager(DirtyConfig dirtyConfig) {
+        String path = dirtyConfig.getPath();
+        if (!StringUtils.isEmpty(path)) {
+            this.defaultSavePath = path;
+        }
+
+        Map<String, Object> hadoopConfig = dirtyConfig.getHadoopConfig();
+        if (!MapUtils.isEmpty(hadoopConfig)) {
+            this.hadoopConfig = hadoopConfig;
+        }
+    }
+
+    public Optional<FSDataOutputStream> createFsOutputStream(String prefix, String jobId) {
         if (null == hadoopConfig) {
-            return null;
+            return Optional.empty();
         }
 
         try {
-            String location = savePath + "/" + prefix + "_" + UUID.randomUUID() + ".txt";
+            String location = defaultSavePath + "/" + jobId + "/" + prefix + "_" + UUID.randomUUID() + ".txt";
             FileSystem fs = FileSystemUtil.getFileSystem(hadoopConfig, null, jobId, "dirty");
             Path dataSavePath = new Path(location);
-            return fs.create(dataSavePath, true);
+            fsOutputStream = Optional.of(fs.create(dataSavePath, true));
+            return fsOutputStream;
         } catch (Exception e) {
             throw new RuntimeException("Open dirty manager error", e);
         }
     }
 
 
-    public static void writeData(FSDataOutputStream stream, String content, ParseOrWriteRecordException ex) throws IOException {
+    public void writeData(String content, ParseOrWriteRecordException ex) {
         try {
-            String line = StringUtils.join(new String[]{content, objMapper.writeValueAsString(ex.toString()), DateUtil.timestampToString(new Date())}, FIELD_DELIMITER);
-            stream.writeChars(line);
-            stream.writeChars(LINE_DELIMITER);
-            DFSOutputStream dfsOutputStream = (DFSOutputStream) stream.getWrappedStream();
-            dfsOutputStream.hsync(syncFlags);
+            if (fsOutputStream.isPresent()) {
+                String line = StringUtils.join(new String[]{content, objMapper.writeValueAsString(ex.toString()), DateUtil.timestampToString(new Date())}, FIELD_DELIMITER);
+                fsOutputStream.get().writeChars(line);
+                fsOutputStream.get().writeChars(LINE_DELIMITER);
+                DFSOutputStream dfsOutputStream = (DFSOutputStream) fsOutputStream.get().getWrappedStream();
+                dfsOutputStream.hsync(syncFlags);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public void close() {
+        if (fsOutputStream.isPresent()) {
+            try {
+                fsOutputStream.get().flush();
+                fsOutputStream.get().close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.table;
 
+import com.dtstack.flink.sql.config.DirtyConfig;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -49,6 +50,8 @@ public abstract class TableInfo implements Serializable {
     private Class<?>[] fieldClasses;
 
     private final List<String> fieldList = Lists.newArrayList();
+
+    private DirtyConfig dirtyConfig;
 
     /**key:别名, value: realField */
     private Map<String, String> physicalFields = Maps.newHashMap();
@@ -175,6 +178,14 @@ public abstract class TableInfo implements Serializable {
 
     public void setPhysicalFields(Map<String, String> physicalFields) {
         this.physicalFields = physicalFields;
+    }
+
+    public DirtyConfig getDirtyConfig() {
+        return dirtyConfig;
+    }
+
+    public void setDirtyConfig(DirtyConfig dirtyConfig) {
+        this.dirtyConfig = dirtyConfig;
     }
 
     public void finish(){
