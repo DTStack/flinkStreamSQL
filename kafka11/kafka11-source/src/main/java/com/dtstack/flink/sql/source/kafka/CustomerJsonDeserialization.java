@@ -21,6 +21,8 @@
 package com.dtstack.flink.sql.source.kafka;
 
 
+import com.dtstack.flink.sql.dirty.DirtyDataManager;
+import com.dtstack.flink.sql.exception.ParseOrWriteRecordException;
 import com.dtstack.flink.sql.source.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
 import com.dtstack.flink.sql.table.TableInfo;
@@ -70,8 +72,6 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
     private static final long serialVersionUID = 2385115520960444192L;
 
-    private static int dirtyDataFrequency = 1000;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /** Type information describing the result type. */
@@ -110,7 +110,6 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             } catch (Exception e) {
                 LOG.error("register topic partition metric error.", e);
             }
-
             firstMsg = false;
         }
 
@@ -149,12 +148,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             numInResolveRecord.inc();
             return row;
         } catch (Exception e) {
-            //add metric of dirty data
-            if (dirtyDataCounter.getCount() % dirtyDataFrequency == 0) {
-                LOG.info("dirtyData: " + new String(message));
-                LOG.error("" , e);
-            }
-            dirtyDataCounter.inc();
+            dealParseError(message, e);
             return null;
         }finally {
             nodeAndJsonNodeMapping.clear();
