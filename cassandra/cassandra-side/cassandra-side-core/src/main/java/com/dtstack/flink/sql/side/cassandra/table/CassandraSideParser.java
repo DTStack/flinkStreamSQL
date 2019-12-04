@@ -23,6 +23,9 @@ import com.dtstack.flink.sql.table.AbsSideTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -95,5 +98,33 @@ public class CassandraSideParser extends AbsSideTableParser {
     }
 
     private static void dealSideSign(Matcher matcher, TableInfo tableInfo) {
+    }
+
+    public Class dbTypeConvertToJavaType(String fieldType) {
+        switch (fieldType.toLowerCase()) {
+            case "bigint":
+                return Long.class;
+            case "int":
+            case "counter":
+                return Integer.class;
+
+            case "text":
+            case "inet":
+            case "varchar":
+            case "ascii":
+            case "timeuuid":
+                return String.class;
+
+            case "decimal":
+            case "float":
+                return Float.class;
+            case "double":
+                return Double.class;
+            case "timestamp":
+                return Timestamp.class;
+        }
+
+        throw new RuntimeException("不支持 " + fieldType + " 类型");
+
     }
 }
