@@ -213,16 +213,16 @@ public class HbaseOutputFormat extends MetricOutputFormat {
             String[] families = new String[format.columnNames.length];
             String[] qualifiers = new String[format.columnNames.length];
 
-            Set<String> keySet = format.columnNameFamily.keySet();
-            String[] columns = new String[keySet.size()];
-            keySet.toArray(columns);
-            for(int i = 0; i < columns.length; ++i) {
-                String col = columns[i];
-                String[] part = col.split(":");
-                families[i] = part[0];
-                qualifiers[i] = part[1];
+            if (format.columnNameFamily != null) {
+                Set<String> keySet = format.columnNameFamily.keySet();
+                String[] columns = keySet.toArray(new String[keySet.size()]);
+                for (int i = 0; i < columns.length; ++i) {
+                    String col = columns[i];
+                    String[] part = col.split(":");
+                    families[i] = part[0];
+                    qualifiers[i] = part[1];
+                }
             }
-
             format.families = families;
             format.qualifiers = qualifiers;
 
