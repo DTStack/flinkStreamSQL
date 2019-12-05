@@ -23,11 +23,8 @@ package com.dtstack.flink.sql.sink.hbase.table;
 
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
-import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.MathUtil;
 
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
@@ -67,39 +64,5 @@ public class HbaseSinkParser extends AbsTableParser {
         String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
         hbaseTableInfo.setRowkey(rk.split(","));
         return hbaseTableInfo;
-    }
-
-    public void parseFieldsInfo(String fieldsInfo, HbaseTableInfo tableInfo){
-        List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
-        Map<String, String> columnFamilies = new LinkedHashMap<>();
-        for(String fieldRow : fieldRows){
-            fieldRow = fieldRow.trim();
-
-            String[] filedInfoArr = fieldRow.split("\\s+");
-            if(filedInfoArr.length < 2 ){
-                throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
-            }
-
-            boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
-            if(isMatcherKey){
-                continue;
-            }
-
-            //Compatible situation may arise in space in the fieldName
-            String[] filedNameArr = new String[filedInfoArr.length - 1];
-            System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
-            String fieldName = String.join(" ", filedNameArr);
-            String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
-            Class fieldClass = dbTypeConvertToJavaType(fieldType);
-            String[] columnFamily = fieldName.trim().split(":");
-            columnFamilies.put(fieldName.trim(),columnFamily[1]);
-            tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
-            tableInfo.addField(columnFamily[1]);
-            tableInfo.addFieldClass(fieldClass);
-            tableInfo.addFieldType(fieldType);
-            tableInfo.addFieldExtraInfo(null);
-        }
-        tableInfo.setColumnNameFamily(columnFamilies);
-        tableInfo.finish();
     }
 }
