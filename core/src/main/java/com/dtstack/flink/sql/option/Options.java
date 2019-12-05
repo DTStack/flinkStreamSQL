@@ -57,9 +57,6 @@ public class Options {
     @OptionRequired(description = "sql ref prop,eg specify event time")
     private  String confProp = "{}";
 
-    @OptionRequired(description = "dirty data hadoop conf")
-    private  String dirtyProp = "{}";
-
     @OptionRequired(description = "Savepoint restore path")
     private  String savePointPath;
 
@@ -164,14 +161,6 @@ public class Options {
 
     public void setAllowNonRestoredState(String allowNonRestoredState) {
         this.allowNonRestoredState = allowNonRestoredState;
-    }
-
-    public String getDirtyProp() {
-        return dirtyProp;
-    }
-
-    public void setDirtyProp(String dirtyProp) {
-        this.dirtyProp = dirtyProp;
     }
 
     public String getFlinkJarPath() {

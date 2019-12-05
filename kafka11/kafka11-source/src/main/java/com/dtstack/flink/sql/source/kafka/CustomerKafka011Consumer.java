@@ -66,7 +66,6 @@ public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
     public void run(SourceContext<Row> sourceContext) throws Exception {
         customerJsonDeserialization.setRuntimeContext(getRuntimeContext());
         customerJsonDeserialization.initMetric();
-        customerJsonDeserialization.initDirtyDataOutputStream();
         super.run(sourceContext);
     }
 
@@ -75,11 +74,5 @@ public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
         AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext, assignedPartitionsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, runtimeContext, offsetCommitMode, consumerMetricGroup, useMetrics);
         customerJsonDeserialization.setFetcher(fetcher);
         return fetcher;
-    }
-
-    @Override
-    public void close() throws Exception {
-        super.close();
-        customerJsonDeserialization.closefsDataOutputStream();
     }
 }
