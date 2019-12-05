@@ -7,7 +7,7 @@ CREATE TABLE MyResult(
     type ='hbase',
     zookeeperQuorum ='ip:port[,ip:port]',
     tableName ='tableName',
-    rowKey ='colName[,colName]',
+    rowKey ='colFamily:colName[,colFamily:colName]',
     parallelism ='1',
     zookeeperParent ='/hbase'
  )
@@ -40,16 +40,16 @@ hbase2.0
   
 ## 5.样例：
 ```
-
- CREATE TABLE MyResult(
-    cf:info VARCHAR,
-    cf:name VARCHAR,
-    cf:channel varchar
+CREATE TABLE MyResult(
+    cf:channel varchar,
+    cf:pv BIGINT
  )WITH(
     type ='hbase',
-    zookeeperQuorum ='xx:2181',
-    zookeeperParent ='/hbase',
-    tableName ='workerinfo01',
-    rowKey ='channel'
- );
+    zookeeperQuorum ='rdos1:2181',
+    tableName ='workerinfo',
+    rowKey ='cf:channel',
+    parallelism ='1',
+    zookeeperParent ='/hbase'
+ )
+
  ```
