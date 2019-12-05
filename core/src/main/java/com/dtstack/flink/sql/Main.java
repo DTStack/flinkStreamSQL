@@ -22,9 +22,7 @@ package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.config.CalciteConfig;
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
-import com.dtstack.flink.sql.config.DirtyConfig;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
-import com.dtstack.flink.sql.dirty.DirtyDataManager;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
@@ -50,7 +48,6 @@ import com.dtstack.flink.sql.util.FlinkUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.ExecutionConfig;
@@ -77,7 +74,6 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -86,7 +82,6 @@ import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -119,7 +114,6 @@ public class Main {
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
         String confProp = options.getConfProp();
-        String dirtyProp = options.getDirtyProp();
 
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
@@ -129,17 +123,12 @@ public class Main {
             addJarListStr = URLDecoder.decode(addJarListStr, Charsets.UTF_8.name());
             addJarFileList = objMapper.readValue(addJarListStr, List.class);
         }
+
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
-
-        dirtyProp = URLDecoder.decode(dirtyProp, Charsets.UTF_8.toString());
-        // set DirtyDataManager dirtyconfig
-        DirtyConfig dirtyConfig = getDirtyDataManagerDirtyConfig(dirtyProp);
-
         StreamExecutionEnvironment env = getStreamExeEnv(confProperties, deployMode);
         StreamTableEnvironment tableEnv = StreamTableEnvironment.getTableEnvironment(env);
         StreamQueryConfig queryConfig = getStreamTableEnvTTL(confProperties, tableEnv);
-
 
         List<URL> jarURList = Lists.newArrayList();
         SqlTree sqlTree = SqlParser.parseSql(sql);
@@ -156,7 +145,7 @@ public class Main {
         //register udf
         registerUDF(sqlTree, jarURList, tableEnv);
         //register table schema
-        registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode, sideTableMap, registerTableCache, dirtyConfig);
+        registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode, sideTableMap, registerTableCache);
 
         sqlTranslation(localSqlPluginPath, tableEnv,sqlTree,sideTableMap,registerTableCache, queryConfig);
 
@@ -165,11 +154,6 @@ public class Main {
         }
 
         env.execute(name);
-    }
-
-    private static DirtyConfig getDirtyDataManagerDirtyConfig(String dirtyProp) throws IOException {
-        Map dirtyCofig = PluginUtil.jsonStrToObject(dirtyProp, Map.class);
-        return dirtyCofig.size() == 0 ? null : new DirtyConfig(dirtyCofig);
     }
 
     private static void sqlTranslation(String localSqlPluginPath, StreamTableEnvironment tableEnv,SqlTree sqlTree,Map<String, SideTableInfo> sideTableMap,Map<String, Table> registerTableCache, StreamQueryConfig queryConfig) throws Exception {
@@ -251,8 +235,7 @@ public class Main {
 
 
     private static void registerTable(SqlTree sqlTree, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv, String localSqlPluginPath,
-                                      String remoteSqlPluginPath, String pluginLoadMode, Map<String, SideTableInfo> sideTableMap,
-                                      Map<String, Table> registerTableCache,  DirtyConfig dirtyConfig) throws Exception {
+                                      String remoteSqlPluginPath, String pluginLoadMode, Map<String, SideTableInfo> sideTableMap, Map<String, Table> registerTableCache) throws Exception {
         Set<URL> classPathSet = Sets.newHashSet();
         WaterMarkerAssigner waterMarkerAssigner = new WaterMarkerAssigner();
         for (TableInfo tableInfo : sqlTree.getTableInfoMap().values()) {
@@ -260,7 +243,6 @@ public class Main {
             if (tableInfo instanceof SourceTableInfo) {
 
                 SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
-                sourceTableInfo.setDirtyConfig(dirtyConfig);
                 Table table = StreamSourceFactory.getStreamSource(sourceTableInfo, env, tableEnv, localSqlPluginPath);
                 tableEnv.registerTable(sourceTableInfo.getAdaptName(), table);
                 //Note --- parameter conversion function can not be used inside a function of the type of polymerization
@@ -290,7 +272,7 @@ public class Main {
                 registerTableCache.put(tableInfo.getName(), regTable);
                 classPathSet.add(buildSourceAndSinkPathByLoadMode(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode));
             } else if (tableInfo instanceof TargetTableInfo) {
-                tableInfo.setDirtyConfig(dirtyConfig);
+
                 TableSink tableSink = StreamSinkFactory.getTableSink((TargetTableInfo) tableInfo, localSqlPluginPath);
                 TypeInformation[] flinkTypes = FlinkUtil.transformTypes(tableInfo.getFieldClasses());
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);

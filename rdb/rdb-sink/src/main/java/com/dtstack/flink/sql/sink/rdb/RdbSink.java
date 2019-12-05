@@ -17,7 +17,6 @@
  */
 package com.dtstack.flink.sql.sink.rdb;
 
-import com.dtstack.flink.sql.config.DirtyConfig;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
@@ -77,7 +76,6 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
     protected List<String> primaryKeys;
 
     protected String[] fieldNames;
-    protected DirtyConfig dirtyConfig;
 
     private TypeInformation[] fieldTypes;
 
@@ -103,7 +101,6 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         outputFormat.setTableName(tableName);
         outputFormat.setDbType(dbType);
         outputFormat.setSchema(schema);
-        outputFormat.setDirtyConfig(dirtyConfig);
         outputFormat.setDbSink(this);
 
         outputFormat.verifyField();
@@ -149,7 +146,6 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         this.primaryKeys = rdbTableInfo.getPrimaryKeys();
         this.dbType = rdbTableInfo.getType();
         this.schema = rdbTableInfo.getSchema();
-        this.dirtyConfig = rdbTableInfo.getDirtyConfig();
 
         buildSql(schema, tableName, fields);
         buildSqlTypes(fieldTypeArray);
