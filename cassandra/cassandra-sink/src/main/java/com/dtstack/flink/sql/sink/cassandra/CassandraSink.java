@@ -20,6 +20,7 @@
 package com.dtstack.flink.sql.sink.cassandra;
 
 
+import com.dtstack.flink.sql.config.DirtyConfig;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.cassandra.table.CassandraTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
@@ -57,6 +58,7 @@ public class CassandraSink implements RetractStreamTableSink<Row>, IStreamSinkGe
     protected Integer readTimeoutMillis;
     protected Integer connectTimeoutMillis;
     protected Integer poolTimeoutMillis;
+    protected DirtyConfig dirtyConfig;
 
     public CassandraSink() {
         // TO DO NOTHING
@@ -77,6 +79,7 @@ public class CassandraSink implements RetractStreamTableSink<Row>, IStreamSinkGe
         this.readTimeoutMillis = cassandraTableInfo.getReadTimeoutMillis();
         this.connectTimeoutMillis = cassandraTableInfo.getConnectTimeoutMillis();
         this.poolTimeoutMillis = cassandraTableInfo.getPoolTimeoutMillis();
+        this.dirtyConfig = cassandraTableInfo.getDirtyConfig();
         return this;
     }
 
@@ -96,7 +99,9 @@ public class CassandraSink implements RetractStreamTableSink<Row>, IStreamSinkGe
                 .setConnectTimeoutMillis(this.connectTimeoutMillis)
                 .setPoolTimeoutMillis(this.poolTimeoutMillis)
                 .setFieldNames(this.fieldNames)
-                .setFieldTypes(this.fieldTypes);
+                .setFieldTypes(this.fieldTypes)
+                .setDirtyConfig(dirtyConfig);
+
 
         CassandraOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
