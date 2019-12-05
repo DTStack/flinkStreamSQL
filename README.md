@@ -123,7 +123,6 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
         * sql.checkpoint.timeout: 生成checkpoint的超时时间(ms)
         * sql.max.concurrent.checkpoints: 最大并发生成checkpoint数
         * sql.checkpoint.cleanup.mode: 默认是不会将checkpoint存储到外部存储,[true(任务cancel之后会删除外部存储)|false(外部存储需要手动删除)]
-        * flinkCheckpointDataURI: 设置checkpoint的外部存储路径,根据实际的需求设定文件路径,hdfs://, file://
         * jobmanager.memory.mb: per_job模式下指定jobmanager的内存大小(单位MB, 默认值:768)
         * taskmanager.memory.mb: per_job模式下指定taskmanager的内存大小(单位MB, 默认值:768)
         * taskmanager.num: per_job模式下指定taskmanager的实例数(默认1)
