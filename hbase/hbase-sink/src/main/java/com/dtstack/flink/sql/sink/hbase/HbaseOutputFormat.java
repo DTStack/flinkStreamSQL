@@ -38,6 +38,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * author: jingzhen@dtstack.com
@@ -53,6 +55,7 @@ public class HbaseOutputFormat extends MetricOutputFormat {
     private String tableName;
     private String[] columnNames;
     private String[] columnTypes;
+    private Map<String,String> columnNameFamily;
 
     private String[] families;
     private String[] qualifiers;
@@ -196,6 +199,11 @@ public class HbaseOutputFormat extends MetricOutputFormat {
             return this;
         }
 
+        public HbaseOutputFormatBuilder setColumnNameFamily(Map<String, String> columnNameFamily) {
+            format.columnNameFamily = columnNameFamily;
+            return this;
+        }
+
         public HbaseOutputFormat finish() {
             Preconditions.checkNotNull(format.host, "zookeeperQuorum should be specified");
             Preconditions.checkNotNull(format.tableName, "tableName should be specified");
@@ -205,13 +213,16 @@ public class HbaseOutputFormat extends MetricOutputFormat {
             String[] families = new String[format.columnNames.length];
             String[] qualifiers = new String[format.columnNames.length];
 
-            for(int i = 0; i < format.columnNames.length; ++i) {
-                String col = format.columnNames[i];
-                String[] part = col.split(":");
-                families[i] = part[0];
-                qualifiers[i] = part[1];
+            if (format.columnNameFamily != null) {
+                Set<String> keySet = format.columnNameFamily.keySet();
+                String[] columns = keySet.toArray(new String[keySet.size()]);
+                for (int i = 0; i < columns.length; ++i) {
+                    String col = columns[i];
+                    String[] part = col.split(":");
+                    families[i] = part[0];
+                    qualifiers[i] = part[1];
+                }
             }
-
             format.families = families;
             format.qualifiers = qualifiers;
 
