@@ -48,9 +48,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
-import com.dtstack.flink.sql.config.DirtyConfig;
 import com.dtstack.flink.sql.metric.MetricConstant;
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple;
@@ -75,7 +73,7 @@ import java.util.ArrayList;
  * @see Tuple
  * @see DriverManager
  */
-public class CassandraOutputFormat extends MetricOutputFormat {
+public class CassandraOutputFormat extends RichOutputFormat<Tuple2> {
     private static final long serialVersionUID = -7994311331389155692L;
 
     private static final Logger LOG = LoggerFactory.getLogger(CassandraOutputFormat.class);
@@ -96,8 +94,16 @@ public class CassandraOutputFormat extends MetricOutputFormat {
     protected String[] fieldNames;
     TypeInformation<?>[] fieldTypes;
 
+    private int batchInterval = 5000;
+
     private Cluster cluster;
     private Session session = null;
+
+    private int batchCount = 0;
+
+    private transient Counter outRecords;
+
+    private transient Meter outRecordsRate;
 
     public CassandraOutputFormat() {
     }
@@ -114,9 +120,7 @@ public class CassandraOutputFormat extends MetricOutputFormat {
      *                     I/O problem.
      */
     @Override
-    public void open(int taskNumber, int numTasks) {
-        initMetric();
-        initDirtyDataOutputStream();
+    public void open(int taskNumber, int numTasks) throws IOException {
         try {
             if (session == null) {
                 QueryOptions queryOptions = new QueryOptions();
@@ -179,6 +183,10 @@ public class CassandraOutputFormat extends MetricOutputFormat {
         }
     }
 
+    private void initMetric() {
+        outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
+        outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
+    }
 
     /**
      * Adds a record to the prepared statement.
@@ -218,7 +226,7 @@ public class CassandraOutputFormat extends MetricOutputFormat {
                 resultSet.wasApplied();
             }
         } catch (Exception e) {
-            dealInsertError(row.toString(), e);
+            LOG.error("[upsert] is error:" + e.getMessage());
         }
     }
 
@@ -229,11 +237,7 @@ public class CassandraOutputFormat extends MetricOutputFormat {
             if (row.getField(index) == null) {
             } else {
                 fields.append(fieldNames[index] + ",");
-                if (row.getField(index) instanceof String) {
-                    values.append("'" + row.getField(index) + "'" + ",");
-                } else {
-                    values.append(row.getField(index) + ",");
-                }
+                values.append("'" + row.getField(index) + "'" + ",");
             }
         }
         fields.deleteCharAt(fields.length() - 1);
@@ -347,12 +351,6 @@ public class CassandraOutputFormat extends MetricOutputFormat {
             format.poolTimeoutMillis = poolTimeoutMillis;
             return this;
         }
-
-        public CassandraFormatBuilder setDirtyConfig(DirtyConfig dirtyConfig) {
-            format.dirtyConfig = dirtyConfig;
-            return this;
-        }
-
 
         /**
          * Finalizes the configuration and checks validity.

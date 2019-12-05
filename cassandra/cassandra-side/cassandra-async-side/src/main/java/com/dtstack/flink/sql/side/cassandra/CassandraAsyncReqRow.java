@@ -174,16 +174,9 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
                 return;
             }
             inputParams.add(equalObj);
-            StringBuffer sqlTemp = stringBuffer.append(sideInfo.getEqualFieldList().get(i))
-                    .append(" = ");
-            if (equalObj instanceof String) {
-                sqlTemp.append("'" + equalObj + "'")
-                        .append(" and ");
-            } else {
-                sqlTemp.append(equalObj)
-                        .append(" and ");
-            }
-
+            stringBuffer.append(sideInfo.getEqualFieldList().get(i))
+                    .append(" = ").append("'" + equalObj + "'")
+                    .append(" and ");
         }
 
         String key = buildCacheKey(inputParams);
@@ -197,12 +190,12 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
                     dealMissKey(input, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<Row> rowList = Lists.newArrayList();
-                    for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, jsonArray);
-                        rowList.add(row);
+
+                    for (Object rowArray : (List) val.getContent()) {
+                        Row row = fillData(input, rowArray);
+                        resultFuture.complete(Collections.singleton(row));
                     }
-                    resultFuture.complete(rowList);
+
                 } else {
                     throw new RuntimeException("not support cache obj type " + val.getType());
                 }
@@ -213,7 +206,7 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
         //connect Cassandra
         connCassandraDB(cassandraSideTableInfo);
 
-        String sqlCondition = sideInfo.getSqlCondition() + " " + sqlWhere + "  ALLOW FILTERING ";
+        String sqlCondition = sideInfo.getSqlCondition() + " " + sqlWhere;
         System.out.println("sqlCondition:" + sqlCondition);
 
         ListenableFuture<ResultSet> resultSet = Futures.transformAsync(session,
@@ -238,15 +231,14 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
                 cluster.closeAsync();
                 if (rows.size() > 0) {
                     List<com.datastax.driver.core.Row> cacheContent = Lists.newArrayList();
-                    List<Row> rowList = Lists.newArrayList();
                     for (com.datastax.driver.core.Row line : rows) {
                         Row row = fillData(input, line);
                         if (openCache()) {
                             cacheContent.add(line);
                         }
-                        rowList.add(row);
+                        resultFuture.complete(Collections.singleton(row));
                     }
-                    resultFuture.complete(rowList);
+
                     if (openCache()) {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }
@@ -293,6 +285,7 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
             }
         }
 
+        System.out.println("row:" + row.toString());
         return row;
     }
 
