@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.sink.hbase;
 
 import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -36,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,9 +65,10 @@ public class HbaseOutputFormat extends MetricOutputFormat {
     private transient Table table;
 
     public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
-    public final SimpleDateFormat FIELD_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private static int rowLenth = 1000;
+    private static int dirtyDataPrintFrequency = 1000;
+
 
     @Override
     public void configure(Configuration parameters) {
@@ -90,7 +91,7 @@ public class HbaseOutputFormat extends MetricOutputFormat {
     }
 
     @Override
-    public void writeRecord(Tuple2 tuple2) throws IOException {
+    public void writeRecord(Tuple2 tuple2)  {
 
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
@@ -100,50 +101,69 @@ public class HbaseOutputFormat extends MetricOutputFormat {
         }
 
         Row record = tupleTrans.getField(1);
-
-        List<String> list = new ArrayList<>();
-        for(int i = 0; i < rowkey.length; ++i) {
-            String colName = rowkey[i];
-            int j = 0;
-            for(; j < columnNames.length; ++j) {
-                if(columnNames[j].equals(colName)) {
-                    break;
-                }
-            }
-            if(j != columnNames.length && record.getField(i) != null) {
-                Object field = record.getField(j);
-                if(field == null ) {
-                    list.add("null");
-                } else if (field instanceof java.util.Date){
-                    java.util.Date d = (java.util.Date)field;
-                    list.add(ROWKEY_DATE_FORMAT.format(d));
-                } else {
-                    list.add(field.toString());
-                }
-            }
+        List<String> rowKeyValues = getRowKeyValues(record);
+        // all rowkey not null
+        if (rowKeyValues.size() != rowkey.length ) {
+            LOG.error("row key value must not null,record is ..", record);
+            outDirtyRecords.inc();
+            return;
         }
 
-        String key = StringUtils.join(list, "-");
+        String key = StringUtils.join(rowKeyValues, "-");
         Put put = new Put(key.getBytes());
         for(int i = 0; i < record.getArity(); ++i) {
-            Object field = record.getField(i);
-            byte[] val = null;
-            if (field != null) {
-               val = field.toString().getBytes();
+            Object fieldVal = record.getField(i);
+            if (fieldVal == null) {
+                continue;
             }
+            byte[] val = fieldVal.toString().getBytes();
             byte[] cf = families[i].getBytes();
             byte[] qualifier = qualifiers[i].getBytes();
-            put.addColumn(cf, qualifier, val);
 
+            put.addColumn(cf, qualifier, val);
         }
 
-        table.put(put);
+        try {
+            table.put(put);
+        } catch (IOException e) {
+            outDirtyRecords.inc();
+            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0 || LOG.isDebugEnabled()) {
+                LOG.error("record insert failed ..", record.toString());
+                LOG.error("", e);
+            }
+        }
 
-        if (outRecords.getCount()%rowLenth == 0){
+        if (outRecords.getCount() % rowLenth == 0) {
             LOG.info(record.toString());
         }
         outRecords.inc();
 
+    }
+
+    private List<String> getRowKeyValues(Row record) {
+        List<String> rowKeyValues = Lists.newArrayList();
+        for (int i = 0; i < rowkey.length; ++i) {
+            String colName = rowkey[i];
+            int rowKeyIndex = 0;  //rowkey index
+            for (; rowKeyIndex < columnNames.length; ++rowKeyIndex) {
+                if (columnNames[rowKeyIndex].equals(colName)) {
+                    break;
+                }
+            }
+
+            if (rowKeyIndex != columnNames.length && record.getField(rowKeyIndex) != null) {
+                Object field = record.getField(rowKeyIndex);
+                if (field == null) {
+                    continue;
+                } else if (field instanceof java.util.Date) {
+                    java.util.Date d = (java.util.Date) field;
+                    rowKeyValues.add(ROWKEY_DATE_FORMAT.format(d));
+                } else {
+                    rowKeyValues.add(field.toString());
+                }
+            }
+        }
+        return rowKeyValues;
     }
 
     @Override
