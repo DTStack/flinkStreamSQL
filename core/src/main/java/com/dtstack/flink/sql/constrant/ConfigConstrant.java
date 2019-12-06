@@ -47,8 +47,9 @@ public class ConfigConstrant {
 
     public static final String SQL_MAX_ENV_PARALLELISM = "sql.max.env.parallelism";
     
-    public static final String MR_JOB_PARALLELISM = "mr.job.parallelism";
-    
+    public static final String SAVE_POINT_PATH_KEY = "savePointPath";
+    public static final String ALLOW_NON_RESTORED_STATE_KEY = "allowNonRestoredState";
+
     public static final String SQL_BUFFER_TIMEOUT_MILLIS = "sql.buffer.timeout.millis";
 
     public static final String FLINK_TIME_CHARACTERISTIC_KEY = "time.characteristic";

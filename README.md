@@ -128,6 +128,8 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
         * taskmanager.memory.mb: per_job模式下指定taskmanager的内存大小(单位MB, 默认值:768)
         * taskmanager.num: per_job模式下指定taskmanager的实例数(默认1)
         * taskmanager.slots：per_job模式下指定每个taskmanager对应的slot数量(默认1)
+        * savePointPath：任务恢复点的路径（默认无）
+        * allowNonRestoredState：指示保存点是否允许非还原状态的标志（默认false）
         * [prometheus 相关参数](docs/prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	
@@ -140,16 +142,6 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 描述：Hadoop配置文件（包括hdfs和yarn）所在的目录（单机模式下不需要），如/hadoop/etc/hadoop
 	* 必选：否
 	* 默认值：无
-	
-* **savePointPath**
-	* 描述：任务恢复点的路径
-	* 必选：否
-	* 默认值：无	
-	
-* **allowNonRestoredState**
-	* 描述：指示保存点是否允许非还原状态的标志
-	* 必选：否
-	* 默认值：false
 	
 * **flinkJarPath**
 	* 描述：per_job 模式提交需要指定本地的flink jar存放路径
