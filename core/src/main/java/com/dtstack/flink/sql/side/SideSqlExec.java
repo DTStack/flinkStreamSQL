@@ -85,6 +85,7 @@ public class SideSqlExec {
     private String tmpFields = null;
 
     private SideSQLParser sideSQLParser = new SideSQLParser();
+    private SidePredicatesParser sidePredicatesParser = new SidePredicatesParser();
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
@@ -97,6 +98,7 @@ public class SideSqlExec {
         }
 
         localTableCache.putAll(tableCache);
+        sidePredicatesParser.fillPredicatesForSideTable(sql, sideTableMap);
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
         Object pollObj = null;
 
