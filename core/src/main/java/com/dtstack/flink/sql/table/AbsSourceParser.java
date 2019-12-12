@@ -39,7 +39,9 @@ public abstract class AbsSourceParser extends AbsTableParser {
     private static final String VIRTUAL_KEY = "virtualFieldKey";
     private static final String WATERMARK_KEY = "waterMarkKey";
     private static final String NOTNULL_KEY = "notNullKey";
+    private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
 
+    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
     private static Pattern virtualFieldKeyPattern = Pattern.compile("(?i)^(\\S+\\([^\\)]+\\))\\s+AS\\s+(\\w+)$");
     private static Pattern waterMarkKeyPattern = Pattern.compile("(?i)^\\s*WATERMARK\\s+FOR\\s+(\\S+)\\s+AS\\s+withOffset\\(\\s*(\\S+)\\s*,\\s*(\\d+)\\s*\\)$");
     private static Pattern notNullKeyPattern = Pattern.compile("(?i)^(\\w+)\\s+(\\w+)\\s+NOT\\s+NULL?$");
@@ -48,10 +50,12 @@ public abstract class AbsSourceParser extends AbsTableParser {
         keyPatternMap.put(VIRTUAL_KEY, virtualFieldKeyPattern);
         keyPatternMap.put(WATERMARK_KEY, waterMarkKeyPattern);
         keyPatternMap.put(NOTNULL_KEY, notNullKeyPattern);
+        keyPatternMap.put(NEST_JSON_FIELD_KEY, nestJsonFieldKeyPattern);
 
         keyHandlerMap.put(VIRTUAL_KEY, AbsSourceParser::dealVirtualField);
         keyHandlerMap.put(WATERMARK_KEY, AbsSourceParser::dealWaterMark);
         keyHandlerMap.put(NOTNULL_KEY, AbsSourceParser::dealNotNull);
+        keyHandlerMap.put(NEST_JSON_FIELD_KEY, AbsSourceParser::dealNestField);
     }
 
     static void dealVirtualField(Matcher matcher, TableInfo tableInfo){
@@ -79,6 +83,27 @@ public abstract class AbsSourceParser extends AbsTableParser {
 
         tableInfo.addPhysicalMappings(fieldName, fieldName);
         tableInfo.addField(fieldName);
+        tableInfo.addFieldClass(fieldClass);
+        tableInfo.addFieldType(fieldType);
+        tableInfo.addFieldExtraInfo(fieldExtraInfo);
+    }
+
+    /**
+     * add parser for alias field
+     * @param matcher
+     * @param tableInfo
+     */
+    static void dealNestField(Matcher matcher, TableInfo tableInfo) {
+        String physicalField = matcher.group(1);
+        String fieldType = matcher.group(3);
+        String mappingField = matcher.group(4);
+        Class fieldClass= ClassUtil.stringConvertClass(fieldType);
+        boolean notNull = matcher.group(5) != null;
+        TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
+        fieldExtraInfo.setNotNull(notNull);
+
+        tableInfo.addPhysicalMappings(mappingField, physicalField);
+        tableInfo.addField(mappingField);
         tableInfo.addFieldClass(fieldClass);
         tableInfo.addFieldType(fieldType);
         tableInfo.addFieldExtraInfo(fieldExtraInfo);
