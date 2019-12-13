@@ -53,64 +53,6 @@ import static org.apache.calcite.sql.SqlKind.*;
  * @Description:
  */
 public class ParseUtils {
-    public static void parseSideWhere(SqlNode whereNode, Map<String, String> physicalFields, List<String> whereConditionList) {
-        SqlKind sqlKind = whereNode.getKind();
-        if ((sqlKind == SqlKind.OR || sqlKind == SqlKind.AND) && ((SqlBasicCall) whereNode).getOperandList().size() == 2) {
-            SqlNode[] sqlOperandsList = ((SqlBasicCall) whereNode).getOperands();
-            // whereNode是一颗先解析or再解析and的二叉树。二叉树中序遍历，先左子树，其次中间节点，最后右子树
-            parseSideWhere(sqlOperandsList[0], physicalFields, whereConditionList);
-            whereConditionList.add(sqlKind.name());
-            parseSideWhere(sqlOperandsList[1], physicalFields, whereConditionList);
-        } else {
-            SqlIdentifier sqlIdentifier = (SqlIdentifier) ((SqlBasicCall) whereNode).getOperands()[0];
-            String fieldName = null;
-            if (sqlIdentifier.names.size() == 1) {
-                fieldName = sqlIdentifier.getComponent(0).getSimple();
-            } else {
-                fieldName = sqlIdentifier.getComponent(1).getSimple();
-            }
-            if (physicalFields.containsKey(fieldName)) {
-                String sideFieldName = physicalFields.get(fieldName);
-                // clone SqlIdentifier node
-                SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
-                SqlIdentifier sqlIdentifierClone = new SqlIdentifier("", null, sqlParserPos);
-                List<String> namesClone = Lists.newArrayList();
-                for(String name :sqlIdentifier.names){
-                    namesClone.add(name);
-                }
-                sqlIdentifierClone.setNames(namesClone,null);
-                // clone SqlBasicCall node
-                SqlBasicCall sqlBasicCall = (SqlBasicCall)whereNode;
-                SqlNode[] sqlNodes =  sqlBasicCall.getOperands();
-                SqlNode[] sqlNodesClone = new SqlNode[sqlNodes.length];
-                for (int i = 0; i < sqlNodes.length; i++) {
-                    sqlNodesClone[i] = sqlNodes[i];
-                }
-                SqlOperator sqlOperator = sqlBasicCall.getOperator();
-                if (sqlOperator instanceof SqlBetweenOperator) {
-                    // Between(ASYMMETRIC) node can not resolve
-                    // SqlBetweenOperator sqlBetweenOperator = new SqlBetweenOperator(null, false);
-                    // sqlBasicCallClone = new SqlBasicCall(sqlBetweenOperator, sqlNodesClone, sqlParserPos);
-                    whereConditionList.clear();
-                    return;
-                }
-                SqlBasicCall sqlBasicCallClone = new SqlBasicCall(sqlOperator, sqlNodesClone, sqlParserPos);
-                // 替换维表中真实字段名
-                List<String> names = Lists.newArrayList();
-                names.add(sideFieldName);
-                sqlIdentifierClone.setNames(names, null);
-
-                sqlBasicCallClone.setOperand(0, sqlIdentifierClone);
-                whereConditionList.add(sqlBasicCallClone.toString());
-            } else {
-                // 如果字段不是维表中字段，删除字段前的链接符
-                if (whereConditionList.size() >= 1) {
-                    whereConditionList.remove(whereConditionList.size() - 1);
-                }
-            }
-        }
-    }
-
     public static void parseAnd(SqlNode conditionNode, List<SqlNode> sqlNodeList){
         if(conditionNode.getKind() == SqlKind.AND && ((SqlBasicCall)conditionNode).getOperandList().size()==2){
             parseAnd(((SqlBasicCall)conditionNode).getOperands()[0], sqlNodeList);

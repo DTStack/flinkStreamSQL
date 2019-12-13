@@ -90,15 +90,18 @@ public class SideSqlExec {
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
     public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
-                     Map<String, Table> tableCache, StreamQueryConfig queryConfig)
-            throws Exception {
-
+                     Map<String, Table> tableCache, StreamQueryConfig queryConfig) throws Exception {
         if(localSqlPluginPath == null){
             throw new RuntimeException("need to set localSqlPluginPath");
         }
 
         localTableCache.putAll(tableCache);
-        sidePredicatesParser.fillPredicatesForSideTable(sql, sideTableMap);
+        try {
+            sidePredicatesParser.fillPredicatesForSideTable(sql, sideTableMap);
+        } catch (Exception e) {
+            LOG.error("fill predicates for sideTable fail ", e);
+        }
+
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
         Object pollObj = null;
 

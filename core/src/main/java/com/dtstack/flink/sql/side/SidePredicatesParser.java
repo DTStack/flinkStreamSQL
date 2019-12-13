@@ -27,23 +27,20 @@ import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlWith;
-import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
 /**
  *
- *  将同级谓词下推到维表
+ *  将同级谓词信息填充到维表
  * Date: 2019/12/11
  * Company: www.dtstack.com
  * @author maqi
@@ -55,6 +52,12 @@ public class SidePredicatesParser {
         parseSql(sqlNode, sideTableMap, Maps.newHashMap());
     }
 
+    /**
+     *  将谓词信息填充到维表属性
+     * @param sqlNode
+     * @param sideTableMap
+     * @param tabMapping  谓词属性中别名对应的真实维表名称
+     */
     private void parseSql(SqlNode sqlNode, Map<String, SideTableInfo> sideTableMap, Map<String, String> tabMapping) {
         SqlKind sqlKind = sqlNode.getKind();
         switch (sqlKind) {
@@ -67,15 +70,13 @@ public class SidePredicatesParser {
                 SqlNode whereNode = ((SqlSelect) sqlNode).getWhere();
 
                 if (fromNode.getKind() != IDENTIFIER) {
-                    // 子查询或者AS
                     parseSql(fromNode, sideTableMap, tabMapping);
                 }
-
+                //  带or的不解析
                 if (null != whereNode && whereNode.getKind() != OR) {
-                    List<PredicateInfo> predicateInfos = Lists.newArrayList();
-                    extractPredicateInfo(whereNode, predicateInfos);
-                    // tabMapping:  <m,MyTable>,  <s.sideTable>
-                    System.out.println(predicateInfos);
+                    List<PredicateInfo> predicateInfoList = Lists.newArrayList();
+                    extractPredicateInfo(whereNode, predicateInfoList);
+                    fillToSideTableInfo(sideTableMap, tabMapping, predicateInfoList);
                 }
                 break;
             case JOIN:
@@ -94,7 +95,6 @@ public class SidePredicatesParser {
                     parseSql(info, sideTableMap, Maps.newHashMap());
                 }
                 break;
-
             case UNION:
                 SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
                 SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
@@ -104,43 +104,39 @@ public class SidePredicatesParser {
         }
     }
 
+    private void fillToSideTableInfo(Map<String, SideTableInfo> sideTableMap, Map<String, String> tabMapping, List<PredicateInfo> predicateInfoList) {
+        predicateInfoList.stream().filter(info -> sideTableMap.containsKey(tabMapping.getOrDefault(info.getOwnerTable(), info.getOwnerTable())))
+                .map(info -> sideTableMap.get(tabMapping.getOrDefault(info.getOwnerTable(), info.getOwnerTable())).getPredicateInfoes().add(info))
+                .count();
+    }
 
 
-    private void extractPredicateInfo(SqlNode whereNode, List<PredicateInfo> predicatesInfo) {
+    private void extractPredicateInfo(SqlNode whereNode, List<PredicateInfo> predicatesInfoList) {
         SqlKind sqlKind = whereNode.getKind();
         if (sqlKind == SqlKind.AND && ((SqlBasicCall) whereNode).getOperandList().size() == 2) {
-            extractPredicateInfo(((SqlBasicCall) whereNode).getOperands()[0], predicatesInfo);
-            extractPredicateInfo(((SqlBasicCall) whereNode).getOperands()[1], predicatesInfo);
+            extractPredicateInfo(((SqlBasicCall) whereNode).getOperands()[0], predicatesInfoList);
+            extractPredicateInfo(((SqlBasicCall) whereNode).getOperands()[1], predicatesInfoList);
         } else {
             SqlOperator operator = ((SqlBasicCall) whereNode).getOperator();
             String operatorName = operator.getName();
             SqlKind operatorKind = operator.getKind();
+            // 跳过函数
+            if ((((SqlBasicCall) whereNode).getOperands()[0] instanceof SqlIdentifier)) {
+                SqlIdentifier fieldFullPath = (SqlIdentifier) ((SqlBasicCall) whereNode).getOperands()[0];
+                if (fieldFullPath.names.size() == 2) {
+                    String ownerTable = fieldFullPath.names.get(0);
+                    String fieldName = fieldFullPath.names.get(1);
+                    String content = (operatorKind == SqlKind.BETWEEN) ? ((SqlBasicCall) whereNode).getOperands()[1].toString() + " AND " +
+                            ((SqlBasicCall) whereNode).getOperands()[2].toString() : ((SqlBasicCall) whereNode).getOperands()[1].toString();
 
-            if (operatorKind == SqlKind.BETWEEN) {
-                SqlIdentifier fieldFullPath = (SqlIdentifier) ((SqlBasicCall) whereNode).getOperands()[0];
-                if (fieldFullPath.names.size() == 2) {
-                    String ownerTable = fieldFullPath.names.get(0);
-                    String fieldName = fieldFullPath.names.get(1);
-                    String content = ((SqlBasicCall) whereNode).getOperands()[1].toString() + " and " + ((SqlBasicCall) whereNode).getOperands()[2].toString();
                     PredicateInfo predicateInfo = PredicateInfo.builder().setOperatorName(operatorName).setOperatorKind(operatorKind.toString())
                             .setOwnerTable(ownerTable).setFieldName(fieldName).setCondition(content).build();
-                    predicatesInfo.add(predicateInfo);
-                }
-            } else {
-                SqlIdentifier fieldFullPath = (SqlIdentifier) ((SqlBasicCall) whereNode).getOperands()[0];
-                // not table name not deal
-                if (fieldFullPath.names.size() == 2) {
-                    String ownerTable = fieldFullPath.names.get(0);
-                    String fieldName = fieldFullPath.names.get(1);
-                    String content = ((SqlBasicCall) whereNode).getOperands()[1].toString();
-                    PredicateInfo predicateInfo = PredicateInfo.builder().setOperatorName(operatorName).setOperatorKind(operatorKind.toString())
-                            .setOwnerTable(ownerTable).setFieldName(fieldName).setCondition(content).build();
-                    predicatesInfo.add(predicateInfo);
+
+                    predicatesInfoList.add(predicateInfo);
                 }
             }
 
         }
     }
-
 
 }
