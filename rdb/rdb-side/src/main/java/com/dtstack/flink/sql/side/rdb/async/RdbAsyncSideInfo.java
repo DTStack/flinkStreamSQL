@@ -150,6 +150,9 @@ public class RdbAsyncSideInfo extends SideInfo {
                 return quoteIdentifier(info.getFieldName()) + " != " + info.getCondition();
             case "BETWEEN":
                 return quoteIdentifier(info.getFieldName()) + " BETWEEN  " + info.getCondition();
+            case "IS_NOT_NULL":
+            case "IS_NULL":
+                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName();
             default:
                 return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName() + " " + info.getCondition();
         }
