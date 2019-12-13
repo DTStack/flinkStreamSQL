@@ -69,7 +69,7 @@ public class PerJobClusterClientBuilder {
         Configuration newConf = new Configuration();
         confProp.forEach((key, val) -> newConf.setString(key.toString(), val.toString()));
 
-        AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(newConf, yarnConf, ".");
+        AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(newConf, yarnConf, launcherOptions.getFlinkconf());
 
         if (StringUtils.isNotBlank(flinkJarPath)) {
             if (!new File(flinkJarPath).exists()) {
