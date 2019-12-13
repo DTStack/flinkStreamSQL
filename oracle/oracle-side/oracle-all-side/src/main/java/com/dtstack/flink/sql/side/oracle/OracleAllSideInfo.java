@@ -35,26 +35,12 @@ public class OracleAllSideInfo extends RdbAllSideInfo {
     }
 
     @Override
-    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
-        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
-
-        sqlCondition = "select ${selectField} from ${tableName} ";
-
-
-        sqlCondition = sqlCondition.replace("${tableName}", DtStringUtil.getTableFullPath(rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
+    public String getTableName(RdbSideTableInfo rdbSideTableInfo) {
+        return DtStringUtil.getTableFullPath(rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName());
     }
 
-
-    private String dealLowerSelectFiled(String fieldsStr) {
-        StringBuilder sb = new StringBuilder();
-        String[] fields = fieldsStr.split(",");
-
-        for(String f : fields) {
-            sb.append("\"").append(f).append("\"").append(",");
-        }
-
-        sb.deleteCharAt(sb.lastIndexOf(","));
-        return  sb.toString();
+    @Override
+    public  String quoteIdentifier(String identifier) {
+        return "\"" + identifier + "\"";
     }
 }

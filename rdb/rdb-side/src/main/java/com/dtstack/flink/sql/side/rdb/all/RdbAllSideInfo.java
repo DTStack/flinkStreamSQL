@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.side.rdb.all;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
@@ -29,7 +30,9 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Reason:
@@ -52,8 +55,15 @@ public class RdbAllSideInfo extends SideInfo {
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
 
-        sqlCondition = "select ${selectField} from ${tableName} ";
-        sqlCondition = sqlCondition.replace("${tableName}", rdbSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
+        sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(sideSelectFields.split(",")), sideTableInfo.getPredicateInfoes());
+        System.out.println("--------side sql query-------\n" + sqlCondition);
+    }
+
+    public String getSelectFromStatement(String tableName, List<String> selectFields,  List<PredicateInfo> predicateInfoes) {
+        String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
+        String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
+        String sql = "SELECT " + fromClause + " FROM " + tableName + (predicateInfoes.size() > 0 ? " WHERE " + predicateClause : "");
+        return sql;
     }
 
     @Override
@@ -106,5 +116,30 @@ public class RdbAllSideInfo extends SideInfo {
         }
 
         sideSelectFields = String.join(",", fields);
+    }
+
+    public String buildFilterCondition(PredicateInfo info) {
+        switch (info.getOperatorKind()) {
+            case "IN":
+            case "NOT_IN":
+                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName() + " ( " + info.getCondition() + " )";
+            case "NOT_EQUALS":
+                return quoteIdentifier(info.getFieldName()) + " != " + info.getCondition();
+            case "BETWEEN":
+                return quoteIdentifier(info.getFieldName()) + " BETWEEN  " + info.getCondition();
+            case "IS_NOT_NULL":
+            case "IS_NULL":
+                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName();
+            default:
+                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName() + " " + info.getCondition();
+        }
+    }
+
+    public String getTableName(RdbSideTableInfo rdbSideTableInfo) {
+        return rdbSideTableInfo.getTableName();
+    }
+
+    public String quoteIdentifier(String identifier) {
+        return " " + identifier + " ";
     }
 }
