@@ -135,17 +135,12 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         if(openCache()){
             CacheObj val = getFromCache(key);
             if(val != null){
-
                 if(ECacheContentType.MissVal == val.getType()){
                     dealMissKey(input, resultFuture);
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){
-                    List<Row> rowList = Lists.newArrayList();
-                    for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, val.getContent());
-                        rowList.add(row);
-                    }
-                    resultFuture.complete(rowList);
+                    Row row = fillData(input, val.getContent());
+                    resultFuture.complete(Collections.singleton(row));
                 }else{
                     RuntimeException exception = new RuntimeException("not support cache obj type " + val.getType());
                     resultFuture.completeExceptionally(exception);
@@ -171,10 +166,10 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                             keyValue.put(splitKeys[3], keyValues.get(i).getValue());
                         }
                         Row row = fillData(input, keyValue);
-                        resultFuture.complete(Collections.singleton(row));
                         if (openCache()) {
                             putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
                         }
+                        resultFuture.complete(Collections.singleton(row));
                     } else {
                         dealMissKey(input, resultFuture);
                         if (openCache()) {
