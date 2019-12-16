@@ -130,7 +130,7 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Object equalObj = input.getField(sideInfo.getEqualValIndex().get(i));
             if (equalObj == null) {
-//                resultFuture.complete(null);
+                resultFuture.complete(null);
                 return;
             }
             //增加过滤条件
