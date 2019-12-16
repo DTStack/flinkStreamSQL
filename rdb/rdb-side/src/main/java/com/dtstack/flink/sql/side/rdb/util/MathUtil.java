@@ -127,6 +127,8 @@ public class MathUtil {
             return (Double) obj;
         } else if (obj instanceof BigDecimal) {
             return ((BigDecimal) obj).doubleValue();
+        } else if (obj instanceof Double) {
+        return (Double) obj;
         }
 
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Double.");
