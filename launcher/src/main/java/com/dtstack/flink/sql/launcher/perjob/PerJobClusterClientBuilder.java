@@ -103,6 +103,7 @@ public class PerJobClusterClientBuilder {
         }
 
         clusterDescriptor.addShipFiles(shipFiles);
+        clusterDescriptor.setName(launcherOptions.getName());
         String queue = launcherOptions.getQueue();
         if (!Strings.isNullOrEmpty(queue)) {
             clusterDescriptor.setQueue(queue);
