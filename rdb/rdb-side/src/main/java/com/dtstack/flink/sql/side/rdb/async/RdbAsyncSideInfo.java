@@ -129,6 +129,11 @@ public class RdbAsyncSideInfo extends SideInfo {
 
     }
 
+    public String getAdditionalWhereClause() {
+        return "";
+    }
+
+
     public String getSelectFromStatement(String tableName, List<String> selectFields, List<String> conditionFields, List<String> sqlJoinCompareOperate,
                                          List<PredicateInfo> predicateInfoes) {
         String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
@@ -137,7 +142,7 @@ public class RdbAsyncSideInfo extends SideInfo {
         String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
 
         String sql = "SELECT " + fromClause + " FROM " + tableName + (conditionFields.size() > 0 ? " WHERE " + whereClause : "")
-                + (predicateInfoes.size() > 0 ? " AND " + predicateClause : "");
+                + (predicateInfoes.size() > 0 ? " AND " + predicateClause : "") + getAdditionalWhereClause();
         return sql;
     }
 

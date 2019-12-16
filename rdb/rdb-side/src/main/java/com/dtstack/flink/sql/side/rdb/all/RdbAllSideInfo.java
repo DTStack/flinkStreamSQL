@@ -27,6 +27,7 @@ import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 
@@ -54,16 +55,27 @@ public class RdbAllSideInfo extends SideInfo {
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
-
         sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(sideSelectFields.split(",")), sideTableInfo.getPredicateInfoes());
-        System.out.println("--------side sql query-------\n" + sqlCondition);
+        System.out.println("-------- all side sql query-------\n" + sqlCondition);
     }
 
-    public String getSelectFromStatement(String tableName, List<String> selectFields,  List<PredicateInfo> predicateInfoes) {
+    public String getAdditionalWhereClause() {
+        return "";
+    }
+
+    private String getSelectFromStatement(String tableName, List<String> selectFields, List<PredicateInfo> predicateInfoes) {
         String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
         String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
-        String sql = "SELECT " + fromClause + " FROM " + tableName + (predicateInfoes.size() > 0 ? " WHERE " + predicateClause : "");
+        String whereClause = buildWhereClause(predicateClause);
+        String sql = "SELECT " + fromClause + " FROM " + tableName + whereClause;
         return sql;
+    }
+
+    private String buildWhereClause(String predicateClause) {
+        String additionalWhereClause = getAdditionalWhereClause();
+        String whereClause = (!StringUtils.isEmpty(predicateClause) || !StringUtils.isEmpty(additionalWhereClause) ? " WHERE " + predicateClause : "");
+        whereClause += (StringUtils.isEmpty(predicateClause)) ? additionalWhereClause.replaceFirst("AND", "") : additionalWhereClause;
+        return whereClause;
     }
 
     @Override
