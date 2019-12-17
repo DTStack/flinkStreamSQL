@@ -4,10 +4,7 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
-import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -25,11 +22,7 @@ public class KuduAllSideInfo extends SideInfo {
 
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
-        KuduSideTableInfo kuduSideTableInfo = (KuduSideTableInfo) sideTableInfo;
-
-        sqlCondition = "select ${selectField} from ${tableName} ";
-        sqlCondition = sqlCondition.replace("${tableName}", kuduSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
+        // no use
     }
 
     @Override
