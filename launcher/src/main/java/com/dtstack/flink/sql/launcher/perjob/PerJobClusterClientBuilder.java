@@ -173,7 +173,7 @@ public class PerJobClusterClientBuilder {
 
     private void login(org.apache.hadoop.conf.Configuration conf, String keytab, String principal) throws IOException {
         UserGroupInformation.setConfiguration(conf);
-        UserGroupInformation.loginUserFromKeytab(keytab, principal);
+        UserGroupInformation.loginUserFromKeytab(principal, keytab);
         LOG.info("login successfully! keytab: " + keytab + "principal: " + principal);
         LOG.info("UGI: " + UserGroupInformation.getCurrentUser());
     }
