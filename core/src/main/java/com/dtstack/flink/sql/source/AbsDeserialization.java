@@ -24,6 +24,9 @@ import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
+import org.apache.flink.types.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * add metric for source, customer Deserialization which want add metric need to extends this abs class
@@ -34,8 +37,13 @@ import org.apache.flink.metrics.MeterView;
  */
 
 public abstract class AbsDeserialization<T> extends AbstractDeserializationSchema<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(AbsDeserialization.class);
 
     private static final long serialVersionUID = 2176278128811784415L;
+
+    private static int dataPrintFrequency = 1000;
+
+    protected JsonDataParser jsonDataParser;
 
     private transient RuntimeContext runtimeContext;
 
@@ -75,4 +83,27 @@ public abstract class AbsDeserialization<T> extends AbstractDeserializationSchem
         numInResolveRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_COUNTER);
         numInResolveRate = runtimeContext.getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_RATE, new MeterView(numInResolveRecord, 20));
     }
+
+    protected T parseSourceData (byte[] message) {
+        try {
+            if (numInRecord.getCount() % dataPrintFrequency == 0) {
+                LOG.info("receive source data:" + new String(message, "UTF-8"));
+            }
+            numInRecord.inc();
+            numInBytes.inc(message.length);
+            Row row = jsonDataParser.parseData(message);
+            numInResolveRecord.inc();
+            return (T) row;
+        } catch (Exception e) {
+            //add metric of dirty data
+            if (dirtyDataCounter.getCount() % dataPrintFrequency == 0) {
+                LOG.info("dirtyData: " + new String(message));
+                LOG.error("data parse error", e);
+            }
+            dirtyDataCounter.inc();
+            return null;
+        }
+    }
+
+
 }
