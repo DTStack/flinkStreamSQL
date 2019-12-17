@@ -22,7 +22,6 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
-import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
@@ -47,11 +46,6 @@ public class MongoAllSideInfo extends SideInfo{
 
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
-        MongoSideTableInfo MongoSideTableInfo = (MongoSideTableInfo) sideTableInfo;
-
-        sqlCondition = "select ${selectField} from ${tableName} ";
-        sqlCondition = sqlCondition.replace("${tableName}", MongoSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
     @Override
