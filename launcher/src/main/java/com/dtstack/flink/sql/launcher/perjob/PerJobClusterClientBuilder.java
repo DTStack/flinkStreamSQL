@@ -34,7 +34,6 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.rmi.runtime.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -56,8 +55,6 @@ public class PerJobClusterClientBuilder {
 
     private static final Logger LOG = LoggerFactory.getLogger(PerJobClusterClientBuilder.class);
 
-    private static String SECURITY = "hadoop.security.authorization";
-
     private static String KEYTAB = "security.kerberos.login.keytab";
 
     private static String PRINCIPAL = "security.kerberos.login.principal";
@@ -74,15 +71,10 @@ public class PerJobClusterClientBuilder {
 
         yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
 
-        Boolean security = yarnConf.getBoolean(SECURITY, false);
-
-        String keytab = (String) conf.get(KEYTAB);
-        String principal = (String) conf.get(PRINCIPAL);
-        if (security && !Strings.isNullOrEmpty(keytab)){
-            UserGroupInformation.setConfiguration(yarnConf);
-            UserGroupInformation.loginUserFromKeytab(keytab, principal);
-            LOG.info("login successfully! keytab: " + keytab + "principal: " + principal);
-            LOG.info("UGI: " + UserGroupInformation.getCurrentUser());
+        if (openKerberos(conf)){
+            String keytab = (String) conf.get(KEYTAB);
+            String principal = (String) conf.get(PRINCIPAL);
+            login(yarnConf, keytab, principal);
         }
 
         yarnClient = YarnClient.createYarnClient();
@@ -167,5 +159,22 @@ public class PerJobClusterClientBuilder {
                 configurationDirectory,
                 yarnClient,
                 false);
+    }
+
+    private boolean openKerberos(Properties conf){
+        String keytab = (String) conf.get(KEYTAB);
+        String principal = (String) conf.get(PRINCIPAL);
+        if (StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal)){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void login(org.apache.hadoop.conf.Configuration conf, String keytab, String principal) throws IOException {
+        UserGroupInformation.setConfiguration(conf);
+        UserGroupInformation.loginUserFromKeytab(keytab, principal);
+        LOG.info("login successfully! keytab: " + keytab + "principal: " + principal);
+        LOG.info("UGI: " + UserGroupInformation.getCurrentUser());
     }
 }
