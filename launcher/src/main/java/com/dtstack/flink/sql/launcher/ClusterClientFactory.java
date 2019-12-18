@@ -62,7 +62,7 @@ public class ClusterClientFactory {
         if (mode.equals(ClusterMode.standalone.name())) {
             return createStandaloneClient(launcherOptions);
         } else if (mode.equals(ClusterMode.yarn.name())) {
-            return createYarnSessionClient(launcherOptions, mode);
+            return createYarnSessionClient(launcherOptions);
         }
         throw new IllegalArgumentException("Unsupported cluster client type: ");
     }
@@ -82,7 +82,7 @@ public class ClusterClientFactory {
         return clusterClient;
     }
 
-    public static ClusterClient createYarnSessionClient(Options launcherOptions, String mode) {
+    public static ClusterClient createYarnSessionClient(Options launcherOptions) {
 
         String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
