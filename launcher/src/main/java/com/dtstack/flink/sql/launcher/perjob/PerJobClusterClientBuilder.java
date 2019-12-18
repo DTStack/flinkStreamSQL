@@ -69,7 +69,8 @@ public class PerJobClusterClientBuilder {
             throws MalformedURLException {
 
         confProp.forEach((key, val) -> flinkConfig.setString(key.toString(), val.toString()));
-        AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(flinkConfig, yarnConf, launcherOptions.getFlinkconf());
+        String flinkConf = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? "" : launcherOptions.getFlinkconf();
+        AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(flinkConfig, yarnConf, flinkConf);
 
         if (StringUtils.isNotBlank(flinkJarPath)) {
             if (!new File(flinkJarPath).exists()) {

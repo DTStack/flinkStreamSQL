@@ -83,9 +83,8 @@ public class ClusterClientFactory {
     }
 
     public static ClusterClient createYarnSessionClient(Options launcherOptions) {
-
-        String flinkConfDir = launcherOptions.getFlinkconf();
-        Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
+        String flinkConfDir = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? "" : launcherOptions.getFlinkconf();
+        Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
         String yarnConfDir = launcherOptions.getYarnconf();
 
         if (StringUtils.isNotBlank(yarnConfDir)) {
