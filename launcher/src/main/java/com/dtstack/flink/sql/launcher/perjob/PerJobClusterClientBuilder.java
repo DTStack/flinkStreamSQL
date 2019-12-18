@@ -71,7 +71,7 @@ public class PerJobClusterClientBuilder {
 
         yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
 
-        if (openKerberos(conf)){
+        if (isKerberos(conf)){
             String keytab = (String) conf.get(KEYTAB);
             String principal = (String) conf.get(PRINCIPAL);
             login(yarnConf, keytab, principal);
@@ -161,10 +161,9 @@ public class PerJobClusterClientBuilder {
                 false);
     }
 
-    private boolean openKerberos(Properties conf){
+    private boolean isKerberos(Properties conf){
         String keytab = (String) conf.get(KEYTAB);
-        String principal = (String) conf.get(PRINCIPAL);
-        if (StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal)){
+        if (StringUtils.isNotBlank(keytab)){
             return true;
         } else {
             return false;
@@ -172,6 +171,9 @@ public class PerJobClusterClientBuilder {
     }
 
     private void login(org.apache.hadoop.conf.Configuration conf, String keytab, String principal) throws IOException {
+        if (StringUtils.isEmpty(principal)){
+            throw new RuntimeException(PRINCIPAL + " must not be null!");
+        }
         UserGroupInformation.setConfiguration(conf);
         UserGroupInformation.loginUserFromKeytab(principal, keytab);
         LOG.info("login successfully! keytab: " + keytab + "principal: " + principal);
