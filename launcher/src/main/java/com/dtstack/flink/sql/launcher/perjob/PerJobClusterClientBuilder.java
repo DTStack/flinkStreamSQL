@@ -29,10 +29,14 @@ import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -48,16 +52,31 @@ import java.util.Properties;
  */
 
 public class PerJobClusterClientBuilder {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PerJobClusterClientBuilder.class);
+
+    private static String KEYTAB = "security.kerberos.login.keytab";
+
+    private static String PRINCIPAL = "security.kerberos.login.principal";
+
     private YarnClient yarnClient;
 
     private YarnConfiguration yarnConf;
 
-    public void init(String yarnConfDir){
+    public void init(String yarnConfDir, Properties conf) throws IOException {
+
         if(Strings.isNullOrEmpty(yarnConfDir)) {
             throw new RuntimeException("parameters of yarn is required");
         }
 
         yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
+
+        if (isKerberos(conf)){
+            String keytab = (String) conf.get(KEYTAB);
+            String principal = (String) conf.get(PRINCIPAL);
+            login(yarnConf, keytab, principal);
+        }
+
         yarnClient = YarnClient.createYarnClient();
         yarnClient.init(yarnConf);
         yarnClient.start();
@@ -140,5 +159,24 @@ public class PerJobClusterClientBuilder {
                 configurationDirectory,
                 yarnClient,
                 false);
+    }
+
+    private boolean isKerberos(Properties conf){
+        String keytab = (String) conf.get(KEYTAB);
+        if (StringUtils.isNotBlank(keytab)){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void login(org.apache.hadoop.conf.Configuration conf, String keytab, String principal) throws IOException {
+        if (StringUtils.isEmpty(principal)){
+            throw new RuntimeException(PRINCIPAL + " must not be null!");
+        }
+        UserGroupInformation.setConfiguration(conf);
+        UserGroupInformation.loginUserFromKeytab(principal, keytab);
+        LOG.info("login successfully! keytab: " + keytab + "principal: " + principal);
+        LOG.info("UGI: " + UserGroupInformation.getCurrentUser());
     }
 }
