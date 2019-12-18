@@ -26,6 +26,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
+import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.MongoCredential;
@@ -134,6 +135,19 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             }
             basicDBObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
+        try {
+            // 填充谓词
+            sideInfo.getSideTableInfo().getPredicateInfoes().stream().map(info -> {
+                BasicDBObject filterCondition = MongoUtil.buildFilterObject(info);
+                if (null != filterCondition) {
+                    basicDBObject.append(info.getFieldName(), filterCondition);
+                }
+                return info;
+            }).count();
+        } catch (Exception e) {
+            LOG.info("add predicate infoes error ", e);
+        }
+
         String key = buildCacheKey(basicDBObject.values());
         if (openCache()) {
             CacheObj val = getFromCache(key);

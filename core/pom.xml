@@ -116,6 +116,14 @@
             <version>${flink.version}</version>
         </dependency>
 
+        <!-- test for predicate  -->
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.rdb</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
