@@ -94,7 +94,7 @@ public class LauncherMain {
             String flinkConfDir = launcherOptions.getFlinkconf();
             Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
             JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1);
-            PerJobSubmitter.submit(launcherOptions, jobGraph);
+            PerJobSubmitter.submit(launcherOptions, jobGraph, config);
         } else {
             ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
             clusterClient.run(program, 1);
