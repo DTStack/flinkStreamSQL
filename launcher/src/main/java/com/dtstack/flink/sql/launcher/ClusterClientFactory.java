@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.launcher;
 
+import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.io.Charsets;
@@ -27,39 +28,29 @@ import org.apache.flink.client.program.MiniClusterClient;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
-import org.apache.flink.configuration.HighAvailabilityOptions;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.runtime.akka.AkkaUtils;
-import org.apache.flink.runtime.jobmanager.HighAvailabilityMode;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 import org.apache.flink.runtime.util.LeaderConnectionInfo;
-import org.apache.flink.runtime.util.LeaderRetrievalUtils;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-
-import java.io.File;
-import java.net.InetSocketAddress;
-import java.net.URLDecoder;
-import java.util.*;
-
-import com.dtstack.flink.sql.enums.ClusterMode;
-import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.StringHelper;
 
-import java.io.IOException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static java.util.Objects.requireNonNull;
+import java.net.InetSocketAddress;
+import java.net.URLDecoder;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * @author sishu.yss
@@ -71,7 +62,7 @@ public class ClusterClientFactory {
         if (mode.equals(ClusterMode.standalone.name())) {
             return createStandaloneClient(launcherOptions);
         } else if (mode.equals(ClusterMode.yarn.name())) {
-            return createYarnClient(launcherOptions, mode);
+            return createYarnSessionClient(launcherOptions, mode);
         }
         throw new IllegalArgumentException("Unsupported cluster client type: ");
     }
@@ -91,14 +82,16 @@ public class ClusterClientFactory {
         return clusterClient;
     }
 
-    public static ClusterClient createYarnClient(Options launcherOptions, String mode) {
+    public static ClusterClient createYarnSessionClient(Options launcherOptions, String mode) {
+
         String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
         String yarnConfDir = launcherOptions.getYarnconf();
+
         if (StringUtils.isNotBlank(yarnConfDir)) {
             try {
                 config.setString(ConfigConstants.PATH_HADOOP_CONFIG, yarnConfDir);
-                FileSystem.initialize(config);
+                FileSystem.initialize(config, null);
 
                 YarnConfiguration yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
                 YarnClient yarnClient = YarnClient.createYarnClient();
@@ -116,6 +109,7 @@ public class ClusterClientFactory {
                 } else {
                     applicationId = getYarnClusterApplicationId(yarnClient);
                 }
+
                 System.out.println("applicationId=" + applicationId.toString());
 
                 if (StringUtils.isEmpty(applicationId.toString())) {
@@ -129,8 +123,9 @@ public class ClusterClientFactory {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+        }else{
+            throw new RuntimeException("yarn mode must set param of 'yarnconf'!!!");
         }
-        throw new UnsupportedOperationException("Haven't been developed yet!");
     }
 
 
