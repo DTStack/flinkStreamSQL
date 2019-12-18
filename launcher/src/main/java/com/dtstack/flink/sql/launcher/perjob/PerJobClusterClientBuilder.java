@@ -84,11 +84,12 @@ public class PerJobClusterClientBuilder {
         System.out.println("----init yarn success ----");
     }
 
-    public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(Properties confProp, String flinkJarPath, Options launcherOptions, JobGraph jobGraph) throws MalformedURLException {
-        Configuration newConf = new Configuration();
-        confProp.forEach((key, val) -> newConf.setString(key.toString(), val.toString()));
+    public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(Properties confProp, String flinkJarPath, Options launcherOptions, JobGraph jobGraph, Configuration flinkConfig)
+            throws MalformedURLException {
 
-        AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(newConf, yarnConf, ".");
+        confProp.forEach((key, val) -> flinkConfig.setString(key.toString(), val.toString()));
+        String flinkConf = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? "" : launcherOptions.getFlinkconf();
+        AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(flinkConfig, yarnConf, flinkConf);
 
         if (StringUtils.isNotBlank(flinkJarPath)) {
             if (!new File(flinkJarPath).exists()) {
@@ -122,6 +123,7 @@ public class PerJobClusterClientBuilder {
         }
 
         clusterDescriptor.addShipFiles(shipFiles);
+        clusterDescriptor.setName(launcherOptions.getName());
         String queue = launcherOptions.getQueue();
         if (!Strings.isNullOrEmpty(queue)) {
             clusterDescriptor.setQueue(queue);
