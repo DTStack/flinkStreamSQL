@@ -18,7 +18,6 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -55,7 +54,13 @@ public class SidePredicatesParserTest {
                         "           MyTable.a='1' and s.d='1' and  s.d <> '3' and s.c LIKE '%xx%' and s.c in ('1','2') and s.c between '10' and '23' and s.d is not null\n";
 
 
-        SideTableInfo sideTableInfo = new RdbSideTableInfo();
+        SideTableInfo sideTableInfo = new SideTableInfo(){
+            @Override
+            public boolean check() {
+                return false;
+            }
+        };
+
         sideTableInfo.setName("sideTable");
 
         Map<String, SideTableInfo> sideTableMap = new HashMap<>();
