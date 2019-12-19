@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.table;
 
@@ -43,13 +43,12 @@ public abstract class AbsTableParser {
 
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
 
-    public static Map<String, Pattern> keyPatternMap = Maps.newHashMap();
+    private Map<String, Pattern> patternMap = Maps.newHashMap();
 
-    public static Map<String, ITableFieldDealHandler> keyHandlerMap = Maps.newHashMap();
+    private Map<String, ITableFieldDealHandler> handlerMap = Maps.newHashMap();
 
-    static {
-        keyPatternMap.put(PRIMARY_KEY, primaryKeyPattern);
-        keyHandlerMap.put(PRIMARY_KEY, AbsTableParser::dealPrimaryKey);
+    public AbsTableParser() {
+        addParserHandler(PRIMARY_KEY, primaryKeyPattern, this::dealPrimaryKey);
     }
 
     protected boolean fieldNameNeedsUpperCase() {
@@ -59,12 +58,12 @@ public abstract class AbsTableParser {
     public abstract TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception;
 
     public boolean dealKeyPattern(String fieldRow, TableInfo tableInfo){
-        for(Map.Entry<String, Pattern> keyPattern : keyPatternMap.entrySet()){
+        for(Map.Entry<String, Pattern> keyPattern : patternMap.entrySet()){
             Pattern pattern = keyPattern.getValue();
             String key = keyPattern.getKey();
             Matcher matcher = pattern.matcher(fieldRow);
             if(matcher.find()){
-                ITableFieldDealHandler handler = keyHandlerMap.get(key);
+                ITableFieldDealHandler handler = handlerMap.get(key);
                 if(handler == null){
                     throw new RuntimeException("parse field [" + fieldRow + "] error.");
                 }
@@ -110,7 +109,7 @@ public abstract class AbsTableParser {
         tableInfo.finish();
     }
 
-    public static void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
+    public void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
         String primaryFields = matcher.group(1).trim();
         String[] splitArry = primaryFields.split(",");
         List<String> primaryKes = Lists.newArrayList(splitArry);
@@ -121,4 +120,8 @@ public abstract class AbsTableParser {
         return ClassUtil.stringConvertClass(fieldType);
     }
 
+    protected void addParserHandler(String parserName, Pattern pattern, ITableFieldDealHandler handler) {
+        patternMap.put(parserName, pattern);
+        handlerMap.put(parserName, handler);
+    }
 }

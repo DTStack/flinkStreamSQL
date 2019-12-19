@@ -22,7 +22,6 @@ package com.dtstack.flink.sql.side.hbase.table;
 
 import com.dtstack.flink.sql.table.AbsSideTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
-import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
@@ -54,12 +53,9 @@ public class HbaseSideParser extends AbsSideTableParser {
 
     public static final String CACHE = "cache";
 
-
-    static {
-        keyPatternMap.put(FIELD_KEY, FIELD_PATTERN);
-        keyHandlerMap.put(FIELD_KEY, HbaseSideParser::dealField);
+    public HbaseSideParser() {
+        addParserHandler(FIELD_KEY, FIELD_PATTERN, this::dealField);
     }
-
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
@@ -81,7 +77,7 @@ public class HbaseSideParser extends AbsSideTableParser {
      * @param matcher
      * @param tableInfo
      */
-    private static void dealField(Matcher matcher, TableInfo tableInfo){
+    private void dealField(Matcher matcher, TableInfo tableInfo){
 
         HbaseSideTableInfo sideTableInfo = (HbaseSideTableInfo) tableInfo;
         String filedDefineStr = matcher.group(1);
@@ -97,7 +93,7 @@ public class HbaseSideParser extends AbsSideTableParser {
         System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
         String fieldName = String.join(" ", filedNameArr);
         String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
-        Class fieldClass = ClassUtil.stringConvertClass(filedInfoArr[1].trim());
+        Class fieldClass = dbTypeConvertToJavaType(filedInfoArr[1].trim());
 
         sideTableInfo.addColumnRealName(fieldName);
         sideTableInfo.addField(aliasStr);
