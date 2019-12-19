@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
+import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -234,7 +235,22 @@ public class MongoAllReqRow extends AllReqRow {
             for (String selectField : sideFieldNames) {
                 basicDBObject.append(selectField, 1);
             }
-            FindIterable<Document> findIterable = dbCollection.find().projection(basicDBObject).limit(FETCH_SIZE);
+            BasicDBObject filterObject = new BasicDBObject();
+            try {
+                // 填充谓词
+                sideInfo.getSideTableInfo().getPredicateInfoes().stream().map(info -> {
+                    BasicDBObject filterCondition = MongoUtil.buildFilterObject(info);
+                    if (null != filterCondition) {
+                        filterObject.append(info.getFieldName(), filterCondition);
+                    }
+                    return info;
+                }).count();
+            } catch (Exception e) {
+                LOG.info("add predicate infoes error ", e);
+            }
+
+
+            FindIterable<Document> findIterable = dbCollection.find(filterObject).projection(basicDBObject).limit(FETCH_SIZE);
             MongoCursor<Document> mongoCursor = findIterable.iterator();
             while (mongoCursor.hasNext()) {
                 Document doc = mongoCursor.next();

@@ -235,7 +235,7 @@ public class SideSQLParser {
         } else {
             tableInfo.setLeftTableAlias(leftTbAlias);
         }
-        if (leftTbAlias.equals("")){
+        if (rightTableAlias.equals("")){
             tableInfo.setRightTableAlias(rightTableName);
         } else {
             tableInfo.setRightTableAlias(rightTableAlias);

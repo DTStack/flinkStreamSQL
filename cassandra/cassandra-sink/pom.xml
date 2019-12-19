@@ -33,7 +33,7 @@
                         <configuration>
                             <artifactSet>
                                 <excludes>
-
+                                    <exclude>org.slf4j</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>

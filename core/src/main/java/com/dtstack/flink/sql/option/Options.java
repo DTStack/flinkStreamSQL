@@ -57,12 +57,6 @@ public class Options {
     @OptionRequired(description = "sql ref prop,eg specify event time")
     private  String confProp = "{}";
 
-    @OptionRequired(description = "Savepoint restore path")
-    private  String savePointPath;
-
-    @OptionRequired(description = "Flag indicating whether non restored state is allowed if the savepoint")
-    private  String allowNonRestoredState = "false";
-
     @OptionRequired(description = "flink jar path for submit of perjob mode")
     private String flinkJarPath;
 
@@ -145,22 +139,6 @@ public class Options {
 
     public void setConfProp(String confProp) {
         this.confProp = confProp;
-    }
-
-    public String getSavePointPath() {
-        return savePointPath;
-    }
-
-    public void setSavePointPath(String savePointPath) {
-        this.savePointPath = savePointPath;
-    }
-
-    public String getAllowNonRestoredState() {
-        return allowNonRestoredState;
-    }
-
-    public void setAllowNonRestoredState(String allowNonRestoredState) {
-        this.allowNonRestoredState = allowNonRestoredState;
     }
 
     public String getFlinkJarPath() {

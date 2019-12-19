@@ -36,6 +36,8 @@ import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
+import java.util.Map;
+
 /**
  * Date: 2018/09/14
  * Company: www.dtstack.com
@@ -44,6 +46,7 @@ import org.apache.flink.types.Row;
 public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<HbaseSink> {
 
     protected String[] fieldNames;
+    protected Map<String, String> columnNameFamily;
     TypeInformation<?>[] fieldTypes;
     protected String zookeeperQuorum;
     protected String port;
@@ -63,6 +66,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.parent = hbaseTableInfo.getParent();
         this.tableName = hbaseTableInfo.getTableName();
         this.rowkey = hbaseTableInfo.getRowkey();
+        this.columnNameFamily = hbaseTableInfo.getColumnNameFamily();
         return this;
     }
 
@@ -78,6 +82,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
         builder.setRowkey(rowkey);
         builder.setColumnNames(fieldNames);
+        builder.setColumnNameFamily(columnNameFamily);
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);

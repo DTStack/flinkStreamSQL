@@ -3,8 +3,10 @@ package com.dtstack.flink.sql.side.kudu;
 import com.dtstack.flink.sql.side.AllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
+import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -16,14 +18,24 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.util.Preconditions;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
-import org.apache.kudu.Type;
-import org.apache.kudu.client.*;
+import org.apache.kudu.client.KuduClient;
+import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduPredicate;
+import org.apache.kudu.client.KuduScanner;
+import org.apache.kudu.client.KuduTable;
+import org.apache.kudu.client.PartialRow;
+import org.apache.kudu.client.RowResult;
+import org.apache.kudu.client.RowResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class KuduAllReqRow extends AllReqRow {
@@ -153,7 +165,7 @@ public class KuduAllReqRow extends AllReqRow {
                         String sideFieldName = sideFieldName1.trim();
                         ColumnSchema columnSchema = table.getSchema().getColumn(sideFieldName);
                         if (null != columnSchema) {
-                            setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
+                            KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
                         }
                     }
                     String cacheKey = buildKey(oneRow, sideInfo.getEqualFieldList());
@@ -239,8 +251,7 @@ public class KuduAllReqRow extends AllReqRow {
      * @param tableInfo AsyncKuduScanner的配置信息
      * @return
      */
-    private KuduScanner buildScanner(KuduScanner.KuduScannerBuilder builder, Schema schema, KuduSideTableInfo
-            tableInfo) {
+    private KuduScanner buildScanner(KuduScanner.KuduScannerBuilder builder, Schema schema, KuduSideTableInfo tableInfo) {
         Integer batchSizeBytes = tableInfo.getBatchSizeBytes();
         Long limitNum = tableInfo.getLimitNum();
         Boolean isFaultTolerant = tableInfo.getFaultTolerant();
@@ -263,6 +274,17 @@ public class KuduAllReqRow extends AllReqRow {
         if (null != isFaultTolerant) {
             builder.setFaultTolerant(isFaultTolerant);
         }
+        //  填充谓词信息
+        List<PredicateInfo> predicateInfoes = sideInfo.getSideTableInfo().getPredicateInfoes();
+        if (predicateInfoes.size() > 0) {
+            predicateInfoes.stream().map(info -> {
+                KuduPredicate kuduPredicate = KuduUtil.buildKuduPredicate(schema, info);
+                if (null != kuduPredicate) {
+                    builder.addPredicate(kuduPredicate);
+                }
+                return info;
+            }).count();
+        }
 
         if (null != lowerBoundPrimaryKey && null != upperBoundPrimaryKey && null != primaryKeys) {
             List<ColumnSchema> columnSchemas = schema.getPrimaryKeyColumns();
@@ -277,8 +299,8 @@ public class KuduAllReqRow extends AllReqRow {
             PartialRow upperPartialRow = schema.newPartialRow();
             for (int i = 0; i < primaryKey.length; i++) {
                 Integer index = columnName.get(primaryKey[i]);
-                primaryKeyRange(lowerPartialRow, columnSchemas.get(index).getType(), primaryKey[i], lowerBounds[i]);
-                primaryKeyRange(upperPartialRow, columnSchemas.get(index).getType(), primaryKey[i], upperBounds[i]);
+                KuduUtil.primaryKeyRange(lowerPartialRow, columnSchemas.get(index).getType(), primaryKey[i], lowerBounds[i]);
+                KuduUtil.primaryKeyRange(upperPartialRow, columnSchemas.get(index).getType(), primaryKey[i], upperBounds[i]);
             }
             builder.lowerBound(lowerPartialRow);
             builder.exclusiveUpperBound(upperPartialRow);
@@ -289,80 +311,6 @@ public class KuduAllReqRow extends AllReqRow {
 
     private String[] splitString(String data) {
         return data.split(",");
-    }
-
-    private void primaryKeyRange(PartialRow partialRow, Type type, String primaryKey, String value) {
-        switch (type) {
-            case STRING:
-                partialRow.addString(primaryKey, value);
-                break;
-            case FLOAT:
-                partialRow.addFloat(primaryKey, Float.valueOf(value));
-                break;
-            case INT8:
-                partialRow.addByte(primaryKey, Byte.valueOf(value));
-                break;
-            case INT16:
-                partialRow.addShort(primaryKey, Short.valueOf(value));
-                break;
-            case INT32:
-                partialRow.addInt(primaryKey, Integer.valueOf(value));
-                break;
-            case INT64:
-                partialRow.addLong(primaryKey, Long.valueOf(value));
-                break;
-            case DOUBLE:
-                partialRow.addDouble(primaryKey, Double.valueOf(value));
-                break;
-            case BOOL:
-                partialRow.addBoolean(primaryKey, Boolean.valueOf(value));
-                break;
-            case UNIXTIME_MICROS:
-                partialRow.addTimestamp(primaryKey, Timestamp.valueOf(value));
-                break;
-            case BINARY:
-                partialRow.addBinary(primaryKey, value.getBytes());
-                break;
-            default:
-                throw new IllegalArgumentException("Illegal var type: " + type);
-        }
-    }
-
-    private void setMapValue(Type type, Map<String, Object> oneRow, String sideFieldName, RowResult result) {
-        switch (type) {
-            case STRING:
-                oneRow.put(sideFieldName, result.getString(sideFieldName));
-                break;
-            case FLOAT:
-                oneRow.put(sideFieldName, result.getFloat(sideFieldName));
-                break;
-            case INT8:
-                oneRow.put(sideFieldName, result.getFloat(sideFieldName));
-                break;
-            case INT16:
-                oneRow.put(sideFieldName, result.getShort(sideFieldName));
-                break;
-            case INT32:
-                oneRow.put(sideFieldName, result.getInt(sideFieldName));
-                break;
-            case INT64:
-                oneRow.put(sideFieldName, result.getLong(sideFieldName));
-                break;
-            case DOUBLE:
-                oneRow.put(sideFieldName, result.getDouble(sideFieldName));
-                break;
-            case BOOL:
-                oneRow.put(sideFieldName, result.getBoolean(sideFieldName));
-                break;
-            case UNIXTIME_MICROS:
-                oneRow.put(sideFieldName, result.getTimestamp(sideFieldName));
-                break;
-            case BINARY:
-                oneRow.put(sideFieldName, result.getBinary(sideFieldName));
-                break;
-            default:
-                throw new IllegalArgumentException("Illegal var type: " + type);
-        }
     }
 
     @Override

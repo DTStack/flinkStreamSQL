@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -39,53 +40,13 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
     }
 
     @Override
-    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
-        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
-
-        String sideTableName = joinInfo.getSideTableName();
-
-        SqlNode conditionNode = joinInfo.getCondition();
-
-        List<SqlNode> sqlNodeList = Lists.newArrayList();
-        List<String> sqlJoinCompareOperate= Lists.newArrayList();
-
-        ParseUtils.parseAnd(conditionNode, sqlNodeList);
-        ParseUtils.parseJoinCompareOperate(conditionNode, sqlJoinCompareOperate);
-
-
-        for (SqlNode sqlNode : sqlNodeList) {
-            dealOneEqualCon(sqlNode, sideTableName);
-        }
-
-        sqlCondition = "select ${selectField} from ${tableName} where ";
-        for (int i = 0; i < equalFieldList.size(); i++) {
-            String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
-            sqlCondition += dealLowerFiled(equalField) + " " + sqlJoinCompareOperate.get(i) + " " + " ?";
-            if (i != equalFieldList.size() - 1) {
-                sqlCondition += " and ";
-            }
-        }
-
-        sqlCondition = sqlCondition.replace("${tableName}", DtStringUtil.getTableFullPath(rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName())).replace("${selectField}", dealLowerSelectFiled(sideSelectFields));
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
+    public String getTableName(RdbSideTableInfo rdbSideTableInfo) {
+        return DtStringUtil.getTableFullPath(rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName());
     }
 
-
-
-    private String dealLowerFiled(String field) {
-        return   "\"" + field + "\"";
-    }
-
-    private String dealLowerSelectFiled(String fieldsStr) {
-        StringBuilder sb = new StringBuilder();
-        String[] fields = fieldsStr.split(",");
-
-        for(String f : fields) {
-            sb.append("\"").append(f).append("\"").append(",");
-        }
-
-        sb.deleteCharAt(sb.lastIndexOf(","));
-        return  sb.toString();
+    @Override
+    public  String quoteIdentifier(String identifier) {
+        return "\"" + identifier + "\"";
     }
 
 }

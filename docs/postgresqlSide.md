@@ -27,7 +27,7 @@
   
  |参数名称|含义|
  |----|---|
- | tableName | 注册到flink的表名称(可选填;不填默认和hbase对应的表名称相同)|
+ | tableName | 注册到flink的表名称|
  | colName | 列名称|
  | colType | 列类型 [colType支持的类型](colType.md)|
  | PERIOD FOR SYSTEM_TIME | 关键字表明该定义的表为维表信息|
@@ -42,7 +42,6 @@
   | userName | postgresql连接用户名 |是||
   | password | postgresql连接密码|是||
   | tableName | postgresql表名称|是||
-  | tableName | postgresql 的表名称|是||
   | cache | 维表缓存策略(NONE/LRU/ALL)|否|NONE|
   | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
   

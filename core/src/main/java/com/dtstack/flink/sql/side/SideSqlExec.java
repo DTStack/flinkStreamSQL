@@ -47,7 +47,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.common.typeinfo.SqlTimeTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.HashBasedTable;
@@ -61,10 +60,12 @@ import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Serializable;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.sql.Timestamp;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -84,18 +85,23 @@ public class SideSqlExec {
     private String tmpFields = null;
 
     private SideSQLParser sideSQLParser = new SideSQLParser();
+    private SidePredicatesParser sidePredicatesParser = new SidePredicatesParser();
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
     public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
-                     Map<String, Table> tableCache)
-            throws Exception {
-
+                     Map<String, Table> tableCache) throws Exception {
         if(localSqlPluginPath == null){
             throw new RuntimeException("need to set localSqlPluginPath");
         }
 
         localTableCache.putAll(tableCache);
+        try {
+            sidePredicatesParser.fillPredicatesForSideTable(sql, sideTableMap);
+        } catch (Exception e) {
+            LOG.error("fill predicates for sideTable fail ", e);
+        }
+
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
         Object pollObj = null;
 
@@ -243,6 +249,28 @@ public class SideSqlExec {
         }
 
         return new RowTypeInfo(sideOutTypes, sideOutNames);
+    }
+
+    /**
+     *  对时间类型进行类型转换
+     * @param leftTypeInfo
+     * @return
+     */
+    private RowTypeInfo buildLeftTableOutType(RowTypeInfo leftTypeInfo) {
+        TypeInformation[] sideOutTypes = new TypeInformation[leftTypeInfo.getFieldNames().length];
+        TypeInformation<?>[] fieldTypes = leftTypeInfo.getFieldTypes();
+        for (int i = 0; i < sideOutTypes.length; i++) {
+            sideOutTypes[i] = convertTimeAttributeType(fieldTypes[i]);
+        }
+        RowTypeInfo rowTypeInfo = new RowTypeInfo(sideOutTypes, leftTypeInfo.getFieldNames());
+        return rowTypeInfo;
+    }
+
+    private TypeInformation convertTimeAttributeType(TypeInformation typeInformation) {
+        if (typeInformation instanceof TimeIndicatorTypeInfo) {
+            return TypeInformation.of(Timestamp.class);
+        }
+        return typeInformation;
     }
 
     //需要考虑更多的情况
@@ -755,6 +783,8 @@ public class SideSqlExec {
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if(sideTableInfo.isPartitionedJoin()){
+            RowTypeInfo leftTableOutType = buildLeftTableOutType(leftTypeInfo);
+            adaptStream.getTransformation().setOutputType(leftTableOutType);
             List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias(), sideTableInfo);
             String[] leftJoinColArr = leftJoinColList.toArray(new String[leftJoinColList.size()]);
             adaptStream = adaptStream.keyBy(leftJoinColArr);

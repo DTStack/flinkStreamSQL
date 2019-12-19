@@ -39,7 +39,7 @@ public class StreamSideFactory {
 
     public static AbsTableParser getSqlParser(String pluginType, String sqlRootDir, String cacheType) throws Exception {
 
-        String sideOperator = ECacheType.ALL.name().equals(cacheType) ? "all" : "async";
+        String sideOperator = ECacheType.ALL.name().equalsIgnoreCase(cacheType) ? "all" : "async";
         String pluginJarPath = PluginUtil.getSideJarFileDirPath(pluginType, sideOperator, "side", sqlRootDir);
         String className = PluginUtil.getSqlParserClassName(pluginType, CURR_TYPE);
 
