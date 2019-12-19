@@ -72,13 +72,13 @@ public class RdbAsyncSideInfo extends SideInfo {
             dealOneEqualCon(sqlNode, sideTableName);
         }
 
-        List<String> whereConditionList = Lists.newArrayList();;
-        Map<String, String> physicalFields = rdbSideTableInfo.getPhysicalFields();
-        SqlNode whereNode = ((SqlSelect) joinInfo.getSelectNode()).getWhere();
-        if (whereNode != null) {
-            // 解析维表中的过滤条件
-            ParseUtils.parseSideWhere(whereNode, physicalFields, whereConditionList);
-        }
+//        List<String> whereConditionList = Lists.newArrayList();;
+//        Map<String, String> physicalFields = rdbSideTableInfo.getPhysicalFields();
+//        SqlNode whereNode = ((SqlSelect) joinInfo.getSelectNode()).getWhere();
+//        if (whereNode != null) {
+//            // 解析维表中的过滤条件
+//            ParseUtils.parseSideWhere(whereNode, physicalFields, whereConditionList);
+//        }
 
         sqlCondition = "select ${selectField} from ${tableName} where ";
         for (int i = 0; i < equalFieldList.size(); i++) {
@@ -89,17 +89,17 @@ public class RdbAsyncSideInfo extends SideInfo {
                 sqlCondition += " and ";
             }
         }
-        if (0 != whereConditionList.size()) {
-            // 如果where条件中第一个符合条件的是维表中的条件
-            String firstCondition = whereConditionList.get(0);
-            if (!"and".equalsIgnoreCase(firstCondition) && !"or".equalsIgnoreCase(firstCondition)) {
-                whereConditionList.add(0, "and (");
-            } else {
-                whereConditionList.add(1, "(");
-            }
-            whereConditionList.add(whereConditionList.size(), ")");
-            sqlCondition += String.join(" ", whereConditionList);
-        }
+//        if (0 != whereConditionList.size()) {
+//            // 如果where条件中第一个符合条件的是维表中的条件
+//            String firstCondition = whereConditionList.get(0);
+//            if (!"and".equalsIgnoreCase(firstCondition) && !"or".equalsIgnoreCase(firstCondition)) {
+//                whereConditionList.add(0, "and (");
+//            } else {
+//                whereConditionList.add(1, "(");
+//            }
+//            whereConditionList.add(whereConditionList.size(), ")");
+//            sqlCondition += String.join(" ", whereConditionList);
+//        }
 
         sqlCondition = sqlCondition.replace("${tableName}", rdbSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
 
