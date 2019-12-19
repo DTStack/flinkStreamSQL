@@ -102,15 +102,4 @@ public abstract class AbsSourceParser extends AbsTableParser {
         tableInfo.addFieldType(fieldType);
         tableInfo.addFieldExtraInfo(fieldExtraInfo);
     }
-
-
-    @Override
-    public boolean dealKeyPattern(String fieldRow, TableInfo tableInfo) {
-        return super.dealKeyPattern(fieldRow, tableInfo);
-    }
-
-    @Override
-    public void parseFieldsInfo(String fieldsInfo, TableInfo tableInfo) {
-        super.parseFieldsInfo(fieldsInfo, tableInfo);
-    }
 }
