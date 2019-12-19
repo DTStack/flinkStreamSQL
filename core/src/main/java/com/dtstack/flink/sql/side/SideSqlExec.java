@@ -45,7 +45,6 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.flink.api.common.typeinfo.SqlTimeTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -54,13 +53,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -128,7 +128,6 @@ public class SideSqlExec {
                     System.out.println("----------real exec sql-----------" );
                     System.out.println(pollSqlNode.toString());
                     FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
-//                    tableEnv.sqlUpdate(pollSqlNode.toString());
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
                     }
@@ -160,15 +159,12 @@ public class SideSqlExec {
                 SqlNode source = ((SqlInsert) pollSqlNode).getSource();
                 addAliasForFieldNode(source, fieldList, mappingTable);
                 break;
-
             case AS:
                 addAliasForFieldNode(((SqlBasicCall) pollSqlNode).getOperands()[0], fieldList, mappingTable);
                 break;
 
             case SELECT:
-
                 SqlNodeList selectList = ((SqlSelect) pollSqlNode).getSelectList();
-
                 selectList.getList().forEach(node -> {
                     if (node.getKind() == IDENTIFIER) {
                         SqlIdentifier sqlIdentifier = (SqlIdentifier) node;
@@ -183,7 +179,6 @@ public class SideSqlExec {
 
                     }
                 });
-
                 for (int i = 0; i < selectList.getList().size(); i++) {
                     SqlNode node = selectList.get(i);
                     if (node.getKind() == IDENTIFIER) {
@@ -191,7 +186,6 @@ public class SideSqlExec {
                         if (sqlIdentifier.names.size() == 1) {
                             return;
                         }
-
                         String name = sqlIdentifier.names.get(1);
                         // avoid real field pv0 convert pv
                         if (name.endsWith("0") &&  !fieldList.contains(name) && !fieldList.contains(name.substring(0, name.length() - 1))) {
@@ -268,7 +262,7 @@ public class SideSqlExec {
 
     private TypeInformation convertTimeAttributeType(TypeInformation typeInformation) {
         if (typeInformation instanceof TimeIndicatorTypeInfo) {
-            return TypeInformation.of(Timestamp.class);
+            return TypeInformation.of(LocalDateTime.class);
         }
         return typeInformation;
     }
