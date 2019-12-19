@@ -40,8 +40,10 @@ import java.util.regex.Pattern;
 public abstract class AbsTableParser {
 
     private static final String PRIMARY_KEY = "primaryKey";
+    private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
 
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
+    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
 
     private Map<String, Pattern> patternMap = Maps.newHashMap();
 
@@ -49,6 +51,7 @@ public abstract class AbsTableParser {
 
     public AbsTableParser() {
         addParserHandler(PRIMARY_KEY, primaryKeyPattern, this::dealPrimaryKey);
+        addParserHandler(NEST_JSON_FIELD_KEY, nestJsonFieldKeyPattern, this::dealNestField);
     }
 
     protected boolean fieldNameNeedsUpperCase() {
@@ -114,6 +117,27 @@ public abstract class AbsTableParser {
         String[] splitArry = primaryFields.split(",");
         List<String> primaryKes = Lists.newArrayList(splitArry);
         tableInfo.setPrimaryKeys(primaryKes);
+    }
+
+    /**
+     * add parser for alias field
+     * @param matcher
+     * @param tableInfo
+     */
+    protected void dealNestField(Matcher matcher, TableInfo tableInfo) {
+        String physicalField = matcher.group(1);
+        String fieldType = matcher.group(3);
+        String mappingField = matcher.group(4);
+        Class fieldClass= dbTypeConvertToJavaType(fieldType);
+        boolean notNull = matcher.group(5) != null;
+        TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
+        fieldExtraInfo.setNotNull(notNull);
+
+        tableInfo.addPhysicalMappings(mappingField, physicalField);
+        tableInfo.addField(mappingField);
+        tableInfo.addFieldClass(fieldClass);
+        tableInfo.addFieldType(fieldType);
+        tableInfo.addFieldExtraInfo(fieldExtraInfo);
     }
 
     public Class dbTypeConvertToJavaType(String fieldType) {
