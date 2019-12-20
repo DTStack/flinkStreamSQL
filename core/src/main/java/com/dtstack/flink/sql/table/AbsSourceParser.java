@@ -20,7 +20,6 @@
 
 package com.dtstack.flink.sql.table;
 
-import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.regex.Matcher;
@@ -39,33 +38,25 @@ public abstract class AbsSourceParser extends AbsTableParser {
     private static final String VIRTUAL_KEY = "virtualFieldKey";
     private static final String WATERMARK_KEY = "waterMarkKey";
     private static final String NOTNULL_KEY = "notNullKey";
-    private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
 
-    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
     private static Pattern virtualFieldKeyPattern = Pattern.compile("(?i)^(\\S+\\([^\\)]+\\))\\s+AS\\s+(\\w+)$");
     private static Pattern waterMarkKeyPattern = Pattern.compile("(?i)^\\s*WATERMARK\\s+FOR\\s+(\\S+)\\s+AS\\s+withOffset\\(\\s*(\\S+)\\s*,\\s*(\\d+)\\s*\\)$");
     private static Pattern notNullKeyPattern = Pattern.compile("(?i)^(\\w+)\\s+(\\w+)\\s+NOT\\s+NULL?$");
 
-    static {
-        keyPatternMap.put(VIRTUAL_KEY, virtualFieldKeyPattern);
-        keyPatternMap.put(WATERMARK_KEY, waterMarkKeyPattern);
-        keyPatternMap.put(NOTNULL_KEY, notNullKeyPattern);
-        keyPatternMap.put(NEST_JSON_FIELD_KEY, nestJsonFieldKeyPattern);
-
-        keyHandlerMap.put(VIRTUAL_KEY, AbsSourceParser::dealVirtualField);
-        keyHandlerMap.put(WATERMARK_KEY, AbsSourceParser::dealWaterMark);
-        keyHandlerMap.put(NOTNULL_KEY, AbsSourceParser::dealNotNull);
-        keyHandlerMap.put(NEST_JSON_FIELD_KEY, AbsSourceParser::dealNestField);
+    public AbsSourceParser() {
+        addParserHandler(VIRTUAL_KEY, virtualFieldKeyPattern, this::dealVirtualField);
+        addParserHandler(WATERMARK_KEY, waterMarkKeyPattern, this::dealWaterMark);
+        addParserHandler(NOTNULL_KEY, notNullKeyPattern, this::dealNotNull);
     }
 
-    static void dealVirtualField(Matcher matcher, TableInfo tableInfo){
+    protected void dealVirtualField(Matcher matcher, TableInfo tableInfo){
         SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
         String fieldName = matcher.group(2);
         String expression = matcher.group(1);
         sourceTableInfo.addVirtualField(fieldName, expression);
     }
 
-    static void dealWaterMark(Matcher matcher, TableInfo tableInfo){
+    protected void dealWaterMark(Matcher matcher, TableInfo tableInfo){
         SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
         String eventTimeField = matcher.group(1);
         //FIXME Temporarily resolve the second parameter row_time_field
@@ -74,10 +65,10 @@ public abstract class AbsSourceParser extends AbsTableParser {
         sourceTableInfo.setMaxOutOrderness(offset);
     }
 
-    static void dealNotNull(Matcher matcher, TableInfo tableInfo) {
+    protected void dealNotNull(Matcher matcher, TableInfo tableInfo) {
         String fieldName = matcher.group(1);
         String fieldType = matcher.group(2);
-        Class fieldClass= ClassUtil.stringConvertClass(fieldType);
+        Class fieldClass= dbTypeConvertToJavaType(fieldType);
         TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
         fieldExtraInfo.setNotNull(true);
 
@@ -88,24 +79,4 @@ public abstract class AbsSourceParser extends AbsTableParser {
         tableInfo.addFieldExtraInfo(fieldExtraInfo);
     }
 
-    /**
-     * add parser for alias field
-     * @param matcher
-     * @param tableInfo
-     */
-    static void dealNestField(Matcher matcher, TableInfo tableInfo) {
-        String physicalField = matcher.group(1);
-        String fieldType = matcher.group(3);
-        String mappingField = matcher.group(4);
-        Class fieldClass= ClassUtil.stringConvertClass(fieldType);
-        boolean notNull = matcher.group(5) != null;
-        TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
-        fieldExtraInfo.setNotNull(notNull);
-
-        tableInfo.addPhysicalMappings(mappingField, physicalField);
-        tableInfo.addField(mappingField);
-        tableInfo.addFieldClass(fieldClass);
-        tableInfo.addFieldType(fieldType);
-        tableInfo.addFieldExtraInfo(fieldExtraInfo);
-    }
 }
