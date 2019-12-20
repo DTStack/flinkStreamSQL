@@ -26,13 +26,19 @@ import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.configuration.Configuration;
 import com.google.common.base.Strings;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.SecurityUtils;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -48,14 +54,27 @@ import java.util.Properties;
  */
 
 public class PerJobClusterClientBuilder {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PerJobClusterClientBuilder.class);
+
+    private static final String DEFAULT_CONF_DIR = "./";
+
     private YarnClient yarnClient;
 
     private YarnConfiguration yarnConf;
 
-    public void init(String yarnConfDir){
+    private Configuration flinkConfig;
+
+    public void init(String yarnConfDir, Configuration flinkConfig, Properties userConf) throws Exception {
+
         if(Strings.isNullOrEmpty(yarnConfDir)) {
             throw new RuntimeException("parameters of yarn is required");
         }
+
+        userConf.forEach((key, val) -> flinkConfig.setString(key.toString(), val.toString()));
+
+        this.flinkConfig = flinkConfig;
+        SecurityUtils.install(new SecurityConfiguration(flinkConfig));
 
         yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
         yarnClient = YarnClient.createYarnClient();
@@ -65,15 +84,15 @@ public class PerJobClusterClientBuilder {
         System.out.println("----init yarn success ----");
     }
 
-    public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(Properties confProp, String flinkJarPath, Options launcherOptions, JobGraph jobGraph) throws MalformedURLException {
-        Configuration newConf = new Configuration();
-        confProp.forEach((key, val) -> newConf.setString(key.toString(), val.toString()));
+    public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(String flinkJarPath, Options launcherOptions, JobGraph jobGraph)
+            throws MalformedURLException {
 
-        AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(newConf, yarnConf, ".");
+        String flinkConf = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? DEFAULT_CONF_DIR : launcherOptions.getFlinkconf();
+        AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(flinkConfig, yarnConf, flinkConf);
 
         if (StringUtils.isNotBlank(flinkJarPath)) {
             if (!new File(flinkJarPath).exists()) {
-                throw new RuntimeException("The Flink jar path is not exist");
+                throw new RuntimeException("The param '-flinkJarPath' ref dir is not exist");
             }
         }
 
@@ -103,6 +122,7 @@ public class PerJobClusterClientBuilder {
         }
 
         clusterDescriptor.addShipFiles(shipFiles);
+        clusterDescriptor.setName(launcherOptions.getName());
         String queue = launcherOptions.getQueue();
         if (!Strings.isNullOrEmpty(queue)) {
             clusterDescriptor.setQueue(queue);
@@ -141,4 +161,5 @@ public class PerJobClusterClientBuilder {
                 yarnClient,
                 false);
     }
+
 }

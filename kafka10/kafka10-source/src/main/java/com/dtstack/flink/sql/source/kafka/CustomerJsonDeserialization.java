@@ -53,7 +53,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.dtstack.flink.sql.metric.MetricConstant.*;
+import static com.dtstack.flink.sql.metric.MetricConstant.DT_PARTITION_GROUP;
+import static com.dtstack.flink.sql.metric.MetricConstant.DT_TOPIC_GROUP;
+import static com.dtstack.flink.sql.metric.MetricConstant.DT_TOPIC_PARTITION_LAG_GAUGE;
 
 /**
  * json string parsing custom
@@ -283,4 +285,10 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             }
         }
     }
+
+    @Override
+    public TypeInformation<Row> getProducedType() {
+        return typeInfo;
+    }
+
 }

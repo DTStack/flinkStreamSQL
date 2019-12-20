@@ -84,18 +84,14 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
      * @return
      */
     @Override
-    public String buildUpdateSql(String scheam, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
-        tableName = DtStringUtil.getTableFullPath(scheam, tableName);
-
+    public String buildUpdateSql(String schema, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
+        tableName = DtStringUtil.getTableFullPath(schema, tableName);
         StringBuilder sb = new StringBuilder();
-
         sb.append("MERGE INTO " + tableName + " T1 USING "
                 + "(" + makeValues(fieldNames) + ") T2 ON ("
                 + updateKeySql(realIndexes) + ") ");
 
-
         String updateSql = getUpdateSql(fieldNames, fullField, "T1", "T2", keyColList(realIndexes));
-
         if (StringUtils.isNotEmpty(updateSql)) {
             sb.append(" WHEN MATCHED THEN UPDATE SET ");
             sb.append(updateSql);
@@ -104,7 +100,6 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         sb.append(" WHEN NOT MATCHED THEN "
                 + "INSERT (" + quoteColumns(fieldNames) + ") VALUES ("
                 + quoteColumns(fieldNames, "T2") + ")");
-
         return sb.toString();
     }
 
@@ -141,7 +136,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     }
 
     /**
-     *  build update sql , such as UPDATE SET "T1".A="T2".A
+     *  build update sql , such as     UPDATE SET "T1"."b"= nvl("T2"."b","T1"."b"),"T1"."c"= nvl("T2"."c","T1"."c")
      * @param updateColumn       create table contained  column columns
      * @param fullColumn   real columns , query from db
      * @param leftTable    alias
@@ -159,9 +154,9 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
                 continue;
             }
             if (containsIgnoreCase(updateColumn,col)) {
-                list.add(prefixLeft + DtStringUtil.addQuoteForStr(col) + "=" + prefixRight + DtStringUtil.addQuoteForStr(col));
-            } else {
-                list.add(prefixLeft + DtStringUtil.addQuoteForStr(col) + "=null");
+                String leftCol = prefixLeft + DtStringUtil.addQuoteForStr(col);
+                String rightCol = prefixRight + DtStringUtil.addQuoteForStr(col);
+                list.add(leftCol + "= nvl(" + rightCol + "," + leftCol + ")");
             }
         }
         return StringUtils.join(list, ",");
