@@ -21,10 +21,12 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.table.TableInfo;
+import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * Reason:
@@ -64,6 +66,8 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
     private boolean partitionedJoin = false;
 
     private String cacheMode="ordered";
+
+    private List<PredicateInfo>  predicateInfoes = Lists.newArrayList();
 
     public RowTypeInfo getRowTypeInfo(){
         Class[] fieldClass = getFieldClasses();
@@ -130,5 +134,13 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     public void setAsyncTimeout(int asyncTimeout) {
         this.asyncTimeout = asyncTimeout;
+    }
+
+    public void setPredicateInfoes(List<PredicateInfo> predicateInfoes) {
+        this.predicateInfoes = predicateInfoes;
+    }
+
+    public List<PredicateInfo> getPredicateInfoes() {
+        return predicateInfoes;
     }
 }

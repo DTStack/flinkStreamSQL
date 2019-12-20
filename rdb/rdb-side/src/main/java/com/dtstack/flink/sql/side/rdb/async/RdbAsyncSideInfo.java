@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.side.rdb.async;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
@@ -28,13 +29,13 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.*;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -58,11 +59,9 @@ public class RdbAsyncSideInfo extends SideInfo {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
 
         String sideTableName = joinInfo.getSideTableName();
-
         SqlNode conditionNode = joinInfo.getCondition();
 
         List<SqlNode> sqlNodeList = Lists.newArrayList();
-
         List<String> sqlJoinCompareOperate= Lists.newArrayList();
 
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
@@ -72,20 +71,9 @@ public class RdbAsyncSideInfo extends SideInfo {
             dealOneEqualCon(sqlNode, sideTableName);
         }
 
-        sqlCondition = "select ${selectField} from ${tableName} where ";
-        for (int i = 0; i < equalFieldList.size(); i++) {
-            String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
-
-            sqlCondition += equalField + " " + sqlJoinCompareOperate.get(i) + " ? ";
-            if (i != equalFieldList.size() - 1) {
-                sqlCondition += " and ";
-            }
-        }
-
-        sqlCondition = sqlCondition.replace("${tableName}", rdbSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-
-        System.out.println("--------side sql query:-------------------");
-        System.out.println(sqlCondition);
+        sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(sideSelectFields.split(",")),
+                equalFieldList, sqlJoinCompareOperate, sideTableInfo.getPredicateInfoes());
+        System.out.println("--------side sql query-------\n" + sqlCondition);
     }
 
 
@@ -139,6 +127,48 @@ public class RdbAsyncSideInfo extends SideInfo {
             throw new RuntimeException("resolve equalFieldList error:" + sqlNode.toString());
         }
 
+    }
+
+    public String getAdditionalWhereClause() {
+        return "";
+    }
+
+
+    public String getSelectFromStatement(String tableName, List<String> selectFields, List<String> conditionFields, List<String> sqlJoinCompareOperate,
+                                         List<PredicateInfo> predicateInfoes) {
+        String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
+        String whereClause = conditionFields.stream().map(f -> quoteIdentifier(f) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + " ? ")
+                .collect(Collectors.joining(" AND "));
+        String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
+
+        String sql = "SELECT " + fromClause + " FROM " + tableName + (conditionFields.size() > 0 ? " WHERE " + whereClause : "")
+                + (predicateInfoes.size() > 0 ? " AND " + predicateClause : "") + getAdditionalWhereClause();
+        return sql;
+    }
+
+    public String buildFilterCondition(PredicateInfo info) {
+        switch (info.getOperatorKind()) {
+            case "IN":
+            case "NOT_IN":
+                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName() + " ( " + info.getCondition() + " )";
+            case "NOT_EQUALS":
+                return quoteIdentifier(info.getFieldName()) + " != " + info.getCondition();
+            case "BETWEEN":
+                return quoteIdentifier(info.getFieldName()) + " BETWEEN  " + info.getCondition();
+            case "IS_NOT_NULL":
+            case "IS_NULL":
+                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName();
+            default:
+                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName() + " " + info.getCondition();
+        }
+    }
+
+    public String getTableName(RdbSideTableInfo rdbSideTableInfo) {
+        return rdbSideTableInfo.getTableName();
+    }
+
+    public String quoteIdentifier(String identifier) {
+        return " " + identifier + " ";
     }
 
 }

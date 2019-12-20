@@ -56,8 +56,15 @@
 ```
 mvn clean package -Dmaven.test.skip
 
-打包结束后，项目根目录下会产生plugins目录，plugins目录下存放编译好的数据同步插件包,在lib目下存放job提交的包
 ```
+
+打包完成后的包结构：
+
+> * dt-center-flinkStreamSQL  
+>  >  * bin: 任务启动脚本
+>  >  * lib: launcher包存储路径，是任务提交的入口
+>  >  * plugins:  插件包存储路径
+>  >  * ........   :  core及插件代码
 
 ### 1.4 启动
 

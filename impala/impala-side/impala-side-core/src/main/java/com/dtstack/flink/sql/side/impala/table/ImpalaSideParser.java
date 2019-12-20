@@ -23,8 +23,14 @@ import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
-import java.util.*;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * Reason:
@@ -110,8 +116,36 @@ public class ImpalaSideParser extends RdbSideParser {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+    }
 
+    @Override
+    public  Class dbTypeConvertToJavaType(String fieldType) {
+        switch (fieldType.toLowerCase()) {
+            case "boolean":
+                return Boolean.class;
+            case "char":
+                return Character.class;
+            case "double":
+                return Double.class;
+            case "float":
+                return Float.class;
+            case "tinyint":
+                return Byte.class;
+            case "smallint":
+                return Short.class;
+            case "int":
+                return Integer.class;
+            case "bigint":
+                return Long.class;
+            case "decimal":
+                return BigDecimal.class;
+            case "string":
+            case "varchar":
+                return String.class;
+            case "timestamp":
+                return Timestamp.class;
+        }
 
-
+        throw new RuntimeException("不支持 " + fieldType + " 类型");
     }
 }
