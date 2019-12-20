@@ -125,9 +125,11 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
                 serializationSchema
         );
 
-        DataStream<Row> ds = dataStream.map((Tuple2<Boolean, Row> record) -> {
-            return record.f1;
-        }).returns(getOutputType().getTypeAt(1)).setParallelism(parallelism);
+        DataStream<Row> ds = dataStream
+                .filter((Tuple2<Boolean, Row> record) -> record.f0)
+                .map((Tuple2<Boolean, Row> record) -> {return record.f1;})
+                .returns(getOutputType().getTypeAt(1))
+                .setParallelism(parallelism);
 
         DataStreamSink<Row> dataStreamSink = (DataStreamSink<Row>) kafkaTableSink.consumeDataStream(ds);
         return dataStreamSink;
