@@ -49,16 +49,80 @@ CREATE TABLE tableName(
 
 ## 5.样例：
 ```
+CREATE TABLE MyTable(
+      channel VARCHAR,
+      pt int,
+      xctime varchar,
+      name varchar
+ )WITH(
+    type ='kafka11',
+    bootstrapServers ='172.16.8.107:9092',
+    zookeeperQuorum ='172.16.8.107:2181/kafka',
+    offsetReset ='latest',
+    topic ='mqTest03'
+ );
+
 CREATE TABLE MyResult(
-    channel VARCHAR,
-    pv VARCHAR
+    a STRING,
+    b STRING
  )WITH(
     type ='impala',
-    url ='jdbc:impala://localhost:21050/mytest',
-    userName ='dtstack',
-    password ='abc123',
-    authMech = '3',
-    tableName ='pv2',
-    parallelism ='1'
- )
+    url ='jdbc:impala://172.16.101.252:21050/hxbho_pub',
+    userName ='root',
+    password ='pwd',
+    authMech ='3',
+    tableName ='tb_result_4',
+    parallelism ='1',
+    -- 指定分区
+    partitionFields  = 'pt=1001,name="name1001" ',
+    batchSize = '1000',
+    parallelism ='2'
+ );
+
+CREATE TABLE MyResult1(
+    a STRING,
+    b STRING,
+    pt int,
+    name STRING
+ )WITH(
+    type ='impala',
+    url ='jdbc:impala://172.16.101.252:21050/hxbho_pub',
+    userName ='root',
+    password ='Wscabc123..@',
+    authMech ='3',
+    tableName ='tb_result_4',
+    parallelism ='1',
+    enablePartition ='true',
+    -- 动态分区
+    partitionFields  = 'pt,name ',
+    batchSize = '1000',
+    parallelism ='2'
+ );
+
+
+insert  
+into
+    MyResult1
+    select
+       xctime AS b,
+       channel AS a,
+       pt,
+       name 
+    from
+        MyTable;
+
+
+
+insert  
+into
+    MyResult
+    select
+       xctime AS b,
+       channel AS a
+    from
+        MyTable;
+        
+        
+        
+
  ```
