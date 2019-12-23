@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.enums.EPluginLoadMode;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -55,6 +56,19 @@ public class PluginUtil {
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
+    public static URL buildSourceAndSinkPathByLoadMode(String type, String suffix, String localSqlPluginPath, String remoteSqlPluginPath, String pluginLoadMode) throws Exception {
+        if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
+            return getRemoteJarFilePath(type, suffix, remoteSqlPluginPath, localSqlPluginPath);
+        }
+        return getLocalJarFilePath(type, suffix, localSqlPluginPath);
+    }
+
+    public static URL buildSidePathByLoadMode(String type, String operator, String suffix, String localSqlPluginPath, String remoteSqlPluginPath, String pluginLoadMode) throws Exception {
+        if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
+            return getRemoteSideJarFilePath(type, operator, suffix, remoteSqlPluginPath, localSqlPluginPath);
+        }
+        return getLocalSideJarFilePath(type, operator, suffix, localSqlPluginPath);
+    }
 
     public static String getJarFileDirPath(String type, String sqlRootDir){
         String jarPath = sqlRootDir + SP + type;
@@ -182,7 +196,7 @@ public class PluginUtil {
         }
         return urlList.toArray(new URL[urlList.size()]);
     }
-    
+
     public static String getCoreJarFileName (String path, String prefix) throws Exception {
         String coreJarFileName = null;
         File pluginDir = new File(path);
@@ -205,5 +219,4 @@ public class PluginUtil {
 
         return coreJarFileName;
     }
-
 }
