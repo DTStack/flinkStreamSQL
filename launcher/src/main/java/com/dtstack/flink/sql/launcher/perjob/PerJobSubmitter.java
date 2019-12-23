@@ -62,11 +62,10 @@ public class PerJobSubmitter {
         ClusterSpecification clusterSpecification = FLinkPerJobResourceUtil.createClusterSpecification(confProperties);
 
         PerJobClusterClientBuilder perJobClusterClientBuilder = new PerJobClusterClientBuilder();
-        perJobClusterClientBuilder.init(launcherOptions.getYarnconf(), confProperties);
+        perJobClusterClientBuilder.init(launcherOptions.getYarnconf(), flinkConfig, confProperties);
 
         String flinkJarPath = launcherOptions.getFlinkJarPath();
-
-        AbstractYarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(confProperties, flinkJarPath, launcherOptions, jobGraph, flinkConfig);
+        AbstractYarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(flinkJarPath, launcherOptions, jobGraph);
         ClusterClient<ApplicationId> clusterClient = yarnClusterDescriptor.deployJobCluster(clusterSpecification, jobGraph,true);
 
         String applicationId = clusterClient.getClusterId().toString();
