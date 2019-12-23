@@ -22,6 +22,8 @@ import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -41,6 +43,7 @@ import java.util.Map;
  */
 
 public class ImpalaSideParser extends RdbSideParser {
+    private static final Logger LOG = LoggerFactory.getLogger(ImpalaSideParser.class);
 
     private static final String CURR_TYPE = "impala";
 
@@ -113,7 +116,7 @@ public class ImpalaSideParser extends RdbSideParser {
             }
             return fieldValues;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("",e);
             throw new RuntimeException(e);
         }
     }
