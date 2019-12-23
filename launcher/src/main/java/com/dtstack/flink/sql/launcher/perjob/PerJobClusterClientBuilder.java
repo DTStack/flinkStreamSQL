@@ -26,8 +26,6 @@ import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.configuration.Configuration;
 import com.google.common.base.Strings;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.SecurityUtils;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.fs.Path;
@@ -57,26 +55,28 @@ public class PerJobClusterClientBuilder {
 
     private static final Logger LOG = LoggerFactory.getLogger(PerJobClusterClientBuilder.class);
 
-    private static final String DEFAULT_CONF_DIR = "./";
+    private static String KEYTAB = "security.kerberos.login.keytab";
+
+    private static String PRINCIPAL = "security.kerberos.login.principal";
 
     private YarnClient yarnClient;
 
     private YarnConfiguration yarnConf;
 
-    private Configuration flinkConfig;
-
-    public void init(String yarnConfDir, Configuration flinkConfig, Properties userConf) throws Exception {
+    public void init(String yarnConfDir, Properties conf) throws IOException {
 
         if(Strings.isNullOrEmpty(yarnConfDir)) {
             throw new RuntimeException("parameters of yarn is required");
         }
 
-        userConf.forEach((key, val) -> flinkConfig.setString(key.toString(), val.toString()));
-
-        this.flinkConfig = flinkConfig;
-        SecurityUtils.install(new SecurityConfiguration(flinkConfig));
-
         yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
+
+        if (isKerberos(conf)){
+            String keytab = (String) conf.get(KEYTAB);
+            String principal = (String) conf.get(PRINCIPAL);
+            login(yarnConf, keytab, principal);
+        }
+
         yarnClient = YarnClient.createYarnClient();
         yarnClient.init(yarnConf);
         yarnClient.start();
@@ -84,15 +84,16 @@ public class PerJobClusterClientBuilder {
         System.out.println("----init yarn success ----");
     }
 
-    public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(String flinkJarPath, Options launcherOptions, JobGraph jobGraph)
+    public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(Properties confProp, String flinkJarPath, Options launcherOptions, JobGraph jobGraph, Configuration flinkConfig)
             throws MalformedURLException {
 
-        String flinkConf = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? DEFAULT_CONF_DIR : launcherOptions.getFlinkconf();
+        confProp.forEach((key, val) -> flinkConfig.setString(key.toString(), val.toString()));
+        String flinkConf = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? "" : launcherOptions.getFlinkconf();
         AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(flinkConfig, yarnConf, flinkConf);
 
         if (StringUtils.isNotBlank(flinkJarPath)) {
             if (!new File(flinkJarPath).exists()) {
-                throw new RuntimeException("The param '-flinkJarPath' ref dir is not exist");
+                throw new RuntimeException("The Flink jar path is not exist");
             }
         }
 
@@ -162,4 +163,22 @@ public class PerJobClusterClientBuilder {
                 false);
     }
 
+    private boolean isKerberos(Properties conf){
+        String keytab = (String) conf.get(KEYTAB);
+        if (StringUtils.isNotBlank(keytab)){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void login(org.apache.hadoop.conf.Configuration conf, String keytab, String principal) throws IOException {
+        if (StringUtils.isEmpty(principal)){
+            throw new RuntimeException(PRINCIPAL + " must not be null!");
+        }
+        UserGroupInformation.setConfiguration(conf);
+        UserGroupInformation.loginUserFromKeytab(principal, keytab);
+        LOG.info("login successfully! keytab: " + keytab + "principal: " + principal);
+        LOG.info("UGI: " + UserGroupInformation.getCurrentUser());
+    }
 }

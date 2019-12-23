@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.util;
 
@@ -196,7 +196,7 @@ public class PluginUtil {
         }
         return urlList.toArray(new URL[urlList.size()]);
     }
-    
+
     public static String getCoreJarFileName (String path, String prefix) throws Exception {
         String coreJarFileName = null;
         File pluginDir = new File(path);

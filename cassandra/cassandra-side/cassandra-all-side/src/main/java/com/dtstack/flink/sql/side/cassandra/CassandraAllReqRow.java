@@ -263,7 +263,7 @@ public class CassandraAllReqRow extends AllReqRow {
                         LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
                         Thread.sleep(5 * 1000);
                     } catch (InterruptedException e1) {
-                        e1.printStackTrace();
+                        LOG.error("", e1);
                     }
                 }
 
