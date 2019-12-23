@@ -48,6 +48,17 @@
 * Java: JDK8及以上
 * Flink集群: 1.4,1.5,1.8（单机模式不需要安装Flink集群）
 * 操作系统：理论上不限
+* kerberos环境需要在flink-conf.yaml配置security.kerberos.login.keytab以及security.kerberos.login.principal参数，配置案例:
+```
+fs.hdfs.hadoopconf: /Users/maqi/tmp/hadoopconf/hadoop_250
+security.kerberos.login.use-ticket-cache: true
+security.kerberos.login.keytab: /Users/maqi/tmp/hadoopconf/hadoop_250/yanxi.keytab
+security.kerberos.login.principal: yanxi@DTSTACK.COM
+security.kerberos.login.contexts: Client,KafkaClient
+zookeeper.sasl.service-name: zookeeper
+zookeeper.sasl.login-context-name: Client
+
+```
 
 ### 1.3 打包
 
