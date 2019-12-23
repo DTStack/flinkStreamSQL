@@ -118,8 +118,8 @@ public class Main {
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
         StreamExecutionEnvironment env = getStreamExeEnv(confProperties, deployMode);
-        StreamTableEnvironment tableEnv = getStreamTableEnv(env);
-        StreamQueryConfig streamQueryConfig = getStreamQueryConfig(tableEnv, confProperties);
+        StreamTableEnvironment tableEnv =  StreamTableEnvironment.getTableEnvironment(env);
+        StreamQueryConfig streamQueryConfig = StreamEnvConfigManager.getStreamQueryConfig(tableEnv, confProperties);
 
         List<URL> jarURList = Lists.newArrayList();
         SqlTree sqlTree = SqlParser.parseSql(sql);
@@ -303,15 +303,5 @@ public class Main {
 
         StreamEnvConfigManager.streamExecutionEnvironmentConfig(env, confProperties);
         return env;
-    }
-
-    private static StreamTableEnvironment getStreamTableEnv(StreamExecutionEnvironment env) {
-        StreamTableEnvironment tableEnv = StreamTableEnvironment.getTableEnvironment(env);
-        return tableEnv;
-    }
-
-    private static StreamQueryConfig getStreamQueryConfig(StreamTableEnvironment tableEnv, Properties confProperties) {
-        Optional<StreamQueryConfig> streamQueryConfig = StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties);
-        return streamQueryConfig.isPresent() ? streamQueryConfig.get() : tableEnv.queryConfig();
     }
 }

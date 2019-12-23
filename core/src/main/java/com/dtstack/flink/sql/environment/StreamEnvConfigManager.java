@@ -59,8 +59,6 @@ import java.util.regex.Pattern;
  * @author maqi
  */
 public final class StreamEnvConfigManager {
-    private static Optional<Long> autoWatermarkInterval;
-
     private StreamEnvConfigManager() {
         throw new AssertionError("Singleton class.");
     }
@@ -93,30 +91,15 @@ public final class StreamEnvConfigManager {
             ((Configuration) exeConfig.getGlobalJobParameters()).addAll(globalJobParameters);
         }
 
-        Optional<Integer> envParallelism = getEnvParallelism(confProperties);
-        if (envParallelism.isPresent()) {
-            streamEnv.setParallelism(envParallelism.get());
-        }
-
-        Optional<Integer> maxParallelism = getMaxEnvParallelism(confProperties);
-        if (maxParallelism.isPresent()) {
-            streamEnv.setMaxParallelism(maxParallelism.get());
-        }
-
-        Optional<Long> bufferTimeoutMillis = getBufferTimeoutMillis(confProperties);
-        if (bufferTimeoutMillis.isPresent()) {
-            streamEnv.setBufferTimeout(bufferTimeoutMillis.get());
-        }
-
-        Optional<TimeCharacteristic> streamTimeCharacteristic = getStreamTimeCharacteristic(confProperties);
-        if (streamTimeCharacteristic.isPresent()) {
-            streamEnv.setStreamTimeCharacteristic(streamTimeCharacteristic.get());
-        }
-
-        Optional<Long> autoWatermarkInterval = getAutoWatermarkInterval(confProperties);
-        if (autoWatermarkInterval.isPresent() && streamEnv.getStreamTimeCharacteristic().equals(TimeCharacteristic.EventTime)) {
-            streamEnv.getConfig().setAutoWatermarkInterval(autoWatermarkInterval.get());
-        }
+        getEnvParallelism(confProperties).ifPresent(streamEnv::setParallelism);
+        getMaxEnvParallelism(confProperties).ifPresent(streamEnv::setMaxParallelism);
+        getBufferTimeoutMillis(confProperties).ifPresent(streamEnv::setBufferTimeout);
+        getStreamTimeCharacteristic(confProperties).ifPresent(streamEnv::setStreamTimeCharacteristic);
+        getAutoWatermarkInterval(confProperties).ifPresent(op -> {
+            if (streamEnv.getStreamTimeCharacteristic().equals(TimeCharacteristic.EventTime)) {
+                streamEnv.getConfig().setAutoWatermarkInterval(op);
+            }
+        });
 
         streamEnv.setRestartStrategy(RestartStrategies.failureRateRestart(
                 ConfigConstrant.failureRate,
@@ -127,33 +110,17 @@ public final class StreamEnvConfigManager {
         // checkpoint config
         Optional<Boolean> checkpointingEnabled = isCheckpointingEnabled(confProperties);
         if (checkpointingEnabled.get()) {
-            Optional<Long> checkpointInterval = getCheckpointInterval(confProperties);
-            streamEnv.enableCheckpointing(checkpointInterval.get());
-
-            Optional<CheckpointingMode> checkpointingMode = getCheckpointingMode(confProperties);
-            if (checkpointingMode.isPresent()) {
-                streamEnv.getCheckpointConfig().setCheckpointingMode(checkpointingMode.get());
-            }
-            Optional<Long> checkpointTimeout = getCheckpointTimeout(confProperties);
-            if (checkpointTimeout.isPresent()) {
-                streamEnv.getCheckpointConfig().setCheckpointTimeout(checkpointTimeout.get());
-            }
-
-            Optional<Integer> maxConcurrentCheckpoints = getMaxConcurrentCheckpoints(confProperties);
-            if (maxConcurrentCheckpoints.isPresent()) {
-                streamEnv.getCheckpointConfig().setMaxConcurrentCheckpoints(maxConcurrentCheckpoints.get());
-            }
-
-            Optional<CheckpointConfig.ExternalizedCheckpointCleanup> checkpointCleanup = getCheckpointCleanup(confProperties);
-            if (checkpointCleanup.isPresent()) {
-                streamEnv.getCheckpointConfig().enableExternalizedCheckpoints(checkpointCleanup.get());
-            }
-
-            Optional<StateBackend> stateBackend = getStateBackend(confProperties);
-            if (stateBackend.isPresent()) {
-                streamEnv.setStateBackend(stateBackend.get());
-            }
+            getCheckpointInterval(confProperties).ifPresent(streamEnv::enableCheckpointing);
+            getCheckpointingMode(confProperties).ifPresent(streamEnv.getCheckpointConfig()::setCheckpointingMode);
+            getCheckpointTimeout(confProperties).ifPresent(streamEnv.getCheckpointConfig()::setCheckpointTimeout);
+            getMaxConcurrentCheckpoints(confProperties).ifPresent(streamEnv.getCheckpointConfig()::setMaxConcurrentCheckpoints);
+            getCheckpointCleanup(confProperties).ifPresent(streamEnv.getCheckpointConfig()::enableExternalizedCheckpoints);
+            getStateBackend(confProperties).ifPresent(streamEnv::setStateBackend);
         }
+    }
+
+    public static StreamQueryConfig getStreamQueryConfig(StreamTableEnvironment tableEnv, Properties confProperties) {
+        return StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties).orElseGet(tableEnv::queryConfig);
     }
 
     /**
@@ -222,9 +189,9 @@ public final class StreamEnvConfigManager {
 
     public static Optional<Long> getCheckpointInterval(Properties properties) {
         // 两个参数主要用来做上层兼容
-        Long sql_interval = Long.valueOf(properties.getProperty(ConfigConstrant.SQL_CHECKPOINT_INTERVAL_KEY, "0"));
-        Long flink_interval = Long.valueOf(properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_INTERVAL_KEY, "0"));
-        long checkpointInterval = Math.max(sql_interval, flink_interval);
+        Long sqlInterval = Long.valueOf(properties.getProperty(ConfigConstrant.SQL_CHECKPOINT_INTERVAL_KEY, "0"));
+        Long flinkInterval = Long.valueOf(properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_INTERVAL_KEY, "0"));
+        long checkpointInterval = Math.max(sqlInterval, flinkInterval);
         return Optional.of(checkpointInterval);
     }
 
