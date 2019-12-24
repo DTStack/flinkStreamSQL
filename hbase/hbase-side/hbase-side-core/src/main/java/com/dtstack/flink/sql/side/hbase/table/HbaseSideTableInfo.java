@@ -50,6 +50,8 @@ public class HbaseSideTableInfo extends SideTableInfo {
 
     private Map<String, String> columnNameFamily;
 
+    private Map<String,Object> hbaseConfig = Maps.newHashMap();
+
     private String tableName;
 
     private String[] columnRealNames;
@@ -147,6 +149,11 @@ public class HbaseSideTableInfo extends SideTableInfo {
     public void setPreRowKey(boolean preRowKey) {
         this.preRowKey = preRowKey;
     }
+
+    public Map<String, Object> getHbaseConfig() {
+        return hbaseConfig;
+    }
+
 
     @Override
     public void finish(){

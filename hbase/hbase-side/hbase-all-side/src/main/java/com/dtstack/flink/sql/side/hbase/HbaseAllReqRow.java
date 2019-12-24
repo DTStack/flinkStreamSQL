@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
+import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -35,10 +36,12 @@ import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -54,6 +57,11 @@ public class HbaseAllReqRow extends AllReqRow {
     private Map<String, String> aliasNameInversion;
 
     private AtomicReference<Map<String, Map<String, Object>>> cacheRef = new AtomicReference<>();
+
+    private Connection conn = null;
+    private Table table = null;
+    private ResultScanner resultScanner = null;
+    private Configuration conf = null;
 
     public HbaseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new HbaseAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -157,13 +165,35 @@ public class HbaseAllReqRow extends AllReqRow {
     private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
         SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        Configuration conf = new Configuration();
-        conf.set("hbase.zookeeper.quorum", hbaseSideTableInfo.getHost());
-        Connection conn = null;
-        Table table = null;
-        ResultScanner resultScanner = null;
+        boolean openKerberos = HbaseConfigUtils.openKerberos(hbaseSideTableInfo.getHbaseConfig());
+
         try {
-            conn = ConnectionFactory.createConnection(conf);
+            if (openKerberos) {
+                conf = HbaseConfigUtils.getHadoopConfiguration(hbaseSideTableInfo.getHbaseConfig());
+                conf.set("hbase.zookeeper.quorum", hbaseSideTableInfo.getHost());
+                String principal = HbaseConfigUtils.getPrincipal(hbaseSideTableInfo.getHbaseConfig());
+                String keytab = HbaseConfigUtils.getKeytab(hbaseSideTableInfo.getHbaseConfig());
+
+                UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, principal, keytab);
+                Configuration finalConf = conf;
+                userGroupInformation.doAs(new PrivilegedAction<Connection>() {
+                    @Override
+                    public Connection run() {
+                        try {
+                            return ConnectionFactory.createConnection(finalConf);
+                        } catch (IOException e) {
+                            LOG.error("Get connection fail with config:{}", finalConf);
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+
+            } else {
+                conf = HbaseConfigUtils.getConfig(hbaseSideTableInfo.getHbaseConfig());
+                conf.set("hbase.zookeeper.quorum", hbaseSideTableInfo.getHost());
+                conn = ConnectionFactory.createConnection(conf);
+            }
+
             table = conn.getTable(TableName.valueOf(tableName));
             resultScanner = table.getScanner(new Scan());
             for (Result r : resultScanner) {
@@ -190,6 +220,25 @@ public class HbaseAllReqRow extends AllReqRow {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    @Override
+    public void close() throws Exception {
+        try {
+            if (null != conn) {
+                conn.close();
+            }
+
+            if (null != table) {
+                table.close();
+            }
+
+            if (null != resultScanner) {
+                resultScanner.close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

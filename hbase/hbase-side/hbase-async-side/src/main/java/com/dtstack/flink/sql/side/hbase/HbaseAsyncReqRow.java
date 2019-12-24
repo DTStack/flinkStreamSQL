@@ -38,6 +38,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
+import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +95,11 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-aysnc"));
 
-        hBaseClient = new HBaseClient(hbaseSideTableInfo.getHost(), hbaseSideTableInfo.getParent(), executorService);
+        Config config = new Config();
+        config.overrideConfig("hbase.zookeeper.quorum",hbaseSideTableInfo.getHost());
+        config.overrideConfig("hbase.zookeeper.znode.parent",hbaseSideTableInfo.getParent());
+
+        hBaseClient = new HBaseClient(config, executorService);
 
         try {
             Deferred deferred = hBaseClient.ensureTableExists(tableName)
