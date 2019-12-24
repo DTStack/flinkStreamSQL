@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.source;
+package com.dtstack.flink.sql.format;
 
 import com.dtstack.flink.sql.metric.MetricConstant;
+import com.dtstack.flink.sql.source.JsonDataParser;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.metrics.Counter;

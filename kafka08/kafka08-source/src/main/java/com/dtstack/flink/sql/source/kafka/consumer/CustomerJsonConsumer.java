@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.source.kafka.consumer;
 
-import com.dtstack.flink.sql.source.AbsDeserialization;
+import com.dtstack.flink.sql.format.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.deserialization.CustomerJsonDeserialization;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer08;

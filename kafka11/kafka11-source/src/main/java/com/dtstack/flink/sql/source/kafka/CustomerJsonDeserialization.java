@@ -21,7 +21,7 @@
 package com.dtstack.flink.sql.source.kafka;
 
 
-import com.dtstack.flink.sql.source.AbsDeserialization;
+import com.dtstack.flink.sql.format.AbsDeserialization;
 import com.dtstack.flink.sql.source.JsonDataParser;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
 import com.dtstack.flink.sql.table.TableInfo;

@@ -17,14 +17,11 @@
  */
 package com.dtstack.flink.sql.source.serversocket;
 
-import com.dtstack.flink.sql.source.AbsDeserialization;
+import com.dtstack.flink.sql.format.AbsDeserialization;
 import com.dtstack.flink.sql.source.JsonDataParser;
 import com.dtstack.flink.sql.source.serversocket.table.ServersocketSourceTableInfo;
 import com.dtstack.flink.sql.table.TableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.IOUtils;
@@ -36,7 +33,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 

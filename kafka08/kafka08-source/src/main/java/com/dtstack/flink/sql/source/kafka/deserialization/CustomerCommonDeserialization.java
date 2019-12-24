@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.source.kafka.deserialization;
 
-import com.dtstack.flink.sql.source.AbsDeserialization;
+import com.dtstack.flink.sql.format.AbsDeserialization;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
