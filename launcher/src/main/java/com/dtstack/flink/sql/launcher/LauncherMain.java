@@ -102,9 +102,9 @@ public class LauncherMain {
 
         if(mode.equals(ClusterMode.yarnPer.name())){
             String flinkConfDir = launcherOptions.getFlinkconf();
-            Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
+            Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
             JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1);
-            PerJobSubmitter.submit(launcherOptions, jobGraph);
+            PerJobSubmitter.submit(launcherOptions, jobGraph, config);
         } else {
             ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
             clusterClient.run(program, 1);

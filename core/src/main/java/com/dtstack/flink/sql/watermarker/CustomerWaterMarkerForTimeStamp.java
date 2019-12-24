@@ -40,14 +40,6 @@ public class CustomerWaterMarkerForTimeStamp extends AbsCustomerWaterMarker<Row>
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForTimeStamp.class);
 
-    private static final long serialVersionUID = 1L;
-
-    private int pos;
-
-    private long lastTime = 0;
-
-    private TimeZone timezone;
-
     public CustomerWaterMarkerForTimeStamp(Time maxOutOfOrderness, int pos,String timezone) {
         super(maxOutOfOrderness);
         this.pos = pos;
@@ -58,14 +50,8 @@ public class CustomerWaterMarkerForTimeStamp extends AbsCustomerWaterMarker<Row>
     public long extractTimestamp(Row row) {
         try {
             Timestamp time = (Timestamp) row.getField(pos);
-
             long extractTime=time.getTime();
-
-            lastTime = extractTime + timezone.getOffset(extractTime);
-
-            eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - extractTime)/1000));
-
-            return lastTime;
+            return getExtractTimestamp(extractTime);
         } catch (RuntimeException e) {
             logger.error("", e);
         }

@@ -28,8 +28,8 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
-
-import java.util.TimeZone;
+import java.sql.Timestamp;
+import java.lang.Long;
 
 /**
  * define watermarker
@@ -76,9 +76,9 @@ public class WaterMarkerAssigner {
         TypeInformation fieldType = fieldTypes[pos];
 
         AbsCustomerWaterMarker waterMarker = null;
-        if(fieldType.getTypeClass().getTypeName().equalsIgnoreCase("java.sql.Timestamp")){
+        if(fieldType.getTypeClass().isAssignableFrom(Timestamp.class)){
             waterMarker = new CustomerWaterMarkerForTimeStamp(Time.milliseconds(maxOutOrderness), pos,timeZone);
-        }else if(fieldType.getTypeClass().getTypeName().equalsIgnoreCase("java.lang.Long")){
+        }else if(fieldType.getTypeClass().isAssignableFrom(Long.class)){
             waterMarker = new CustomerWaterMarkerForLong(Time.milliseconds(maxOutOrderness), pos,timeZone);
         }else{
             throw new IllegalArgumentException("not support type of " + fieldType + ", current only support(timestamp, long).");
