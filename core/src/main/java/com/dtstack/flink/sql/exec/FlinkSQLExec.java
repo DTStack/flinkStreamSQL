@@ -68,14 +68,38 @@ public class FlinkSQLExec {
 
         Table newTable = null;
         try {
+
             newTable = queryResult.select(String.join(",", fieldNames));
         } catch (Exception e) {
-            throw new ValidationException(
-                    "Field name of query result and registered TableSink "+targetTableName +" do not match.\n" +
-                    "Query result schema: " + String.join(",", queryResult.getSchema().getColumnNames()) + "\n" +
-                    "TableSink schema: " + String.join(",", fieldNames));
+            try{
+
+                newTable = queryResult.select( String.join(",", ignoreCase(queryResult, fieldNames)));
+            }catch (Exception ex){
+                throw new ValidationException(
+                        "Field name of query result and registered TableSink "+targetTableName +" do not match.\n" +
+                                "Query result schema: " + String.join(",", queryResult.getSchema().getColumnNames()) + "\n" +
+                                "TableSink schema: " + String.join(",", fieldNames));
+            }
         }
         StreamQueryConfig config = null == queryConfig ? tableEnv.queryConfig() : queryConfig;
         tableEnv.insertInto(newTable, targetTableName, config);
+    }
+
+    public static String[] ignoreCase(Table queryResult, String[] fieldNames){
+        String[] newFieldNames = new String[fieldNames.length];
+        String[] queryFieldNames = queryResult.getSchema().getColumnNames();
+        for(int i=0; i<fieldNames.length; i++){
+            boolean flag = true;
+            for(String queryFieldName : queryFieldNames){
+                if(fieldNames[i].equalsIgnoreCase(queryFieldName)){
+                    newFieldNames[i] = queryFieldName;
+                    continue;
+                }
+            }
+            if(flag){
+                newFieldNames[i] = fieldNames[i];
+            }
+        }
+        return newFieldNames;
     }
 }
