@@ -274,4 +274,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     public abstract RetractJDBCOutputFormat getOutputFormat();
 
+    public String quoteIdentifier(String identifier) {
+        return "`" + identifier + "`";
+    }
 }

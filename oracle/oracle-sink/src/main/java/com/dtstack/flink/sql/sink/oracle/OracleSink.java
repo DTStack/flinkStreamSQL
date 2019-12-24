@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Reason:
@@ -56,23 +57,15 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     }
 
     private void buildInsertSql(String scheam, String tableName, List<String> fields) {
+        tableName = DtStringUtil.getTableFullPath(scheam, tableName);
+        String columns = fields.stream()
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
 
-        tableName = DtStringUtil.getTableFullPath(scheam,tableName);
-
-        String sqlTmp = "insert into " + tableName + " (${fields}) values (${placeholder})";
-
-        List<String> adaptFields = Lists.newArrayList();
-        fields.forEach(field -> adaptFields.add(DtStringUtil.addQuoteForStr(field)));
-
-        String fieldsStr = StringUtils.join(adaptFields, ",");
-        String placeholder = "";
-
-        for (String fieldName : fields) {
-            placeholder += ",?";
-        }
-        placeholder = placeholder.replaceFirst(",", "");
-        sqlTmp = sqlTmp.replace("${fields}", fieldsStr).replace("${placeholder}", placeholder);
-        this.sql = sqlTmp;
+        String placeholders = fields.stream()
+                .map(f -> "?")
+                .collect(Collectors.joining(", "));
+        this.sql = "INSERT INTO " + tableName + "(" + columns + ")" + " VALUES (" + placeholders + ")";
     }
 
     /**
@@ -94,7 +87,8 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
                 + updateKeySql(realIndexes) + ") ");
 
 
-        String updateSql = getUpdateSql(fieldNames, fullField, "T1", "T2", keyColList(realIndexes));
+        String updateSql1 = buildUpdateSqlForAllValue(fieldNames, fullField, "T1", "T2", keyColList(realIndexes));
+        String updateSql = buildUpdateSqlForNotnullValue(fieldNames, fullField, "T1", "T2", keyColList(realIndexes));
 
         if (StringUtils.isNotEmpty(updateSql)) {
             sb.append(" WHEN MATCHED THEN UPDATE SET ");
@@ -149,23 +143,46 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
      * @param indexCols   index column
      * @return
      */
-    public String getUpdateSql(List<String> updateColumn, List<String> fullColumn, String leftTable, String rightTable, List<String> indexCols) {
+    public String buildUpdateSqlForAllValue(List<String> updateColumn, List<String> fullColumn, String leftTable, String rightTable, List<String> indexCols) {
         String prefixLeft = StringUtils.isBlank(leftTable) ? "" : DtStringUtil.addQuoteForStr(leftTable) + ".";
         String prefixRight = StringUtils.isBlank(rightTable) ? "" : DtStringUtil.addQuoteForStr(rightTable) + ".";
-        List<String> list = new ArrayList<>();
-        for (String col : fullColumn) {
-            // filter index column
-            if (indexCols == null || indexCols.size() == 0 || containsIgnoreCase(indexCols,col)) {
-                continue;
-            }
-            if (containsIgnoreCase(updateColumn,col)) {
-                list.add(prefixLeft + DtStringUtil.addQuoteForStr(col) + "=" + prefixRight + DtStringUtil.addQuoteForStr(col));
+
+        String sql = fullColumn.stream().filter(col -> {
+            return !(indexCols == null || indexCols.size() == 0 || containsIgnoreCase(indexCols, col));
+        }).map(col -> {
+            String leftCol = prefixLeft + DtStringUtil.addQuoteForStr(col);
+            String rightCol = prefixRight + DtStringUtil.addQuoteForStr(col);
+
+            if (containsIgnoreCase(updateColumn, col)) {
+                return (leftCol + "=" + rightCol);
             } else {
-                list.add(prefixLeft + DtStringUtil.addQuoteForStr(col) + "=null");
+                return (leftCol + "=null");
             }
-        }
-        return StringUtils.join(list, ",");
+        }).collect(Collectors.joining(","));
+
+        return sql;
     }
+
+    public String buildUpdateSqlForNotnullValue(List<String> updateColumn, List<String> fullColumn, String leftTable, String rightTable, List<String> indexCols) {
+        String prefixLeft = StringUtils.isBlank(leftTable) ? "" : DtStringUtil.addQuoteForStr(leftTable) + ".";
+        String prefixRight = StringUtils.isBlank(rightTable) ? "" : DtStringUtil.addQuoteForStr(rightTable) + ".";
+
+        String sql = fullColumn.stream().filter(col -> {
+            return !(indexCols == null || indexCols.size() == 0 || containsIgnoreCase(indexCols, col));
+        }).map(col -> {
+            String leftCol = prefixLeft + DtStringUtil.addQuoteForStr(col);
+            String rightCol = prefixRight + DtStringUtil.addQuoteForStr(col);
+
+            if (containsIgnoreCase(updateColumn, col)) {
+                return leftCol + "= nvl(" + rightCol + "," + leftCol + ")";
+            }
+            return "";
+        }).collect(Collectors.joining(","));
+
+        return sql;
+    }
+
+
 
 
     /**
@@ -212,6 +229,8 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         return false;
     }
 
-
+    public String quoteIdentifier(String identifier) {
+        return "\"" + identifier + "\"";
+    }
 
 }

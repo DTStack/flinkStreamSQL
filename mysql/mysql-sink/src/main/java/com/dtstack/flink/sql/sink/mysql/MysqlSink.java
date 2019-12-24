@@ -25,8 +25,11 @@ import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import com.dtstack.flink.sql.util.DtStringUtil;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Date: 2017/2/27
@@ -49,7 +52,8 @@ public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
     @Override
     public void buildSql(String scheam, String tableName, List<String> fields) {
-        buildInsertSql(tableName, fields);
+        buildReplaceUpsertStatement(tableName, fields);
+        buildDuplicateUpsertStatement(tableName, fields);
     }
 
     @Override
@@ -57,28 +61,34 @@ public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         return null;
     }
 
-    private void buildInsertSql(String tableName, List<String> fields) {
-        String sqlTmp = "replace into " +  tableName + " (${fields}) values (${placeholder})";
-        String fieldsStr = "";
-        String placeholder = "";
-
-        for (String fieldName : fields) {
-            fieldsStr += ",`" + fieldName + "`";
-            placeholder += ",?";
-        }
-
-        fieldsStr = fieldsStr.replaceFirst(",", "");
-        placeholder = placeholder.replaceFirst(",", "");
-
-        sqlTmp = sqlTmp.replace("${fields}", fieldsStr).replace("${placeholder}", placeholder);
-        this.sql = sqlTmp;
+    private void buildReplaceUpsertStatement(String tableName, List<String> fields) {
+        this.sql = getUpsertIntoStatement("REPLACE ", tableName, fields);
     }
 
+    public void buildDuplicateUpsertStatement(String tableName, List<String> fields) {
+        String updateClause = fields.stream().map(f -> quoteIdentifier(f) + "=IFNULL(VALUES(" + quoteIdentifier(f) + "),"+ quoteIdentifier(f) + ")")
+                .collect(Collectors.joining(", "));
+
+        this.sql = getUpsertIntoStatement("INSERT",tableName, fields) +
+                " ON DUPLICATE KEY UPDATE " + updateClause;
+    }
+
+    public String getUpsertIntoStatement(String operator, String tableName, List<String> fields) {
+        String columns = fields.stream()
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
+
+        String placeholders = fields.stream()
+                .map(f -> "?")
+                .collect(Collectors.joining(", "));
+
+        return operator + " INTO " + quoteIdentifier(tableName) +
+                "(" + columns + ")" + " VALUES (" + placeholders + ")";
+    }
 
     @Override
     public String getDriverName() {
         return MYSQL_DRIVER;
     }
-
 
 }
