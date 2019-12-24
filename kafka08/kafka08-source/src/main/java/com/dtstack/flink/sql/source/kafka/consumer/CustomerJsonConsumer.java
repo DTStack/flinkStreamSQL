@@ -43,7 +43,7 @@ public class CustomerJsonConsumer extends FlinkKafkaConsumer08<Row> {
     private CustomerJsonDeserialization customerJsonDeserialization;
 
     public CustomerJsonConsumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
-        super(Arrays.asList(topic.split(",")), valueDeserializer, props);
+        super(topic, valueDeserializer, props);
         this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
     }
 

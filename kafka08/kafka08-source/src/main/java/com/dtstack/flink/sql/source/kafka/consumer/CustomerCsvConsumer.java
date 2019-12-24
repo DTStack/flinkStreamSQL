@@ -43,7 +43,7 @@ public class CustomerCsvConsumer extends FlinkKafkaConsumer08<Row> {
     private CustomerCsvDeserialization customerCsvDeserialization;
 
     public CustomerCsvConsumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
-        super(Arrays.asList(topic.split(",")), valueDeserializer, props);
+        super(topic, valueDeserializer, props);
         this.customerCsvDeserialization = (CustomerCsvDeserialization) valueDeserializer;
     }
 

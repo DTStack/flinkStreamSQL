@@ -24,7 +24,6 @@ import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -39,7 +38,6 @@ import org.apache.flink.types.Row;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Pattern;
 
 /**
  * If eventtime field is specified, the default time field rowtime
@@ -80,8 +78,6 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 		if (StringUtils.isNotBlank(kafka010SourceTableInfo.getGroupId())){
 			props.setProperty("group.id", kafka010SourceTableInfo.getGroupId());
 		}
-		// only required for Kafka 0.8
-		//TODO props.setProperty("zookeeper.connect", kafka09SourceTableInfo.)
 
 		TypeInformation[] types = new TypeInformation[kafka010SourceTableInfo.getFields().length];
 		for (int i = 0; i < kafka010SourceTableInfo.getFieldClasses().length; i++) {
@@ -90,14 +86,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 
 		TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka010SourceTableInfo.getFields());
 
-		FlinkKafkaConsumer010<Row> kafkaSrc;
-		if (BooleanUtils.isTrue(kafka010SourceTableInfo.getTopicIsPattern())) {
-			kafkaSrc = new CustomerKafka010Consumer(Pattern.compile(topicName),
-					new CustomerJsonDeserialization(typeInformation, kafka010SourceTableInfo.getPhysicalFields(), kafka010SourceTableInfo.getFieldExtraInfoList()), props);
-		} else {
-			kafkaSrc = new CustomerKafka010Consumer(topicName,
-					new CustomerJsonDeserialization(typeInformation, kafka010SourceTableInfo.getPhysicalFields(), kafka010SourceTableInfo.getFieldExtraInfoList()), props);
-		}
+        FlinkKafkaConsumer010<Row> kafkaSrc = KafkaConsumer010Factory.createKafkaTableSource(kafka010SourceTableInfo, typeInformation, props);
 
 		//earliest,latest
 		if ("earliest".equalsIgnoreCase(kafka010SourceTableInfo.getOffsetReset())) {

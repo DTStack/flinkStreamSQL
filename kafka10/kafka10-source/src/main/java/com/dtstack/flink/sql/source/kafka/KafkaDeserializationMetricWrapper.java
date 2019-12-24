@@ -16,15 +16,11 @@
  * limitations under the License.
  */
 
-
-
 package com.dtstack.flink.sql.source.kafka;
 
-
-import com.dtstack.flink.sql.format.AbsDeserialization;
-import com.dtstack.flink.sql.source.JsonDataParser;
+import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
-import com.dtstack.flink.sql.table.TableInfo;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
@@ -38,47 +34,42 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.dtstack.flink.sql.metric.MetricConstant.DT_PARTITION_GROUP;
 import static com.dtstack.flink.sql.metric.MetricConstant.DT_TOPIC_GROUP;
 import static com.dtstack.flink.sql.metric.MetricConstant.DT_TOPIC_PARTITION_LAG_GAUGE;
 
 /**
- * json string parsing custom
- * Date: 2018/09/18
- * Company: www.dtstack.com
- * @author sishu.yss
+ * add metric for source
+ * <p>
+ * company: www.dtstack.com
+ * author: toutian
+ * create: 2019/12/24
  */
+public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrapper {
 
-public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
-
-    private static final Logger LOG = LoggerFactory.getLogger(CustomerJsonDeserialization.class);
-
-    private static final long serialVersionUID = 2385115520960444192L;
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaDeserializationMetricWrapper.class);
 
     private AbstractFetcher<Row, ?> fetcher;
 
-    private boolean firstMsg = true;
+    private AtomicBoolean firstMsg = new AtomicBoolean(true);
 
-    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos){
-        this.jsonDataParser= new JsonDataParser(typeInfo,rowAndFieldMapping,fieldExtraInfos);
+    public KafkaDeserializationMetricWrapper(TypeInformation<Row> typeInfo, DeserializationSchema<Row> deserializationSchema) {
+        super(typeInfo, deserializationSchema);
     }
 
     @Override
-    public Row deserialize(byte[] message) throws IOException {
-        if(firstMsg){
+    protected void beforeDeserialize() throws IOException {
+        super.beforeDeserialize();
+        if (firstMsg.compareAndSet(true, false)) {
             try {
                 registerPtMetric(fetcher);
             } catch (Exception e) {
                 LOG.error("register topic partition metric error.", e);
             }
-            firstMsg = false;
         }
-        Row row = parseSourceData(message);
-        return row;
     }
 
     protected void registerPtMetric(AbstractFetcher<Row, ?> fetcher) throws Exception {
@@ -94,7 +85,7 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
 
         boolean hasAssignedPartitions = (boolean) hasAssignedPartitionsField.get(consumerThread);
 
-        if(!hasAssignedPartitions){
+        if (!hasAssignedPartitions) {
             throw new RuntimeException("wait 50 secs, but not assignedPartitions");
         }
 
@@ -108,18 +99,13 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         //topic partitions lag
         SubscriptionState subscriptionState = (SubscriptionState) subscriptionStateField.get(kafkaConsumer);
         Set<TopicPartition> assignedPartitions = subscriptionState.assignedPartitions();
-        for(TopicPartition topicPartition : assignedPartitions){
+        for (TopicPartition topicPartition : assignedPartitions) {
             MetricGroup metricGroup = getRuntimeContext().getMetricGroup().addGroup(DT_TOPIC_GROUP, topicPartition.topic())
                     .addGroup(DT_PARTITION_GROUP, topicPartition.partition() + "");
             metricGroup.gauge(DT_TOPIC_PARTITION_LAG_GAUGE, new KafkaTopicPartitionLagMetric(subscriptionState, topicPartition));
         }
 
     }
-
-    private static String partitionLagMetricName(TopicPartition tp) {
-        return tp + ".records-lag";
-    }
-
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
         this.fetcher = fetcher;

@@ -100,7 +100,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 			}
 		} else {
 			if (topicIsPattern) {
-				kafkaSrc = new CustomerCommonConsumer(Pattern.compile(topicName), new com.dtstack.flink.sql.source.kafka.deserialization.CustomerCommonDeserialization(), props);
+				kafkaSrc = new CustomerCommonConsumer(Pattern.compile(topicName), new CustomerCommonDeserialization(), props);
 			} else {
 				kafkaSrc = new CustomerCommonConsumer(topicName, new CustomerCommonDeserialization(), props);
 			}

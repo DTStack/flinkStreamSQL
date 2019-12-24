@@ -17,6 +17,7 @@
  */
 package com.dtstack.flink.sql.source.kafka.consumer;
 
+import com.dtstack.flink.sql.format.AbsDeserialization;
 import com.dtstack.flink.sql.source.kafka.deserialization.CustomerCommonDeserialization;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer08;
@@ -39,12 +40,12 @@ public class CustomerCommonConsumer extends FlinkKafkaConsumer08<Row> {
 	private CustomerCommonDeserialization customerCommonDeserialization;
 
 
-	public CustomerCommonConsumer(String topic, KeyedDeserializationSchema<Row> deserializer, Properties props) {
+	public CustomerCommonConsumer(String topic, AbsDeserialization<Row> deserializer, Properties props) {
 		super(topic, deserializer, props);
 		this.customerCommonDeserialization= (CustomerCommonDeserialization) deserializer;
 	}
 
-	public CustomerCommonConsumer(Pattern subscriptionPattern, KeyedDeserializationSchema<Row> deserializer, Properties props) {
+	public CustomerCommonConsumer(Pattern subscriptionPattern, AbsDeserialization<Row> deserializer, Properties props) {
 		super(subscriptionPattern, deserializer, props);
 		this.customerCommonDeserialization= (CustomerCommonDeserialization) deserializer;
 	}

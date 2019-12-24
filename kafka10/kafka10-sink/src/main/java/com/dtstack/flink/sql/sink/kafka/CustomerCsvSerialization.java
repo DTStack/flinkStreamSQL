@@ -15,10 +15,8 @@ import java.io.IOException;
 
 import static org.apache.flink.api.java.typeutils.runtime.NullMaskUtils.writeNullMask;
 /**
- *
  * Date: 2018/12/18
  * Company: www.dtstack.com
- *
  * @author DocLi
  *
  * @modifyer maqi

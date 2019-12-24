@@ -62,6 +62,12 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
     private Boolean topicIsPattern = false;
 
+    private String sourceDataType;
+
+    private String schemaString;
+
+    private String fieldDelimiter;
+
     public KafkaSourceTableInfo(){
         super.setType(CURR_TYPE);
     }
@@ -145,7 +151,31 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
     @Override
     public String getType() {
-//        return super.getType() + SOURCE_SUFFIX;
         return super.getType();
+    }
+
+
+    public String getSourceDataType() {
+        return sourceDataType;
+    }
+
+    public void setSourceDataType(String sourceDataType) {
+        this.sourceDataType = sourceDataType;
+    }
+
+    public String getSchemaString() {
+        return schemaString;
+    }
+
+    public void setSchemaString(String schemaString) {
+        this.schemaString = schemaString;
+    }
+
+    public String getFieldDelimiter() {
+        return fieldDelimiter;
+    }
+
+    public void setFieldDelimiter(String fieldDelimiter) {
+        this.fieldDelimiter = fieldDelimiter;
     }
 }
