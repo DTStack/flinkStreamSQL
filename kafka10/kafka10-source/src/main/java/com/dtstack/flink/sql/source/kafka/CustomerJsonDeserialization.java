@@ -192,9 +192,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
             JsonNode child = jsonNode.get(next);
             String nodeKey = getNodeKey(prefix, next);
 
-            if (child.isValueNode()) {
-                nodeAndJsonNodeMapping.put(nodeKey, child);
-            } else if(child.isArray()){
+            nodeAndJsonNodeMapping.put(nodeKey, child);
+            if(child.isArray()){
                 parseTree(child, nodeKey);
             } else {
                 parseTree(child, nodeKey);
@@ -266,7 +265,11 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         if (info.getTypeClass().equals(Types.BOOLEAN.getTypeClass())) {
             return node.asBoolean();
         } else if (info.getTypeClass().equals(Types.STRING.getTypeClass())) {
-            return node.asText();
+            String value = node.asText();
+            if ("".equals(value)){
+                value = node.toString();
+            }
+            return value;
         }  else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
             return Date.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
