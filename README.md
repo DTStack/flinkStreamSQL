@@ -50,10 +50,11 @@
 * 操作系统：理论上不限
 * kerberos环境需要在flink-conf.yaml配置security.kerberos.login.keytab以及security.kerberos.login.principal参数，配置案例:
 ```
+## hadoop配置文件路径
 fs.hdfs.hadoopconf: /Users/maqi/tmp/hadoopconf/hadoop_250
 security.kerberos.login.use-ticket-cache: true
-security.kerberos.login.keytab: /Users/maqi/tmp/hadoopconf/hadoop_250/yanxi.keytab
-security.kerberos.login.principal: yanxi@DTSTACK.COM
+security.kerberos.login.keytab: /Users/maqi/tmp/hadoopconf/hadoop_250/maqi.keytab
+security.kerberos.login.principal: maqi@DTSTACK.COM
 security.kerberos.login.contexts: Client,KafkaClient
 zookeeper.sasl.service-name: zookeeper
 zookeeper.sasl.login-context-name: Client
