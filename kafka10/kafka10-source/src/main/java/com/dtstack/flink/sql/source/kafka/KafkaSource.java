@@ -86,7 +86,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 
 		TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka010SourceTableInfo.getFields());
 
-        FlinkKafkaConsumer010<Row> kafkaSrc = KafkaConsumer010Factory.createKafkaTableSource(kafka010SourceTableInfo, typeInformation, props);
+        FlinkKafkaConsumer010<Row> kafkaSrc = (FlinkKafkaConsumer010<Row>) new KafkaConsumer010Factory().createKafkaTableSource(kafka010SourceTableInfo, typeInformation, props);
 
 		//earliest,latest
 		if ("earliest".equalsIgnoreCase(kafka010SourceTableInfo.getOffsetReset())) {

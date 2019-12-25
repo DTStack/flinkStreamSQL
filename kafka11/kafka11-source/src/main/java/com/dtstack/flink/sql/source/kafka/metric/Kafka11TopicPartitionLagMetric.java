@@ -1,6 +1,5 @@
 package com.dtstack.flink.sql.source.kafka.metric;
 
-import org.apache.flink.metrics.Gauge;
 import org.apache.kafka.clients.consumer.internals.SubscriptionState;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.requests.IsolationLevel;
@@ -12,15 +11,10 @@ import org.apache.kafka.common.requests.IsolationLevel;
  * @author xuchao
  */
 
-public class KafkaTopicPartitionLagMetric implements Gauge<Long> {
+public class Kafka11TopicPartitionLagMetric extends KafkaTopicPartitionLagMetric {
 
-    private SubscriptionState subscriptionState;
-
-    private TopicPartition tp;
-
-    public KafkaTopicPartitionLagMetric(SubscriptionState subscriptionState, TopicPartition tp){
-        this.subscriptionState = subscriptionState;
-        this.tp = tp;
+    public Kafka11TopicPartitionLagMetric(SubscriptionState subscriptionState, TopicPartition tp) {
+        super(subscriptionState, tp);
     }
 
     @Override

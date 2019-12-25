@@ -19,9 +19,9 @@
 package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
-import com.dtstack.flink.sql.source.kafka.metric.KafkaTopicPartitionLagMetric;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.metrics.Gauge;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
@@ -45,7 +45,7 @@ import static com.dtstack.flink.sql.metric.MetricConstant.DT_TOPIC_PARTITION_LAG
  * add metric for source
  * <p>
  * company: www.dtstack.com
- * author: toutian
+ * @author: toutian
  * create: 2019/12/24
  */
 public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrapper {
@@ -56,8 +56,11 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
 
     private AtomicBoolean firstMsg = new AtomicBoolean(true);
 
-    public KafkaDeserializationMetricWrapper(TypeInformation<Row> typeInfo, DeserializationSchema<Row> deserializationSchema) {
+    private Calculate calculate;
+
+    public KafkaDeserializationMetricWrapper(TypeInformation<Row> typeInfo, DeserializationSchema<Row> deserializationSchema, Calculate calculate) {
         super(typeInfo, deserializationSchema);
+        this.calculate = calculate;
     }
 
     @Override
@@ -99,12 +102,17 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
         //topic partitions lag
         SubscriptionState subscriptionState = (SubscriptionState) subscriptionStateField.get(kafkaConsumer);
         Set<TopicPartition> assignedPartitions = subscriptionState.assignedPartitions();
+
         for (TopicPartition topicPartition : assignedPartitions) {
             MetricGroup metricGroup = getRuntimeContext().getMetricGroup().addGroup(DT_TOPIC_GROUP, topicPartition.topic())
                     .addGroup(DT_PARTITION_GROUP, topicPartition.partition() + "");
-            metricGroup.gauge(DT_TOPIC_PARTITION_LAG_GAUGE, new KafkaTopicPartitionLagMetric(subscriptionState, topicPartition));
+            metricGroup.gauge(DT_TOPIC_PARTITION_LAG_GAUGE, new Gauge<Long>() {
+                @Override
+                public Long getValue() {
+                    return calculate.calc(subscriptionState, topicPartition);
+                }
+            });
         }
-
     }
 
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {

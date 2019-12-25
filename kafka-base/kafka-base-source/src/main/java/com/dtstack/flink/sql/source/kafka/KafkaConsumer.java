@@ -22,8 +22,9 @@ import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
@@ -37,37 +38,39 @@ import java.util.regex.Pattern;
 
 
 /**
+ * FlinkKafkaConsumer010、FlinkKafkaConsumer011 all extends FlinkKafkaConsumer09, and the construct use super(...) directly use FlinkKafkaConsumer09
+ *
  * Reason:
  * Date: 2018/10/19
  * Company: www.dtstack.com
  *
  * @author xuchao
  */
-public class KafkaConsumer010 extends FlinkKafkaConsumer010<Row> {
+public class KafkaConsumer extends FlinkKafkaConsumer09<Row> {
 
     private static final long serialVersionUID = 4873757508981691375L;
 
     private DeserializationMetricWrapper deserializationMetricWrapper;
 
-    public KafkaConsumer010(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
+    public KafkaConsumer(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
         super(Arrays.asList(topic.split(",")), deserializationMetricWrapper, props);
         this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
-    public KafkaConsumer010(Pattern subscriptionPattern, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
+    public KafkaConsumer(Pattern subscriptionPattern, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
         super(subscriptionPattern, deserializationMetricWrapper, props);
         this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
     @Override
-    public void run(SourceContext<Row> sourceContext) throws Exception {
+    public void run(SourceFunction.SourceContext<Row> sourceContext) throws Exception {
         deserializationMetricWrapper.setRuntimeContext(getRuntimeContext());
         deserializationMetricWrapper.initMetric();
         super.run(sourceContext);
     }
 
     @Override
-    protected AbstractFetcher<Row, ?> createFetcher(SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
+    protected AbstractFetcher<Row, ?> createFetcher(SourceFunction.SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
         AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext, assignedPartitionsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, runtimeContext, offsetCommitMode, consumerMetricGroup, useMetrics);
         ((KafkaDeserializationMetricWrapper) deserializationMetricWrapper).setFetcher(fetcher);
         return fetcher;

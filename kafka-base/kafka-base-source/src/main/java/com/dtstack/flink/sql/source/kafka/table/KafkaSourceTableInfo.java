@@ -17,8 +17,10 @@
  */
 
 
+
 package com.dtstack.flink.sql.source.kafka.table;
 
+import com.dtstack.flink.sql.format.FormatType;
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import com.google.common.base.Preconditions;
 
@@ -30,7 +32,6 @@ import java.util.Set;
  * Reason:
  * Date: 2018/09/18
  * Company: www.dtstack.com
- *
  * @author sishu.yss
  */
 
@@ -54,22 +55,18 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
 	private String groupId;
 
-	private Boolean topicIsPattern = false;
-
-	public Boolean getTopicIsPattern() {
-		return topicIsPattern;
-	}
-
-	public void setTopicIsPattern(Boolean topicIsPattern) {
-		if (topicIsPattern == null) return;
-
-		this.topicIsPattern = topicIsPattern;
-	}
-
 	//latest, earliest
 	private String offsetReset = "latest";
 
 	private String offset;
+
+	private Boolean topicIsPattern = false;
+
+	private String sourceDataType = FormatType.DT_NEST.name();
+
+	private String schemaString;
+
+	private String fieldDelimiter;
 
 	public String getBootstrapServers() {
 		return bootstrapServers;
@@ -100,10 +97,9 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 	}
 
 	public void setOffsetReset(String offsetReset) {
-		if (offsetReset == null) {
+		if(offsetReset == null){
 			return;
 		}
-
 		this.offsetReset = offsetReset;
 	}
 
@@ -112,7 +108,18 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 	}
 
 	public void setOffset(String offset) {
+		if (offsetReset == null) {
+			return;
+		}
 		this.offset = offset;
+	}
+
+	public Boolean getTopicIsPattern() {
+		return topicIsPattern;
+	}
+
+	public void setTopicIsPattern(Boolean topicIsPattern) {
+		this.topicIsPattern = topicIsPattern;
 	}
 
 	public Map<String, String> kafkaParam = new HashMap<>();
@@ -127,6 +134,30 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
 	public Set<String> getKafkaParamKeys() {
 		return kafkaParam.keySet();
+	}
+
+	public String getSourceDataType() {
+		return sourceDataType;
+	}
+
+	public void setSourceDataType(String sourceDataType) {
+		this.sourceDataType = sourceDataType;
+	}
+
+	public String getSchemaString() {
+		return schemaString;
+	}
+
+	public void setSchemaString(String schemaString) {
+		this.schemaString = schemaString;
+	}
+
+	public String getFieldDelimiter() {
+		return fieldDelimiter;
+	}
+
+	public void setFieldDelimiter(String fieldDelimiter) {
+		this.fieldDelimiter = fieldDelimiter;
 	}
 
 	@Override
