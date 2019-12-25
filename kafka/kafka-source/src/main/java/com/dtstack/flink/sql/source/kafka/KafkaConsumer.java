@@ -18,10 +18,11 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
-import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
+import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
@@ -35,38 +36,42 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
+
 /**
- * @author: chuixue
- * @create: 2019-11-05 10:58
- * @description:
- **/
-public class CustomerKafkaConsumer extends FlinkKafkaConsumer<Row> {
+ * Reason:
+ * Date: 2018/10/19
+ * Company: www.dtstack.com
+ *
+ * @author xuchao
+ */
+public class KafkaConsumer extends FlinkKafkaConsumer<Row> {
 
-    private static final long serialVersionUID = -2265366268827807739L;
+    private static final long serialVersionUID = 4873757508981691375L;
 
-    private CustomerJsonDeserializationSchema customerJsonDeserialization;
+    private DeserializationMetricWrapper deserializationMetricWrapper;
 
-    public CustomerKafkaConsumer(String topic, DtNestRowDeserializationSchema<Row> valueDeserializer, Properties props) {
-        super(Arrays.asList(topic.split(",")), valueDeserializer, props);
-        this.customerJsonDeserialization = (CustomerJsonDeserializationSchema) valueDeserializer;
+    public KafkaConsumer(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
+        super(Arrays.asList(topic.split(",")), deserializationMetricWrapper, props);
+        this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
-    public CustomerKafkaConsumer(Pattern subscriptionPattern, DtNestRowDeserializationSchema<Row> valueDeserializer, Properties props) {
-        super(subscriptionPattern, valueDeserializer, props);
-        this.customerJsonDeserialization = (CustomerJsonDeserializationSchema) valueDeserializer;
+    public KafkaConsumer(Pattern subscriptionPattern, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
+        super(subscriptionPattern, deserializationMetricWrapper, props);
+        this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
     @Override
-    public void run(SourceContext<Row> sourceContext) throws Exception {
-        customerJsonDeserialization.setRuntimeContext(getRuntimeContext());
-        customerJsonDeserialization.initMetric();
+    public void run(SourceFunction.SourceContext<Row> sourceContext) throws Exception {
+        deserializationMetricWrapper.setRuntimeContext(getRuntimeContext());
+        deserializationMetricWrapper.initMetric();
         super.run(sourceContext);
     }
 
     @Override
-    protected AbstractFetcher<Row, ?> createFetcher(SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
+    protected AbstractFetcher<Row, ?> createFetcher(SourceFunction.SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
         AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext, assignedPartitionsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, runtimeContext, offsetCommitMode, consumerMetricGroup, useMetrics);
-        customerJsonDeserialization.setFetcher(fetcher);
+        ((KafkaDeserializationMetricWrapper) deserializationMetricWrapper).setFetcher(fetcher);
         return fetcher;
     }
+
 }

@@ -18,23 +18,23 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
-import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
+import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
 
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
+
 
 /**
  * Reason:
@@ -43,34 +43,34 @@ import java.util.regex.Pattern;
  *
  * @author xuchao
  */
+public class KafkaConsumer011 extends FlinkKafkaConsumer010<Row> {
 
-public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
+    private static final long serialVersionUID = 4873757508981691375L;
 
-    private static final long serialVersionUID = -2265366268827807739L;
+    private DeserializationMetricWrapper deserializationMetricWrapper;
 
-    private CustomerJsonDeserializationSchema customerJsonDeserialization;
-
-    public CustomerKafka011Consumer(String topic, DtNestRowDeserializationSchema<Row> valueDeserializer, Properties props) {
-        super(Arrays.asList(topic.split(",")), valueDeserializer, props);
-        this.customerJsonDeserialization = (CustomerJsonDeserializationSchema) valueDeserializer;
+    public KafkaConsumer011(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
+        super(Arrays.asList(topic.split(",")), deserializationMetricWrapper, props);
+        this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
-    public CustomerKafka011Consumer(Pattern subscriptionPattern, DtNestRowDeserializationSchema<Row> valueDeserializer, Properties props) {
-        super(subscriptionPattern, valueDeserializer, props);
-        this.customerJsonDeserialization = (CustomerJsonDeserializationSchema) valueDeserializer;
+    public KafkaConsumer011(Pattern subscriptionPattern, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
+        super(subscriptionPattern, deserializationMetricWrapper, props);
+        this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
     @Override
     public void run(SourceContext<Row> sourceContext) throws Exception {
-        customerJsonDeserialization.setRuntimeContext(getRuntimeContext());
-        customerJsonDeserialization.initMetric();
+        deserializationMetricWrapper.setRuntimeContext(getRuntimeContext());
+        deserializationMetricWrapper.initMetric();
         super.run(sourceContext);
     }
 
     @Override
     protected AbstractFetcher<Row, ?> createFetcher(SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
         AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext, assignedPartitionsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, runtimeContext, offsetCommitMode, consumerMetricGroup, useMetrics);
-        customerJsonDeserialization.setFetcher(fetcher);
+        ((KafkaDeserializationMetricWrapper) deserializationMetricWrapper).setFetcher(fetcher);
         return fetcher;
     }
+
 }
