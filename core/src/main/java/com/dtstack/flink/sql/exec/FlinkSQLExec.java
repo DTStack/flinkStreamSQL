@@ -27,6 +27,8 @@ import org.apache.flink.table.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.plan.logical.LogicalRelNode;
 import org.apache.flink.table.plan.schema.TableSinkTable;
 import org.apache.flink.table.plan.schema.TableSourceSinkTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Option;
 
 import java.lang.reflect.Method;
@@ -37,6 +39,8 @@ import java.lang.reflect.Method;
  * @create: 2019/08/15 11:09
  */
 public class FlinkSQLExec {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FlinkSQLExec.class);
 
     public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt, StreamQueryConfig queryConfig) throws Exception {
 
@@ -89,6 +93,7 @@ public class FlinkSQLExec {
         try {
             tableEnv.insertInto(newTable, targetTableName, config);
         } catch (Exception ex) {
+            LOG.warn("Field name case of query result and registered TableSink " + targetTableName + "do not match. " + ex.getMessage());
             newTable = queryResult.select(String.join(",", ignoreCase(queryFieldNames, sinkFieldNames)));
             tableEnv.insertInto(newTable, targetTableName, config);
         }
