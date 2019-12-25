@@ -87,9 +87,7 @@ public class HbaseConfigUtils {
             KEY_HBASE_SASL_CLIENTCONFIG,
             KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL,
             KEY_HBASE_SECURITY_AUTHENTICATION,
-            KEY_KEY_TAB,
-            KEY_PRINCIPAL
-    );
+            KEY_KEY_TAB);
 
 
     public static Configuration getConfig(Map<String, Object> hbaseConfigMap) {
@@ -170,7 +168,7 @@ public class HbaseConfigUtils {
     public static String creatJassFile(String configStr) throws IOException {
         String fileName = System.getProperty("user.dir");
         File krbConf = new File(fileName);
-        File temp = File.createTempFile("", ".conf", krbConf);
+        File temp = File.createTempFile("JAAS", ".conf", krbConf);
         temp.deleteOnExit();
         BufferedWriter out = new BufferedWriter(new FileWriter(temp, false));
         out.write(configStr + "\n");
@@ -186,7 +184,7 @@ public class HbaseConfigUtils {
         }
 
         String keyTab = MapUtils.getString(kerberosConfig, KEY_KEY_TAB);
-        String principal = MapUtils.getString(kerberosConfig, KEY_PRINCIPAL);
+        String principal = MapUtils.getString(kerberosConfig, KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL);
 
         StringBuilder jaasSB = new StringBuilder("Client {\n" +
                 "  com.sun.security.auth.module.Krb5LoginModule required\n" +

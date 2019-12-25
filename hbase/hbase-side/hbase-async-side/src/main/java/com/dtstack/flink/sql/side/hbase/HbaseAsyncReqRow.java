@@ -204,7 +204,9 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        hBaseClient.shutdown();
+        if (null!=hBaseClient) {
+            hBaseClient.shutdown();
+        }
     }
 
 
