@@ -18,7 +18,7 @@
 
  
 
-package com.dtstack.flink.sql.sink.hbase;
+package com.dtstack.flink.sql.sink.hbase.utils;
 
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;

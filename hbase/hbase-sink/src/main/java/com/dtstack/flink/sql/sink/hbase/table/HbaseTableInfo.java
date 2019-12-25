@@ -23,6 +23,8 @@ package com.dtstack.flink.sql.sink.hbase.table;
 
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+
 import java.util.Map;
 
 /**
@@ -51,6 +53,8 @@ public class HbaseTableInfo extends TargetTableInfo {
     private String[] columnTypes;
 
     private String tableName;
+
+    private Map<String,Object> hbaseConfig = Maps.newHashMap();
 
     public HbaseTableInfo(){
         setType(CURR_TYPE);
@@ -139,4 +143,11 @@ public class HbaseTableInfo extends TargetTableInfo {
         return super.getType().toLowerCase();
     }
 
+    public Map<String, Object> getHbaseConfig() {
+        return hbaseConfig;
+    }
+
+    public void setHbaseConfig(Map<String, Object> hbaseConfig) {
+        this.hbaseConfig = hbaseConfig;
+    }
 }
