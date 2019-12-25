@@ -62,6 +62,8 @@
     *   hbase.security.authentication='kerberos',
     *   hbase.sasl.clientconfig =  'Client',
     *   hbase.kerberos.regionserver.principal='hbase/_HOST@TDH',
+    *   hbase.keytab = '/Users/chuixue/Desktop/hbase.keytab',
+    *   hbase.principal = 'hbase/cdh01@DTSTACK.COM'
     *   (非必选)java.security.krb5.conf = '/etc/krb5.conf'
 ## 4.样例
 ```
