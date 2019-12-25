@@ -70,34 +70,35 @@ public class FlinkSQLExec {
         try {
 
             newTable = queryResult.select(String.join(",", fieldNames));
-        } catch (Exception e) {
-            try{
 
-                newTable = queryResult.select( String.join(",", ignoreCase(queryResult, fieldNames)));
-            }catch (Exception ex){
-                throw new ValidationException(
-                        "Field name of query result and registered TableSink "+targetTableName +" do not match.\n" +
-                                "Query result schema: " + String.join(",", queryResult.getSchema().getColumnNames()) + "\n" +
-                                "TableSink schema: " + String.join(",", fieldNames));
-            }
+        } catch (Exception e) {
+
+            throw new ValidationException(
+                    "Field name of query result and registered TableSink "+targetTableName +" do not match.\n" +
+                            "Query result schema: " + String.join(",", queryResult.getSchema().getColumnNames()) + "\n" +
+                            "TableSink schema: " + String.join(",", fieldNames));
+
         }
         StreamQueryConfig config = null == queryConfig ? tableEnv.queryConfig() : queryConfig;
-        tableEnv.insertInto(newTable, targetTableName, config);
+        try{
+            tableEnv.insertInto(newTable, targetTableName, config);
+        }catch (Exception ex){
+            newTable = queryResult.select( String.join(",", ignoreCase(queryResult, fieldNames)));
+            System.out.println(String.join(",",fieldNames));
+            tableEnv.insertInto(newTable, targetTableName, config);
+        }
+
     }
 
     public static String[] ignoreCase(Table queryResult, String[] fieldNames){
-        String[] newFieldNames = new String[fieldNames.length];
+        String[] newFieldNames = fieldNames.clone();
         String[] queryFieldNames = queryResult.getSchema().getColumnNames();
         for(int i=0; i<fieldNames.length; i++){
-            boolean flag = true;
             for(String queryFieldName : queryFieldNames){
                 if(fieldNames[i].equalsIgnoreCase(queryFieldName)){
                     newFieldNames[i] = queryFieldName;
                     continue;
                 }
-            }
-            if(flag){
-                newFieldNames[i] = fieldNames[i];
             }
         }
         return newFieldNames;
