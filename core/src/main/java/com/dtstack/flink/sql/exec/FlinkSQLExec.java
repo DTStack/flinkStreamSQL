@@ -92,7 +92,6 @@ public class FlinkSQLExec {
             newTable = queryResult.select(String.join(",", ignoreCase(queryFieldNames, sinkFieldNames)));
             tableEnv.insertInto(newTable, targetTableName, config);
         }
-
     }
 
     public static String[] ignoreCase(String[] queryFieldNames, String[] sinkFieldNames) {
