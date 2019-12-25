@@ -184,7 +184,7 @@ public class HbaseConfigUtils {
         }
 
         String keyTab = MapUtils.getString(kerberosConfig, KEY_KEY_TAB);
-        String principal = MapUtils.getString(kerberosConfig, KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL);
+        String principal = MapUtils.getString(kerberosConfig, KEY_PRINCIPAL);
 
         StringBuilder jaasSB = new StringBuilder("Client {\n" +
                 "  com.sun.security.auth.module.Krb5LoginModule required\n" +
