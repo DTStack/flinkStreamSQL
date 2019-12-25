@@ -37,19 +37,39 @@ hbase2.0
 |rowKey | hbase的rowkey关联的列信息|是||
 |parallelism | 并行度设置|否|1|
       
-  
+> kerberos 配置
+
+    *  hbase.security.authentication = 'kerberos', 
+    *  hbase.security.authorization = 'true',
+    *  hbase.master.kerberos.principal = 'hbase/cdh01@DTSTACK.COM',
+    *  hbase.master.keytab.file = '/Users/hbase.keytab',
+    *  hbase.regionserver.keytab.file = '/Users/hbase.keytab',
+    *  hbase.regionserver.kerberos.principal = 'hbase/cdh01@DTSTACK.COM'
+    *  (非必选)java.security.krb5.conf = '/etc/krb5.conf'
 ## 5.样例：
 ```
-CREATE TABLE MyResult(
-    cf:channel varchar,
-    cf:pv BIGINT
+
+ CREATE TABLE MyResult(
+    cf:info VARCHAR,
+    cf:name VARCHAR,
+    cf:channel varchar
  )WITH(
     type ='hbase',
-    zookeeperQuorum ='rdos1:2181',
-    tableName ='workerinfo',
-    rowKey ='cf:channel',
-    parallelism ='1',
-    zookeeperParent ='/hbase'
- )
+    zookeeperQuorum ='172.16.10.104:2181,172.16.10.224:2181,172.16.10.252:2181',
+    zookeeperParent ='/hbase',
+    tableName ='workerinfo01',
+    rowKey ='channel'
+
+    ---hbase.security.authentication = 'kerberos',
+    ---hbase.security.authorization = 'true',
+    ---hbase.master.kerberos.principal = 'hbase/cdh01@DTSTACK.COM',
+    ---hbase.master.keytab.file = '/Users/chuixue/Desktop/hbase.keytab',
+    ---hbase.regionserver.keytab.file = '/Users/chuixue/Desktop/hbase.keytab',
+    ---hbase.regionserver.kerberos.principal = 'hbase/cdh01@DTSTACK.COM'
+
+
+
+ );
+
 
  ```

@@ -24,10 +24,14 @@ import com.dtstack.flink.sql.table.AbsSideTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
+import scala.collection.mutable.HashMap$;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
@@ -72,6 +76,12 @@ public class HbaseSideParser extends AbsSideTableParser {
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         hbaseTableInfo.setPreRowKey(MathUtil.getBoolean(props.get(PRE_ROW_KEY.toLowerCase()), false));
         hbaseTableInfo.setCacheType((String) props.get(CACHE));
+
+        props.entrySet().stream()
+                .filter(entity -> entity.getKey().contains("."))
+                .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), String.valueOf(entity.getValue())))
+                .count();
+
         return hbaseTableInfo;
     }
 
