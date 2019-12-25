@@ -31,6 +31,7 @@ import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
+import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -96,8 +97,12 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
                 new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-aysnc"));
 
         Config config = new Config();
-        config.overrideConfig("hbase.zookeeper.quorum",hbaseSideTableInfo.getHost());
-        config.overrideConfig("hbase.zookeeper.znode.parent",hbaseSideTableInfo.getParent());
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
+        HbaseConfigUtils.loadKrb5Conf(hbaseSideTableInfo.getHbaseConfig());
+        hbaseSideTableInfo.getHbaseConfig().entrySet().forEach(entity -> {
+            config.overrideConfig(entity.getKey(), (String) entity.getValue());
+        });
 
         hBaseClient = new HBaseClient(config, executorService);
 

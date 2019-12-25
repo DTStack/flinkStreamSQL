@@ -78,8 +78,8 @@ public class HbaseSideParser extends AbsSideTableParser {
         hbaseTableInfo.setCacheType((String) props.get(CACHE));
 
         props.entrySet().stream()
-                .filter(entity -> entity.getKey().startsWith("hbase"))
-                .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), entity.getValue()))
+                .filter(entity -> entity.getKey().contains("."))
+                .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), String.valueOf(entity.getValue())))
                 .count();
 
         return hbaseTableInfo;

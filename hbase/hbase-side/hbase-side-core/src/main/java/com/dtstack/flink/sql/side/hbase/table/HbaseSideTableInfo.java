@@ -50,7 +50,7 @@ public class HbaseSideTableInfo extends SideTableInfo {
 
     private Map<String, String> columnNameFamily;
 
-    private Map<String,Object> hbaseConfig = Maps.newHashMap();
+    private Map<String, Object> hbaseConfig = Maps.newHashMap();
 
     private String tableName;
 
@@ -154,6 +154,9 @@ public class HbaseSideTableInfo extends SideTableInfo {
         return hbaseConfig;
     }
 
+    public void setHbaseConfig(Map<String, Object> hbaseConfig) {
+        this.hbaseConfig = hbaseConfig;
+    }
 
     @Override
     public void finish(){

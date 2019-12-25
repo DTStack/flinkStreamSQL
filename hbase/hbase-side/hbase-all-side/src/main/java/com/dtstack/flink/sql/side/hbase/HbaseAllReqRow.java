@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -170,13 +171,14 @@ public class HbaseAllReqRow extends AllReqRow {
         try {
             if (openKerberos) {
                 conf = HbaseConfigUtils.getHadoopConfiguration(hbaseSideTableInfo.getHbaseConfig());
-                conf.set("hbase.zookeeper.quorum", hbaseSideTableInfo.getHost());
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
                 String principal = HbaseConfigUtils.getPrincipal(hbaseSideTableInfo.getHbaseConfig());
                 String keytab = HbaseConfigUtils.getKeytab(hbaseSideTableInfo.getHbaseConfig());
 
                 UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, principal, keytab);
                 Configuration finalConf = conf;
-                userGroupInformation.doAs(new PrivilegedAction<Connection>() {
+                conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
                     @Override
                     public Connection run() {
                         try {
@@ -190,7 +192,8 @@ public class HbaseAllReqRow extends AllReqRow {
 
             } else {
                 conf = HbaseConfigUtils.getConfig(hbaseSideTableInfo.getHbaseConfig());
-                conf.set("hbase.zookeeper.quorum", hbaseSideTableInfo.getHost());
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
                 conn = ConnectionFactory.createConnection(conf);
             }
 
@@ -211,14 +214,14 @@ public class HbaseAllReqRow extends AllReqRow {
                 tmpCache.put(new String(r.getRow()), kv);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } finally {
             try {
                 conn.close();
                 table.close();
                 resultScanner.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                LOG.error("", e);
             }
         }
     }

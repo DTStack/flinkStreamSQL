@@ -54,6 +54,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String tableName;
     protected String[] rowkey;
     protected String registerTabName;
+    protected Map<String, Object> hbaseConfig;
 
     private int parallelism = -1;
 
@@ -71,6 +72,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.rowkey = hbaseTableInfo.getRowkey();
         this.columnNameFamily = hbaseTableInfo.getColumnNameFamily();
         this.registerTabName =  hbaseTableInfo.getName();
+        this.hbaseConfig = hbaseTableInfo.getHbaseConfig();
 
         Integer tmpSinkParallelism = hbaseTableInfo.getParallelism();
         if (tmpSinkParallelism != null) {
@@ -81,7 +83,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-
+        consumeDataStream(dataStream);
     }
 
     @Override
@@ -119,6 +121,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         builder.setRowkey(rowkey);
         builder.setColumnNames(fieldNames);
         builder.setColumnNameFamily(columnNameFamily);
+        builder.setHbaseConfig(hbaseConfig);
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);

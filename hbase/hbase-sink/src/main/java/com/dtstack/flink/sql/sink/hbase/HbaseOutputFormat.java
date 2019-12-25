@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.sink.hbase;
 
 import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.sink.hbase.utils.HbaseConfigUtils;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -33,9 +33,12 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +58,9 @@ public class HbaseOutputFormat extends MetricOutputFormat {
     private String tableName;
     private String[] columnNames;
     private String[] columnTypes;
-    private Map<String,String> columnNameFamily;
+    private Map<String, String> columnNameFamily;
+    private Map<String, Object> hbaseConfig;
+
 
     private String[] families;
     private String[] qualifiers;
@@ -73,29 +78,55 @@ public class HbaseOutputFormat extends MetricOutputFormat {
     @Override
     public void configure(Configuration parameters) {
         LOG.warn("---configure---");
-        conf = HBaseConfiguration.create();
-        conf.set("hbase.zookeeper.quorum", host);
-        if(zkParent != null && !"".equals(zkParent)){
-            conf.set("zookeeper.znode.parent", zkParent);
+        boolean openKerberos = HbaseConfigUtils.openKerberos(hbaseConfig);
+        try {
+            if (openKerberos) {
+                conf = HbaseConfigUtils.getHadoopConfiguration(hbaseConfig);
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
+                String principal = HbaseConfigUtils.getPrincipal(hbaseConfig);
+                String keytab = HbaseConfigUtils.getKeytab(hbaseConfig);
+
+                UserGroupInformation userGroupInformation = null;
+
+                userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, principal, keytab);
+                org.apache.hadoop.conf.Configuration finalConf = conf;
+                conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
+                    @Override
+                    public Connection run() {
+                        try {
+                            return ConnectionFactory.createConnection(finalConf);
+                        } catch (IOException e) {
+                            LOG.error("Get connection fail with config:{}", finalConf);
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+            } else {
+                conf = HbaseConfigUtils.getConfig(hbaseConfig);
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
+                conn = ConnectionFactory.createConnection(conf);
+            }
+        } catch (IOException e) {
+            LOG.error("", e);
         }
-        LOG.warn("---configure end ---");
     }
 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         LOG.warn("---open---");
-        conn = ConnectionFactory.createConnection(conf);
         table = conn.getTable(TableName.valueOf(tableName));
         LOG.warn("---open end(get table from hbase) ---");
         initMetric();
     }
 
     @Override
-    public void writeRecord(Tuple2 tuple2)  {
+    public void writeRecord(Tuple2 tuple2) {
 
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
-        if(!retract){
+        if (!retract) {
             //FIXME 暂时不处理hbase删除操作--->hbase要求有key,所有认为都是可以执行update查找
             return;
         }
@@ -103,7 +134,7 @@ public class HbaseOutputFormat extends MetricOutputFormat {
         Row record = tupleTrans.getField(1);
         List<String> rowKeyValues = getRowKeyValues(record);
         // all rowkey not null
-        if (rowKeyValues.size() != rowkey.length ) {
+        if (rowKeyValues.size() != rowkey.length) {
             LOG.error("row key value must not null,record is ..", record);
             outDirtyRecords.inc();
             return;
@@ -111,7 +142,7 @@ public class HbaseOutputFormat extends MetricOutputFormat {
 
         String key = StringUtils.join(rowKeyValues, "-");
         Put put = new Put(key.getBytes());
-        for(int i = 0; i < record.getArity(); ++i) {
+        for (int i = 0; i < record.getArity(); ++i) {
             Object fieldVal = record.getField(i);
             if (fieldVal == null) {
                 continue;
@@ -168,13 +199,14 @@ public class HbaseOutputFormat extends MetricOutputFormat {
 
     @Override
     public void close() throws IOException {
-        if(conn != null) {
+        if (conn != null) {
             conn.close();
             conn = null;
         }
     }
 
-    private HbaseOutputFormat() {}
+    private HbaseOutputFormat() {
+    }
 
     public static HbaseOutputFormatBuilder buildHbaseOutputFormat() {
         return new HbaseOutputFormatBuilder();
@@ -193,7 +225,7 @@ public class HbaseOutputFormat extends MetricOutputFormat {
             return this;
         }
 
-        public HbaseOutputFormatBuilder setZkParent(String parent){
+        public HbaseOutputFormatBuilder setZkParent(String parent) {
             format.zkParent = parent;
             return this;
         }
@@ -223,6 +255,12 @@ public class HbaseOutputFormat extends MetricOutputFormat {
             format.columnNameFamily = columnNameFamily;
             return this;
         }
+
+        public HbaseOutputFormatBuilder setHbaseConfig(Map<String, Object> hbaseConfig) {
+            format.hbaseConfig = hbaseConfig;
+            return this;
+        }
+
 
         public HbaseOutputFormat finish() {
             Preconditions.checkNotNull(format.host, "zookeeperQuorum should be specified");

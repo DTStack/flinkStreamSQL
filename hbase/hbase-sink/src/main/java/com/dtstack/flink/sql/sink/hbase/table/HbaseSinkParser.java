@@ -66,6 +66,12 @@ public class HbaseSinkParser extends AbsTableParser {
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
         hbaseTableInfo.setRowkey(rk.split(","));
+
+        props.entrySet().stream()
+                .filter(entity -> entity.getKey().contains("."))
+                .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), entity.getValue()))
+                .count();
+
         return hbaseTableInfo;
     }
 

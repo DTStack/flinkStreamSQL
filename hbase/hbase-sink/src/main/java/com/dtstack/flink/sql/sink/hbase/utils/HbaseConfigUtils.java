@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.side.hbase.utils;
+package com.dtstack.flink.sql.sink.hbase.utils;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -45,14 +45,14 @@ public class HbaseConfigUtils {
 
     private final static String AUTHENTICATION_TYPE = "Kerberos";
     private final static String KEY_HBASE_SECURITY_AUTHENTICATION = "hbase.security.authentication";
-    private final static String KEY_HBASE_SECURITY_AUTHORIZATION =  "hbase.security.authorization";
+    private final static String KEY_HBASE_SECURITY_AUTHORIZATION = "hbase.security.authorization";
     private final static String KEY_HBASE_MASTER_KERBEROS_PRINCIPAL = "hbase.master.kerberos.principal";
     private final static String KEY_HBASE_MASTER_KEYTAB_FILE = "hbase.master.keytab.file";
     private final static String KEY_HBASE_REGIONSERVER_KEYTAB_FILE = "hbase.regionserver.keytab.file";
     private final static String KEY_HBASE_REGIONSERVER_KERBEROS_PRINCIPAL = "hbase.regionserver.kerberos.principal";
+
     public final static String KEY_HBASE_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
     public final static String KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM = "hbase.zookeeper.znode.parent";
-
 
     private static final String KEY_JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf";
 
