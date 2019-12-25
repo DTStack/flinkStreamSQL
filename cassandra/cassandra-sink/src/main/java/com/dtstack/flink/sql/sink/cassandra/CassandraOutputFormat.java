@@ -48,7 +48,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -69,7 +69,7 @@ import java.util.ArrayList;
  * @see Tuple
  * @see DriverManager
  */
-public class CassandraOutputFormat extends MetricOutputFormat {
+public class CassandraOutputFormat extends DtRichOutputFormat {
     private static final long serialVersionUID = -7994311331389155692L;
 
     private static final Logger LOG = LoggerFactory.getLogger(CassandraOutputFormat.class);

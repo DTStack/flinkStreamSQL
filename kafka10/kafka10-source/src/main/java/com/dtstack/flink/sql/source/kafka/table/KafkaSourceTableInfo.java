@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.source.kafka.table;
 
+import com.dtstack.flink.sql.format.FormatType;
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import com.google.common.base.Preconditions;
 
@@ -62,7 +63,7 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
     private Boolean topicIsPattern = false;
 
-    private String sourceDataType;
+    private String sourceDataType = FormatType.DT_NEST.name();
 
     private String schemaString;
 

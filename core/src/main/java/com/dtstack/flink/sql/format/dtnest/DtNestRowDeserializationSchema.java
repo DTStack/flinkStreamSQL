@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.source;
+package com.dtstack.flink.sql.format.dtnest;
 
 import com.dtstack.flink.sql.table.TableInfo;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -31,7 +32,6 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.Arra
 import org.apache.flink.types.Row;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -40,13 +40,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *   source data parse to json format
+ * source data parse to json format
  *
  * Date: 2019/12/12
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
-public class JsonDataParser implements Serializable {
+public class DtNestRowDeserializationSchema extends AbstractDeserializationSchema<Row> {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -57,17 +58,17 @@ public class JsonDataParser implements Serializable {
     private final TypeInformation<?>[] fieldTypes;
     private List<TableInfo.FieldExtraInfo> fieldExtraInfos;
 
-    public JsonDataParser(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
+    public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
         this.rowAndFieldMapping = rowAndFieldMapping;
         this.fieldExtraInfos = fieldExtraInfos;
     }
 
-
-    public Row parseData(byte[] data) throws IOException {
-        JsonNode root = objectMapper.readTree(data);
-        parseTree(root, null);
+    @Override
+    public Row deserialize(byte[] message) throws IOException {
+        JsonNode root = objectMapper.readTree(message);
+        this.parseTree(root, null);
         Row row = new Row(fieldNames.length);
 
         try {
@@ -170,4 +171,6 @@ public class JsonDataParser implements Serializable {
             }
         }
     }
+
+
 }

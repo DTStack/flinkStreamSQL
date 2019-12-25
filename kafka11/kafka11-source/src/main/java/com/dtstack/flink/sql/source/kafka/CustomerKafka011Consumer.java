@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
-import com.dtstack.flink.sql.format.AbsDeserialization;
+import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
@@ -48,16 +48,16 @@ public class CustomerKafka011Consumer extends FlinkKafkaConsumer011<Row> {
 
     private static final long serialVersionUID = -2265366268827807739L;
 
-    private CustomerJsonDeserialization customerJsonDeserialization;
+    private CustomerJsonDeserializationSchema customerJsonDeserialization;
 
-    public CustomerKafka011Consumer(String topic, AbsDeserialization<Row> valueDeserializer, Properties props) {
+    public CustomerKafka011Consumer(String topic, DtNestRowDeserializationSchema<Row> valueDeserializer, Properties props) {
         super(Arrays.asList(topic.split(",")), valueDeserializer, props);
-        this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
+        this.customerJsonDeserialization = (CustomerJsonDeserializationSchema) valueDeserializer;
     }
 
-    public CustomerKafka011Consumer(Pattern subscriptionPattern, AbsDeserialization<Row> valueDeserializer, Properties props) {
+    public CustomerKafka011Consumer(Pattern subscriptionPattern, DtNestRowDeserializationSchema<Row> valueDeserializer, Properties props) {
         super(subscriptionPattern, valueDeserializer, props);
-        this.customerJsonDeserialization = (CustomerJsonDeserialization) valueDeserializer;
+        this.customerJsonDeserialization = (CustomerJsonDeserializationSchema) valueDeserializer;
     }
 
     @Override

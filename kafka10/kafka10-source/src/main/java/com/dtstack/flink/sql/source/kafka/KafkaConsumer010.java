@@ -44,18 +44,18 @@ import java.util.regex.Pattern;
  * @author xuchao
  */
 
-public class CustomerKafkaConsumer010 extends FlinkKafkaConsumer010<Row> {
+public class KafkaConsumer010 extends FlinkKafkaConsumer010<Row> {
 
     private static final long serialVersionUID = 4873757508981691375L;
 
     private DeserializationMetricWrapper deserializationMetricWrapper;
 
-    public CustomerKafkaConsumer010(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
+    public KafkaConsumer010(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
         super(Arrays.asList(topic.split(",")), deserializationMetricWrapper, props);
         this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
-    public CustomerKafkaConsumer010(Pattern subscriptionPattern, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
+    public KafkaConsumer010(Pattern subscriptionPattern, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
         super(subscriptionPattern, deserializationMetricWrapper, props);
         this.deserializationMetricWrapper = deserializationMetricWrapper;
     }

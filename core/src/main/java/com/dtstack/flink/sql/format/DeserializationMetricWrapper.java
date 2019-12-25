@@ -45,7 +45,7 @@ public class DeserializationMetricWrapper extends AbstractDeserializationSchema<
 
     private static int dataPrintFrequency = 1000;
 
-    private transient DeserializationSchema<Row> deserializationSchema;
+    private DeserializationSchema<Row> deserializationSchema;
 
     private transient RuntimeContext runtimeContext;
 

@@ -19,23 +19,22 @@
 package com.dtstack.flink.sql.sink.kafka.table;
 
 import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.google.common.base.Preconditions;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
 /**
- *
  * Date: 2018/12/18
  * Company: www.dtstack.com
  *
  * @author DocLi
- *
  * @modifyer maqi
- *
  */
 public class KafkaSinkTableInfo extends TargetTableInfo {
     //version
-    private static final String CURR_TYPE = "kafka10";
+    private static final String CURR_TYPE = "kafka09";
 
     public KafkaSinkTableInfo() {
         super.setType(CURR_TYPE);
@@ -47,9 +46,9 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
 
     private String bootstrapServers;
 
-    public Map<String,String> kafkaParam = new HashMap<String,String>();
-
     private String topic;
+
+    public Map<String,String> kafkaParam = new HashMap<String,String>();
 
 
     public void addKafkaParam(String key,String value){
@@ -63,7 +62,6 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
     public Set<String> getKafkaParamKeys(){
         return kafkaParam.keySet();
     }
-
 
     public String getBootstrapServers() {
         return bootstrapServers;
@@ -81,18 +79,16 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
         this.topic = topic;
     }
 
-
     @Override
     public boolean check() {
-        com.google.common.base.Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
-        com.google.common.base.Preconditions.checkNotNull(topic, "kafka of topic is required");
-        //Preconditions.checkNotNull(kafkaParam.get("groupId"), "kafka of groupId is required");
+        Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
+        Preconditions.checkNotNull(topic, "kafka of topic is required");
         return false;
     }
 
     @Override
     public String getType() {
+//        return super.getType() + SOURCE_SUFFIX;
         return super.getType();
     }
-
 }

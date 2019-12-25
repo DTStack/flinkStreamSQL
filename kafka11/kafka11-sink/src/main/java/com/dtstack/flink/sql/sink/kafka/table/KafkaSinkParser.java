@@ -23,8 +23,8 @@ import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
+
 /**
- *
  * Date: 2018/12/18
  * Company: www.dtstack.com
  * @author DocLi
@@ -35,32 +35,23 @@ import java.util.Map;
 public class KafkaSinkParser extends AbsTableParser {
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        KafkaSinkTableInfo kafka11SinkTableInfo = new KafkaSinkTableInfo();
-        kafka11SinkTableInfo.setName(tableName);
-        parseFieldsInfo(fieldsInfo, kafka11SinkTableInfo);
-        kafka11SinkTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase())));
+        KafkaSinkTableInfo kafka10SinkTableInfo = new KafkaSinkTableInfo();
+        kafka10SinkTableInfo.setName(tableName);
+        parseFieldsInfo(fieldsInfo, kafka10SinkTableInfo);
 
-        if (props.get(KafkaSinkTableInfo.SINK_DATA_TYPE) != null) {
-            kafka11SinkTableInfo.setSinkDataType(props.get(KafkaSinkTableInfo.SINK_DATA_TYPE).toString());
-        }
 
-//        if (props.get(KafkaSinkTableInfo.FIELD_DELINITER) != null) {
-//            kafka11SinkTableInfo.setFieldDelimiter(props.get(KafkaSinkTableInfo.FIELD_DELINITER).toString());
-//        }
-
-        kafka11SinkTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSinkTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
-        kafka11SinkTableInfo.setTopic(MathUtil.getString(props.get(KafkaSinkTableInfo.TOPIC_KEY.toLowerCase())));
+        kafka10SinkTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSinkTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
+        kafka10SinkTableInfo.setTopic(MathUtil.getString(props.get(KafkaSinkTableInfo.TOPIC_KEY.toLowerCase())));
 
         Integer parallelism = MathUtil.getIntegerVal(props.get(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase()));
-        kafka11SinkTableInfo.setParallelism(parallelism);
+        kafka10SinkTableInfo.setParallelism(parallelism);
 
         for (String key : props.keySet()) {
             if (!key.isEmpty() && key.startsWith("kafka.")) {
-                kafka11SinkTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
+                kafka10SinkTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
             }
         }
-        kafka11SinkTableInfo.check();
-
-        return kafka11SinkTableInfo;
+        kafka10SinkTableInfo.check();
+        return kafka10SinkTableInfo;
     }
 }

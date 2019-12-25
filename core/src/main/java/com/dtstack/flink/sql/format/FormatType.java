@@ -6,5 +6,5 @@ package com.dtstack.flink.sql.format;
  * create: 2019/12/24
  */
 public enum FormatType {
-    JSON, AVRO, CSV
+    DT_NEST, JSON, AVRO, CSV
 }

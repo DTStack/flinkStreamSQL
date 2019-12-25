@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -45,7 +45,7 @@ import java.util.Set;
  * author: jingzhen@dtstack.com
  * date: 2017-6-29
  */
-public class HbaseOutputFormat extends MetricOutputFormat {
+public class HbaseOutputFormat extends DtRichOutputFormat {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseOutputFormat.class);
 

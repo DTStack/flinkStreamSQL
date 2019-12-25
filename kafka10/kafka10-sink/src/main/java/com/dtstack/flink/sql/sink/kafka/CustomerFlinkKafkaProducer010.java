@@ -21,6 +21,7 @@ import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.formats.json.JsonRowSerializationSchema;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.MeterView;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
@@ -37,11 +38,11 @@ import java.util.Properties;
  */
 public class CustomerFlinkKafkaProducer010<Row> extends FlinkKafkaProducer010<Row> {
 
-	CustomerJsonRowSerializationSchema schema;
+	JsonRowSerializationSchema schema;
 
 	public CustomerFlinkKafkaProducer010(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig) {
 		super(topicId, serializationSchema, producerConfig);
-		this.schema = (CustomerJsonRowSerializationSchema) serializationSchema;
+		this.schema = (JsonRowSerializationSchema) serializationSchema;
 	}
 
 	@Override

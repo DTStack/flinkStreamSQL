@@ -17,8 +17,8 @@
  */
 package com.dtstack.flink.sql.source.serversocket;
 
-import com.dtstack.flink.sql.format.AbsDeserialization;
-import com.dtstack.flink.sql.source.JsonDataParser;
+import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
+import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.source.serversocket.table.ServersocketSourceTableInfo;
 import com.dtstack.flink.sql.table.TableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -44,10 +43,13 @@ import java.util.Map;
  *
  * @author maqi
  */
-public class CustomerSocketTextStreamFunction extends AbsDeserialization<Row> implements SourceFunction<Row> {
+public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 	private static final Logger LOG = LoggerFactory.getLogger(CustomerSocketTextStreamFunction.class);
 
-	protected JsonDataParser jsonDataParser;
+	protected DtNestRowDeserializationSchema deserializationSchema;
+
+	protected DeserializationMetricWrapper deserializationMetricWrapper;
+
 	/**
 	 * Default delay between successive connection attempts.
 	 */
@@ -67,7 +69,8 @@ public class CustomerSocketTextStreamFunction extends AbsDeserialization<Row> im
 	public CustomerSocketTextStreamFunction(ServersocketSourceTableInfo tableInfo, TypeInformation<Row> typeInfo,
 											Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
 		this.tableInfo = tableInfo;
-		this.jsonDataParser = new JsonDataParser(typeInfo, rowAndFieldMapping, fieldExtraInfos);
+		this.deserializationSchema = new DtNestRowDeserializationSchema(typeInfo, rowAndFieldMapping, fieldExtraInfos);
+		this.deserializationMetricWrapper = new DeserializationMetricWrapper(typeInfo, deserializationSchema);
 	}
 
 	@Override
@@ -95,7 +98,7 @@ public class CustomerSocketTextStreamFunction extends AbsDeserialization<Row> im
 								record = record.substring(0, record.length() - 1);
 							}
 							try {
-								Row row = jsonDataParser.parseData(record.getBytes());
+								Row row = deserializationMetricWrapper.deserialize(record.getBytes());
 								ctx.collect(row);
 							} catch (Exception e) {
 								LOG.error("parseData error ", e);
@@ -123,7 +126,7 @@ public class CustomerSocketTextStreamFunction extends AbsDeserialization<Row> im
 		// collect trailing data
 		if (buffer.length() > 0) {
 			try {
-				Row row = jsonDataParser.parseData(buffer.toString().getBytes());
+				Row row = deserializationMetricWrapper.deserialize(buffer.toString().getBytes());
 				ctx.collect(row);
 			} catch (Exception e) {
 				LOG.error("parseData error ", e);
@@ -143,9 +146,4 @@ public class CustomerSocketTextStreamFunction extends AbsDeserialization<Row> im
 		}
 	}
 
-	@Override
-	public Row deserialize(byte[] message) throws IOException {
-		// no use
-		return null;
-	}
 }

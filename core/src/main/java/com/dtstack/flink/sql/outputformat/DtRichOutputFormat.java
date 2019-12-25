@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.dtstack.flink.sql.sink;
+package com.dtstack.flink.sql.outputformat;
 
 import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -28,7 +28,7 @@ import org.apache.flink.metrics.MeterView;
 /**
  * Created by sishu.yss on 2018/11/28.
  */
-public abstract  class MetricOutputFormat extends  RichOutputFormat<Tuple2>{
+public abstract  class DtRichOutputFormat extends  RichOutputFormat<Tuple2>{
 
      protected  transient Counter outRecords;
 
