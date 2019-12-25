@@ -48,7 +48,21 @@
   * LRU:
     * cacheSize: 缓存的条目数量
     * cacheTTLMs:缓存的过期时间(ms)
-
+> kerberos 配置
+  * ALL模式
+    *  hbase.security.authentication = 'kerberos', 
+    *  hbase.security.authorization = 'true',
+    *  hbase.master.kerberos.principal = 'hbase/cdh01@DTSTACK.COM',
+    *  hbase.master.keytab.file = '/Users/hbase.keytab',
+    *  hbase.regionserver.keytab.file = '/Users/hbase.keytab',
+    *  hbase.regionserver.kerberos.principal = 'hbase/cdh01@DTSTACK.COM'
+    *  (非必选)java.security.krb5.conf = '/etc/krb5.conf'
+  * LRU/NONE模式	
+    *   hbase.security.auth.enable= 'true',
+    *   hbase.security.authentication='kerberos',
+    *   hbase.sasl.clientconfig =  'Client',
+    *   hbase.kerberos.regionserver.principal='hbase/_HOST@TDH',
+    *   (非必选)java.security.krb5.conf = '/etc/krb5.conf'
 ## 4.样例
 ```
 CREATE TABLE sideTable(
