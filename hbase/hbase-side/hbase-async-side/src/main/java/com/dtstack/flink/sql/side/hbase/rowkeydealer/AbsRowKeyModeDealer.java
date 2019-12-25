@@ -22,13 +22,16 @@ package com.dtstack.flink.sql.side.hbase.rowkeydealer;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.cache.AbsSideCache;
+import com.dtstack.flink.sql.side.hbase.HbaseAsyncReqRow;
 import org.apache.calcite.sql.JoinType;
 import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.hbase.async.HBaseClient;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -86,11 +89,10 @@ public abstract class AbsRowKeyModeDealer {
 
         List<Object> sideInputList = (List<Object>) sideInput;
         Row row = new Row(outFieldInfoList.size());
+
         for(Map.Entry<Integer, Integer> entry : inFieldIndex.entrySet()){
             Object obj = input.getField(entry.getValue());
-            if(obj instanceof Timestamp){
-                obj = ((Timestamp)obj).getTime();
-            }
+            obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
 
@@ -103,6 +105,16 @@ public abstract class AbsRowKeyModeDealer {
         }
 
         return row;
+    }
+
+    protected Object convertTimeIndictorTypeInfo(Integer index, Object obj) {
+        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(outFieldInfoList.get(index).getTypeInformation().getClass());
+
+        //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
+        if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+            obj = Timestamp.valueOf(((LocalDateTime) obj));
+        }
+        return obj;
     }
 
     public abstract void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<Row> resultFuture,
