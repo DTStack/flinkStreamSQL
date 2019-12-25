@@ -84,7 +84,6 @@ public class FlinkSQLExec {
             tableEnv.insertInto(newTable, targetTableName, config);
         }catch (Exception ex){
             newTable = queryResult.select( String.join(",", ignoreCase(queryResult, fieldNames)));
-            System.out.println(String.join(",",fieldNames));
             tableEnv.insertInto(newTable, targetTableName, config);
         }
 
