@@ -32,6 +32,7 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
@@ -257,11 +258,11 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         if (info.getTypeClass().equals(Types.BOOLEAN.getTypeClass())) {
             return node.asBoolean();
         } else if (info.getTypeClass().equals(Types.STRING.getTypeClass())) {
-            String value = node.asText();
-            if ("".equals(value)){
-                value = node.toString();
+            if (node instanceof ObjectNode) {
+                return node.toString();
+            } else {
+                return node.asText();
             }
-            return value;
         }  else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
             return Date.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
