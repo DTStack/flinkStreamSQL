@@ -111,7 +111,7 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         DataStream<Row> mapDataStream = dataStream.map((Tuple2<Boolean, Row> record) -> record.f1).returns(getOutputType().getTypeAt(1)).setParallelism(parallelism);
-        mapDataStream.addSink(kafkaProducer011).name(TableConnectorUtils.generateRuntimeName(FlinkKafkaProducer011.class, getFieldNames()));
+        mapDataStream.addSink(kafkaProducer011).name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));
     }
 
     @Override
