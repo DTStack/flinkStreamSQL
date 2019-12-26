@@ -43,15 +43,22 @@ public abstract class AbstractKafkaConsumerFactory {
 
     protected abstract FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Properties props);
 
-    protected DeserializationSchema<Row> createDeserializationSchema(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation) {
+    protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Calculate calculate) {
+        return new KafkaDeserializationMetricWrapper(typeInformation, createDeserializationSchema(kafkaSourceTableInfo, typeInformation), calculate);
+    }
+
+    private DeserializationSchema<Row> createDeserializationSchema(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation) {
         DeserializationSchema<Row> deserializationSchema = null;
         if (FormatType.DT_NEST.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
             deserializationSchema = new DtNestRowDeserializationSchema(typeInformation, kafkaSourceTableInfo.getPhysicalFields(), kafkaSourceTableInfo.getFieldExtraInfoList());
         } else if (FormatType.JSON.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
-            if (StringUtils.isBlank(kafkaSourceTableInfo.getSchemaString())) {
-                throw new IllegalArgumentException("sourceDataType:" + FormatType.JSON.name() + " must set schemaString（JSON Schema）");
+            if (StringUtils.isNotBlank(kafkaSourceTableInfo.getSchemaString())) {
+                deserializationSchema = new JsonRowDeserializationSchema(kafkaSourceTableInfo.getSchemaString());
+            } else if (typeInformation != null && typeInformation.getArity() != 0) {
+                deserializationSchema = new JsonRowDeserializationSchema(typeInformation);
+            } else {
+                throw new IllegalArgumentException("sourceDataType:" + FormatType.JSON.name() + " must set schemaString（JSON Schema）or TypeInformation<Row>");
             }
-            deserializationSchema = new JsonRowDeserializationSchema(kafkaSourceTableInfo.getSchemaString());
         } else if (FormatType.CSV.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
             if (StringUtils.isBlank(kafkaSourceTableInfo.getFieldDelimiter())) {
                 throw new IllegalArgumentException("sourceDataType:" + FormatType.CSV.name() + " must set fieldDelimiter");
@@ -70,10 +77,6 @@ public abstract class AbstractKafkaConsumerFactory {
             throw new UnsupportedOperationException("FormatType:" + kafkaSourceTableInfo.getSourceDataType());
         }
         return deserializationSchema;
-    }
-
-    protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Calculate calculate) {
-        return new KafkaDeserializationMetricWrapper(typeInformation, createDeserializationSchema(kafkaSourceTableInfo, typeInformation), calculate);
     }
 
 }

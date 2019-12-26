@@ -33,10 +33,10 @@ import java.util.Properties;
  * @author: toutian
  * create: 2019/12/24
  */
-public class KafkaProducer010Factory extends AbstractKafkaProducerFactory {
+public class KafkaProducer09Factory extends AbstractKafkaProducerFactory {
 
     @Override
     public RichSinkFunction<Row> createKafkaProducer(KafkaSinkTableInfo kafkaSinkTableInfo, TypeInformation<Row> typeInformation, Properties properties, Optional<FlinkKafkaPartitioner<Row>> partitioner) {
-        return new KafkaProducer010(kafkaSinkTableInfo.getTopic(), createSerializationMetricWrapper(kafkaSinkTableInfo, typeInformation), properties, partitioner);
+        return new KafkaProducer09(kafkaSinkTableInfo.getTopic(), createSerializationMetricWrapper(kafkaSinkTableInfo, typeInformation), properties, partitioner);
     }
 }

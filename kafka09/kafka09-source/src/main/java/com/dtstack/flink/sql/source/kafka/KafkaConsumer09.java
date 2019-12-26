@@ -46,8 +46,6 @@ import java.util.regex.Pattern;
  */
 public class KafkaConsumer09 extends FlinkKafkaConsumer09<Row> {
 
-    private static final long serialVersionUID = 4873757508981691375L;
-
     private DeserializationMetricWrapper deserializationMetricWrapper;
 
     public KafkaConsumer09(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {

@@ -23,7 +23,7 @@ import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
 import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
@@ -43,9 +43,7 @@ import java.util.regex.Pattern;
  *
  * @author xuchao
  */
-public class KafkaConsumer011 extends FlinkKafkaConsumer010<Row> {
-
-    private static final long serialVersionUID = 4873757508981691375L;
+public class KafkaConsumer011 extends FlinkKafkaConsumer011<Row> {
 
     private DeserializationMetricWrapper deserializationMetricWrapper;
 

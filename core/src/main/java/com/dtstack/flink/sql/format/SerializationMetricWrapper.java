@@ -18,11 +18,13 @@
 
 package com.dtstack.flink.sql.format;
 
+import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.metrics.Counter;
+import org.apache.flink.metrics.Meter;
+import org.apache.flink.metrics.MeterView;
 import org.apache.flink.types.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -34,19 +36,23 @@ import org.slf4j.LoggerFactory;
  */
 public class SerializationMetricWrapper implements SerializationSchema<Row> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SerializationMetricWrapper.class);
-
     private SerializationSchema<Row> serializationSchema;
 
     private transient RuntimeContext runtimeContext;
+
+    protected transient Counter dtNumRecordsOut;
+
+    protected transient Meter dtNumRecordsOutRate;
+
 
     public SerializationMetricWrapper(SerializationSchema<Row> serializationSchema) {
         this.serializationSchema = serializationSchema;
     }
 
     public void initMetric() {
+        dtNumRecordsOut = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
+        dtNumRecordsOutRate = runtimeContext.getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(dtNumRecordsOut, 20));
     }
-
 
     @Override
     public byte[] serialize(Row element) {
@@ -60,6 +66,7 @@ public class SerializationMetricWrapper implements SerializationSchema<Row> {
     }
 
     protected void afterSerialize() {
+        dtNumRecordsOut.inc();
     }
 
     public RuntimeContext getRuntimeContext() {

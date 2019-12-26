@@ -17,13 +17,15 @@
  */
 package com.dtstack.flink.sql.sink.kafka;
 
-import com.dtstack.flink.sql.metric.MetricConstant;
+import com.dtstack.flink.sql.format.SerializationMetricWrapper;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.metrics.Counter;
-import org.apache.flink.metrics.MeterView;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer09;
+import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
+import org.apache.flink.types.Row;
+
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -33,26 +35,20 @@ import java.util.Properties;
  *
  * @author maqi
  */
-public class CustomerFlinkKafkaProducer09<Row> extends FlinkKafkaProducer09<Row> {
+public class KafkaProducer09 extends FlinkKafkaProducer09<Row> {
 
-	CustomerJsonRowSerializationSchema schema;
+    private SerializationMetricWrapper serializationMetricWrapper;
 
-	public CustomerFlinkKafkaProducer09(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig) {
-		super(topicId, serializationSchema, producerConfig);
-		this.schema = (CustomerJsonRowSerializationSchema) serializationSchema;
-	}
+    public KafkaProducer09(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig, Optional<FlinkKafkaPartitioner<Row>> customPartitioner) {
+        super(topicId, serializationSchema, producerConfig, customPartitioner.orElse(null));
+        this.serializationMetricWrapper = (SerializationMetricWrapper) serializationSchema;
+    }
 
-	@Override
-	public void open(Configuration configuration) {
-		producer = getKafkaProducer(this.producerConfig);
-
-		RuntimeContext ctx = getRuntimeContext();
-		Counter counter = ctx.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
-		MeterView meter = ctx.getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(counter, 20));
-
-		schema.setCounter(counter);
-
-		super.open(configuration);
-	}
+    @Override
+    public void open(Configuration configuration) {
+        RuntimeContext runtimeContext = getRuntimeContext();
+        serializationMetricWrapper.setRuntimeContext(runtimeContext);
+        super.open(configuration);
+    }
 
 }

@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.kafka.table;
 
+import com.dtstack.flink.sql.format.FormatType;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.base.Preconditions;
 
@@ -45,6 +46,10 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
     public Map<String, String> kafkaParam = new HashMap<String, String>();
 
     private String topic;
+
+    private String schemaString;
+
+    private String fieldDelimiter;
 
     public void addKafkaParam(String key, String value) {
         kafkaParam.put(key, value);
@@ -75,6 +80,21 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
         this.topic = topic;
     }
 
+    public String getSchemaString() {
+        return schemaString;
+    }
+
+    public void setSchemaString(String schemaString) {
+        this.schemaString = schemaString;
+    }
+
+    public String getFieldDelimiter() {
+        return fieldDelimiter;
+    }
+
+    public void setFieldDelimiter(String fieldDelimiter) {
+        this.fieldDelimiter = fieldDelimiter;
+    }
 
     @Override
     public boolean check() {

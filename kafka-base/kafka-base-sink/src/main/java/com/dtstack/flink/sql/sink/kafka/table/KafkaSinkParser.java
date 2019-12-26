@@ -18,19 +18,19 @@
 
 package com.dtstack.flink.sql.sink.kafka.table;
 
+import com.dtstack.flink.sql.format.FormatType;
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
+
 /**
- *
  * Date: 2018/12/18
  * Company: www.dtstack.com
+ *
  * @author DocLi
- *
  * @modifyer maqi
- *
  */
 public class KafkaSinkParser extends AbsTableParser {
     @Override
@@ -43,6 +43,8 @@ public class KafkaSinkParser extends AbsTableParser {
 
         if (props.get(KafkaSinkTableInfo.SINK_DATA_TYPE) != null) {
             kafkaSinkTableInfo.setSinkDataType(props.get(KafkaSinkTableInfo.SINK_DATA_TYPE).toString());
+        } else {
+            kafkaSinkTableInfo.setSinkDataType(FormatType.JSON.name());
         }
 
         kafkaSinkTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSinkTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
