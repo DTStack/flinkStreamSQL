@@ -121,7 +121,7 @@ public class KuduAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = input;
+        Row inputRow = Row.copy(input);
         //scannerBuilder 设置为null重新加载过滤条件
         scannerBuilder = null;
         connKuDu();

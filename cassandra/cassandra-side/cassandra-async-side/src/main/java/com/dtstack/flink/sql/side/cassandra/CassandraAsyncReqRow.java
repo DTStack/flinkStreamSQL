@@ -161,7 +161,7 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = input;
+        Row inputRow = Row.copy(input);
         JsonArray inputParams = new JsonArray();
         StringBuffer stringBuffer = new StringBuffer();
         String sqlWhere = " where ";

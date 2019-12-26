@@ -117,7 +117,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = input;
+        Row inputRow = Row.copy(input);
         List<String> keyData = Lists.newLinkedList();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
