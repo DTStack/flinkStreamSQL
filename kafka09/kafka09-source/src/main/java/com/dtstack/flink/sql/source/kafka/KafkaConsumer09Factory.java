@@ -23,11 +23,13 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.types.Row;
 
+import java.io.Serializable;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
 /**
  * company: www.dtstack.com
+ *
  * @author: toutian
  * create: 2019/12/24
  */
@@ -37,9 +39,9 @@ public class KafkaConsumer09Factory extends AbstractKafkaConsumerFactory {
     public FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Properties props) {
         KafkaConsumer09 kafkaSrc = null;
         if (kafkaSourceTableInfo.getTopicIsPattern()) {
-            kafkaSrc = new KafkaConsumer09(Pattern.compile(kafkaSourceTableInfo.getTopic()), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (subscriptionState, tp) -> 0L), props);
+            kafkaSrc = new KafkaConsumer09(Pattern.compile(kafkaSourceTableInfo.getTopic()), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) (subscriptionState, tp) -> 0L), props);
         } else {
-            kafkaSrc = new KafkaConsumer09(kafkaSourceTableInfo.getTopic(), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (subscriptionState, tp) -> 0L), props);
+            kafkaSrc = new KafkaConsumer09(kafkaSourceTableInfo.getTopic(), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) (subscriptionState, tp) -> 0L), props);
         }
         return kafkaSrc;
     }

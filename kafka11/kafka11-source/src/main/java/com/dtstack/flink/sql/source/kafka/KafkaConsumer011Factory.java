@@ -24,6 +24,7 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.types.Row;
 import org.apache.kafka.common.requests.IsolationLevel;
 
+import java.io.Serializable;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
@@ -38,9 +39,9 @@ public class KafkaConsumer011Factory extends AbstractKafkaConsumerFactory {
     public FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Properties props) {
         KafkaConsumer011 kafkaSrc = null;
         if (kafkaSourceTableInfo.getTopicIsPattern()) {
-            kafkaSrc = new KafkaConsumer011(Pattern.compile(kafkaSourceTableInfo.getTopic()), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (subscriptionState, tp) -> subscriptionState.partitionLag(tp, IsolationLevel.READ_UNCOMMITTED)), props);
+            kafkaSrc = new KafkaConsumer011(Pattern.compile(kafkaSourceTableInfo.getTopic()), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) (subscriptionState, tp) -> subscriptionState.partitionLag(tp, IsolationLevel.READ_UNCOMMITTED)), props);
         } else {
-            kafkaSrc = new KafkaConsumer011(kafkaSourceTableInfo.getTopic(), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (subscriptionState, tp) -> subscriptionState.partitionLag(tp, IsolationLevel.READ_UNCOMMITTED)), props);
+            kafkaSrc = new KafkaConsumer011(kafkaSourceTableInfo.getTopic(), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) (subscriptionState, tp) -> subscriptionState.partitionLag(tp, IsolationLevel.READ_UNCOMMITTED)), props);
         }
         return kafkaSrc;
     }
