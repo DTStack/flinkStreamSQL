@@ -39,7 +39,6 @@ public class KafkaSinkParser extends AbsTableParser {
         kafkaSinkTableInfo.setName(tableName);
         kafkaSinkTableInfo.setType(MathUtil.getString(props.get(KafkaSinkTableInfo.TYPE_KEY.toLowerCase())));
         parseFieldsInfo(fieldsInfo, kafkaSinkTableInfo);
-        kafkaSinkTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase())));
 
         if (props.get(KafkaSinkTableInfo.SINK_DATA_TYPE) != null) {
             kafkaSinkTableInfo.setSinkDataType(props.get(KafkaSinkTableInfo.SINK_DATA_TYPE).toString());

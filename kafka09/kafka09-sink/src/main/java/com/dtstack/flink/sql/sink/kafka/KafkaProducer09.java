@@ -48,6 +48,7 @@ public class KafkaProducer09 extends FlinkKafkaProducer09<Row> {
     public void open(Configuration configuration) {
         RuntimeContext runtimeContext = getRuntimeContext();
         serializationMetricWrapper.setRuntimeContext(runtimeContext);
+        serializationMetricWrapper.initMetric();
         super.open(configuration);
     }
 
