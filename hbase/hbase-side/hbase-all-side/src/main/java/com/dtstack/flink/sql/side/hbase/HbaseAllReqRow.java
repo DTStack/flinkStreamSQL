@@ -217,9 +217,17 @@ public class HbaseAllReqRow extends AllReqRow {
             throw new RuntimeException(e);
         } finally {
             try {
-                conn.close();
-                table.close();
-                resultScanner.close();
+                if (null != conn) {
+                    conn.close();
+                }
+
+                if (null != table) {
+                    table.close();
+                }
+
+                if (null != resultScanner) {
+                    resultScanner.close();
+                }
             } catch (IOException e) {
                 LOG.error("", e);
             }
