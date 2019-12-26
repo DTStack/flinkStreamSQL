@@ -98,7 +98,7 @@ public class ExtendOutputFormat extends RetractJDBCOutputFormat {
         ResultSet rs = getDbConn().getMetaData().getColumns(null, getSchema(), getTableName(), null);
         while (rs.next()) {
             String columnName = rs.getString("COLUMN_NAME");
-            if (StringUtils.isNotBlank(columnName)) {
+            if (StringUtils.isNotBlank(columnName) && !getFullField().contains(columnName)) {
                 fullFieldAdd(columnName);
             }
         }
