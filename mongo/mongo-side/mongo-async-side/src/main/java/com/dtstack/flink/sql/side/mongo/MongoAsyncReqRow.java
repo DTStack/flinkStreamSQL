@@ -124,13 +124,13 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-
+        Row inputRow = input;
         BasicDBObject basicDBObject = new BasicDBObject();
         for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = inputRow.getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(input, resultFuture);
+                dealMissKey(inputRow, resultFuture);
                 return;
             }
             basicDBObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
@@ -154,12 +154,12 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             if (val != null) {
 
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     List<Row> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, jsonArray);
+                        Row row = fillData(inputRow, jsonArray);
                         rowList.add(row);
                     }
                     resultFuture.complete(rowList);
@@ -176,7 +176,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             @Override
             public void apply(final Document document) {
                 atomicInteger.incrementAndGet();
-                Row row = fillData(input, document);
+                Row row = fillData(inputRow, document);
                 if (openCache()) {
                     cacheContent.add(document);
                 }

@@ -121,6 +121,7 @@ public class KuduAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
+        Row inputRow = input;
         //scannerBuilder 设置为null重新加载过滤条件
         scannerBuilder = null;
         connKuDu();
@@ -128,9 +129,9 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         Schema schema = table.getSchema();
         //  @wenbaoup fix bug
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Object equalObj = input.getField(sideInfo.getEqualValIndex().get(i));
+            Object equalObj = inputRow.getField(sideInfo.getEqualValIndex().get(i));
             if (equalObj == null) {
-                dealMissKey(input, resultFuture);
+                dealMissKey(inputRow, resultFuture);
                 return;
             }
             //增加过滤条件
@@ -158,15 +159,15 @@ public class KuduAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(key);
             if (val != null) {
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     return;
                 } else if (ECacheContentType.SingleLine == val.getType()) {
-                    Row row = fillData(input, val);
+                    Row row = fillData(inputRow, val);
                     resultFuture.complete(Collections.singleton(row));
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     List<Row> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, jsonArray);
+                        Row row = fillData(inputRow, jsonArray);
                         rowList.add(row);
                     }
                     resultFuture.complete(rowList);
@@ -181,7 +182,7 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         List<Row> rowList = Lists.newArrayList();
         Deferred<RowResultIterator> data = asyncKuduScanner.nextRows();
         //从之前的同步修改为调用异步的Callback
-        data.addCallbackDeferring(new GetListRowCB(input, cacheContent, rowList, asyncKuduScanner, resultFuture, key));
+        data.addCallbackDeferring(new GetListRowCB(inputRow, cacheContent, rowList, asyncKuduScanner, resultFuture, key));
     }
 
 
