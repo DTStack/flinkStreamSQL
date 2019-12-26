@@ -34,6 +34,7 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessin
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.NullNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
@@ -268,6 +269,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         } else if (info.getTypeClass().equals(Types.STRING.getTypeClass())) {
             if (node instanceof ObjectNode) {
                 return node.toString();
+            } else if (node instanceof NullNode) {
+                return null;
             } else {
                 return node.asText();
             }

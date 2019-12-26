@@ -30,10 +30,7 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.TextNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.*;
 import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
@@ -260,6 +257,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         } else if (info.getTypeClass().equals(Types.STRING.getTypeClass())) {
             if (node instanceof ObjectNode) {
                 return node.toString();
+            } else if (node instanceof NullNode) {
+                return null;
             } else {
                 return node.asText();
             }
