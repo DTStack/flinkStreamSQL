@@ -19,6 +19,7 @@
   * 9.支持udaf
   * 10.支持谓词下移
   * 11.支持状态的ttl
+  * 12.支持hbase kerberos认证
   
  ## BUG修复：
   * 1.修复不能解析sql中orderby,union语法。
