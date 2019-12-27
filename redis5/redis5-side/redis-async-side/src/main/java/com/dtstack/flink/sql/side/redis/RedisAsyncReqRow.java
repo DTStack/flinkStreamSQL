@@ -172,18 +172,14 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                         }
                         try {
                             Row row = fillData(inputRow, keyValue);
-                            if (openCache()) {
-                                putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
-                            }
+                            dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
                             resultFuture.complete(Collections.singleton(row));
                         } catch (Exception e) {
                             dealFillDataError(resultFuture, e, inputRow);
                         }
                     } else {
                         dealMissKey(inputRow, resultFuture);
-                        if (openCache()) {
-                            putCache(key, CacheMissVal.getMissKeyObj());
-                        }
+                        dealCacheData(key,CacheMissVal.getMissKeyObj());
                     }
                 }
             });

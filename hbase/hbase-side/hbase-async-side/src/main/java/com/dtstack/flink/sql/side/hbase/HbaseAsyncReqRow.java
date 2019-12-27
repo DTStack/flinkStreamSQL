@@ -132,7 +132,6 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
                 dealMissKey(inputRow, resultFuture);
                 return;
             }
-
             refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
 

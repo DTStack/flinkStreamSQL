@@ -111,6 +111,12 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         }
     }
 
+    protected void dealCacheData(String key, CacheObj missKeyObj) {
+        if (openCache()) {
+            putCache(key, missKeyObj);
+        }
+    }
+
     @Override
     public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
         StreamRecordQueueEntry<Row> future = (StreamRecordQueueEntry<Row>)resultFuture;
