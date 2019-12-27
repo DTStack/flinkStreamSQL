@@ -135,14 +135,6 @@ public class RetractKafkaSink implements RetractStreamTableSink<Row>, IStreamSin
                     }
                 }).returns(getOutputType().getTypeAt(1)).setParallelism(parallelism);
 
-//        FlinkKafkaProducer011 flinkKafkaProducer011 = new FlinkKafkaProducer011<>(topic,
-//                new KeyedSerializationSchemaWrapper<>(serializationSchema),
-//                properties,
-//                partitioner, FlinkKafkaProducer011.Semantic.EXACTLY_ONCE, 10);
-//
-//        ds.addSink(flinkKafkaProducer011).name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));
-//
-
         kafkaTableSink.emitDataStream(ds);
     }
 
