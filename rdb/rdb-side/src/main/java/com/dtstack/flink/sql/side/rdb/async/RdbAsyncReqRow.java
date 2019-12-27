@@ -23,6 +23,8 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonArray;
@@ -38,6 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -76,12 +80,12 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-
+        Row inputRow = Row.copy(input);
         JsonArray inputParams = new JsonArray();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = inputRow.getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(input, resultFuture);
+                dealMissKey(inputRow, resultFuture);
                 return;
             }
             inputParams.add(equalObj);
@@ -93,12 +97,12 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             if (val != null) {
 
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     List<Row> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, jsonArray);
+                        Row row = fillData(inputRow, jsonArray);
                         rowList.add(row);
                     }
                     resultFuture.complete(rowList);
@@ -132,7 +136,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                     List<Row> rowList = Lists.newArrayList();
 
                     for (JsonArray line : rs.result().getResults()) {
-                        Row row = fillData(input, line);
+                        Row row = fillData(inputRow, line);
                         if (openCache()) {
                             cacheContent.add(line);
                         }
@@ -143,9 +147,9 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }
 
-                    resultFuture.complete(rowList);
+                    resultFuture.complete(Collections.unmodifiableCollection(rowList));
                 } else {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     if (openCache()) {
                         putCache(key, CacheMissVal.getMissKeyObj());
                     }
