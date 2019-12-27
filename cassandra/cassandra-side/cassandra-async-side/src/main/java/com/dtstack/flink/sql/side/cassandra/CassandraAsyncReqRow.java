@@ -161,16 +161,16 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-
+        Row inputRow = Row.copy(input);
         JsonArray inputParams = new JsonArray();
         StringBuffer stringBuffer = new StringBuffer();
         String sqlWhere = " where ";
 
         for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = inputRow.getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(input, resultFuture);
+                dealMissKey(inputRow, resultFuture);
                 return;
             }
             inputParams.add(equalObj);
@@ -194,12 +194,12 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
             if (val != null) {
 
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     List<Row> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, jsonArray);
+                        Row row = fillData(inputRow, jsonArray);
                         rowList.add(row);
                     }
                     resultFuture.complete(rowList);
@@ -240,7 +240,7 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
                     List<com.datastax.driver.core.Row> cacheContent = Lists.newArrayList();
                     List<Row> rowList = Lists.newArrayList();
                     for (com.datastax.driver.core.Row line : rows) {
-                        Row row = fillData(input, line);
+                        Row row = fillData(inputRow, line);
                         if (openCache()) {
                             cacheContent.add(line);
                         }
@@ -251,7 +251,7 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }
                 } else {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     if (openCache()) {
                         putCache(key, CacheMissVal.getMissKeyObj());
                     }
