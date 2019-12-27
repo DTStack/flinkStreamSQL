@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.sink;
 
@@ -31,6 +30,7 @@ import org.apache.flink.table.sinks.TableSink;
  * Loads jar and initializes the object according to the specified sink type
  * Date: 2017/3/10
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -47,7 +47,7 @@ public class StreamSinkFactory {
 
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {
             Class<?> targetParser = cl.loadClass(className);
-            if(!AbsTableParser.class.isAssignableFrom(targetParser)){
+            if (!AbsTableParser.class.isAssignableFrom(targetParser)) {
                 throw new RuntimeException("class " + targetParser.getName() + " not subClass of AbsTableParser");
             }
             return targetParser.asSubclass(AbsTableParser.class).newInstance();
@@ -55,14 +55,19 @@ public class StreamSinkFactory {
     }
 
     public static TableSink getTableSink(TargetTableInfo targetTableInfo, String localSqlRootDir) throws Exception {
+
         String pluginType = targetTableInfo.getType();
         String pluginJarDirPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), localSqlRootDir);
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
-        String className = PluginUtil.getGenerClassName(typeNoVersion, CURR_TYPE);
-
+        String className;
+        if ("true".equalsIgnoreCase(targetTableInfo.getIsExactlyOnce())) {
+            className = PluginUtil.getRetractGenerClassName(typeNoVersion, CURR_TYPE);
+        } else {
+            className = PluginUtil.getGenerClassName(typeNoVersion, CURR_TYPE);
+        }
         return ClassLoaderManager.newInstance(pluginJarDirPath, (cl) -> {
             Class<?> sinkClass = cl.loadClass(className);
-            if(!IStreamSinkGener.class.isAssignableFrom(sinkClass)){
+            if (!IStreamSinkGener.class.isAssignableFrom(sinkClass)) {
                 throw new RuntimeException("class " + sinkClass + " not subClass of IStreamSinkGener");
             }
             IStreamSinkGener streamSinkGener = sinkClass.asSubclass(IStreamSinkGener.class).newInstance();
