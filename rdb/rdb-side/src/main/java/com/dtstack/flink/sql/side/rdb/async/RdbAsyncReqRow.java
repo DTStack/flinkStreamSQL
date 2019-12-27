@@ -76,12 +76,12 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-
+        Row inputRow = Row.copy(input);
         JsonArray inputParams = new JsonArray();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = inputRow.getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(input, resultFuture);
+                dealMissKey(inputRow, resultFuture);
                 return;
             }
             inputParams.add(equalObj);
@@ -91,17 +91,20 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         if (openCache()) {
             CacheObj val = getFromCache(key);
             if (val != null) {
-
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<Row> rowList = Lists.newArrayList();
-                    for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, jsonArray);
-                        rowList.add(row);
+                    try {
+                        List<Row> rowList = Lists.newArrayList();
+                        for (Object jsonArray : (List) val.getContent()) {
+                            Row row = fillData(inputRow, jsonArray);
+                            rowList.add(row);
+                        }
+                        resultFuture.complete(rowList);
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, inputRow);
                     }
-                    resultFuture.complete(rowList);
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
                 }
@@ -129,23 +132,25 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
                 int resultSize = rs.result().getResults().size();
                 if (resultSize > 0) {
-                    List<Row> rowList = Lists.newArrayList();
-
-                    for (JsonArray line : rs.result().getResults()) {
-                        Row row = fillData(input, line);
-                        if (openCache()) {
-                            cacheContent.add(line);
+                    try {
+                        List<Row> rowList = Lists.newArrayList();
+                        for (JsonArray line : rs.result().getResults()) {
+                            Row row = fillData(inputRow, line);
+                            if (openCache()) {
+                                cacheContent.add(line);
+                            }
+                            rowList.add(row);
                         }
-                        rowList.add(row);
-                    }
+                        if (openCache()) {
+                            putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
+                        }
 
-                    if (openCache()) {
-                        putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
+                        resultFuture.complete(rowList);
+                    } catch (Exception e){
+                        dealFillDataError(resultFuture, e, inputRow);
                     }
-
-                    resultFuture.complete(rowList);
                 } else {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     if (openCache()) {
                         putCache(key, CacheMissVal.getMissKeyObj());
                     }

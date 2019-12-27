@@ -47,6 +47,8 @@ public class MetricConstant {
 
     public static final String DT_NUM_DIRTY_RECORDS_OUT = "dtNumDirtyRecordsOut";
 
+    public static final String DT_NUM_SIDE_PARSE_ERROR_RECORDS = "dtNumSideParseErrorRecords";
+
     public static final String DT_NUM_RECORDS_OUT_RATE = "dtNumRecordsOutRate";
 
     public static final String DT_EVENT_DELAY_GAUGE = "dtEventDelay";

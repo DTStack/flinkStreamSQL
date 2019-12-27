@@ -21,15 +21,19 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.side.cache.AbsSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
 import org.apache.calcite.sql.JoinType;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
 import org.apache.flink.types.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -44,25 +48,21 @@ import java.util.concurrent.TimeoutException;
  */
 
 public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements ISideReqRow {
-
+    private static final Logger LOG = LoggerFactory.getLogger(AsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
 
     protected SideInfo sideInfo;
+    protected transient Counter parseErrorRecords;
 
     public AsyncReqRow(SideInfo sideInfo){
         this.sideInfo = sideInfo;
     }
 
     @Override
-    public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        StreamRecordQueueEntry<Row> future = (StreamRecordQueueEntry<Row>)resultFuture;
-        try {
-            if (null == future.get()) {
-                new TimeoutException("Async function call has timed out.");
-            }
-        } catch (Exception e) {
-            throw new Exception(e);
-        }
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        initCache();
+        initMetric();
     }
 
     private void initCache(){
@@ -78,8 +78,11 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         }else{
             throw new RuntimeException("not support side cache with type:" + sideTableInfo.getCacheType());
         }
-
         sideCache.initCache();
+    }
+
+    private void initMetric() {
+        parseErrorRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_SIDE_PARSE_ERROR_RECORDS);
     }
 
     protected CacheObj getFromCache(String key){
@@ -97,17 +100,35 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
     protected void dealMissKey(Row input, ResultFuture<Row> resultFuture){
         if(sideInfo.getJoinType() == JoinType.LEFT){
             //Reserved left table data
-            Row row = fillData(input, null);
-            resultFuture.complete(Collections.singleton(row));
+            try {
+                Row row = fillData(input, null);
+                resultFuture.complete(Collections.singleton(row));
+            } catch (Exception e) {
+                dealFillDataError(resultFuture, e, input);
+            }
         }else{
             resultFuture.complete(null);
         }
     }
 
     @Override
-    public void open(Configuration parameters) throws Exception {
-        super.open(parameters);
-        initCache();
+    public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
+        StreamRecordQueueEntry<Row> future = (StreamRecordQueueEntry<Row>)resultFuture;
+        try {
+            if (null == future.get()) {
+                resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out."));
+            }
+        } catch (Exception e) {
+            resultFuture.completeExceptionally(new Exception(e));
+        }
+    }
+
+
+    protected void dealFillDataError(ResultFuture<Row> resultFuture, Exception e, Object sourceData) {
+        LOG.debug("source data {} join side table error ", sourceData);
+        LOG.debug("async buid row error..{}", e);
+        parseErrorRecords.inc();
+        resultFuture.complete(Collections.emptyList());
     }
 
     @Override

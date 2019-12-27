@@ -117,12 +117,13 @@ public class RedisAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
+        Row inputRow = Row.copy(input);
         List<String> keyData = Lists.newLinkedList();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = inputRow.getField(conValIndex);
             if(equalObj == null){
-                dealMissKey(input, resultFuture);
+                dealMissKey(inputRow, resultFuture);
                 return;
             }
             String value = equalObj.toString();
@@ -135,17 +136,16 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         if(openCache()){
             CacheObj val = getFromCache(key);
             if(val != null){
-
                 if(ECacheContentType.MissVal == val.getType()){
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){
-                    List<Row> rowList = Lists.newArrayList();
-                    for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, val.getContent());
-                        rowList.add(row);
+                    try {
+                        Row row = fillData(inputRow, val.getContent());
+                        resultFuture.complete(Collections.singleton(row));
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, inputRow);
                     }
-                    resultFuture.complete(rowList);
                 }else{
                     RuntimeException exception = new RuntimeException("not support cache obj type " + val.getType());
                     resultFuture.completeExceptionally(exception);
@@ -158,7 +158,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         List<String> value = async.keys(key + ":*").get();
         String[] values = value.toArray(new String[value.size()]);
         if (values.length == 0){
-            dealMissKey(input, resultFuture);
+            dealMissKey(inputRow, resultFuture);
         } else {
             RedisFuture<List<KeyValue<String, String>>> future = ((RedisStringAsyncCommands) async).mget(values);
             future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
@@ -170,13 +170,17 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                             keyValue.put(splitKeys[1], splitKeys[2]);
                             keyValue.put(splitKeys[3], keyValues.get(i).getValue());
                         }
-                        Row row = fillData(input, keyValue);
-                        resultFuture.complete(Collections.singleton(row));
-                        if (openCache()) {
-                            putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
+                        try {
+                            Row row = fillData(inputRow, keyValue);
+                            if (openCache()) {
+                                putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
+                            }
+                            resultFuture.complete(Collections.singleton(row));
+                        } catch (Exception e) {
+                            dealFillDataError(resultFuture, e, inputRow);
                         }
                     } else {
-                        dealMissKey(input, resultFuture);
+                        dealMissKey(inputRow, resultFuture);
                         if (openCache()) {
                             putCache(key, CacheMissVal.getMissKeyObj());
                         }

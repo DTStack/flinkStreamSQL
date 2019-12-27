@@ -123,12 +123,13 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
+        Row inputRow = Row.copy(input);
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = inputRow.getField(conValIndex);
             if(equalObj == null){
-                dealMissKey(input, resultFuture);
+                dealMissKey(inputRow, resultFuture);
                 return;
             }
 
@@ -142,22 +143,30 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(rowKeyStr);
             if(val != null){
                 if(ECacheContentType.MissVal == val.getType()){
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     return;
                 }else if(ECacheContentType.SingleLine == val.getType()){
-                    Row row = fillData(input, val);
-                    resultFuture.complete(Collections.singleton(row));
-                }else if(ECacheContentType.MultiLine == val.getType()){
-                    for(Object one : (List)val.getContent()){
-                        Row row = fillData(input, one);
+                    try {
+                        Row row = fillData(inputRow, val);
                         resultFuture.complete(Collections.singleton(row));
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, inputRow);
+                    }
+                }else if(ECacheContentType.MultiLine == val.getType()){
+                    try {
+                        for(Object one : (List)val.getContent()){
+                            Row row = fillData(inputRow, one);
+                            resultFuture.complete(Collections.singleton(row));
+                        }
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, inputRow);
                     }
                 }
                 return;
             }
         }
 
-        rowKeyMode.asyncGetData(tableName, rowKeyStr, input, resultFuture, sideInfo.getSideCache());
+        rowKeyMode.asyncGetData(tableName, rowKeyStr, inputRow, resultFuture, sideInfo.getSideCache());
     }
 
     @Override

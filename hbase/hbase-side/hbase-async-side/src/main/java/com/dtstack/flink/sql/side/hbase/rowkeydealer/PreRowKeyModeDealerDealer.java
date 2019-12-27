@@ -103,25 +103,28 @@ public class PreRowKeyModeDealerDealer extends AbsRowKeyModeDealer {
                     Object val = HbaseUtils.convertByte(keyValue.value(), colType);
                     sideMap.put(mapKey, val);
                 }
+                try {
+                    if (oneRow.size() > 0) {
+                        //The order of the fields defined in the data conversion table
+                        List<Object> sideVal = Lists.newArrayList();
+                        for (String key : colNames) {
+                            Object val = sideMap.get(key);
+                            if (val == null) {
+                                System.out.println("can't get data with column " + key);
+                                LOG.error("can't get data with column " + key);
+                            }
 
-                if (oneRow.size() > 0) {
-                    //The order of the fields defined in the data conversion table
-                    List<Object> sideVal = Lists.newArrayList();
-                    for (String key : colNames) {
-                        Object val = sideMap.get(key);
-                        if (val == null) {
-                            System.out.println("can't get data with column " + key);
-                            LOG.error("can't get data with column " + key);
+                            sideVal.add(val);
                         }
 
-                        sideVal.add(val);
+                        Row row = fillData(input, sideVal);
+                        if (openCache) {
+                            cacheContent.add(sideVal);
+                        }
+                        rowList.add(row);
                     }
-
-                    Row row = fillData(input, sideVal);
-                    if (openCache) {
-                        cacheContent.add(sideVal);
-                    }
-                    rowList.add(row);
+                }catch (Exception e) {
+                    resultFuture.completeExceptionally(e);
                 }
             } catch (Exception e) {
                 resultFuture.complete(null);
