@@ -69,7 +69,11 @@ public class ConsoleOutputFormat extends MetricOutputFormat {
 
         List<String[]> data = new ArrayList<>();
         data.add(fieldNames);
-        data.add(record.toString().split(","));
+        String[] recordStr = new String[record.getArity()];
+        for (int i=0; i < record.getArity(); i++) {
+            recordStr[i] = (String.valueOf(record.getField(i)));
+        }
+        data.add(recordStr);
         TablePrintUtil.build(data).print();
 
         outRecords.inc();
