@@ -27,6 +27,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.*;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.flink.types.Row;
 
@@ -151,7 +152,13 @@ public class JsonDataParser implements Serializable {
         if (info.getTypeClass().equals(Types.BOOLEAN.getTypeClass())) {
             return node.asBoolean();
         } else if (info.getTypeClass().equals(Types.STRING.getTypeClass())) {
-            return node.asText();
+            if (node instanceof ObjectNode) {
+                return node.toString();
+            } else if (node instanceof NullNode) {
+                return null;
+            } else {
+                return node.asText();
+            }
         }  else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
             return Date.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
