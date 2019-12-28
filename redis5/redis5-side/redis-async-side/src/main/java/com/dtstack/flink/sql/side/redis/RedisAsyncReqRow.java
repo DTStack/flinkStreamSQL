@@ -140,8 +140,12 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                     dealMissKey(inputRow, resultFuture);
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){
-                    Row row = fillData(inputRow, val.getContent());
-                    resultFuture.complete(Collections.singleton(row));
+                    try {
+                        Row row = fillData(inputRow, val.getContent());
+                        resultFuture.complete(Collections.singleton(row));
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, inputRow);
+                    }
                 }else{
                     RuntimeException exception = new RuntimeException("not support cache obj type " + val.getType());
                     resultFuture.completeExceptionally(exception);
@@ -166,16 +170,16 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                             keyValue.put(splitKeys[1], splitKeys[2]);
                             keyValue.put(splitKeys[3], keyValues.get(i).getValue());
                         }
-                        Row row = fillData(inputRow, keyValue);
-                        if (openCache()) {
-                            putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
+                        try {
+                            Row row = fillData(inputRow, keyValue);
+                            dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
+                            resultFuture.complete(Collections.singleton(row));
+                        } catch (Exception e) {
+                            dealFillDataError(resultFuture, e, inputRow);
                         }
-                        resultFuture.complete(Collections.singleton(row));
                     } else {
                         dealMissKey(inputRow, resultFuture);
-                        if (openCache()) {
-                            putCache(key, CacheMissVal.getMissKeyObj());
-                        }
+                        dealCacheData(key,CacheMissVal.getMissKeyObj());
                     }
                 }
             });

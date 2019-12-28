@@ -162,17 +162,25 @@ public class KuduAsyncReqRow extends AsyncReqRow {
                     dealMissKey(inputRow, resultFuture);
                     return;
                 } else if (ECacheContentType.SingleLine == val.getType()) {
-                    Row row = fillData(inputRow, val);
-                    resultFuture.complete(Collections.singleton(row));
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<Row> rowList = Lists.newArrayList();
-                    for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(inputRow, jsonArray);
-                        rowList.add(row);
+                    try {
+                        Row row = fillData(inputRow, val);
+                        resultFuture.complete(Collections.singleton(row));
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, inputRow);
                     }
-                    resultFuture.complete(rowList);
+                } else if (ECacheContentType.MultiLine == val.getType()) {
+                    try {
+                        List<Row> rowList = Lists.newArrayList();
+                        for (Object jsonArray : (List) val.getContent()) {
+                            Row row = fillData(inputRow, jsonArray);
+                            rowList.add(row);
+                        }
+                        resultFuture.complete(rowList);
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, inputRow);
+                    }
                 } else {
-                    throw new RuntimeException("not support cache obj type " + val.getType());
+                    resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
                 }
                 return;
             }

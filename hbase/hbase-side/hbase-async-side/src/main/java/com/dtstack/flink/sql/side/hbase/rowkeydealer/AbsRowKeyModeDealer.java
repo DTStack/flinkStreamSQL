@@ -74,9 +74,13 @@ public abstract class AbsRowKeyModeDealer {
 
     protected void dealMissKey(Row input, ResultFuture<Row> resultFuture){
         if(joinType == JoinType.LEFT){
-            //保留left 表数据
-            Row row = fillData(input, null);
-            resultFuture.complete(Collections.singleton(row));
+            try {
+                //保留left 表数据
+                Row row = fillData(input, null);
+                resultFuture.complete(Collections.singleton(row));
+            } catch (Exception e) {
+                resultFuture.completeExceptionally(e);
+            }
         }else{
             resultFuture.complete(null);
         }
