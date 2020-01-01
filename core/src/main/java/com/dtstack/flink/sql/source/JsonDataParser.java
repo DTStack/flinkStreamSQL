@@ -119,9 +119,8 @@ public class JsonDataParser implements Serializable {
             JsonNode child = jsonNode.get(next);
             String nodeKey = getNodeKey(prefix, next);
 
-            if (child.isValueNode()){
-                nodeAndJsonNodeMapping.put(nodeKey, child);
-            }else if(child.isArray()){
+            nodeAndJsonNodeMapping.put(nodeKey, child);
+            if(child.isArray()){
                 parseTree(child, nodeKey);
             }else {
                 parseTree(child, nodeKey);
