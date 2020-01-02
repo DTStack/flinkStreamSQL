@@ -21,7 +21,6 @@ package com.dtstack.flink.sql.sink.impala;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
-import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;

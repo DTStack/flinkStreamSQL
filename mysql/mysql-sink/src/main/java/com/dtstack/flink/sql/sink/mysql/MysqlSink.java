@@ -22,14 +22,9 @@ package com.dtstack.flink.sql.sink.mysql;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
-import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
-import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
+import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Date: 2017/2/27
@@ -43,52 +38,24 @@ public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 
     public MysqlSink() {
+        super(new MySQLDialect());
     }
 
     @Override
-    public RetractJDBCOutputFormat getOutputFormat() {
-        return new RetractJDBCOutputFormat();
+    public JDBCUpsertOutputFormat getOutputFormat() {
+        JDBCOptions jdbcOptions = JDBCOptions.builder()
+                .setDBUrl(dbURL).setDialect(jdbcDialect)
+                .setUsername(userName).setPassword(password)
+                .setTableName(tableName).build();
+
+        return JDBCUpsertOutputFormat.builder()
+                .setOptions(jdbcOptions)
+                .setFieldNames(fieldNames)
+                .setFlushMaxSize(batchNum)
+                .setFlushIntervalMills(batchWaitInterval)
+                .setFieldTypes(sqlTypes)
+                .setKeyFields(primaryKeys)
+                .setAllReplace(allReplace)
+                .setUpdateMode(updateMode).build();
     }
-
-    @Override
-    public void buildSql(String scheam, String tableName, List<String> fields) {
-        buildReplaceUpsertStatement(tableName, fields);
-        buildDuplicateUpsertStatement(tableName, fields);
-    }
-
-    @Override
-    public String buildUpdateSql(String schema, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
-        return null;
-    }
-
-    private void buildReplaceUpsertStatement(String tableName, List<String> fields) {
-        this.sql = getUpsertIntoStatement("REPLACE ", tableName, fields);
-    }
-
-    public void buildDuplicateUpsertStatement(String tableName, List<String> fields) {
-        String updateClause = fields.stream().map(f -> quoteIdentifier(f) + "=IFNULL(VALUES(" + quoteIdentifier(f) + "),"+ quoteIdentifier(f) + ")")
-                .collect(Collectors.joining(", "));
-
-        this.sql = getUpsertIntoStatement("INSERT",tableName, fields) +
-                " ON DUPLICATE KEY UPDATE " + updateClause;
-    }
-
-    public String getUpsertIntoStatement(String operator, String tableName, List<String> fields) {
-        String columns = fields.stream()
-                .map(this::quoteIdentifier)
-                .collect(Collectors.joining(", "));
-
-        String placeholders = fields.stream()
-                .map(f -> "?")
-                .collect(Collectors.joining(", "));
-
-        return operator + " INTO " + quoteIdentifier(tableName) +
-                "(" + columns + ")" + " VALUES (" + placeholders + ")";
-    }
-
-    @Override
-    public String getDriverName() {
-        return MYSQL_DRIVER;
-    }
-
 }

@@ -24,22 +24,21 @@ import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
+import org.apache.flink.types.Row;
 
 /**
  * Created by sishu.yss on 2018/11/28.
  */
-public abstract  class MetricOutputFormat extends  RichOutputFormat<Tuple2>{
+public abstract class MetricOutputFormat extends RichOutputFormat<Tuple2<Boolean, Row>> {
 
-     protected  transient Counter outRecords;
+    public transient Counter outRecords;
+    public transient Counter outDirtyRecords;
+    public transient Meter outRecordsRate;
 
-     protected  transient Counter outDirtyRecords;
-
-     protected transient Meter outRecordsRate;
-
-     public void initMetric() {
+    public void initMetric() {
         outRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
         outDirtyRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_DIRTY_RECORDS_OUT);
         outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(outRecords, 20));
-     }
+    }
 
 }

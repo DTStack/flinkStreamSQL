@@ -1,7 +1,6 @@
 package com.dtstack.flink.sql.sink.db;
 
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
-import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 
 import java.util.List;
 import java.util.Map;

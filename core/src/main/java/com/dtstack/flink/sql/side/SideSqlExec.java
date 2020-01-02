@@ -60,6 +60,7 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -626,7 +627,7 @@ public class SideSqlExec {
 
     private List<String> convertPrimaryAlias(SideTableInfo sideTableInfo) {
         List<String> res = Lists.newArrayList();
-        sideTableInfo.getPrimaryKeys().forEach(field -> {
+        Arrays.stream(sideTableInfo.getPrimaryKeys()).forEach(field -> {
             res.add(sideTableInfo.getPhysicalFields().getOrDefault(field, field));
         });
         return res;

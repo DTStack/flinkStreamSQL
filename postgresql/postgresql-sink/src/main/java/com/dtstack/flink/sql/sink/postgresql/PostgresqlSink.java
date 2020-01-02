@@ -23,7 +23,6 @@ package com.dtstack.flink.sql.sink.postgresql;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.postgresql.table.PostgresqlTableInfo;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
-import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.commons.lang3.StringUtils;
 

@@ -20,7 +20,6 @@
 package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
-import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
