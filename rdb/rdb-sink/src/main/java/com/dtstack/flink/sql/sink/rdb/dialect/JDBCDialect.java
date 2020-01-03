@@ -62,14 +62,9 @@ public interface JDBCDialect extends Serializable {
      * @return None if dialect does not support upsert statement, the writer will degrade to
      * the use of select + update/insert, this performance is poor.
      *
-     * @param tableName
-     * @param fieldNames
-     * @param uniqueKeyFields
-     * @param allReplace
-     * @return
      */
     default Optional<String> getUpsertStatement(
-            String tableName, String[] fieldNames, String[] uniqueKeyFields, boolean allReplace) {
+            String schema, String tableName, String[] fieldNames, String[] uniqueKeyFields, boolean allReplace) {
         return Optional.empty();
     }
 

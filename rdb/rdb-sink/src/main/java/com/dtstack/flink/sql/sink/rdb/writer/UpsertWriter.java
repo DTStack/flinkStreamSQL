@@ -50,6 +50,7 @@ public abstract class UpsertWriter implements JDBCWriter {
 
     public static UpsertWriter create(
             JDBCDialect dialect,
+            String schema,
             String tableName,
             String[] fieldNames,
             int[] fieldTypes,
@@ -69,7 +70,7 @@ public abstract class UpsertWriter implements JDBCWriter {
         LOG.info("deleteSQL is :{}", deleteSQL);
         System.out.println("deleteSQL is :" + deleteSQL);
 
-        Optional<String> upsertSQL = dialect.getUpsertStatement(tableName, fieldNames, keyFields, allReplace);
+        Optional<String> upsertSQL = dialect.getUpsertStatement(schema, tableName, fieldNames, keyFields, allReplace);
         LOG.info("execute UpsertStatement: {}", upsertSQL.orElse("use UsingInsertUpdateStatement"));
         System.out.println("execute UpsertStatement: " + upsertSQL.orElse("use UsingInsertUpdateStatement"));
 

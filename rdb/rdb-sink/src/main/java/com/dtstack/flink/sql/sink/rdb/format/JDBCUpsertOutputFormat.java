@@ -52,6 +52,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     static final int RECEIVEDATA_PRINT_FREQUENTY = 1000;
 
+    private final String schema;
     private final String tableName;
     private final JDBCDialect dialect;
     private final String[] fieldNames;
@@ -80,6 +81,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             boolean allReplace,
             String updateMode) {
         super(options.getUsername(), options.getPassword(), options.getDriverName(), options.getDbURL());
+        this.schema = options.getSchema();
         this.tableName = options.getTableName();
         this.dialect = options.getDialect();
         this.fieldNames = fieldNames;
@@ -111,7 +113,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
                 jdbcWriter = new AppendOnlyWriter(insertSQL, fieldTypes, this);
             } else {
                 jdbcWriter = UpsertWriter.create(
-                        dialect, tableName, fieldNames, fieldTypes, keyFields,
+                        dialect, schema, tableName, fieldNames, fieldTypes, keyFields,
                         getRuntimeContext().getExecutionConfig().isObjectReuseEnabled(), allReplace, this);
             }
             jdbcWriter.open(connection);

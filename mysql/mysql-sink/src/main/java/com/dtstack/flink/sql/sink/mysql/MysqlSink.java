@@ -35,8 +35,6 @@ import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
 public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
-    private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
-
     public MysqlSink() {
         super(new MySQLDialect());
     }
