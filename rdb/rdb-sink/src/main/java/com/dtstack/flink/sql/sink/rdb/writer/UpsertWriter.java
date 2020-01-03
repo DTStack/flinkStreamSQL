@@ -66,7 +66,7 @@ public abstract class UpsertWriter implements JDBCWriter {
         int[] pkTypes = fieldTypes == null ? null :
                 Arrays.stream(pkFields).map(f -> fieldTypes[f]).toArray();
 
-        String deleteSQL = dialect.getDeleteStatement(tableName, keyFields);
+        String deleteSQL = dialect.getDeleteStatement(schema, tableName, keyFields);
         LOG.info("deleteSQL is :{}", deleteSQL);
         System.out.println("deleteSQL is :" + deleteSQL);
 
@@ -82,7 +82,7 @@ public abstract class UpsertWriter implements JDBCWriter {
                                 fieldTypes, pkFields, pkTypes, objectReuse, deleteSQL,
                                 //  表存在检查
                                 dialect.getRowExistsStatement(tableName, keyFields),
-                                dialect.getInsertIntoStatement(tableName, fieldNames),
+                                dialect.getInsertIntoStatement(schema, tableName, fieldNames),
                                 dialect.getUpdateStatement(tableName, fieldNames, keyFields),
                                 metricOutputFormat));
     }
@@ -143,13 +143,14 @@ public abstract class UpsertWriter implements JDBCWriter {
         } catch (Exception e) {
             // 清理批处理中的正确字段，防止重复写入
             connection.rollback();
+            connection.commit();
             cleanBatchWhenError();
             executeUpdate(connection);
         }
     }
 
     @Override
-    public void executeUpdate(Connection connection) {
+    public void executeUpdate(Connection connection) throws SQLException {
         if (keyToRows.size() > 0) {
             for (Map.Entry<Row, Tuple2<Boolean, Row>> entry : keyToRows.entrySet()) {
                 try {
@@ -164,11 +165,15 @@ public abstract class UpsertWriter implements JDBCWriter {
                     }
                     connection.commit();
                 } catch (Exception e) {
+                    // deal pg error: current transaction is aborted, commands ignored until end of transaction block
+                    connection.rollback();
+                    connection.commit();
                     metricOutputFormat.outDirtyRecords.inc();
                     if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
                         LOG.error("record insert failed ,this row is {}", entry.getValue());
                         LOG.error("", e);
                     }
+                    System.out.println(e.getCause());
                 }
             }
             keyToRows.clear();

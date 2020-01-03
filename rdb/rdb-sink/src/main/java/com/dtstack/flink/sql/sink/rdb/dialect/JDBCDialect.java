@@ -18,6 +18,8 @@
 
 package com.dtstack.flink.sql.sink.rdb.dialect;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Optional;
@@ -81,14 +83,15 @@ public interface JDBCDialect extends Serializable {
     /**
      * Get insert into statement.
      */
-    default String getInsertIntoStatement(String tableName, String[] fieldNames) {
+    default String getInsertIntoStatement(String schema, String tableName, String[] fieldNames) {
+        String schemaInfo = StringUtils.isEmpty(schema) ? "" : quoteIdentifier(schema) + ".";
         String columns = Arrays.stream(fieldNames)
                 .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
         String placeholders = Arrays.stream(fieldNames)
                 .map(f -> "?")
                 .collect(Collectors.joining(", "));
-        return "INSERT INTO " + quoteIdentifier(tableName) +
+        return "INSERT INTO " + schemaInfo + quoteIdentifier(tableName) +
                 "(" + columns + ")" + " VALUES (" + placeholders + ")";
     }
 
@@ -108,15 +111,12 @@ public interface JDBCDialect extends Serializable {
                 " WHERE " + conditionClause;
     }
 
-    /**
-     * Get delete one row statement by condition fields, default not use limit 1,
-     * because limit 1 is a sql dialect.
-     */
-    default String getDeleteStatement(String tableName, String[] conditionFields) {
+    default String getDeleteStatement(String schema, String tableName, String[] conditionFields) {
+        String schemaInfo = StringUtils.isEmpty(schema) ? "" : quoteIdentifier(schema) + ".";
         String conditionClause = Arrays.stream(conditionFields)
                 .map(f -> quoteIdentifier(f) + "=?")
                 .collect(Collectors.joining(" AND "));
-        return "DELETE FROM " + quoteIdentifier(tableName) + " WHERE " + conditionClause;
+        return "DELETE FROM " + schemaInfo + quoteIdentifier(tableName) + " WHERE " + conditionClause;
     }
 
     /**

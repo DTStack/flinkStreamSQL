@@ -107,7 +107,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             initMetric();
 
             if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || keyFields == null || keyFields.length == 0) {
-                String insertSQL = dialect.getInsertIntoStatement(tableName, fieldNames);
+                String insertSQL = dialect.getInsertIntoStatement(schema, tableName, fieldNames);
                 LOG.info("execute insert sql： {}", insertSQL);
                 System.out.println("execute insert sql :" + insertSQL);
                 jdbcWriter = new AppendOnlyWriter(insertSQL, fieldTypes, this);

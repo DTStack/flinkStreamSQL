@@ -71,7 +71,7 @@ public class AppendOnlyWriter implements JDBCWriter {
         if (!record.f0) {
             return;
         }
-        rows.add(record.f1);
+        rows.add(Row.copy(record.f1));
     }
 
     @Override
@@ -90,6 +90,9 @@ public class AppendOnlyWriter implements JDBCWriter {
             rows.clear();
         } catch (Exception e) {
             LOG.debug("AppendOnlyWriter executeBatch error ", e);
+            connection.rollback();
+            connection.commit();
+            System.out.println(e);
             cleanBatchWhenError();
             executeUpdate(connection);
         }
@@ -97,13 +100,19 @@ public class AppendOnlyWriter implements JDBCWriter {
 
 
     @Override
-    public void executeUpdate(Connection connection) {
+    public void executeUpdate(Connection connection)  {
         rows.forEach(row -> {
             try {
                 setRecordToStatement(statement, fieldTypes, row);
                 statement.executeUpdate();
                 connection.commit();
-            } catch (SQLException e) {
+            } catch (Exception e) {
+                try {
+                    connection.rollback();
+                    connection.commit();
+                } catch (SQLException e1) {
+                    throw new RuntimeException(e1);
+                }
                 metricOutputFormat.outDirtyRecords.inc();
                 if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
                     LOG.error("record insert failed ,this row is {}", row.toString());

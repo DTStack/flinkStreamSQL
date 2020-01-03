@@ -176,9 +176,12 @@ public class RdbTableInfo extends TargetTableInfo {
             Preconditions.checkArgument(null != getPrimaryKeys() && getPrimaryKeys().length > 0, "updateMode  mode primary is required");
         }
 
-        Arrays.stream(getPrimaryKeys()).forEach(pk -> {
-            Preconditions.checkArgument(getFieldList().contains(pk), "primary key " + pk + " not found in sink table field");
-        });
+        if (null != getPrimaryKeys()) {
+            Arrays.stream(getPrimaryKeys()).forEach(pk -> {
+                Preconditions.checkArgument(getFieldList().contains(pk), "primary key " + pk + " not found in sink table field");
+            });
+        }
+
 
         return true;
     }
