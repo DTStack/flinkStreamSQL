@@ -21,8 +21,14 @@
 package com.dtstack.flink.sql.util;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 /**
+ * Convert val to specified numeric type
  * Date: 2017/4/21
  * Company: www.dtstack.com
  * @author xuchao
@@ -30,73 +36,224 @@ import java.math.BigDecimal;
 
 public class MathUtil {
 
-    public static Long getLongVal(Object obj){
-        if(obj == null){
+    public static Long getLongVal(Object obj) {
+        if (obj == null) {
             return null;
         }
 
-        if(obj instanceof String){
+        if (obj instanceof String) {
             return Long.valueOf((String) obj);
-        }else if(obj instanceof Long){
+        } else if (obj instanceof Long) {
             return (Long) obj;
-        }else if(obj instanceof Integer){
+        } else if (obj instanceof Integer) {
             return Long.valueOf(obj.toString());
+        } else if (obj instanceof BigDecimal) {
+            return ((BigDecimal) obj).longValue();
+        } else if (obj instanceof BigInteger) {
+            return ((BigInteger) obj).longValue();
         }
-
-        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Long." );
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Long.");
     }
 
-    public static Integer getIntegerVal(Object obj){
-        if(obj == null){
+    public static Long getLongVal(Object obj, long defaultVal) {
+        if (obj == null) {
+            return defaultVal;
+        }
+
+        return getLongVal(obj);
+    }
+
+    public static Integer getIntegerVal(Object obj) {
+        if (obj == null) {
             return null;
         }
 
-        if(obj instanceof String){
+        if (obj instanceof String) {
             return Integer.valueOf((String) obj);
-        } else if (obj instanceof Integer){
+        } else if (obj instanceof Integer) {
             return (Integer) obj;
-        } else if (obj instanceof Long){
-            return ((Long)obj).intValue();
-        } else if(obj instanceof Double){
-            return ((Double)obj).intValue();
-        } else if(obj instanceof BigDecimal){
-            return ((BigDecimal)obj).intValue();
+        } else if (obj instanceof Long) {
+            return ((Long) obj).intValue();
+        } else if (obj instanceof Double) {
+            return ((Double) obj).intValue();
+        } else if (obj instanceof BigDecimal) {
+            return ((BigDecimal) obj).intValue();
+        } else if (obj instanceof BigInteger) {
+            return ((BigInteger) obj).intValue();
         }
 
-        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Integer." );
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Integer.");
     }
 
-    public static Boolean getBoolean(Object obj, boolean defaultVal){
-        if(obj == null){
+    public static Integer getIntegerVal(Object obj, int defaultVal) {
+        if (obj == null) {
+            return defaultVal;
+        }
+
+        return getIntegerVal(obj);
+    }
+
+    public static Float getFloatVal(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof String) {
+            return Float.valueOf((String) obj);
+        } else if (obj instanceof Float) {
+            return (Float) obj;
+        } else if (obj instanceof BigDecimal) {
+            return ((BigDecimal) obj).floatValue();
+        }
+
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Float.");
+    }
+
+    public static Float getFloatVal(Object obj, float defaultVal) {
+        if (obj == null) {
+            return defaultVal;
+        }
+
+        return getFloatVal(obj);
+    }
+
+    public static Double getDoubleVal(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof String) {
+            return Double.valueOf((String) obj);
+        } else if (obj instanceof Float) {
+            return ((Float) obj).doubleValue();
+        } else if (obj instanceof Double){
+            return (Double) obj;
+        }else if (obj instanceof BigDecimal) {
+            return ((BigDecimal) obj).doubleValue();
+        }else if (obj instanceof Integer){
+            return ((Integer)obj).doubleValue();
+        }
+
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Double.");
+    }
+
+    public static Double getDoubleVal(Object obj, double defaultVal) {
+        if (obj == null) {
+            return defaultVal;
+        }
+
+        return getDoubleVal(obj);
+    }
+
+
+    public static Boolean getBoolean(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof String) {
+            return Boolean.valueOf((String) obj);
+        } else if (obj instanceof Boolean) {
+            return (Boolean) obj;
+        }
+
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Boolean.");
+    }
+
+    public static Boolean getBoolean(Object obj, boolean defaultVal) {
+        if (obj == null) {
             return defaultVal;
         }
 
         return getBoolean(obj);
     }
 
-    public static Boolean getBoolean(Object obj){
-        if(obj == null){
+    public static String getString(Object obj) {
+        if (obj == null) {
             return null;
         }
 
-        if(obj instanceof String){
-            return Boolean.valueOf((String) obj);
-        }else if(obj instanceof Boolean){
-            return (Boolean) obj;
+        if (obj instanceof String) {
+            return (String) obj;
         }
 
-        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Boolean." );
+        return obj.toString();
     }
 
-    public static String getString(Object obj){
-        if(obj == null){
+    public static Byte getByte(Object obj) {
+        if (obj == null) {
             return null;
         }
 
-        if(obj instanceof String){
-            return (String) obj;
-        }else {
-            return obj.toString();
+        if (obj instanceof String) {
+            return Byte.valueOf((String) obj);
+        } else if (obj instanceof Byte) {
+            return (Byte) obj;
         }
+
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Byte.");
+    }
+
+    public static Short getShort(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof String) {
+            return Short.valueOf((String) obj);
+        } else if (obj instanceof Short) {
+            return (Short) obj;
+        }
+
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Short.");
+    }
+
+    public static BigDecimal getBigDecimal(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof String) {
+            return new BigDecimal((String) obj);
+        } else if (obj instanceof BigDecimal) {
+            return (BigDecimal) obj;
+        } else if (obj instanceof BigInteger) {
+            return new BigDecimal((BigInteger) obj);
+        } else if (obj instanceof Number) {
+            return new BigDecimal(((Number) obj).doubleValue());
+        }
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to BigDecimal.");
+    }
+
+    public static Date getDate(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof String) {
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            try {
+                return new Date(format.parse((String) obj).getTime());
+            } catch (ParseException e) {
+                throw new RuntimeException("String convert to Date fail.");
+            }
+        } else if (obj instanceof Timestamp) {
+            return new Date(((Timestamp) obj).getTime());
+        } else if (obj instanceof Date) {
+            return (Date) obj;
+        }
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
+    }
+
+    public static Timestamp getTimestamp(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Timestamp) {
+            return (Timestamp) obj;
+        } else if (obj instanceof Date) {
+            return new Timestamp(((Date) obj).getTime());
+        } else if (obj instanceof String) {
+            return new Timestamp(getDate(obj).getTime());
+        }
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
     }
 }
