@@ -79,28 +79,29 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
                 }
 
                 if(arg.size() > 0){
-                    //The order of the fields defined in the data conversion table
-                    List<Object> sideVal = Lists.newArrayList();
-                    for(String key : colNames){
-                        Object val = sideMap.get(key);
-                        if(val == null){
-                            System.out.println("can't get data with column " + key);
-                            LOG.error("can't get data with column " + key);
+                    try {
+                        //The order of the fields defined in the data conversion table
+                        List<Object> sideVal = Lists.newArrayList();
+                        for(String key : colNames){
+                            Object val = sideMap.get(key);
+                            if(val == null){
+                                System.out.println("can't get data with column " + key);
+                                LOG.error("can't get data with column " + key);
+                            }
+
+                            sideVal.add(val);
                         }
 
-                        sideVal.add(val);
+                        Row row = fillData(input, sideVal);
+                        if(openCache){
+                            sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
+                        }
+                        resultFuture.complete(Collections.singleton(row));
+                    } catch (Exception e) {
+                        resultFuture.completeExceptionally(e);
                     }
-
-                    Row row = fillData(input, sideVal);
-                    if(openCache){
-                        sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
-                    }
-
-                    resultFuture.complete(Collections.singleton(row));
                 }else{
-
                     dealMissKey(input, resultFuture);
-
                     if(openCache){
                         sideCache.putCache(rowKeyStr, CacheMissVal.getMissKeyObj());
                     }

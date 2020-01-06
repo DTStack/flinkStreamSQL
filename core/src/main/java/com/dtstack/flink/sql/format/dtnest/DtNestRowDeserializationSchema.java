@@ -28,6 +28,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.*;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.flink.types.Row;
 
@@ -119,9 +120,8 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
             JsonNode child = jsonNode.get(next);
             String nodeKey = getNodeKey(prefix, next);
 
-            if (child.isValueNode()){
-                nodeAndJsonNodeMapping.put(nodeKey, child);
-            }else if(child.isArray()){
+            nodeAndJsonNodeMapping.put(nodeKey, child);
+            if(child.isArray()){
                 parseTree(child, nodeKey);
             }else {
                 parseTree(child, nodeKey);
@@ -152,7 +152,13 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         if (info.getTypeClass().equals(Types.BOOLEAN.getTypeClass())) {
             return node.asBoolean();
         } else if (info.getTypeClass().equals(Types.STRING.getTypeClass())) {
-            return node.asText();
+            if (node instanceof ObjectNode) {
+                return node.toString();
+            } else if (node instanceof NullNode) {
+                return null;
+            } else {
+                return node.asText();
+            }
         }  else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
             return Date.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {

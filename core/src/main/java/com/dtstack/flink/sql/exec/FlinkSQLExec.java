@@ -27,6 +27,8 @@ import org.apache.flink.table.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.plan.logical.LogicalRelNode;
 import org.apache.flink.table.plan.schema.TableSinkTable;
 import org.apache.flink.table.plan.schema.TableSourceSinkTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Option;
 
 import java.lang.reflect.Method;
@@ -37,6 +39,8 @@ import java.lang.reflect.Method;
  * @create: 2019/08/15 11:09
  */
 public class FlinkSQLExec {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FlinkSQLExec.class);
 
     public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt, StreamQueryConfig queryConfig) throws Exception {
 
@@ -64,18 +68,47 @@ public class FlinkSQLExec {
 
         TableSourceSinkTable targetTable = (TableSourceSinkTable) sinkTab.get();
         TableSinkTable tableSinkTable = (TableSinkTable)targetTable.tableSinkTable().get();
-        String[] fieldNames = tableSinkTable.tableSink().getFieldNames();
+
+        StreamQueryConfig config = null == queryConfig ? tableEnv.queryConfig() : queryConfig;
+        String[] sinkFieldNames = tableSinkTable.tableSink().getFieldNames();
+        String[] queryFieldNames = queryResult.getSchema().getColumnNames();
+        if (sinkFieldNames.length != queryFieldNames.length) {
+            throw new ValidationException(
+                    "Field name of query result and registered TableSink " + targetTableName + " do not match.\n" +
+                            "Query result schema: " + String.join(",", queryFieldNames) + "\n" +
+                            "TableSink schema: " + String.join(",", sinkFieldNames));
+        }
 
         Table newTable = null;
         try {
-            newTable = queryResult.select(String.join(",", fieldNames));
+            // sinkFieldNames not in queryResult error
+            newTable = queryResult.select(String.join(",", sinkFieldNames));
         } catch (Exception e) {
             throw new ValidationException(
-                    "Field name of query result and registered TableSink "+targetTableName +" do not match.\n" +
-                    "Query result schema: " + String.join(",", queryResult.getSchema().getColumnNames()) + "\n" +
-                    "TableSink schema: " + String.join(",", fieldNames));
+                    "Field name of query result and registered TableSink " + targetTableName + " do not match.\n" +
+                            "Query result schema: " + String.join(",", queryResult.getSchema().getColumnNames()) + "\n" +
+                            "TableSink schema: " + String.join(",", sinkFieldNames));
         }
-        StreamQueryConfig config = null == queryConfig ? tableEnv.queryConfig() : queryConfig;
-        tableEnv.insertInto(newTable, targetTableName, config);
+
+        try {
+            tableEnv.insertInto(newTable, targetTableName, config);
+        } catch (Exception ex) {
+            LOG.warn("Field name case of query result and registered TableSink " + targetTableName + "do not match. " + ex.getMessage());
+            newTable = queryResult.select(String.join(",", ignoreCase(queryFieldNames, sinkFieldNames)));
+            tableEnv.insertInto(newTable, targetTableName, config);
+        }
+    }
+
+    public static String[] ignoreCase(String[] queryFieldNames, String[] sinkFieldNames) {
+        String[] newFieldNames = sinkFieldNames;
+        for (int i = 0; i < newFieldNames.length; i++) {
+            for (String queryFieldName : queryFieldNames) {
+                if (newFieldNames[i].equalsIgnoreCase(queryFieldName)) {
+                    newFieldNames[i] = queryFieldName;
+                    break;
+                }
+            }
+        }
+        return newFieldNames;
     }
 }
