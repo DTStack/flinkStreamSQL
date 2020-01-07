@@ -36,12 +36,12 @@ public class HbaseAsyncSideInfo extends SideInfo {
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
         rowKeyBuilder = new RowKeyBuilder();
-        if(sideTableInfo.getPrimaryKeys().size() < 1){
+        if(sideTableInfo.getPrimaryKeys() == null || sideTableInfo.getPrimaryKeys().length < 1){
             throw new RuntimeException("Primary key dimension table must be filled");
         }
 
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0));
+        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys()[0]);
 
         colRefType = Maps.newHashMap();
         for(int i=0; i<hbaseSideTableInfo.getColumnRealNames().length; i++){

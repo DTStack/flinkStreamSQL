@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -114,7 +115,7 @@ public abstract class AbsTableParser {
 
     public void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
         String primaryFields = matcher.group(1).trim();
-        String[] splitArry = primaryFields.split(",");
+        String[] splitArry = StringUtils.split(primaryFields, ",");
         tableInfo.setPrimaryKeys(splitArry);
     }
 

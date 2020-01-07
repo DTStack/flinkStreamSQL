@@ -48,7 +48,7 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     protected String password;
 
-    protected List<String> primaryKeys;
+    protected String[] primaryKeys;
 
     protected int timeout;
 

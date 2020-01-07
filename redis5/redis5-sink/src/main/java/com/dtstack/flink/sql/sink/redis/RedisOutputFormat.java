@@ -56,7 +56,7 @@ public class RedisOutputFormat extends MetricOutputFormat {
 
     protected TypeInformation<?>[] fieldTypes;
 
-    protected List<String> primaryKeys;
+    protected String[] primaryKeys;
 
     protected int timeout;
 
@@ -243,7 +243,7 @@ public class RedisOutputFormat extends MetricOutputFormat {
             return this;
         }
 
-        public RedisOutputFormatBuilder setPrimaryKeys(List<String > primaryKeys){
+        public RedisOutputFormatBuilder setPrimaryKeys(String[] primaryKeys){
             redisOutputFormat.primaryKeys = primaryKeys;
             return this;
         }

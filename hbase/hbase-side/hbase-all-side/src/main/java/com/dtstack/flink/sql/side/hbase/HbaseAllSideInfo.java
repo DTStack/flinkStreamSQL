@@ -42,11 +42,11 @@ public class HbaseAllSideInfo extends SideInfo {
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
         rowKeyBuilder = new RowKeyBuilder();
-        if(sideTableInfo.getPrimaryKeys().size() < 1){
+        if(sideTableInfo.getPrimaryKeys() == null || sideTableInfo.getPrimaryKeys().length < 1){
             throw new RuntimeException("Primary key dimension table must be filled");
         }
 
-        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0));
+        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys()[0]);
 
         String sideTableName = joinInfo.getSideTableName();
         SqlNode conditionNode = joinInfo.getCondition();
