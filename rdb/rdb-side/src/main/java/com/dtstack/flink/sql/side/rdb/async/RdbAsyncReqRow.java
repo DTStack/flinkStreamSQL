@@ -93,11 +93,17 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     List<Row> rowList = Lists.newArrayList();
-                    for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, jsonArray);
-                        rowList.add(row);
+                    Object debugData = null;
+                    try {
+                        for (Object jsonArray : (List) val.getContent()) {
+                            debugData = jsonArray;
+                            Row row = fillData(input, jsonArray);
+                            rowList.add(row);
+                        }
+                        resultFuture.complete(rowList);
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, input, debugData);
                     }
-                    resultFuture.complete(rowList);
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
                 }
@@ -126,20 +132,24 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 int resultSize = rs.result().getResults().size();
                 if (resultSize > 0) {
                     List<Row> rowList = Lists.newArrayList();
-
-                    for (JsonArray line : rs.result().getResults()) {
-                        Row row = fillData(input, line);
-                        if (openCache()) {
-                            cacheContent.add(line);
+                    Object debugData = null;
+                    try {
+                        for (JsonArray line : rs.result().getResults()) {
+                            debugData = line;
+                            Row row = fillData(input, line);
+                            if (openCache()) {
+                                cacheContent.add(line);
+                            }
+                            rowList.add(row);
                         }
-                        rowList.add(row);
-                    }
 
-                    if (openCache()) {
-                        putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
+                        if (openCache()) {
+                            putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
+                        }
+                        resultFuture.complete(rowList);
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, input, debugData);
                     }
-
-                    resultFuture.complete(rowList);
                 } else {
                     dealMissKey(input, resultFuture);
                     if (openCache()) {
@@ -156,6 +166,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             });
         });
     }
+
+
 
     @Override
     public Row fillData(Row input, Object line) {

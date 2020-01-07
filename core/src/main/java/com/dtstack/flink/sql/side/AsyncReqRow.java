@@ -21,16 +21,20 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.side.cache.AbsSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
 import org.apache.calcite.sql.JoinType;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -48,9 +52,13 @@ import java.util.concurrent.TimeoutException;
 
 public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements ISideReqRow {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AsyncReqRow.class);
+
     private static final long serialVersionUID = 2098635244857937717L;
 
     protected SideInfo sideInfo;
+
+    protected transient Counter parseErrorRecords;
 
     public AsyncReqRow(SideInfo sideInfo){
         this.sideInfo = sideInfo;
@@ -61,11 +69,15 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         StreamRecordQueueEntry<Row> future = (StreamRecordQueueEntry<Row>)resultFuture;
         try {
             if (null == future.get()) {
-                new TimeoutException("Async function call has timed out.");
+                resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out."));
             }
         } catch (Exception e) {
-            throw new Exception(e);
+            resultFuture.completeExceptionally(new Exception(e));
         }
+    }
+
+    private void initMetric() {
+        parseErrorRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_SIDE_PARSE_ERROR_RECORDS);
     }
 
     private void initCache(){
@@ -118,10 +130,22 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         }
     }
 
+    protected void dealFillDataError(ResultFuture<Row> resultFuture, Exception e, Object sourceData, Object sideData) {
+        LOG.debug("source data {} join side table error ", sourceData.toString());
+        LOG.debug("async buid row error..{}", e);
+        parseErrorRecords.inc();
+        if (parseErrorRecords.getCount() % 1000 == 0 || parseErrorRecords.getCount() == 1) {
+            LOG.error("source error data {} ", sourceData.toString());
+            LOG.error("side error data {} ", sideData.toString());
+        }
+        resultFuture.complete(Collections.emptyList());
+    }
+
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         initCache();
+        initMetric();
     }
 
     @Override

@@ -56,4 +56,6 @@ public class MetricConstant {
     public static final String DT_TOPIC_GROUP = "topic";
 
     public static final String DT_PARTITION_GROUP = "partition";
+
+    public static final String DT_NUM_SIDE_PARSE_ERROR_RECORDS = "dtNumSideParseErrorRecords";
 }

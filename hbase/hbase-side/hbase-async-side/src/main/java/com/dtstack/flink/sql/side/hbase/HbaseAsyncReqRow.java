@@ -164,12 +164,22 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
                     dealMissKey(input, resultFuture);
                     return;
                 }else if(ECacheContentType.SingleLine == val.getType()){
-                    Row row = fillData(input, val);
-                    resultFuture.complete(Collections.singleton(row));
-                }else if(ECacheContentType.MultiLine == val.getType()){
-                    for(Object one : (List)val.getContent()){
-                        Row row = fillData(input, one);
+                    try {
+                        Row row = fillData(input, val);
                         resultFuture.complete(Collections.singleton(row));
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, input, val);
+                    }
+                }else if(ECacheContentType.MultiLine == val.getType()){
+                    Object debugData = null;
+                    try {
+                        for(Object one : (List)val.getContent()){
+                            debugData = one;
+                            Row row = fillData(input, one);
+                            resultFuture.complete(Collections.singleton(row));
+                        }
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, input, debugData);
                     }
                 }
                 return;
