@@ -119,14 +119,7 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
 
     @Override
     public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        StreamRecordQueueEntry<Row> future = (StreamRecordQueueEntry<Row>)resultFuture;
-        try {
-            if (null == future.get()) {
-                resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out."));
-            }
-        } catch (Exception e) {
-            resultFuture.completeExceptionally(new Exception(e));
-        }
+        resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out. input:" + input.toString()));
     }
 
 
