@@ -34,13 +34,23 @@ import java.util.Optional;
 import java.util.Properties;
 
 /**
+ * 抽象的kafka producer 的工厂类
+ * 包括序统一的序列化工具的构造
  * company: www.dtstack.com
- *
  * @author: toutian
  * create: 2019/12/26
  */
 public abstract class AbstractKafkaProducerFactory {
 
+    /**
+     *  获取具体的KafkaProducer
+     * eg create KafkaProducer010
+     * @param kafkaSinkTableInfo
+     * @param typeInformation
+     * @param properties
+     * @param partitioner
+     * @return
+     */
     public abstract RichSinkFunction<Row> createKafkaProducer(KafkaSinkTableInfo kafkaSinkTableInfo, TypeInformation<Row> typeInformation, Properties properties, Optional<FlinkKafkaPartitioner<Row>> partitioner);
 
     protected SerializationMetricWrapper createSerializationMetricWrapper(KafkaSinkTableInfo kafkaSinkTableInfo, TypeInformation<Row> typeInformation) {
@@ -50,6 +60,7 @@ public abstract class AbstractKafkaProducerFactory {
     private SerializationSchema<Row> createSerializationSchema(KafkaSinkTableInfo kafkaSinkTableInfo, TypeInformation<Row> typeInformation) {
         SerializationSchema<Row> serializationSchema = null;
         if (FormatType.JSON.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
+
             if (StringUtils.isNotBlank(kafkaSinkTableInfo.getSchemaString())) {
                 serializationSchema = new JsonRowSerializationSchema(kafkaSinkTableInfo.getSchemaString());
             } else if (typeInformation != null && typeInformation.getArity() != 0) {
@@ -57,23 +68,31 @@ public abstract class AbstractKafkaProducerFactory {
             } else {
                 throw new IllegalArgumentException("sinkDataType:" + FormatType.JSON.name() + " must set schemaString（JSON Schema）or TypeInformation<Row>");
             }
+
         } else if (FormatType.CSV.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
+
             if (StringUtils.isBlank(kafkaSinkTableInfo.getFieldDelimiter())) {
                 throw new IllegalArgumentException("sinkDataType:" + FormatType.CSV.name() + " must set fieldDelimiter");
             }
+
             final CsvRowSerializationSchema.Builder serSchemaBuilder = new CsvRowSerializationSchema.Builder(typeInformation);
             serSchemaBuilder.setFieldDelimiter(kafkaSinkTableInfo.getFieldDelimiter().toCharArray()[0]);
             serializationSchema = serSchemaBuilder.build();
+
         } else if (FormatType.AVRO.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
+
             if (StringUtils.isBlank(kafkaSinkTableInfo.getSchemaString())) {
                 throw new IllegalArgumentException("sinkDataType:" + FormatType.AVRO.name() + " must set schemaString");
             }
+
             serializationSchema = new AvroRowSerializationSchema(kafkaSinkTableInfo.getSchemaString());
+
         }
 
         if (null == serializationSchema) {
             throw new UnsupportedOperationException("FormatType:" + kafkaSinkTableInfo.getSinkDataType());
         }
+
         return serializationSchema;
     }
 
