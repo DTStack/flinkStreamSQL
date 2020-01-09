@@ -51,6 +51,9 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
     private static final Logger LOG = LoggerFactory.getLogger(AsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
 
+    private static int TIMEOUT_LOG_FLUSH_NUM = 10;
+    private int timeOutNum = 0;
+
     protected SideInfo sideInfo;
     protected transient Counter parseErrorRecords;
 
@@ -119,7 +122,13 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
 
     @Override
     public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out. input:" + input.toString()));
+
+        //TODO 需要添加数据指标
+        if(timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0){
+            LOG.info("Async function call has timed out. input:" + input.toString());
+        }
+
+        resultFuture.complete(null);
     }
 
 
