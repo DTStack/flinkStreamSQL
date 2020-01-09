@@ -128,6 +128,7 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
             LOG.info("Async function call has timed out. input:" + input.toString());
         }
 
+        timeOutNum++;
         resultFuture.complete(null);
     }
 
