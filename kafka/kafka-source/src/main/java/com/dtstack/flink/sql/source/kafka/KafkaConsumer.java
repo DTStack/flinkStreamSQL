@@ -41,7 +41,6 @@ import java.util.regex.Pattern;
  * Reason:
  * Date: 2018/10/19
  * Company: www.dtstack.com
- *
  * @author xuchao
  */
 public class KafkaConsumer extends FlinkKafkaConsumer<Row> {
@@ -66,8 +65,24 @@ public class KafkaConsumer extends FlinkKafkaConsumer<Row> {
     }
 
     @Override
-    protected AbstractFetcher<Row, ?> createFetcher(SourceFunction.SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
-        AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext, assignedPartitionsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, runtimeContext, offsetCommitMode, consumerMetricGroup, useMetrics);
+    protected AbstractFetcher<Row, ?> createFetcher(SourceFunction.SourceContext<Row> sourceContext,
+                                                    Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets,
+                                                    SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic,
+                                                    SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated,
+                                                    StreamingRuntimeContext runtimeContext,
+                                                    OffsetCommitMode offsetCommitMode,
+                                                    MetricGroup consumerMetricGroup,
+                                                    boolean useMetrics) throws Exception {
+
+        AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext,
+                assignedPartitionsWithInitialOffsets,
+                watermarksPeriodic,
+                watermarksPunctuated,
+                runtimeContext,
+                offsetCommitMode,
+                consumerMetricGroup,
+                useMetrics);
+
         ((KafkaDeserializationMetricWrapper) deserializationMetricWrapper).setFetcher(fetcher);
         return fetcher;
     }

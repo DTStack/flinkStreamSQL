@@ -97,7 +97,8 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 			this.parallelism = parallelism;
 		}
 
-		this.kafkaProducer09 = (FlinkKafkaProducer09<Row>) new KafkaProducer09Factory().createKafkaProducer(kafka09SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner);
+		this.kafkaProducer09 = (FlinkKafkaProducer09<Row>) new KafkaProducer09Factory()
+                .createKafkaProducer(kafka09SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner);
 		return this;
 	}
 
@@ -108,8 +109,13 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
 	@Override
 	public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-		DataStream<Row> mapDataStream = dataStream.filter((Tuple2<Boolean, Row> record) -> record.f0).map((Tuple2<Boolean, Row> record) -> record.f1).returns(getOutputType().getTypeAt(1)).setParallelism(parallelism);
-		mapDataStream.addSink(kafkaProducer09).name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));
+		DataStream<Row> mapDataStream = dataStream.filter((Tuple2<Boolean, Row> record) -> record.f0)
+				.map((Tuple2<Boolean, Row> record) -> record.f1)
+                .returns(getOutputType().getTypeAt(1))
+                .setParallelism(parallelism);
+
+		mapDataStream.addSink(kafkaProducer09)
+                .name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));
 	}
 
 	@Override

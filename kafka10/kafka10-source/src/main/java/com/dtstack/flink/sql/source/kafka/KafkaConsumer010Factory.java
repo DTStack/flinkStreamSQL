@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
+import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
@@ -30,19 +31,24 @@ import java.util.regex.Pattern;
 
 /**
  * company: www.dtstack.com
- * author: toutian
+ * @author: toutian
  * create: 2019/12/24
  */
 public class KafkaConsumer010Factory extends AbstractKafkaConsumerFactory {
 
     @Override
-    public FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Properties props) {
+    public FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo,
+                                                              TypeInformation<Row> typeInformation,
+                                                              Properties props) {
         KafkaConsumer010 kafkaSrc = null;
         if (kafkaSourceTableInfo.getTopicIsPattern()) {
-            kafkaSrc = new KafkaConsumer010(Pattern.compile(kafkaSourceTableInfo.getTopic()), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) SubscriptionState::partitionLag), props);
+            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) SubscriptionState::partitionLag);
+            kafkaSrc = new KafkaConsumer010(Pattern.compile(kafkaSourceTableInfo.getTopic()), deserMetricWrapper, props);
         } else {
-            kafkaSrc = new KafkaConsumer010(kafkaSourceTableInfo.getTopic(), createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) SubscriptionState::partitionLag), props);
+            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) SubscriptionState::partitionLag);
+            kafkaSrc = new KafkaConsumer010(kafkaSourceTableInfo.getTopic(), deserMetricWrapper, props);
         }
+
         return kafkaSrc;
     }
 

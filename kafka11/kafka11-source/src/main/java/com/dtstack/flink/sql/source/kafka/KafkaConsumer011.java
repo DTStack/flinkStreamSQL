@@ -65,8 +65,23 @@ public class KafkaConsumer011 extends FlinkKafkaConsumer011<Row> {
     }
 
     @Override
-    protected AbstractFetcher<Row, ?> createFetcher(SourceContext<Row> sourceContext, Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic, SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated, StreamingRuntimeContext runtimeContext, OffsetCommitMode offsetCommitMode, MetricGroup consumerMetricGroup, boolean useMetrics) throws Exception {
-        AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext, assignedPartitionsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, runtimeContext, offsetCommitMode, consumerMetricGroup, useMetrics);
+    protected AbstractFetcher<Row, ?> createFetcher(SourceContext<Row> sourceContext,
+                                                    Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets,
+                                                    SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic,
+                                                    SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated,
+                                                    StreamingRuntimeContext runtimeContext,
+                                                    OffsetCommitMode offsetCommitMode,
+                                                    MetricGroup consumerMetricGroup,
+                                                    boolean useMetrics) throws Exception {
+
+        AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext,
+                assignedPartitionsWithInitialOffsets,
+                watermarksPeriodic,
+                watermarksPunctuated,
+                runtimeContext,
+                offsetCommitMode,
+                consumerMetricGroup,
+                useMetrics);
         ((KafkaDeserializationMetricWrapper) deserializationMetricWrapper).setFetcher(fetcher);
         return fetcher;
     }

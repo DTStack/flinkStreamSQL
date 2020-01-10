@@ -34,24 +34,32 @@ import org.apache.flink.types.Row;
 import java.util.Properties;
 
 /**
- * company: www.dtstack.com
  *
+ * company: www.dtstack.com
  * @author: toutian
  * create: 2019/12/24
  */
 public abstract class AbstractKafkaConsumerFactory {
 
-    protected abstract FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Properties props);
+    protected abstract FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo,
+                                                                          TypeInformation<Row> typeInformation,
+                                                                          Properties props);
 
-    protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Calculate calculate) {
-        return new KafkaDeserializationMetricWrapper(typeInformation, createDeserializationSchema(kafkaSourceTableInfo, typeInformation), calculate);
+    protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo,
+                                                                              TypeInformation<Row> typeInformation,
+                                                                              Calculate calculate) {
+        return new KafkaDeserializationMetricWrapper(typeInformation,
+                createDeserializationSchema(kafkaSourceTableInfo, typeInformation),
+                calculate);
     }
 
     private DeserializationSchema<Row> createDeserializationSchema(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation) {
         DeserializationSchema<Row> deserializationSchema = null;
         if (FormatType.DT_NEST.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
             deserializationSchema = new DtNestRowDeserializationSchema(typeInformation, kafkaSourceTableInfo.getPhysicalFields(), kafkaSourceTableInfo.getFieldExtraInfoList());
+
         } else if (FormatType.JSON.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
+
             if (StringUtils.isNotBlank(kafkaSourceTableInfo.getSchemaString())) {
                 deserializationSchema = new JsonRowDeserializationSchema(kafkaSourceTableInfo.getSchemaString());
             } else if (typeInformation != null && typeInformation.getArity() != 0) {
@@ -59,23 +67,30 @@ public abstract class AbstractKafkaConsumerFactory {
             } else {
                 throw new IllegalArgumentException("sourceDataType:" + FormatType.JSON.name() + " must set schemaString（JSON Schema）or TypeInformation<Row>");
             }
+
         } else if (FormatType.CSV.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
+
             if (StringUtils.isBlank(kafkaSourceTableInfo.getFieldDelimiter())) {
                 throw new IllegalArgumentException("sourceDataType:" + FormatType.CSV.name() + " must set fieldDelimiter");
             }
+
             final CsvRowDeserializationSchema.Builder deserSchemaBuilder = new CsvRowDeserializationSchema.Builder(typeInformation);
             deserSchemaBuilder.setFieldDelimiter(kafkaSourceTableInfo.getFieldDelimiter().toCharArray()[0]);
             deserializationSchema = deserSchemaBuilder.build();
+
         } else if (FormatType.AVRO.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
+
             if (StringUtils.isBlank(kafkaSourceTableInfo.getSchemaString())) {
                 throw new IllegalArgumentException("sourceDataType:" + FormatType.AVRO.name() + " must set schemaString");
             }
+
             deserializationSchema = new AvroRowDeserializationSchema(kafkaSourceTableInfo.getSchemaString());
         }
 
         if (null == deserializationSchema) {
             throw new UnsupportedOperationException("FormatType:" + kafkaSourceTableInfo.getSourceDataType());
         }
+
         return deserializationSchema;
     }
 
