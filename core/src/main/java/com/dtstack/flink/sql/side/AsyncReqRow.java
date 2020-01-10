@@ -60,20 +60,21 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
 
     protected transient Counter parseErrorRecords;
 
+    private static int TIMEOUT_LOG_FLUSH_NUM = 10;
+    private int timeOutNum = 0;
+
     public AsyncReqRow(SideInfo sideInfo){
         this.sideInfo = sideInfo;
     }
 
     @Override
     public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        StreamRecordQueueEntry<Row> future = (StreamRecordQueueEntry<Row>)resultFuture;
-        try {
-            if (null == future.get()) {
-                resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out."));
-            }
-        } catch (Exception e) {
-            resultFuture.completeExceptionally(new Exception(e));
+        if(timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0){
+            LOG.warn("Async function call has timed out, since timeoutNum:{}. current: input:{}", timeOutNum, input.toString());
         }
+
+        timeOutNum++;
+        resultFuture.complete(null);
     }
 
     private void initMetric() {
