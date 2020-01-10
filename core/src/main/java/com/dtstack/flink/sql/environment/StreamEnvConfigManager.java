@@ -191,7 +191,7 @@ public final class StreamEnvConfigManager {
         }
         String characteristicStr = properties.getProperty(ConfigConstrant.FLINK_TIME_CHARACTERISTIC_KEY);
         Optional<TimeCharacteristic> characteristic = Arrays.stream(TimeCharacteristic.values())
-                .filter(tc -> !characteristicStr.equalsIgnoreCase(tc.toString())).findAny();
+                .filter(tc -> characteristicStr.equalsIgnoreCase(tc.toString())).findAny();
 
         if (!characteristic.isPresent()) {
             throw new RuntimeException("illegal property :" + ConfigConstrant.FLINK_TIME_CHARACTERISTIC_KEY);
