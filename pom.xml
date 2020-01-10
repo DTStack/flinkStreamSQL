@@ -10,6 +10,7 @@
     <url>http://maven.apache.org</url>
     <modules>
         <module>core</module>
+        <module>kafka-base</module>
         <module>kafka09</module>
         <module>kafka10</module>
         <module>kafka11</module>
@@ -26,7 +27,6 @@
         <module>cassandra</module>
         <module>kudu</module>
         <module>postgresql</module>
-        <!--<module>kafka08</module>-->
         <module>serversocket</module>
         <module>console</module>
         <module>clickhouse</module>

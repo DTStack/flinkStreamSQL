@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.kudu;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -32,7 +32,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Date;
 
-public class KuduOutputFormat extends MetricOutputFormat {
+public class KuduOutputFormat extends DtRichOutputFormat {
 
     private static final long serialVersionUID = 1L;
 

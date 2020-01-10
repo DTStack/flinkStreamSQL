@@ -1,72 +1,35 @@
-CREATE TABLE MyTable(
-    name string,
-    channel STRING,
-    pv INT,
-    xctime bigint,
-    CHARACTER_LENGTH(channel) AS timeLeng
+CREATE TABLE STREAM_FIELD20(
+    after.id int AS id,
+    after.field02 varchar AS field02,
+    after.field03 varchar AS field03,
+    after.field04 varchar AS field04,
+    after.field05 varchar AS field05,
+    after.field06 varchar AS field06
  )WITH(
-    type ='kafka09',
-    bootstrapServers ='172.16.8.198:9092',
-    zookeeperQuorum ='172.16.8.198:2181/kafka',
+    type ='kafka10',
+    bootstrapServers ='172.16.101.247:9092',
+    zookeeperQuorum ='172.16.101.247:2181,172.16.101.141:2181,172.16.100.214:2181/kafka',
     offsetReset ='latest',
-    topic ='nbTest1',
+    topic ='toutiantest',
+    timezone='Asia/Shanghai',
+    topicIsPattern ='false',
     parallelism ='1'
  );
 
-CREATE TABLE MyResult(
-    channel VARCHAR,
-    pv VARCHAR
+CREATE TABLE RESULT_FIELD20(
+    id INT,
+    field02 VARCHAR,
+    PRIMARY KEY(id)
  )WITH(
-    type ='mysql',
-    url ='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',
-    userName ='dtstack',
-    password ='abc123',
-    tableName ='pv2',
-    parallelism ='1'
+    type='console'
  );
 
-CREATE TABLE workerinfo(
-    cast(logtime as TIMESTAMP)AS rtime,
-    cast(logtime)AS rtime
- )WITH(
-    type ='hbase',
-    zookeeperQuorum ='rdos1:2181',
-    tableName ='workerinfo',
-    rowKey ='ce,de',
-    parallelism ='1',
-    zookeeperParent ='/hbase'
- );
-
-CREATE TABLE sideTable(
-    cf:name String as name,
-    cf:info String as info,
-    PRIMARY KEY(name),
-    PERIOD FOR SYSTEM_TIME
- )WITH(
-    type ='hbase',
-    zookeeperQuorum ='rdos1:2181',
-    zookeeperParent ='/hbase',
-    tableName ='workerinfo',
-    cache ='LRU',
-    cacheSize ='10000',
-    cacheTTLMs ='60000',
-    parallelism ='1'
- );
 
 insert
 into
-    MyResult
-    select
-        d.channel,
-        d.info
+    RESULT_FIELD20
+    SELECT
+        a.id AS id,
+        a.field02 as field02
     from
-        (      select
-            a.*,b.info
-        from
-            MyTable a
-        join
-            sideTable b
-                on a.channel=b.name
-        where
-            a.channel = 'xc2'
-            and a.pv=10      ) as d
+        STREAM_FIELD20 a

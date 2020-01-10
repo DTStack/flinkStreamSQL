@@ -39,17 +39,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
-import sun.rmi.runtime.Log;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 
 /**
  * OutputFormat to write tuples into a database.
  * The OutputFormat has to be configured using the supplied OutputFormatBuilder.
  *
  */
-public class RetractJDBCOutputFormat extends MetricOutputFormat {
+public class RetractJDBCOutputFormat extends DtRichOutputFormat {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(RetractJDBCOutputFormat.class);

@@ -23,7 +23,6 @@ import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import com.dtstack.flink.sql.table.SourceTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -38,7 +37,6 @@ import org.apache.flink.types.Row;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Pattern;
 
 /**
  * @author: chuixue
@@ -84,14 +82,8 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 
         TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafkaSourceTableInfo.getFields());
 
-        FlinkKafkaConsumer<Row> kafkaSrc;
-        if (BooleanUtils.isTrue(kafkaSourceTableInfo.getTopicIsPattern())) {
-            kafkaSrc = new CustomerKafkaConsumer(Pattern.compile(topicName),
-                    new CustomerJsonDeserialization(typeInformation, kafkaSourceTableInfo.getPhysicalFields(), kafkaSourceTableInfo.getFieldExtraInfoList()), props);
-        } else {
-            kafkaSrc = new CustomerKafkaConsumer(topicName,
-                    new CustomerJsonDeserialization(typeInformation, kafkaSourceTableInfo.getPhysicalFields(), kafkaSourceTableInfo.getFieldExtraInfoList()), props);
-        }
+        FlinkKafkaConsumer<Row> kafkaSrc = (FlinkKafkaConsumer<Row>) new KafkaConsumerFactory().createKafkaTableSource(kafkaSourceTableInfo, typeInformation, props);
+
 
         //earliest,latest
         if ("earliest".equalsIgnoreCase(kafkaSourceTableInfo.getOffsetReset())) {
