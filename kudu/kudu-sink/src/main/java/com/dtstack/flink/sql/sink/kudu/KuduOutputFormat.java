@@ -103,8 +103,16 @@ public class KuduOutputFormat extends DtRichOutputFormat {
         if (!retract) {
             return;
         }
+
         Row row = tupleTrans.getField(1);
+
         if (row.getArity() != fieldNames.length) {
+            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
+                LOG.error("record insert failed ..", row.toString());
+                LOG.error("cause by row.getArity() != fieldNames.length");
+            }
+
+            outDirtyRecords.inc();
             return;
         }
 
@@ -112,15 +120,23 @@ public class KuduOutputFormat extends DtRichOutputFormat {
         AsyncKuduSession session = client.newSession();
 
         try {
+
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                LOG.info("Receive data : {}", row);
+            }
+
             session.apply(operation);
             session.close();
             outRecords.inc();
         } catch (KuduException e) {
-            outDirtyRecords.inc();
-            LOG.error("record insert failed ..", row.toString().substring(0, 100));
-            LOG.error("", e);
-        }
 
+            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
+                LOG.error("record insert failed ..", row.toString().substring(0, 100));
+                LOG.error("", e);
+            }
+
+            outDirtyRecords.inc();
+        }
     }
 
     @Override

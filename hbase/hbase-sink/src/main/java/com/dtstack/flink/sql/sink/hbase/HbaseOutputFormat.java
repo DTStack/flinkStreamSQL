@@ -66,10 +66,6 @@ public class HbaseOutputFormat extends DtRichOutputFormat {
 
     public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
 
-    private static int rowLenth = 1000;
-    private static int dirtyDataPrintFrequency = 1000;
-
-
     @Override
     public void configure(Configuration parameters) {
         LOG.warn("---configure---");
@@ -126,14 +122,16 @@ public class HbaseOutputFormat extends DtRichOutputFormat {
         try {
             table.put(put);
         } catch (IOException e) {
-            outDirtyRecords.inc();
-            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0 || LOG.isDebugEnabled()) {
-                LOG.error("record insert failed ..", record.toString());
+
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                LOG.error("record insert failed,dirty record num:{}, current row:{}", outDirtyRecords.getCount(), record.toString());
                 LOG.error("", e);
             }
+
+            outDirtyRecords.inc();
         }
 
-        if (outRecords.getCount() % rowLenth == 0) {
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
             LOG.info(record.toString());
         }
         outRecords.inc();
