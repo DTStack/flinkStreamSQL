@@ -41,8 +41,6 @@ public class JoinInfo implements Serializable {
 
     //左表是否是维表
     private boolean leftIsSideTable;
-    //左表是 转换后的中间表
-    private boolean leftIsMidTable;
 
     //右表是否是维表
     private boolean rightIsSideTable;
@@ -92,21 +90,6 @@ public class JoinInfo implements Serializable {
         return leftStr + "_" + rightTableName;
     }
 
-    public boolean isLeftIsMidTable() {
-        return leftIsMidTable;
-    }
-
-    public void setLeftIsMidTable(boolean leftIsMidTable) {
-        this.leftIsMidTable = leftIsMidTable;
-    }
-
-    public Map<String, String> getLeftTabMapping() {
-        return leftTabMapping;
-    }
-
-    public void setLeftTabMapping(Map<String, String> leftTabMapping) {
-        this.leftTabMapping = leftTabMapping;
-    }
 
     public String getNewTableAlias(){
         return leftTableAlias + "_" + rightTableAlias;

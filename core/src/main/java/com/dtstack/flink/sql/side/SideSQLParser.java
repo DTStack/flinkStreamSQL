@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.config.CalciteConfig;
 import com.dtstack.flink.sql.util.ParseUtils;
+import com.google.common.collect.HashBasedTable;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -39,15 +40,18 @@ import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import org.apache.flink.table.api.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -65,9 +69,15 @@ import static org.apache.calcite.sql.SqlKind.*;
 public class SideSQLParser {
     private static final Logger LOG = LoggerFactory.getLogger(SideSQLParser.class);
 
+    private Map<String, Table> localTableCache = Maps.newHashMap();
     private final char SPLIT = '_';
-
     private String tempSQL = "SELECT * FROM TMP";
+
+    /** 处理连续join时,中间表存储子表字段映射 */
+    private Map<String, HashBasedTable<String, String, String>> midTableFileNameMapping = Maps.newHashMap();
+    /** 处理连续join时,原始表与中间表的映射 */
+    private Map<String, List<Tuple2<String, String>>> midTableNameMapping = Maps.newHashMap();
+
 
     public Queue<Object> getExeQueue(String exeSql, Set<String> sideTableSet) throws SqlParseException {
         System.out.println("---exeSql---");
@@ -78,10 +88,61 @@ public class SideSQLParser {
         Queue<Object> queueInfo = Queues.newLinkedBlockingQueue();
         SqlParser sqlParser = SqlParser.create(exeSql, CalciteConfig.MYSQL_LEX_CONFIG);
         SqlNode sqlNode = sqlParser.parseStmt();
+        SqlNode original = sqlNode;
+
+        try {
+            checkAndReplaceMultiJoin(sqlNode, sideTableSet);
+        } catch (Exception e) {
+            sqlNode = original;
+            LOG.error("checkAndReplaceMultiJoin method error ", e);
+        }
+
         parseSql(sqlNode, sideTableSet, queueInfo);
         queueInfo.offer(sqlNode);
         return queueInfo;
     }
+
+    private void checkAndReplaceMultiJoin(SqlNode sqlNode, Set<String> sideTableSet) {
+        SqlKind sqlKind = sqlNode.getKind();
+        switch (sqlKind) {
+            case WITH: {
+                SqlWith sqlWith = (SqlWith) sqlNode;
+                SqlNodeList sqlNodeList = sqlWith.withList;
+                for (SqlNode withAsTable : sqlNodeList) {
+                    SqlWithItem sqlWithItem = (SqlWithItem) withAsTable;
+                    checkAndReplaceMultiJoin(sqlWithItem.query, sideTableSet);
+                }
+                checkAndReplaceMultiJoin(sqlWith.body, sideTableSet);
+                break;
+            }
+            case INSERT:
+                SqlNode sqlSource = ((SqlInsert) sqlNode).getSource();
+                checkAndReplaceMultiJoin(sqlSource, sideTableSet);
+                break;
+            case SELECT:
+                SqlNode sqlFrom = ((SqlSelect) sqlNode).getFrom();
+                if (sqlFrom.getKind() != IDENTIFIER) {
+                    checkAndReplaceMultiJoin(sqlFrom, sideTableSet);
+                }
+                break;
+            case JOIN:
+                convertMultiJoinToNestQuery((SqlJoin) sqlNode, sideTableSet);
+                break;
+            case AS:
+                SqlNode info = ((SqlBasicCall) sqlNode).getOperands()[0];
+                if (info.getKind() != IDENTIFIER) {
+                    checkAndReplaceMultiJoin(info, sideTableSet);
+                }
+                break;
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
+                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
+                checkAndReplaceMultiJoin(unionLeft, sideTableSet);
+                checkAndReplaceMultiJoin(unionRight, sideTableSet);
+                break;
+        }
+    }
+
 
     private Object parseSql(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo){
         SqlKind sqlKind = sqlNode.getKind();
@@ -105,7 +166,7 @@ public class SideSQLParser {
                 if(sqlFrom.getKind() != IDENTIFIER){
                     Object result = parseSql(sqlFrom, sideTableSet, queueInfo);
                     if(result instanceof JoinInfo){
-                        dealSelectResultWithJoinInfo((JoinInfo)result, (SqlSelect) sqlNode, queueInfo);
+                        return dealSelectResultWithJoinInfo((JoinInfo) result, (SqlSelect) sqlNode, queueInfo);
                     }else if(result instanceof AliasInfo){
                         String tableName = ((AliasInfo) result).getName();
                         if(sideTableSet.contains(tableName)){
@@ -124,11 +185,11 @@ public class SideSQLParser {
             case AS:
                 SqlNode info = ((SqlBasicCall)sqlNode).getOperands()[0];
                 SqlNode alias = ((SqlBasicCall) sqlNode).getOperands()[1];
-                String infoStr;
+                String infoStr = "";
 
                 if(info.getKind() == IDENTIFIER){
                     infoStr = info.toString();
-                }else{
+                } else {
                     infoStr = parseSql(info, sideTableSet, queueInfo).toString();
                 }
 
@@ -143,17 +204,84 @@ public class SideSQLParser {
                 SqlNode unionRight = ((SqlBasicCall)sqlNode).getOperands()[1];
 
                 parseSql(unionLeft, sideTableSet, queueInfo);
-
                 parseSql(unionRight, sideTableSet, queueInfo);
-
                 break;
-
             case ORDER_BY:
                 SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
                 parseSql(sqlOrderBy.query, sideTableSet, queueInfo);
         }
-
         return "";
+    }
+
+    private boolean isMultiJoinSqlNode(SqlNode sqlNode) {
+        return sqlNode.getKind() == JOIN && ((SqlJoin) sqlNode).getLeft().getKind() == JOIN;
+    }
+
+    private AliasInfo getSqlNodeAliasInfo(SqlNode sqlNode) {
+        SqlNode info = ((SqlBasicCall) sqlNode).getOperands()[0];
+        SqlNode alias = ((SqlBasicCall) sqlNode).getOperands()[1];
+        String infoStr = info.getKind() == IDENTIFIER ? info.toString() : null;
+
+        AliasInfo aliasInfo = new AliasInfo();
+        aliasInfo.setName(infoStr);
+        aliasInfo.setAlias(alias.toString());
+        return aliasInfo;
+    }
+
+    private void convertMultiJoinToNestQuery(SqlNode sqlNode, Set<String> sideTableSet) {
+        SqlKind sqlKind = sqlNode.getKind();
+        switch (sqlKind) {
+            case JOIN:
+                checkAndReplaceMultiJoin(((SqlJoin) sqlNode).getRight(), sideTableSet);
+                checkAndReplaceMultiJoin(((SqlJoin) sqlNode).getLeft(), sideTableSet);
+                if (isMultiJoinSqlNode(sqlNode)) {
+                    AliasInfo rightTableAliasInfo = getSqlNodeAliasInfo(((SqlJoin) sqlNode).getRight());
+                    String rightTableName = StringUtils.isEmpty(rightTableAliasInfo.getName()) ? rightTableAliasInfo.getAlias() : rightTableAliasInfo.getName();
+                    if (sideTableSet.contains(rightTableName)) {
+                        List<Tuple2<String, String>> joinIncludeSourceTable = Lists.newArrayList();
+                        ParseUtils.parseLeftNodeTableName(((SqlJoin) sqlNode).getLeft(), joinIncludeSourceTable, sideTableSet);
+
+                        //  last source table alias name + side  or child query table alias name + _0
+                        String leftFirstTableAlias = joinIncludeSourceTable.get(0).f0;
+                        String internalTableName = buildInternalTableName(leftFirstTableAlias, SPLIT, rightTableName) + "_0";
+                        midTableNameMapping.put(internalTableName, joinIncludeSourceTable);
+
+                        //  select * from xxx
+                        SqlNode newSource = buildSelectByLeftNode(((SqlJoin) sqlNode).getLeft());
+                        //  ( select * from xxx) as xxx_0
+                        SqlBasicCall newAsNode = buildAsSqlNode(internalTableName, newSource);
+                        ((SqlJoin) sqlNode).setLeft(newAsNode);
+
+                        String asNodeAlias = buildInternalTableName(internalTableName, SPLIT, rightTableName);
+                        buildAsSqlNode(asNodeAlias, sqlNode);
+
+                        HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
+                        Set<String> sourceTableName = localTableCache.keySet();
+                        joinIncludeSourceTable.stream().filter((Tuple2<String, String> tabName) -> {
+                            return null != tabName.f1 && sourceTableName.contains(tabName.f1);
+                        }).forEach((Tuple2<String, String> tabName ) -> {
+                            String realTableName = tabName.f1;
+                            String tableAlias = tabName.f0;
+                            Table table = localTableCache.get(realTableName);
+                            ParseUtils.fillFieldNameMapping(mappingTable, table.getSchema().getFieldNames(), tableAlias);
+
+                        });
+//                        ParseUtils.replaceJoinConditionTabName(((SqlJoin) sqlNode).getCondition(), mappingTable, internalTableName);
+                        System.out.println("");
+                    }
+                }
+                break;
+        }
+    }
+
+    private SqlBasicCall buildAsSqlNode(String internalTableName, SqlNode newSource) {
+        SqlOperator operator = new SqlAsOperator();
+        SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
+        SqlIdentifier sqlIdentifierAlias = new SqlIdentifier(internalTableName, null, sqlParserPos);
+        SqlNode[] sqlNodes = new SqlNode[2];
+        sqlNodes[0] = newSource;
+        sqlNodes[1] = sqlIdentifierAlias;
+        return new SqlBasicCall(operator, sqlNodes, sqlParserPos);
     }
 
     private JoinInfo dealJoinNode(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo) {
@@ -164,44 +292,17 @@ public class SideSQLParser {
         String leftTbAlias = "";
         String rightTableName = "";
         String rightTableAlias = "";
-        Map<String, String> midTableMapping = null ;
-        boolean leftIsMidTable = false;
-        // 右节点已经被解析
-        boolean rightIsParse = false;
         Tuple2<String, String> rightTableNameAndAlias = null;
-
-
         if(leftNode.getKind() == IDENTIFIER){
             leftTbName = leftNode.toString();
-        }else if(leftNode.getKind() == JOIN){
-            JoinInfo leftNodeJoinInfo = (JoinInfo)parseSql(leftNode, sideTableSet, queueInfo);//解析多JOIN
-
-            rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo);
-            rightIsParse = true;
-            if (checkIsSideTable(rightTableNameAndAlias.f0, sideTableSet)) {
-                //  select * from xxx
-                SqlNode sqlNode = buildSelectByLeftNode(leftNode);
-                //  ( select * from xxx) as xxx_0
-                SqlBasicCall newAsNode = buildAsNodeByJoinInfo(leftNodeJoinInfo, sqlNode);
-                leftNode = newAsNode;
-                joinNode.setLeft(leftNode);
-
-                leftIsMidTable = true;
-                midTableMapping = saveTabMapping(leftNodeJoinInfo);
-
-                AliasInfo aliasInfo = (AliasInfo) parseSql(newAsNode, sideTableSet, queueInfo);
-                leftTbName = aliasInfo.getName();
-                leftTbAlias = aliasInfo.getAlias();
-            } else {
-                leftTbName = leftNodeJoinInfo.getRightTableName();
-                leftTbAlias = leftNodeJoinInfo.getRightTableAlias();
-            }
-
-        }else if(leftNode.getKind() == AS){
+        } else if (leftNode.getKind() == JOIN) {
+            System.out.println(leftNode.toString());
+        } else if (leftNode.getKind() == AS) {
             AliasInfo aliasInfo = (AliasInfo) parseSql(leftNode, sideTableSet, queueInfo);
             leftTbName = aliasInfo.getName();
             leftTbAlias = aliasInfo.getAlias();
-        }else{
+
+        } else {
             throw new RuntimeException("---not deal---");
         }
 
@@ -210,9 +311,7 @@ public class SideSQLParser {
             throw new RuntimeException("side-table must be at the right of join operator");
         }
 
-        if (!rightIsParse) {
-            rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo);
-        }
+        rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo);
         rightTableName = rightTableNameAndAlias.f0;
         rightTableAlias = rightTableNameAndAlias.f1;
 
@@ -221,21 +320,28 @@ public class SideSQLParser {
             throw new RuntimeException("side join not support join type of right[current support inner join and left join]");
         }
 
-        if (leftIsMidTable) {
-            //  替换右边 on语句 中的字段别名
-            SqlNode afterReplaceNameCondition = ParseUtils.replaceJoinConditionTabName(joinNode.getCondition(), midTableMapping);
-            joinNode.setOperand(5, afterReplaceNameCondition);
+        Iterator iterator = ((HashMap) midTableNameMapping).values().iterator();
+        while (iterator.hasNext()) {
+            List<Tuple2<String, String>> next = (List) iterator.next();
+            String finalRightTableAlias = rightTableAlias;
+            String finalRightTableName = rightTableName;
+            next.forEach(tp2 -> {
+                if (tp2.f1 == null && tp2.f0 == finalRightTableAlias) {
+                    tp2.f1 = finalRightTableName;
+                }
+            });
         }
+
 
         JoinInfo tableInfo = new JoinInfo();
         tableInfo.setLeftTableName(leftTbName);
         tableInfo.setRightTableName(rightTableName);
-        if (leftTbAlias.equals("")){
+        if (StringUtils.isEmpty(leftTbAlias)){
             tableInfo.setLeftTableAlias(leftTbName);
         } else {
             tableInfo.setLeftTableAlias(leftTbAlias);
         }
-        if (rightTableAlias.equals("")){
+        if (StringUtils.isEmpty(rightTableAlias)){
             tableInfo.setRightTableAlias(rightTableName);
         } else {
             tableInfo.setRightTableAlias(rightTableAlias);
@@ -246,10 +352,6 @@ public class SideSQLParser {
         tableInfo.setRightNode(rightNode);
         tableInfo.setJoinType(joinType);
         tableInfo.setCondition(joinNode.getCondition());
-
-        tableInfo.setLeftIsMidTable(leftIsMidTable);
-        tableInfo.setLeftTabMapping(midTableMapping);
-
         return tableInfo;
     }
 
@@ -265,30 +367,6 @@ public class SideSQLParser {
         return tabName;
     }
 
-    private Map<String, String> saveTabMapping(JoinInfo leftNodeJoinInfo) {
-        Map<String, String> midTableMapping = Maps.newHashMap();;
-
-        String midTab = buidTableName(leftNodeJoinInfo.getLeftTableAlias(), SPLIT, leftNodeJoinInfo.getRightTableAlias());
-        String finalMidTab = midTab + "_0";
-
-        if(leftNodeJoinInfo.isLeftIsMidTable()) {
-            midTableMapping.putAll(leftNodeJoinInfo.getLeftTabMapping());
-        }
-        fillLeftAllTable(leftNodeJoinInfo, midTableMapping, finalMidTab);
-        return midTableMapping;
-    }
-
-    private void fillLeftAllTable(JoinInfo leftNodeJoinInfo, Map<String, String> midTableMapping, String finalMidTab) {
-        List<String> tablesName = Lists.newArrayList();
-        ParseUtils.parseLeftNodeTableName(leftNodeJoinInfo.getLeftNode(), tablesName);
-
-        tablesName.forEach(tab ->{
-            midTableMapping.put(tab, finalMidTab);
-        });
-        midTableMapping.put(leftNodeJoinInfo.getRightTableAlias(), finalMidTab);
-    }
-
-
     private SqlNode buildSelectByLeftNode(SqlNode leftNode) {
         SqlParser sqlParser = SqlParser.create(tempSQL, CalciteConfig.MYSQL_LEX_CONFIG);
         SqlNode sqlNode = null;
@@ -302,94 +380,54 @@ public class SideSQLParser {
         return sqlNode;
     }
 
-
-    private void dealSelectResultWithJoinInfo(JoinInfo joinInfo, SqlSelect sqlNode, Queue<Object> queueInfo){
-        //  中间虚拟表进行表名称替换
-        if (joinInfo.isLeftIsMidTable()){
-            SqlNode whereNode = sqlNode.getWhere();
-            SqlNodeList sqlGroup = sqlNode.getGroup();
-            SqlNodeList sqlSelectList = sqlNode.getSelectList();
-            List<SqlNode> newSelectNodeList = Lists.newArrayList();
-
-            for( int i=0; i<sqlSelectList.getList().size(); i++){
-                SqlNode selectNode = sqlSelectList.getList().get(i);
-
-                SqlNode replaceNode = ParseUtils.replaceSelectFieldTabName(selectNode, joinInfo.getLeftTabMapping());
-
-                if(replaceNode == null){
-                    continue;
-                }
-                //sqlSelectList.set(i, replaceNode);
-                newSelectNodeList.add(replaceNode);
-            }
-
-            SqlNodeList newSelectList = new SqlNodeList(newSelectNodeList, sqlSelectList.getParserPosition());
-            sqlNode.setSelectList(newSelectList);
-
-
-            //where
-            if(whereNode != null){
-                SqlNode[] sqlNodeList = ((SqlBasicCall)whereNode).getOperands();
-                for(int i =0; i<sqlNodeList.length; i++) {
-                    SqlNode whereSqlNode = sqlNodeList[i];
-                    SqlNode replaceNode = ParseUtils.replaceNodeInfo(whereSqlNode, joinInfo.getLeftTabMapping());
-                    sqlNodeList[i] = replaceNode;
-                }
-            }
-
-            if(sqlGroup != null && CollectionUtils.isNotEmpty(sqlGroup.getList())){
-                for( int i=0; i<sqlGroup.getList().size(); i++){
-                    SqlNode selectNode = sqlGroup.getList().get(i);
-                    SqlNode replaceNode = ParseUtils.replaceNodeInfo(selectNode, joinInfo.getLeftTabMapping());
-                    sqlGroup.set(i, replaceNode);
-                }
-            }
-        }
-
+    /**
+     *
+     * @param joinInfo
+     * @param sqlNode
+     * @param queueInfo
+     * @return   两个边关联后的新表表名
+     */
+    private String dealSelectResultWithJoinInfo(JoinInfo joinInfo, SqlSelect sqlNode, Queue<Object> queueInfo) {
         //SideJoinInfo rename
-        if(joinInfo.checkIsSide()){
+        if (joinInfo.checkIsSide()) {
             joinInfo.setSelectFields(sqlNode.getSelectList());
             joinInfo.setSelectNode(sqlNode);
-            if(joinInfo.isRightIsSideTable()){
+            if (joinInfo.isRightIsSideTable()) {
                 //Analyzing left is not a simple table
-                if(joinInfo.getLeftNode().toString().contains("SELECT")){
+                if (joinInfo.getLeftNode().getKind() == SELECT) {
                     queueInfo.offer(joinInfo.getLeftNode());
                 }
 
                 queueInfo.offer(joinInfo);
-            }else{
+            } else {
                 //Determining right is not a simple table
-                if(joinInfo.getRightNode().getKind() == SELECT){
+                if (joinInfo.getRightNode().getKind() == SELECT) {
                     queueInfo.offer(joinInfo.getLeftNode());
                 }
 
                 queueInfo.offer(joinInfo);
             }
             replaceFromNodeForJoin(joinInfo, sqlNode);
-
+            return joinInfo.getNewTableName();
         }
+        return "";
     }
 
     private void replaceFromNodeForJoin(JoinInfo joinInfo, SqlSelect sqlNode) {
         //Update from node
-        SqlBasicCall sqlBasicCall = buildAsNodeByJoinInfo(joinInfo, null);
+        SqlBasicCall sqlBasicCall = buildAsNodeByJoinInfo(joinInfo, null, null);
         sqlNode.setFrom(sqlBasicCall);
     }
 
-    private SqlBasicCall buildAsNodeByJoinInfo(JoinInfo joinInfo, SqlNode sqlNode0) {
+    private SqlBasicCall buildAsNodeByJoinInfo(JoinInfo joinInfo, SqlNode sqlNode0, String tableAlias) {
         SqlOperator operator = new SqlAsOperator();
 
         SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
         String joinLeftTableName = joinInfo.getLeftTableName();
         String joinLeftTableAlias = joinInfo.getLeftTableAlias();
         joinLeftTableName = Strings.isNullOrEmpty(joinLeftTableName) ? joinLeftTableAlias : joinLeftTableName;
-        String newTableName = buidTableName(joinLeftTableName, SPLIT, joinInfo.getRightTableName());
-        String newTableAlias = buidTableName(joinInfo.getLeftTableAlias(), SPLIT, joinInfo.getRightTableAlias());
-
-        //  mid table alias  a_b_0
-        if (null != sqlNode0) {
-            newTableAlias += "_0";
-        }
+        String newTableName = buildInternalTableName(joinLeftTableName, SPLIT, joinInfo.getRightTableName());
+        String newTableAlias = !StringUtils.isEmpty(tableAlias) ? tableAlias : buildInternalTableName(joinInfo.getLeftTableAlias(), SPLIT, joinInfo.getRightTableAlias());
 
         if (null == sqlNode0) {
             sqlNode0 = new SqlIdentifier(newTableName, null, sqlParserPos);
@@ -402,7 +440,7 @@ public class SideSQLParser {
         return new SqlBasicCall(operator, sqlNodes, sqlParserPos);
     }
 
-    private String buidTableName(String left, char split, String right) {
+    private String buildInternalTableName(String left, char split, String right) {
         StringBuilder sb = new StringBuilder();
         return sb.append(left).append(split).append(right).toString();
     }
@@ -412,5 +450,17 @@ public class SideSQLParser {
             return true;
         }
         return false;
+    }
+
+    public Map<String, HashBasedTable<String, String, String>> getMidTableFileNameMapping() {
+        return midTableFileNameMapping;
+    }
+
+    public Map<String, List<Tuple2<String, String>>> getMidTableNameMapping() {
+        return midTableNameMapping;
+    }
+
+    public void setLocalTableCache(Map<String, Table> localTableCache) {
+        this.localTableCache = localTableCache;
     }
 }

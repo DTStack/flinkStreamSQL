@@ -107,7 +107,7 @@ public class ParserJoinField {
 
         return fieldInfoList;
     }
-
+    //TODO 丢弃多余的PROCTIME
     private static List<FieldInfo> getAllField(JoinScope scope){
         Iterator prefixId = scope.getChildren().iterator();
         List<FieldInfo> fieldInfoList = Lists.newArrayList();
