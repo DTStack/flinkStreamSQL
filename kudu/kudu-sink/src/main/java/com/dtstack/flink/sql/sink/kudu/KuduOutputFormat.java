@@ -108,7 +108,7 @@ public class KuduOutputFormat extends DtRichOutputFormat {
 
         if (row.getArity() != fieldNames.length) {
             if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
-                LOG.error("record insert failed ..", row.toString());
+                LOG.error("record insert failed:{}", row.toString());
                 LOG.error("cause by row.getArity() != fieldNames.length");
             }
 
@@ -131,7 +131,7 @@ public class KuduOutputFormat extends DtRichOutputFormat {
         } catch (KuduException e) {
 
             if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
-                LOG.error("record insert failed ..", row.toString().substring(0, 100));
+                LOG.error("record insert failed, total dirty record:{} current row:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
             }
 

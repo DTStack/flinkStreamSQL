@@ -194,7 +194,15 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
                 }
             }
         } catch (SQLException e) {
-            LOG.error("", e);
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                outDirtyRecords.inc(batchNum == 1 ? batchNum : rows.size());
+                LOG.error("record insert failed,dirty record num:{}, current row:{}", outDirtyRecords.getCount(), row.toString());
+                LOG.error("", e);
+            } else {
+                outDirtyRecords.inc(batchNum == 1 ? batchNum : rows.size());
+            }
+
+
         }
 
     }
