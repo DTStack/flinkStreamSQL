@@ -52,10 +52,6 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
 
     private static final Logger LOG = LoggerFactory.getLogger(RetractJDBCOutputFormat.class);
 
-    private static int dirtyDataPrintFrequency = 1000;
-
-    private static int receiveDataPrintFrequency = 1000;
-
     private String username;
     private String password;
     private String drivername;
@@ -171,10 +167,12 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
         }
 
         if (retract) {
-            outRecords.inc();
-            if (outRecords.getCount() % receiveDataPrintFrequency == 0) {
+
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
                 LOG.info("Receive data : {}", row);
             }
+
+            outRecords.inc();
             insertWrite(row);
         } else {
             //do nothing
@@ -196,7 +194,15 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
                 }
             }
         } catch (SQLException e) {
-            LOG.error("", e);
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                outDirtyRecords.inc(batchNum == 1 ? batchNum : rows.size());
+                LOG.error("record insert failed,dirty record num:{}, current row:{}", outDirtyRecords.getCount(), row.toString());
+                LOG.error("", e);
+            } else {
+                outDirtyRecords.inc(batchNum == 1 ? batchNum : rows.size());
+            }
+
+
         }
 
     }
@@ -207,11 +213,13 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
             upload.executeUpdate();
             dbConn.commit();
         } catch (SQLException e) {
-            outDirtyRecords.inc();
-            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0 || LOG.isDebugEnabled()) {
-                LOG.error("record insert failed ..{}", row.toString());
+
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                LOG.error("record insert failed,dirty record num:{}, current row:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
             }
+
+            outDirtyRecords.inc();
         }
     }
 

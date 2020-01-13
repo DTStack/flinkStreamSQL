@@ -63,10 +63,6 @@ public class MongoOutputFormat extends DtRichOutputFormat {
 
     private static String PK = "_ID";
 
-    private static int rowLenth = 1000;
-
-    public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
-
     @Override
     public void configure(Configuration parameters) {
     }
@@ -97,6 +93,7 @@ public class MongoOutputFormat extends DtRichOutputFormat {
         for (int i = 0; i < fieldNames.length; i++) {
             doc.append(fieldNames[i], record.getField(i));
         }
+
         if (doc.containsKey(PK)) {
             Document updateValue = new Document();
             Document filter = new Document(PK.toLowerCase(), new ObjectId(doc.getString(PK)));
@@ -110,7 +107,7 @@ public class MongoOutputFormat extends DtRichOutputFormat {
             dbCollection.insertOne(doc);
         }
 
-        if (outRecords.getCount()%rowLenth == 0){
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
         }
         outRecords.inc();
