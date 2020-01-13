@@ -193,7 +193,6 @@ public class CassandraOutputFormat extends DtRichOutputFormat {
         try {
             if (retract) {
                 insertWrite(row);
-                outRecords.inc();
             } else {
                 //do nothing
             }
@@ -204,14 +203,24 @@ public class CassandraOutputFormat extends DtRichOutputFormat {
 
     private void insertWrite(Row row) {
         try {
+
+            if(outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
+                LOG.info("Receive data : {}", row);
+            }
+
             String cql = buildSql(row);
             if (cql != null) {
                 ResultSet resultSet = session.execute(cql);
                 resultSet.wasApplied();
+                outRecords.inc();
             }
         } catch (Exception e) {
+            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
+                LOG.error("record insert failed ..", row.toString().substring(0, 100));
+                LOG.error("", e);
+            }
+
             outDirtyRecords.inc();
-            LOG.error("[upsert] is error:" + e.getMessage());
         }
     }
 
