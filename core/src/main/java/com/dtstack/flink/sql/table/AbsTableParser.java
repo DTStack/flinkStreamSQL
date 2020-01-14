@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -44,6 +45,7 @@ public abstract class AbsTableParser {
 
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
     private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
+    private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
 
     private Map<String, Pattern> patternMap = Maps.newHashMap();
 
@@ -126,9 +128,12 @@ public abstract class AbsTableParser {
      */
     protected void dealNestField(Matcher matcher, TableInfo tableInfo) {
         String physicalField = matcher.group(1);
+        Preconditions.checkArgument(!physicalFieldFunPattern.matcher(physicalField).find(),
+                "No need to add data types when using functions, The correct way is : strLen(name) as nameSize, ");
+
         String fieldType = matcher.group(3);
         String mappingField = matcher.group(4);
-        Class fieldClass= dbTypeConvertToJavaType(fieldType);
+        Class fieldClass = dbTypeConvertToJavaType(fieldType);
         boolean notNull = matcher.group(5) != null;
         TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
         fieldExtraInfo.setNotNull(notNull);
