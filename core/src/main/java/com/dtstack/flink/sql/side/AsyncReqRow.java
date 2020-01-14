@@ -136,8 +136,9 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         LOG.debug("async buid row error..{}", e);
         parseErrorRecords.inc();
         if (parseErrorRecords.getCount() % 1000 == 0 || parseErrorRecords.getCount() == 1) {
-            LOG.error("source error data {} ", sourceData.toString());
-            LOG.error("side error data {} ", sideData.toString());
+            LOG.error("source error data: {} ", sourceData.toString());
+            LOG.error("side error data: {} ", sideData.toString());
+            LOG.error("async buid row error: {}", e);
         }
         resultFuture.complete(Collections.emptyList());
     }
