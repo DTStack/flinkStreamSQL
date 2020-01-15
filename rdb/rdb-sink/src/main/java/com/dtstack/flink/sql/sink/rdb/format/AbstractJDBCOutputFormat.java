@@ -37,7 +37,7 @@ import java.sql.SQLException;
  * @see Row
  * @see DriverManager
  */
-public abstract class AbstractJDBCOutputFormat<T> extends MetricOutputFormat {
+public abstract class AbstractJDBCOutputFormat<T> extends MetricOutputFormat<T> {
 
 	private static final long serialVersionUID = 1L;
 	static final int DEFAULT_FLUSH_MAX_SIZE = 100;

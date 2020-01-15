@@ -165,15 +165,15 @@ public abstract class UpsertWriter implements JDBCWriter {
                     }
                     connection.commit();
                 } catch (Exception e) {
+                    System.out.println(e.getCause());
                     // deal pg error: current transaction is aborted, commands ignored until end of transaction block
                     connection.rollback();
                     connection.commit();
-                    metricOutputFormat.outDirtyRecords.inc();
                     if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
                         LOG.error("record insert failed ,this row is {}", entry.getValue());
                         LOG.error("", e);
                     }
-                    System.out.println(e.getCause());
+                    metricOutputFormat.outDirtyRecords.inc();
                 }
             }
             keyToRows.clear();

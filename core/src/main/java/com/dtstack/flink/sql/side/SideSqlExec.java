@@ -627,7 +627,7 @@ public class SideSqlExec {
 
     private List<String> convertPrimaryAlias(SideTableInfo sideTableInfo) {
         List<String> res = Lists.newArrayList();
-        Arrays.stream(sideTableInfo.getPrimaryKeys()).forEach(field -> {
+        sideTableInfo.getPrimaryKeys().forEach(field -> {
             res.add(sideTableInfo.getPhysicalFields().getOrDefault(field, field));
         });
         return res;

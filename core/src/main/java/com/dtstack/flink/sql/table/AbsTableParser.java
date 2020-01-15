@@ -115,7 +115,8 @@ public abstract class AbsTableParser {
     public void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
         String primaryFields = matcher.group(1).trim();
         String[] splitArry = primaryFields.split(",");
-        tableInfo.setPrimaryKeys(splitArry);
+        List<String> primaryKes = Lists.newArrayList(splitArry);
+        tableInfo.setPrimaryKeys(primaryKes);
     }
 
     /**

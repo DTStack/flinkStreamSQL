@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -247,8 +248,8 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         /**
          * required, upsert unique keys.
          */
-        public Builder setKeyFields(String[] keyFields) {
-            this.keyFields = keyFields;
+        public Builder setKeyFields(List<String> keyFields) {
+            this.keyFields = keyFields == null ? null : keyFields.toArray(new String[keyFields.size()]);
             return this;
         }
 

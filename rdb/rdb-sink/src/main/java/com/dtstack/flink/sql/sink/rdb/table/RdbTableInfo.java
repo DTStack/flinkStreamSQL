@@ -173,11 +173,11 @@ public class RdbTableInfo extends TargetTableInfo {
         Preconditions.checkNotNull(password, "rdb field of password is required");
 
         if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
-            Preconditions.checkArgument(null != getPrimaryKeys() && getPrimaryKeys().length > 0, "updateMode  mode primary is required");
+            Preconditions.checkArgument(null != getPrimaryKeys() && getPrimaryKeys().size() > 0, "updateMode  mode primary is required");
         }
 
         if (null != getPrimaryKeys()) {
-            Arrays.stream(getPrimaryKeys()).forEach(pk -> {
+            getPrimaryKeys().forEach(pk -> {
                 Preconditions.checkArgument(getFieldList().contains(pk), "primary key " + pk + " not found in sink table field");
             });
         }

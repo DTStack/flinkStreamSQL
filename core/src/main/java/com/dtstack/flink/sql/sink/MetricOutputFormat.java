@@ -29,7 +29,7 @@ import org.apache.flink.types.Row;
 /**
  * Created by sishu.yss on 2018/11/28.
  */
-public abstract class MetricOutputFormat extends RichOutputFormat<Tuple2<Boolean, Row>> {
+public abstract class MetricOutputFormat<T> extends RichOutputFormat<T> {
 
     public transient Counter outRecords;
     public transient Counter outDirtyRecords;

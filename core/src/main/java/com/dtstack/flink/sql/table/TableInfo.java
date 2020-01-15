@@ -59,7 +59,7 @@ public abstract class TableInfo implements Serializable {
 
     private final List<FieldExtraInfo> fieldExtraInfoList = Lists.newArrayList();
 
-    private String[] primaryKeys;
+    private List<String> primaryKeys;
 
     private Integer parallelism = -1;
 
@@ -85,11 +85,11 @@ public abstract class TableInfo implements Serializable {
         return fieldClasses;
     }
 
-    public String[] getPrimaryKeys() {
+    public List<String> getPrimaryKeys() {
         return primaryKeys;
     }
 
-    public void setPrimaryKeys(String[] primaryKeys) {
+    public void setPrimaryKeys(List<String> primaryKeys) {
         this.primaryKeys = primaryKeys;
     }
 

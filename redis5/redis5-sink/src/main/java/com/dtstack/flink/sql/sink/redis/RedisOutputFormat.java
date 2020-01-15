@@ -31,7 +31,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 
-public class RedisOutputFormat extends MetricOutputFormat {
+public class RedisOutputFormat extends MetricOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
 
     private String url;

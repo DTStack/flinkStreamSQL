@@ -72,7 +72,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     protected String sql;
 
-    protected String[] primaryKeys;
+    protected List<String> primaryKeys;
 
     protected String[] fieldNames;
 
