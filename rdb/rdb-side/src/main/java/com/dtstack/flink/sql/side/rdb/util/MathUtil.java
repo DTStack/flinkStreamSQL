@@ -119,17 +119,19 @@ public class MathUtil {
     public static Double getDoubleVal(Object obj) {
         if (obj == null) {
             return null;
-        }
-
-        if (obj instanceof String) {
+        } else if (obj instanceof String) {
             return Double.valueOf((String) obj);
         } else if (obj instanceof Float) {
             return (Double) obj;
         } else if (obj instanceof BigDecimal) {
             return ((BigDecimal) obj).doubleValue();
+        } else if (obj instanceof Double) {
+            return (Double) obj;
+        } else if (obj instanceof BigInteger) {
+            return ((BigInteger) obj).doubleValue();
         }
 
-        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Double.");
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Double. value is: " + obj);
     }
 
     public static Double getDoubleVal(Object obj, double defaultVal) {
@@ -228,7 +230,7 @@ public class MathUtil {
             try {
                 return new Date(format.parse((String) obj).getTime());
             } catch (ParseException e) {
-                throw new RuntimeException("String convert to Date fail.");
+                throw new RuntimeException("String convert to Date fail. value is: " + obj);
             }
         } else if (obj instanceof Timestamp) {
             return new Date(((Timestamp) obj).getTime());
