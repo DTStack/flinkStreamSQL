@@ -86,7 +86,7 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
                 connection = DriverManager.getConnection(rdbSideTableInfo.getUrl(), rdbSideTableInfo.getUserName(), rdbSideTableInfo.getPassword());
             }
             if (null != connection) {
-                if (connection.getMetaData().getTables(null, rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName(), null).next()) {
+                if (!connection.getMetaData().getTables(null, rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName(), null).next()) {
                     LOG.error("Table " + rdbSideTableInfo.getTableName() + " doesn't exist");
                     throw new RuntimeException("Table " + rdbSideTableInfo.getTableName() + " doesn't exist");
                 }
