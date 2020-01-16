@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import com.dtstack.flink.sql.util.JDBCUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -33,6 +34,9 @@ import org.apache.flink.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.List;
 
 
@@ -51,6 +55,7 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
         super.open(parameters);
         JsonObject oracleClientConfig = new JsonObject();
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        establishConnection(rdbSideTableInfo);
         oracleClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", ORACLE_DRIVER)
                 .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
@@ -69,5 +74,35 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
         setRdbSQLClient(JDBCClient.createNonShared(vertx, oracleClientConfig));
+    }
+
+    private void establishConnection(RdbSideTableInfo rdbSideTableInfo) {
+        Connection connection = null;
+        JDBCUtils.forName(ORACLE_DRIVER, getClass().getClassLoader());
+        try {
+            if (rdbSideTableInfo.getUserName() == null) {
+                connection = DriverManager.getConnection(rdbSideTableInfo.getUrl());
+            } else {
+                connection = DriverManager.getConnection(rdbSideTableInfo.getUrl(), rdbSideTableInfo.getUserName(), rdbSideTableInfo.getPassword());
+            }
+            if (null != connection) {
+                if (connection.getMetaData().getTables(null, rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName(), null).next()) {
+                    LOG.error("Table " + rdbSideTableInfo.getTableName() + " doesn't exist");
+                    throw new RuntimeException("Table " + rdbSideTableInfo.getTableName() + " doesn't exist");
+                }
+            }
+        } catch (SQLException sqe) {
+            LOG.error("", sqe);
+            throw new IllegalArgumentException("open() failed.", sqe);
+        } finally {
+            if (null != connection) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    LOG.error("", e);
+                    throw new IllegalArgumentException("close() failed.", e);
+                }
+            }
+        }
     }
 }

@@ -220,7 +220,7 @@ public abstract class RdbAllReqRow extends AllReqRow {
     }
 
     public int getFetchSize() {
-        return 1000;
+        return sideInfo.getSideTableInfo().getCacheSize();
     }
 
 }
