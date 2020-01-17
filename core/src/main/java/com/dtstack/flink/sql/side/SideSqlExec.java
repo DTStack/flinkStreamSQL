@@ -749,7 +749,7 @@ public class SideSqlExec {
         RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getFieldTypes(), targetTable.getSchema().getFieldNames());
 
         DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
-                                .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
+                                .filter((Tuple2<Boolean, Row> f0) -> f0.f0).map((Tuple2<Boolean, Row> f0) -> f0.f1)
                                 .returns(Row.class);
         //adaptStream.getTransformation().setOutputType(leftTypeInfo);
 
