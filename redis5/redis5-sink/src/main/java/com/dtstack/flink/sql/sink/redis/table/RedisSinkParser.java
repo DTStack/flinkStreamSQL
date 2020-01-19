@@ -21,10 +21,12 @@ package com.dtstack.flink.sql.sink.redis.table;
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public class RedisSinkParser extends AbsTableParser {
@@ -46,12 +48,12 @@ public class RedisSinkParser extends AbsTableParser {
         redisTableInfo.setRedisType(MathUtil.getString(props.get(RedisTableInfo.REDIS_TYPE.toLowerCase())));
         redisTableInfo.setMasterName(MathUtil.getString(props.get(RedisTableInfo.MASTER_NAME.toLowerCase())));
 
-        String primaryKeysStr = MathUtil.getString(props.get("primarykeys"));
-        String[] primaryKeysArray = new String[]{};
+        String primaryKeysStr = MathUtil.getString(props.get(RedisTableInfo.PRIMARY_KEYS_NAME));
+        List<String> primaryKeysList = Lists.newArrayList();
         if (!StringUtils.isEmpty(primaryKeysStr)) {
-            primaryKeysArray = primaryKeysStr.split(",");
+            primaryKeysList = Arrays.asList(primaryKeysStr.split(","));
         }
-        redisTableInfo.setPrimaryKeys(primaryKeysArray);
+        redisTableInfo.setPrimaryKeys(primaryKeysList);
 
         return redisTableInfo;
     }

@@ -47,7 +47,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class MongoOutputFormat extends MetricOutputFormat {
+public class MongoOutputFormat extends MetricOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(MongoOutputFormat.class);
 
     private String address;

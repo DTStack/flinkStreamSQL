@@ -58,6 +58,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
     private final JDBCDialect dialect;
     private final String[] fieldNames;
     private final String[] keyFields;
+    private final String[] partitionFields;
     private final int[] fieldTypes;
 
     private final int flushMaxSize;
@@ -76,6 +77,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             JDBCOptions options,
             String[] fieldNames,
             String[] keyFields,
+            String[] partitionFields,
             int[] fieldTypes,
             int flushMaxSize,
             long flushIntervalMills,
@@ -87,6 +89,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         this.dialect = options.getDialect();
         this.fieldNames = fieldNames;
         this.keyFields = keyFields;
+        this.partitionFields = partitionFields;
         this.fieldTypes = fieldTypes;
         this.flushMaxSize = flushMaxSize;
         this.flushIntervalMills = flushIntervalMills;
@@ -108,13 +111,13 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             initMetric();
 
             if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || keyFields == null || keyFields.length == 0) {
-                String insertSQL = dialect.getInsertIntoStatement(schema, tableName, fieldNames);
+                String insertSQL = dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields);
                 LOG.info("execute insert sql： {}", insertSQL);
                 System.out.println("execute insert sql :" + insertSQL);
                 jdbcWriter = new AppendOnlyWriter(insertSQL, fieldTypes, this);
             } else {
                 jdbcWriter = UpsertWriter.create(
-                        dialect, schema, tableName, fieldNames, fieldTypes, keyFields,
+                        dialect, schema, tableName, fieldNames, fieldTypes, keyFields, partitionFields,
                         getRuntimeContext().getExecutionConfig().isObjectReuseEnabled(), allReplace, this);
             }
             jdbcWriter.open(connection);
@@ -171,6 +174,8 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             LOG.error("check connection open failed..", e);
         } catch (ClassNotFoundException e) {
             LOG.error("load jdbc class error when reconnect db..", e);
+        } catch (IOException e) {
+            LOG.error("jdbc io exception..", e);
         }
     }
 
@@ -220,14 +225,15 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
      * Builder for a {@link JDBCUpsertOutputFormat}.
      */
     public static class Builder {
-        private JDBCOptions options;
-        private String[] fieldNames;
-        private String[] keyFields;
-        private int[] fieldTypes;
-        private int flushMaxSize = DEFAULT_FLUSH_MAX_SIZE;
-        private long flushIntervalMills = DEFAULT_FLUSH_INTERVAL_MILLS;
-        private boolean allReplace = DEFAULT_ALLREPLACE_VALUE;
-        private String updateMode;
+        protected JDBCOptions options;
+        protected String[] fieldNames;
+        protected String[] keyFields;
+        protected String[] partitionFields;
+        protected int[] fieldTypes;
+        protected int flushMaxSize = DEFAULT_FLUSH_MAX_SIZE;
+        protected long flushIntervalMills = DEFAULT_FLUSH_INTERVAL_MILLS;
+        protected boolean allReplace = DEFAULT_ALLREPLACE_VALUE;
+        protected String updateMode;
 
         /**
          * required, jdbc options.
@@ -258,6 +264,16 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
          */
         public Builder setFieldTypes(int[] fieldTypes) {
             this.fieldTypes = fieldTypes;
+            return this;
+        }
+
+        /**
+         *   optional, partition Fields
+         * @param partitionFields
+         * @return
+         */
+        public Builder setPartitionFields(String[] partitionFields) {
+            this.partitionFields = partitionFields;
             return this;
         }
 
@@ -297,7 +313,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             checkNotNull(options, "No options supplied.");
             checkNotNull(fieldNames, "No fieldNames supplied.");
             return new JDBCUpsertOutputFormat(
-                    options, fieldNames, keyFields, fieldTypes, flushMaxSize, flushIntervalMills, allReplace, updateMode);
+                    options, fieldNames, keyFields, partitionFields, fieldTypes, flushMaxSize, flushIntervalMills, allReplace, updateMode);
         }
     }
 }

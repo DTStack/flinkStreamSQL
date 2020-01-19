@@ -62,7 +62,7 @@ public class PolardbDialect implements JDBCDialect {
     public Optional<String> buildDuplicateUpsertStatement(String tableName, String[] fieldNames) {
         String updateClause = Arrays.stream(fieldNames).map(f -> quoteIdentifier(f) + "=IFNULL(VALUES(" + quoteIdentifier(f) + ")," + quoteIdentifier(f) + ")")
                 .collect(Collectors.joining(", "));
-        return Optional.of(getInsertIntoStatement("", tableName, fieldNames) +
+        return Optional.of(getInsertIntoStatement("", tableName, fieldNames, null) +
                 " ON DUPLICATE KEY UPDATE " + updateClause
         );
     }

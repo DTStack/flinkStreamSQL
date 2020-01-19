@@ -92,7 +92,6 @@ public class AppendOnlyWriter implements JDBCWriter {
             LOG.debug("AppendOnlyWriter executeBatch error ", e);
             connection.rollback();
             connection.commit();
-            System.out.println(e);
             cleanBatchWhenError();
             executeUpdate(connection);
         }

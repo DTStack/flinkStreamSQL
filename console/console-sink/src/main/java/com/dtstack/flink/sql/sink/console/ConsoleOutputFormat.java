@@ -37,7 +37,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class ConsoleOutputFormat extends MetricOutputFormat {
+public class ConsoleOutputFormat extends MetricOutputFormat<Tuple2> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsoleOutputFormat.class);
 

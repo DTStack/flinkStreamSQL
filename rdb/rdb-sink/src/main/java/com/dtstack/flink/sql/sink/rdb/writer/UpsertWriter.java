@@ -55,6 +55,7 @@ public abstract class UpsertWriter implements JDBCWriter {
             String[] fieldNames,
             int[] fieldTypes,
             String[] keyFields,
+            String[] partitionFields,
             boolean objectReuse,
             boolean allReplace,
             MetricOutputFormat metricOutputFormat) {
@@ -80,9 +81,8 @@ public abstract class UpsertWriter implements JDBCWriter {
                 .orElseGet(() ->
                         new UpsertWriterUsingInsertUpdateStatement(
                                 fieldTypes, pkFields, pkTypes, objectReuse, deleteSQL,
-                                //  表存在检查
                                 dialect.getRowExistsStatement(tableName, keyFields),
-                                dialect.getInsertIntoStatement(schema, tableName, fieldNames),
+                                dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields),
                                 dialect.getUpdateStatement(tableName, fieldNames, keyFields),
                                 metricOutputFormat));
     }

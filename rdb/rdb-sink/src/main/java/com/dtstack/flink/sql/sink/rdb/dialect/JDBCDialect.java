@@ -83,7 +83,7 @@ public interface JDBCDialect extends Serializable {
     /**
      * Get insert into statement.
      */
-    default String getInsertIntoStatement(String schema, String tableName, String[] fieldNames) {
+    default String getInsertIntoStatement(String schema, String tableName, String[] fieldNames, String[] partitionFields) {
         String schemaInfo = StringUtils.isEmpty(schema) ? "" : quoteIdentifier(schema) + ".";
         String columns = Arrays.stream(fieldNames)
                 .map(this::quoteIdentifier)

@@ -32,7 +32,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Date;
 
-public class KuduOutputFormat extends MetricOutputFormat {
+public class KuduOutputFormat extends MetricOutputFormat<Tuple2> {
 
     private static final long serialVersionUID = 1L;
 

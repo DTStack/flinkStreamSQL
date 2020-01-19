@@ -40,14 +40,14 @@ import java.sql.SQLException;
 public abstract class AbstractJDBCOutputFormat<T> extends MetricOutputFormat<T> {
 
 	private static final long serialVersionUID = 1L;
-	static final int DEFAULT_FLUSH_MAX_SIZE = 100;
-	static final long DEFAULT_FLUSH_INTERVAL_MILLS = 10000L;
-	static final boolean DEFAULT_ALLREPLACE_VALUE = false;
+    public static final int DEFAULT_FLUSH_MAX_SIZE = 100;
+    public static final long DEFAULT_FLUSH_INTERVAL_MILLS = 10000L;
+    public static final boolean DEFAULT_ALLREPLACE_VALUE = false;
 
 	private static final Logger LOG = LoggerFactory.getLogger(AbstractJDBCOutputFormat.class);
 
-	private final String username;
-	private final String password;
+	protected final String username;
+	protected final String password;
 	private final String drivername;
 	protected final String dbURL;
 
@@ -64,7 +64,7 @@ public abstract class AbstractJDBCOutputFormat<T> extends MetricOutputFormat<T> 
 	public void configure(Configuration parameters) {
 	}
 
-	protected void establishConnection() throws SQLException, ClassNotFoundException {
+	protected void establishConnection() throws SQLException, ClassNotFoundException, IOException {
 		JDBCUtils.forName(drivername, getClass().getClassLoader());
 		if (username == null) {
 			connection = DriverManager.getConnection(dbURL);

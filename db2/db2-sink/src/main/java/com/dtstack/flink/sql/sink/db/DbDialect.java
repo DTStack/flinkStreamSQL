@@ -16,47 +16,31 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.postgresql;
-
+package com.dtstack.flink.sql.sink.db;
 
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
-import com.dtstack.flink.sql.util.DtStringUtil;
 
-import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
- * Date: 2020/1/3
+ * Date: 2020/1/19
  * Company: www.dtstack.com
  * @author maqi
  */
-public class PostgresqlDialect implements JDBCDialect {
+public class DbDialect implements JDBCDialect {
     @Override
     public boolean canHandle(String url) {
-        return url.startsWith("jdbc:postgresql:");
+        return url.startsWith("jdbc:db2:");
     }
 
     @Override
     public Optional<String> defaultDriverName() {
-        return Optional.of("org.postgresql.Driver");
+        return Optional.of("com.ibm.db2.jcc.DB2Driver");
     }
 
     @Override
-    public Optional<String> getUpsertStatement(String schema, String tableName, String[] fieldNames, String[] uniqueKeyFields, boolean allReplace) {
-        String uniqueColumns = Arrays.stream(uniqueKeyFields)
-                .map(this::quoteIdentifier)
-                .collect(Collectors.joining(", "));
-
-        String updateClause = Arrays.stream(fieldNames)
-                .map(f -> quoteIdentifier(f) + "=EXCLUDED." + quoteIdentifier(f))
-                .collect(Collectors.joining(", "));
-
-        return Optional.of(getInsertIntoStatement(schema, tableName, fieldNames, null) +
-                " ON CONFLICT (" + uniqueColumns + ")" +
-                " DO UPDATE SET " + updateClause
-        );
-
+    public String quoteIdentifier(String identifier) {
+        return identifier;
     }
 
 }

@@ -16,66 +16,69 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.mysql;
+package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Date: 2019/12/31
+ * Date: 2020/1/17
  * Company: www.dtstack.com
  * @author maqi
  */
-public class MySQLDialect implements JDBCDialect {
+public class ImpalaDialect implements JDBCDialect {
     private static final long serialVersionUID = 1L;
+
+    private static final String IMPALA_PARTITION_KEYWORD = " partition";
 
     @Override
     public boolean canHandle(String url) {
-        return url.startsWith("jdbc:mysql:");
+        return url.startsWith("jdbc:impala:");
     }
 
     @Override
     public Optional<String> defaultDriverName() {
-        return Optional.of("com.mysql.jdbc.Driver");
+        return Optional.of("com.cloudera.impala.jdbc41.Driver");
     }
 
     @Override
     public String quoteIdentifier(String identifier) {
-        return "`" + identifier + "`";
+        return identifier;
     }
 
-    /**
-     *  根据ALLReplace参数，选择使用replace语句还是ON DUPLICATE KEY UPDATE 语句
-     * @param tableName
-     * @param fieldNames
-     * @param uniqueKeyFields
-     * @param allReplace
-     * @return
-     */
     @Override
-    public Optional<String> getUpsertStatement(String schema, String tableName, String[] fieldNames, String[] uniqueKeyFields, boolean allReplace) {
-        return allReplace ? buildReplaceIntoStatement(tableName, fieldNames) : buildDuplicateUpsertStatement(tableName, fieldNames);
+    public String getUpdateStatement(String tableName, String[] fieldNames, String[] conditionFields) {
+        throw new RuntimeException("impala does not support update sql, please remove primary key or use append mode");
     }
 
-    public Optional<String> buildDuplicateUpsertStatement(String tableName, String[] fieldNames) {
-        String updateClause = Arrays.stream(fieldNames).map(f -> quoteIdentifier(f) + "=IFNULL(VALUES(" + quoteIdentifier(f) + ")," + quoteIdentifier(f) + ")")
-                .collect(Collectors.joining(", "));
-        return Optional.of(getInsertIntoStatement("", tableName, fieldNames, null) +
-                " ON DUPLICATE KEY UPDATE " + updateClause
-        );
-    }
+    @Override
+    public String getInsertIntoStatement(String schema, String tableName, String[] fieldNames, String[] partitionFields) {
 
-    public Optional<String> buildReplaceIntoStatement(String tableName, String[] fieldNames) {
+        String schemaInfo = StringUtils.isEmpty(schema) ? "" : quoteIdentifier(schema) + ".";
+
+        List<String> partitionFieldsList = Arrays.asList(partitionFields);
+
         String columns = Arrays.stream(fieldNames)
+                .filter(f -> !partitionFieldsList.contains(f))
                 .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
+
         String placeholders = Arrays.stream(fieldNames)
                 .map(f -> "?")
                 .collect(Collectors.joining(", "));
-        return Optional.of("REPLACE INTO " + quoteIdentifier(tableName) +
-                "(" + columns + ")" + " VALUES (" + placeholders + ")");
+
+        String partitionFieldStr = Arrays.stream(partitionFields)
+                .map(field -> field.replaceAll("\"", "'"))
+                .collect(Collectors.joining(", "));
+
+        String partitionStatement = StringUtils.isEmpty(partitionFieldStr) ? "" : IMPALA_PARTITION_KEYWORD + "(" + partitionFieldStr + ")";
+
+        return "INSERT INTO " + schemaInfo + quoteIdentifier(tableName) +
+                "(" + columns + ")" + partitionStatement + " VALUES (" + placeholders + ")";
     }
 }

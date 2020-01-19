@@ -45,7 +45,7 @@ import java.util.Set;
  * author: jingzhen@dtstack.com
  * date: 2017-6-29
  */
-public class HbaseOutputFormat extends MetricOutputFormat {
+public class HbaseOutputFormat extends MetricOutputFormat<Tuple2> {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseOutputFormat.class);
 
