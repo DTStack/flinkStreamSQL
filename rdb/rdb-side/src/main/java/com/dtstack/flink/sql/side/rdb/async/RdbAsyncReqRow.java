@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.side.rdb.async;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLClient;
@@ -66,8 +67,17 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     private transient SQLClient rdbSQLClient;
 
+    protected int rdbPoolSize = 3;
+
     public RdbAsyncReqRow(SideInfo sideInfo) {
         super(sideInfo);
+        init(sideInfo);
+    }
+
+    protected void init(SideInfo sideInfo) {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        rdbPoolSize = rdbSideTableInfo.getAsyncPoolSize() == 0 ? DEFAULT_MAX_DB_CONN_POOL_SIZE : rdbSideTableInfo.getAsyncPoolSize();
+        LOG.info("use rdb pool size {}", rdbPoolSize);
     }
 
     @Override
@@ -166,7 +176,6 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             });
         });
     }
-
 
 
     @Override

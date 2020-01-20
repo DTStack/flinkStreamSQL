@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.side;
 
@@ -30,6 +29,7 @@ import java.io.Serializable;
  * Reason:
  * Date: 2018/7/25
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -57,19 +57,31 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     private long cacheTimeout = 60 * 1000;//
 
-    private int  asyncCapacity=100;
+    private int asyncCapacity = 100;
 
-    private int  asyncTimeout=10000;
+    private int asyncTimeout = 10000;
 
     private boolean partitionedJoin = false;
 
-    private String cacheMode="ordered";
+    private String cacheMode = "ordered";
 
-    public RowTypeInfo getRowTypeInfo(){
+    public static final String ASYNC_REQ_POOL_KEY = "asyncPoolSize";
+
+    private int asyncPoolSize = 0;
+
+    public int getAsyncPoolSize() {
+        return asyncPoolSize;
+    }
+
+    public void setAsyncPoolSize(int asyncPoolSize) {
+        this.asyncPoolSize = asyncPoolSize;
+    }
+
+    public RowTypeInfo getRowTypeInfo() {
         Class[] fieldClass = getFieldClasses();
         TypeInformation<?>[] types = new TypeInformation[fieldClass.length];
         String[] fieldNames = getFields();
-        for(int i=0; i<fieldClass.length; i++){
+        for (int i = 0; i < fieldClass.length; i++) {
             types[i] = TypeInformation.of(fieldClass[i]);
         }
 

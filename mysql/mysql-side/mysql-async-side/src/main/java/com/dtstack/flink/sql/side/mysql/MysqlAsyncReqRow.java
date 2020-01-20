@@ -61,7 +61,7 @@ public class MysqlAsyncReqRow extends RdbAsyncReqRow {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         mysqlClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", MYSQL_DRIVER)
-                .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
+                .put("max_pool_size", rdbPoolSize)
                 .put("user", rdbSideTableInfo.getUserName())
                 .put("password", rdbSideTableInfo.getPassword())
                 .put("provider_class", DT_PROVIDER_CLASS)
@@ -73,7 +73,7 @@ public class MysqlAsyncReqRow extends RdbAsyncReqRow {
 
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
+        vo.setWorkerPoolSize(rdbPoolSize);
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
         setRdbSQLClient(JDBCClient.createNonShared(vertx, mysqlClientConfig));
