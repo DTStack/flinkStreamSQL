@@ -18,9 +18,8 @@
 
 package com.dtstack.flink.sql.sink.rdb.format;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import com.dtstack.flink.sql.util.JDBCUtils;
-import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -37,7 +36,7 @@ import java.sql.SQLException;
  * @see Row
  * @see DriverManager
  */
-public abstract class AbstractJDBCOutputFormat<T> extends MetricOutputFormat<T> {
+public abstract class AbstractJDBCOutputFormat<T> extends DtRichOutputFormat<T> {
 
 	private static final long serialVersionUID = 1L;
     public static final int DEFAULT_FLUSH_MAX_SIZE = 100;

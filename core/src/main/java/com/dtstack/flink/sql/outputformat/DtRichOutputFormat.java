@@ -29,9 +29,9 @@ import org.apache.flink.metrics.MeterView;
  */
 public abstract class DtRichOutputFormat<T> extends RichOutputFormat<T>{
 
-    protected transient Counter outRecords;
-    protected transient Counter outDirtyRecords;
-    protected transient Meter outRecordsRate;
+    public transient Counter outRecords;
+    public transient Counter outDirtyRecords;
+    public transient Meter outRecordsRate;
 
     protected static int ROW_PRINT_FREQUENCY = 1000;
     protected static int DIRTY_PRINT_FREQUENCY = 1000;

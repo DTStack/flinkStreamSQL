@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.rdb.writer;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
@@ -58,7 +58,7 @@ public abstract class UpsertWriter implements JDBCWriter {
             String[] partitionFields,
             boolean objectReuse,
             boolean allReplace,
-            MetricOutputFormat metricOutputFormat) {
+            DtRichOutputFormat metricOutputFormat) {
 
         checkNotNull(keyFields);
 
@@ -96,9 +96,9 @@ public abstract class UpsertWriter implements JDBCWriter {
     private transient Map<Row, Tuple2<Boolean, Row>> keyToRows;
     private transient PreparedStatement deleteStatement;
     // only use metric
-    private transient MetricOutputFormat metricOutputFormat;
+    private transient DtRichOutputFormat metricOutputFormat;
 
-    private UpsertWriter(int[] fieldTypes, int[] pkFields, int[] pkTypes, String deleteSQL, boolean objectReuse, MetricOutputFormat metricOutputFormat) {
+    private UpsertWriter(int[] fieldTypes, int[] pkFields, int[] pkTypes, String deleteSQL, boolean objectReuse, DtRichOutputFormat metricOutputFormat) {
         this.fieldTypes = fieldTypes;
         this.pkFields = pkFields;
         this.pkTypes = pkTypes;
@@ -216,7 +216,7 @@ public abstract class UpsertWriter implements JDBCWriter {
                 boolean objectReuse,
                 String deleteSQL,
                 String upsertSQL,
-                MetricOutputFormat metricOutputFormat) {
+                DtRichOutputFormat metricOutputFormat) {
             super(fieldTypes, pkFields, pkTypes, deleteSQL, objectReuse, metricOutputFormat);
             this.upsertSQL = upsertSQL;
         }
@@ -274,7 +274,7 @@ public abstract class UpsertWriter implements JDBCWriter {
                 String existSQL,
                 String insertSQL,
                 String updateSQL,
-                MetricOutputFormat metricOutputFormat) {
+                DtRichOutputFormat metricOutputFormat) {
             super(fieldTypes, pkFields, pkTypes, deleteSQL, objectReuse, metricOutputFormat);
             this.existSQL = existSQL;
             this.insertSQL = insertSQL;
