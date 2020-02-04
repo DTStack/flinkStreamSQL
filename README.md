@@ -29,7 +29,7 @@
 # 已支持
   * 源表：kafka 0.9、0.10、0.11、1.x版本
   * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse
-  * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse
+  * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse, oceanbase
 
 # 后续开发计划
   * 维表快照
@@ -190,6 +190,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [kudu 结果表插件](docs/kuduSink.md)
 * [postgresql 结果表插件](docs/postgresqlSink.md)
 * [clickhouse 结果表插件](docs/clickhouseSink.md)
+* [oceanbase 结果表插件](docs/oceanbaseSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
