@@ -22,11 +22,9 @@ package com.dtstack.flink.sql.sink.mysql;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
-import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
-import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
+import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
-import java.util.List;
-import java.util.Map;
 
 /**
  * Date: 2017/2/27
@@ -37,48 +35,25 @@ import java.util.Map;
 
 public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
-    private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
-
     public MysqlSink() {
+        super(new MySQLDialect());
     }
 
     @Override
-    public RetractJDBCOutputFormat getOutputFormat() {
-        return new RetractJDBCOutputFormat();
+    public JDBCUpsertOutputFormat getOutputFormat() {
+        JDBCOptions jdbcOptions = JDBCOptions.builder()
+                .setDBUrl(dbURL).setDialect(jdbcDialect)
+                .setUsername(userName).setPassword(password)
+                .setTableName(tableName).build();
+
+        return JDBCUpsertOutputFormat.builder()
+                .setOptions(jdbcOptions)
+                .setFieldNames(fieldNames)
+                .setFlushMaxSize(batchNum)
+                .setFlushIntervalMills(batchWaitInterval)
+                .setFieldTypes(sqlTypes)
+                .setKeyFields(primaryKeys)
+                .setAllReplace(allReplace)
+                .setUpdateMode(updateMode).build();
     }
-
-    @Override
-    public void buildSql(String scheam, String tableName, List<String> fields) {
-        buildInsertSql(tableName, fields);
-    }
-
-    @Override
-    public String buildUpdateSql(String schema, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
-        return null;
-    }
-
-    private void buildInsertSql(String tableName, List<String> fields) {
-        String sqlTmp = "replace into " +  tableName + " (${fields}) values (${placeholder})";
-        String fieldsStr = "";
-        String placeholder = "";
-
-        for (String fieldName : fields) {
-            fieldsStr += ",`" + fieldName + "`";
-            placeholder += ",?";
-        }
-
-        fieldsStr = fieldsStr.replaceFirst(",", "");
-        placeholder = placeholder.replaceFirst(",", "");
-
-        sqlTmp = sqlTmp.replace("${fields}", fieldsStr).replace("${placeholder}", placeholder);
-        this.sql = sqlTmp;
-    }
-
-
-    @Override
-    public String getDriverName() {
-        return MYSQL_DRIVER;
-    }
-
-
 }

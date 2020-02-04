@@ -18,8 +18,6 @@
 package com.dtstack.flink.sql.outputformat;
 
 import com.dtstack.flink.sql.metric.MetricConstant;
-import org.apache.flink.api.java.tuple.Tuple2;
-
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
@@ -29,16 +27,13 @@ import org.apache.flink.metrics.MeterView;
  * extend RichOutputFormat with metric 'dtNumRecordsOut', 'dtNumDirtyRecordsOut', 'dtNumRecordsOutRate'
  * Created by sishu.yss on 2018/11/28.
  */
-public abstract class DtRichOutputFormat extends RichOutputFormat<Tuple2>{
+public abstract class DtRichOutputFormat<T> extends RichOutputFormat<T>{
 
     protected transient Counter outRecords;
-
     protected transient Counter outDirtyRecords;
-
     protected transient Meter outRecordsRate;
 
     protected static int ROW_PRINT_FREQUENCY = 1000;
-
     protected static int DIRTY_PRINT_FREQUENCY = 1000;
 
     public void initMetric() {
