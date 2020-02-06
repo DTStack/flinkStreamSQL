@@ -51,13 +51,13 @@ public class ParserJoinField {
      */
     public static List<FieldInfo> getRowTypeInfo(SqlNode sqlNode, JoinScope scope, boolean getAll){
 
-        if(sqlNode.getKind() != SqlKind.SELECT){
-            throw new RuntimeException("------not select node--------\n" + sqlNode.toString());
-        }
-
         List<FieldInfo> fieldInfoList = Lists.newArrayList();
         if(getAll){
             return getAllField(scope);
+        }
+
+        if(sqlNode.getKind() != SqlKind.SELECT){
+            throw new RuntimeException("------not select node--------\n" + sqlNode.toString());
         }
 
         SqlSelect sqlSelect = (SqlSelect)sqlNode;
@@ -107,6 +107,7 @@ public class ParserJoinField {
 
         return fieldInfoList;
     }
+
     //TODO 丢弃多余的PROCTIME
     private static List<FieldInfo> getAllField(JoinScope scope){
         Iterator prefixId = scope.getChildren().iterator();

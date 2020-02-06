@@ -42,6 +42,8 @@ public class JoinInfo implements Serializable {
     //左表是否是维表
     private boolean leftIsSideTable;
 
+    private boolean leftIsTmpTable = false;
+
     //右表是否是维表
     private boolean rightIsSideTable;
 
@@ -64,8 +66,6 @@ public class JoinInfo implements Serializable {
     private SqlNode selectNode;
 
     private JoinType joinType;
-    // 左边是中间转换表，做表映射关系，给替换属性名称使用
-    private Map<String, String> leftTabMapping;
 
     public String getSideTableName(){
         if(leftIsSideTable){
@@ -193,5 +193,13 @@ public class JoinInfo implements Serializable {
 
     public void setJoinType(JoinType joinType) {
         this.joinType = joinType;
+    }
+
+    public boolean isLeftIsTmpTable() {
+        return leftIsTmpTable;
+    }
+
+    public void setLeftIsTmpTable(boolean leftIsTmpTable) {
+        this.leftIsTmpTable = leftIsTmpTable;
     }
 }
