@@ -146,10 +146,8 @@ public class ParseUtils {
     public static String dealDuplicateFieldName(HashBasedTable<String, String, String> mappingTable, String fieldName) {
         String mappingFieldName = fieldName;
         int index = 0;
-        String originalVal = fieldName;
-        while (!mappingTable.column(originalVal).isEmpty() && (mappingTable.column(originalVal).containsValue(fieldName) || !mappingTable.column(fieldName).isEmpty())) {
-            mappingFieldName = originalVal + index;
-            fieldName = fieldName + index;
+        while (!mappingTable.column(mappingFieldName).isEmpty()) {
+            mappingFieldName = mappingFieldName + index;
             index++;
         }
         return mappingFieldName;
