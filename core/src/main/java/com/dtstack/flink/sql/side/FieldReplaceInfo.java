@@ -93,6 +93,6 @@ public class FieldReplaceInfo {
             return null;
         }
 
-        return mappingTable.get(preNode.getTargetTableName(), preNodeTargetFieldName);
+        return mappingTable.get(preNode.getTargetTableAlias(), preNodeTargetFieldName);
     }
 }

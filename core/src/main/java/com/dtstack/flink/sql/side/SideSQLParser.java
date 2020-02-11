@@ -246,6 +246,7 @@ public class SideSQLParser {
             //处理连续join
             SqlBasicCall sqlBasicCall = dealNestJoin((SqlJoin) leftNode, sideTableSet, queueInfo);
             leftTbName = sqlBasicCall.getOperands()[0].toString();
+            leftTbAlias = sqlBasicCall.getOperands()[1].toString();
             leftTbisTmp = true;
         } else if (leftNode.getKind() == AS) {
             AliasInfo aliasInfo = (AliasInfo) parseSql(leftNode, sideTableSet, queueInfo);
