@@ -1,19 +1,35 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.dtstack.flink.sql.side.elasticsearch6;
 
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import com.dtstack.flink.sql.side.*;
-import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author yinxi
@@ -21,39 +37,53 @@ import java.util.stream.Collectors;
  */
 public class Elasticsearch6AllSideInfo extends SideInfo {
 
+    public static SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
     public Elasticsearch6AllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
-        Elasticsearch6SideTableInfo es6SideTableInfo = (Elasticsearch6SideTableInfo) sideTableInfo;
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
+        getSelectFromStatement(sideTableInfo.getPredicateInfoes());
 
-        sqlCondition = getSelectFromStatement(getEstype(es6SideTableInfo), Arrays.asList(sideSelectFields.split(",")), sideTableInfo.getPredicateInfoes());
-        System.out.println("-------- all side sql query-------\n" + sqlCondition);
     }
 
-    //基于rdb开发side,但是那些between,in,not in之类的不知道怎么处理
+    private void getSelectFromStatement(List<PredicateInfo> predicateInfoes) {
 
-    public String getAdditionalWhereClause() {
-        return "";
+        if (predicateInfoes.size() != 0) {
+            BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
+            for (PredicateInfo info : sideTableInfo.getPredicateInfoes()) {
+                boolQueryBuilder = buildFilterCondition(boolQueryBuilder, info);
+            }
+
+            searchSourceBuilder.query(boolQueryBuilder);
+        }
+
     }
 
-    private String getSelectFromStatement(String tableName, List<String> selectFields, List<PredicateInfo> predicateInfoes) {
-        String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
-        String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
-        String whereClause = buildWhereClause(predicateClause);
-        String sql = "SELECT " + fromClause + " FROM " + tableName + whereClause;
-        return sql;
-    }
+    public BoolQueryBuilder buildFilterCondition(BoolQueryBuilder boolQueryBuilder, PredicateInfo info){
+        switch (info.getOperatorKind()) {
+            case "GREATER_THAN_OR_EQUAL":
+                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).gte(info.getCondition()));
+            case "GREATER_THAN":
+                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).gt(info.getCondition()));
+            case "LESS_THAN_OR_EQUAL":
+                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).lte(info.getCondition()));
+            case "LESS_THAN":
+                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).lt(info.getCondition()));
+            case "EQUALS":
+                return boolQueryBuilder.must(QueryBuilders.termQuery(info.getFieldName(), info.getCondition()));
+            default:
+                try {
+                    throw new Exception("Predicate does not match!");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+        }
 
-    private String buildWhereClause(String predicateClause) {
-        String additionalWhereClause = getAdditionalWhereClause();
-        String whereClause = (!StringUtils.isEmpty(predicateClause) || !StringUtils.isEmpty(additionalWhereClause) ? " WHERE " + predicateClause : "");
-        whereClause += (StringUtils.isEmpty(predicateClause)) ? additionalWhereClause.replaceFirst("AND", "") : additionalWhereClause;
-        return whereClause;
+        return boolQueryBuilder;
     }
 
     @Override
@@ -108,28 +138,4 @@ public class Elasticsearch6AllSideInfo extends SideInfo {
         sideSelectFields = String.join(",", fields);
     }
 
-    public String buildFilterCondition(PredicateInfo info) {
-        switch (info.getOperatorKind()) {
-            case "IN":
-            case "NOT_IN":
-                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName() + " ( " + info.getCondition() + " )";
-            case "NOT_EQUALS":
-                return quoteIdentifier(info.getFieldName()) + " != " + info.getCondition();
-            case "BETWEEN":
-                return quoteIdentifier(info.getFieldName()) + " BETWEEN  " + info.getCondition();
-            case "IS_NOT_NULL":
-            case "IS_NULL":
-                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName();
-            default:
-                return quoteIdentifier(info.getFieldName()) + " " + info.getOperatorName() + " " + info.getCondition();
-        }
-    }
-
-    public String getEstype(Elasticsearch6SideTableInfo es6SdideTableInfo) {
-        return es6SdideTableInfo.getEsType();
-    }
-
-    public String quoteIdentifier(String identifier) {
-        return " " + identifier + " ";
-    }
 }

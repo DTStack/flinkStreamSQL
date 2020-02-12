@@ -7,11 +7,11 @@ import org.apache.flink.util.Collector;
 import com.dtstack.flink.sql.side.AllReqRow;
 import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
+import com.dtstack.flink.sql.side.elasticsearch6.util.SwitchUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -22,10 +22,6 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryStringQueryBuilder;
-import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
@@ -179,24 +175,11 @@ public class Elasticsearh6AllReqRow extends AllReqRow {
                 }
             }
 
-            // load data from table
-            String sql = sideInfo.getSqlCondition();
-
-            Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.size(getBathSize());
-            if(StringUtils.isNotEmpty(sql)){
-                searchSourceBuilder.query(QueryBuilders.wrapperQuery(sql));
-            }
-
-//            if(genericInputSplit.getTotalNumberOfSplits() > 1){
-//                searchSourceBuilder.slice(new SliceBuilder(genericInputSplit.getSplitNumber(), genericInputSplit.getTotalNumberOfSplits()));
-//            }
-
+            // load data from tableA
+            SearchSourceBuilder searchSourceBuilder = Elasticsearch6AllSideInfo.searchSourceBuilder;
+            searchSourceBuilder.size(getFetchSize());
             SearchRequest searchRequest = new SearchRequest(tableInfo.getIndex());
             searchRequest.types(tableInfo.getEsType());
-            searchRequest.scroll(scroll);
             searchRequest.source(searchSourceBuilder);
 
             SearchResponse searchResponse = rhlClient.search(searchRequest);
@@ -257,7 +240,7 @@ public class Elasticsearh6AllReqRow extends AllReqRow {
 
     }
 
-    public int getBathSize() {
+    public int getFetchSize() {
         return 1000;
     }
 }
