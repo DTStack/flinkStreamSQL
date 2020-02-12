@@ -254,27 +254,6 @@ public class SideSqlExec {
         return new RowTypeInfo(sideOutTypes, sideOutNames);
     }
 
-    /**
-     *  对时间类型进行类型转换
-     * @param leftTypeInfo
-     * @return
-     */
-    private RowTypeInfo buildLeftTableOutType(RowTypeInfo leftTypeInfo) {
-        TypeInformation[] sideOutTypes = new TypeInformation[leftTypeInfo.getFieldNames().length];
-        TypeInformation<?>[] fieldTypes = leftTypeInfo.getFieldTypes();
-        for (int i = 0; i < sideOutTypes.length; i++) {
-            sideOutTypes[i] = convertTimeAttributeType(fieldTypes[i]);
-        }
-        RowTypeInfo rowTypeInfo = new RowTypeInfo(sideOutTypes, leftTypeInfo.getFieldNames());
-        return rowTypeInfo;
-    }
-
-    private TypeInformation convertTimeAttributeType(TypeInformation typeInformation) {
-        if (typeInformation instanceof TimeIndicatorTypeInfo) {
-            return TypeInformation.of(Timestamp.class);
-        }
-        return typeInformation;
-    }
 
     //需要考虑更多的情况
     private void replaceFieldName(SqlNode sqlNode, HashBasedTable<String, String, String> mappingTable, String targetTableName, String tableAlias) {
@@ -786,9 +765,6 @@ public class SideSqlExec {
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if (sideTableInfo.isPartitionedJoin()) {
-            //            RowTypeInfo leftTableOutType = buildLeftTableOutType(leftTypeInfo);
-            //            adaptStream.getTransformation().setOutputType(leftTableOutType);
-
             List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias(), sideTableInfo);
             List<String> fieldNames = Arrays.asList(targetTable.getSchema().getFieldNames());
             int[] keyIndex = leftJoinColList.stream().mapToInt(fieldNames::indexOf).toArray();
