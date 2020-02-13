@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.side.hbase.utils;
 
-import com.dtstack.flink.sql.util.ByteUtils;
+import com.dtstack.flink.sql.util.MathUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 
 /**
@@ -34,41 +34,42 @@ import org.apache.hadoop.hbase.util.Bytes;
 public class HbaseUtils {
 
     public static Object convertByte(byte[] hbaseData, String type){
+        String data = Bytes.toString(hbaseData);
         if(type == null){
-            return new String(hbaseData);
+            return data;
         }
 
         switch (type.toLowerCase()) {
             case "boolean":
-                return Bytes.toBoolean(hbaseData);
+                return MathUtil.getBoolean(data);
 
             case "int":
-                return Bytes.toInt(hbaseData);
+                return MathUtil.getIntegerVal(data);
 
             case "bigint":
-                return Bytes.toLong(hbaseData);
+                return MathUtil.getLongVal(data);
 
             case "tinyint":
             case "byte":
-                return ByteUtils.bytes2Byte(hbaseData);
+                return MathUtil.getByte(data);
 
             case "short":
             case "smallint":
-                return Bytes.toShort(hbaseData);
+                return MathUtil.getShort(data);
 
             case "char":
             case "varchar":
             case "string":
-                return Bytes.toString(hbaseData);
+                return data;
 
             case "float":
-                return Bytes.toFloat(hbaseData);
+                return MathUtil.getFloatVal(data);
 
             case "double":
-                return Bytes.toDouble(hbaseData);
+                return MathUtil.getDoubleVal(data);
 
+            default:
+                throw new RuntimeException("not support type of " + type);
         }
-
-        throw new RuntimeException("not support type of " + type);
     }
 }

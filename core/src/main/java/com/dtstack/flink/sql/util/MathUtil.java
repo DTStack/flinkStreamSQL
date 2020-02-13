@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.util;
 
@@ -66,6 +66,58 @@ public class MathUtil {
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Integer." );
     }
 
+    public static Float getFloatVal(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof String) {
+            return Float.valueOf((String) obj);
+        } else if (obj instanceof Float) {
+            return (Float) obj;
+        } else if (obj instanceof BigDecimal) {
+            return ((BigDecimal) obj).floatValue();
+        }
+
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Float.");
+    }
+
+    public static Float getFloatVal(Object obj, float defaultVal) {
+        if (obj == null) {
+            return defaultVal;
+        }
+
+        return getFloatVal(obj);
+    }
+
+    public static Double getDoubleVal(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof String) {
+            return Double.valueOf((String) obj);
+        } else if (obj instanceof Float) {
+            return ((Float) obj).doubleValue();
+        } else if (obj instanceof Double){
+            return (Double) obj;
+        }else if (obj instanceof BigDecimal) {
+            return ((BigDecimal) obj).doubleValue();
+        }else if (obj instanceof Integer){
+            return ((Integer)obj).doubleValue();
+        }
+
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Double.");
+    }
+
+    public static Double getDoubleVal(Object obj, double defaultVal) {
+        if (obj == null) {
+            return defaultVal;
+        }
+
+        return getDoubleVal(obj);
+    }
+
     public static Boolean getBoolean(Object obj, boolean defaultVal){
         if(obj == null){
             return defaultVal;
@@ -98,5 +150,33 @@ public class MathUtil {
         }else {
             return obj.toString();
         }
+    }
+
+    public static Byte getByte(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof String) {
+            return Byte.valueOf((String) obj);
+        } else if (obj instanceof Byte) {
+            return (Byte) obj;
+        }
+
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Byte.");
+    }
+
+    public static Short getShort(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof String) {
+            return Short.valueOf((String) obj);
+        } else if (obj instanceof Short) {
+            return (Short) obj;
+        }
+
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Short.");
     }
 }
