@@ -65,7 +65,6 @@ public class ParserJoinField {
         for(SqlNode fieldNode : sqlNodeList.getList()){
             SqlIdentifier identifier = (SqlIdentifier)fieldNode;
             if(!identifier.isStar()) {
-                System.out.println(identifier);
                 String tableName = identifier.getComponent(0).getSimple();
                 String fieldName = identifier.getComponent(1).getSimple();
                 TypeInformation<?> type = scope.getFieldType(tableName, fieldName);
@@ -76,7 +75,6 @@ public class ParserJoinField {
                 fieldInfoList.add(fieldInfo);
             } else {
                 //处理
-                System.out.println("----------");
                 int identifierSize = identifier.names.size();
 
                 switch(identifierSize) {

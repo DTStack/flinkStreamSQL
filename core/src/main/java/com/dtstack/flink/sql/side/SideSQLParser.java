@@ -21,7 +21,8 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.config.CalciteConfig;
-import com.google.common.base.Strings;
+import com.dtstack.flink.sql.util.TableUtils;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
@@ -73,15 +74,14 @@ public class SideSQLParser {
     private static final Logger LOG = LoggerFactory.getLogger(SideSQLParser.class);
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
-    private final char SPLIT = '_';
 
-    //regular joins(不带时间窗口) 不允许查询出rowtime或者proctime
-    private final String SELECT_TEMP_SQL = "select %s from %s %s";
+    //用来构建临时的中间查询
+    private static final String SELECT_TEMP_SQL = "select %s from %s %s";
 
     public Queue<Object> getExeQueue(String exeSql, Set<String> sideTableSet) throws SqlParseException {
-        System.out.println("---exeSql---");
+        System.out.println("----------exec original Sql----------");
         System.out.println(exeSql);
-        LOG.info("---exeSql---");
+        LOG.info("----------exec original Sql----------");
         LOG.info(exeSql);
 
         Queue<Object> queueInfo = Queues.newLinkedBlockingQueue();
@@ -160,7 +160,7 @@ public class SideSQLParser {
                 if(sqlFrom.getKind() != IDENTIFIER){
                     Object result = parseSql(sqlFrom, sideTableSet, queueInfo, sqlWhere, selectList);
                     if(result instanceof JoinInfo){
-                        return dealSelectResultWithJoinInfo((JoinInfo) result, (SqlSelect) sqlNode, queueInfo);
+                        return TableUtils.dealSelectResultWithJoinInfo((JoinInfo) result, (SqlSelect) sqlNode, queueInfo);
                     }else if(result instanceof AliasInfo){
                         String tableName = ((AliasInfo) result).getName();
                         if(sideTableSet.contains(tableName)){
@@ -226,11 +226,6 @@ public class SideSQLParser {
     private void convertSideJoinToNewQuery(SqlJoin sqlNode, Set<String> sideTableSet) {
         checkAndReplaceMultiJoin(sqlNode.getLeft(), sideTableSet);
         checkAndReplaceMultiJoin(sqlNode.getRight(), sideTableSet);
-
-        AliasInfo rightTableAliasInfo = getSqlNodeAliasInfo(sqlNode.getRight());
-        if(sideTableSet.contains(rightTableAliasInfo.getName())){
-            //构建新的查询
-        }
     }
 
     private SqlBasicCall buildAsSqlNode(String internalTableName, SqlNode newSource) {
@@ -243,6 +238,15 @@ public class SideSQLParser {
         return new SqlBasicCall(operator, sqlNodes, sqlParserPos);
     }
 
+    /**
+     * 解析 join 操作
+     * @param joinNode
+     * @param sideTableSet
+     * @param queueInfo
+     * @param parentWhere
+     * @param parentSelectList
+     * @return
+     */
     private JoinInfo dealJoinNode(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo,
                                   SqlNode parentWhere, SqlNodeList parentSelectList) {
         SqlNode leftNode = joinNode.getLeft();
@@ -255,14 +259,17 @@ public class SideSQLParser {
         String rightTableAlias = "";
         boolean leftTbisTmp = false;
 
-        Tuple2<String, String> rightTableNameAndAlias = null;
+        //如果是连续join 判断是否已经处理过添加到执行队列
+        Boolean alreadyOffer = false;
+
         if(leftNode.getKind() == IDENTIFIER){
             leftTbName = leftNode.toString();
         } else if (leftNode.getKind() == JOIN) {
             //处理连续join
-            SqlBasicCall sqlBasicCall = dealNestJoin((SqlJoin) leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
-            leftTbName = sqlBasicCall.getOperands()[0].toString();
-            leftTbAlias = sqlBasicCall.getOperands()[1].toString();
+            Tuple2<Boolean, SqlBasicCall> nestJoinResult = dealNestJoin((SqlJoin) leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
+            alreadyOffer = nestJoinResult.f0;
+            leftTbName = nestJoinResult.f1.getOperands()[0].toString();
+            leftTbAlias = nestJoinResult.f1.getOperands()[1].toString();
             leftTbisTmp = true;
         } else if (leftNode.getKind() == AS) {
             AliasInfo aliasInfo = (AliasInfo) parseSql(leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
@@ -270,20 +277,18 @@ public class SideSQLParser {
             leftTbAlias = aliasInfo.getAlias();
 
         } else {
-            throw new RuntimeException("---not deal---");
+            throw new RuntimeException(String.format("---not deal node with type %s", leftNode.getKind().toString()));
         }
 
         boolean leftIsSide = checkIsSideTable(leftTbName, sideTableSet);
-        if(leftIsSide){
-            throw new RuntimeException("side-table must be at the right of join operator");
-        }
+        Preconditions.checkState(!leftIsSide, "side-table must be at the right of join operator");
 
-        rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
         rightTableName = rightTableNameAndAlias.f0;
         rightTableAlias = rightTableNameAndAlias.f1;
 
         boolean rightIsSide = checkIsSideTable(rightTableName, sideTableSet);
-        if(joinType == JoinType.RIGHT){
+        if(rightIsSide && joinType == JoinType.RIGHT){
             throw new RuntimeException("side join not support join type of right[current support inner join and left join]");
         }
 
@@ -303,7 +308,6 @@ public class SideSQLParser {
         }
 
         tableInfo.setLeftIsTmpTable(leftTbisTmp);
-
         tableInfo.setLeftIsSideTable(leftIsSide);
         tableInfo.setRightIsSideTable(rightIsSide);
         tableInfo.setLeftNode(leftNode);
@@ -311,43 +315,15 @@ public class SideSQLParser {
         tableInfo.setJoinType(joinType);
         tableInfo.setCondition(joinNode.getCondition());
 
-        //TODO 抽取
+        if(!rightIsSide || alreadyOffer){
+            return tableInfo;
+        }
+
         if(tableInfo.getLeftNode().getKind() != AS){
-            //build 临时中间查询
-            try{
-                //父一级的where 条件中如果只和临时查询相关的条件都截取进来
-                Set<String> fromTableNameSet = Sets.newHashSet();
-                List<SqlBasicCall> extractCondition = Lists.newArrayList();
-
-                getFromTableInfo(tableInfo.getLeftNode(), fromTableNameSet);
-                checkAndRemoveCondition(fromTableNameSet, (SqlBasicCall) parentWhere, extractCondition);
-
-                //TODO 查询的字段需要根据最上层的字段中获取,而不是直接设置为*,当然如果上一层就是*另说
-
-                List<String> extractSelectField = extractSelectList(parentSelectList, fromTableNameSet);
-                String extractSelectFieldStr = buildSelectNode(extractSelectField);
-                String extractConditionStr = buildCondition(extractCondition);
-
-                String tmpSelectSql = String.format(SELECT_TEMP_SQL,
-                        extractSelectFieldStr,
-                        tableInfo.getLeftNode().toString(),
-                        extractConditionStr);
-
-                SqlParser sqlParser = SqlParser.create(tmpSelectSql, CalciteConfig.MYSQL_LEX_CONFIG);
-                SqlNode sqlNode = sqlParser.parseStmt();
-                SqlBasicCall sqlBasicCall = buildAsSqlNode(tableInfo.getLeftTableAlias(), sqlNode);
-                queueInfo.offer(sqlBasicCall);
-
-                //TODO 打印合适的提示
-                System.out.println(tmpSelectSql);
-            }catch (Exception e){
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-
+            extractTemporaryQuery(tableInfo.getLeftNode(), tableInfo.getLeftTableAlias(), (SqlBasicCall) parentWhere, parentSelectList, queueInfo);
         }else {
-            SqlKind asFirstKind = ((SqlBasicCall)tableInfo.getLeftNode()).operands[0].getKind();
-            if(asFirstKind == SELECT){
+            SqlKind asNodeFirstKind = ((SqlBasicCall)tableInfo.getLeftNode()).operands[0].getKind();
+            if(asNodeFirstKind == SELECT){
                 queueInfo.offer(tableInfo.getLeftNode());
                 tableInfo.setLeftNode(((SqlBasicCall)tableInfo.getLeftNode()).operands[1]);
             }
@@ -356,23 +332,24 @@ public class SideSQLParser {
     }
 
     //构建新的查询
-    private SqlBasicCall dealNestJoin(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo, SqlNode parentWhere, SqlNodeList selectList){
+    private Tuple2<Boolean, SqlBasicCall> dealNestJoin(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo, SqlNode parentWhere, SqlNodeList selectList){
         SqlNode rightNode = joinNode.getRight();
-
         Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, selectList);
-
         JoinInfo joinInfo = dealJoinNode(joinNode, sideTableSet, queueInfo, parentWhere, selectList);
 
         String rightTableName = rightTableNameAndAlias.f0;
         boolean rightIsSide = checkIsSideTable(rightTableName, sideTableSet);
+        boolean alreadyOffer = false;
+
         if(!rightIsSide){
             //右表不是维表的情况
         }else{
             //右边表是维表需要重新构建左表的临时查询
             queueInfo.offer(joinInfo);
+            alreadyOffer = true;
         }
 
-        return buildAsNodeByJoinInfo(joinInfo, null, null);
+        return Tuple2.of(alreadyOffer, TableUtils.buildAsNodeByJoinInfo(joinInfo, null, null));
     }
 
     public boolean checkAndRemoveCondition(Set<String> fromTableNameSet, SqlBasicCall parentWhere, List<SqlBasicCall> extractContition){
@@ -399,6 +376,40 @@ public class SideSQLParser {
             }
 
             return false;
+        }
+    }
+
+    private void extractTemporaryQuery(SqlNode node, String tableAlias, SqlBasicCall parentWhere,
+                                       SqlNodeList parentSelectList, Queue<Object> queueInfo){
+        try{
+            //父一级的where 条件中如果只和临时查询相关的条件都截取进来
+            Set<String> fromTableNameSet = Sets.newHashSet();
+            List<SqlBasicCall> extractCondition = Lists.newArrayList();
+
+            getFromTableInfo(node, fromTableNameSet);
+            checkAndRemoveCondition(fromTableNameSet, parentWhere, extractCondition);
+
+            List<String> extractSelectField = extractSelectList(parentSelectList, fromTableNameSet);
+            String extractSelectFieldStr = buildSelectNode(extractSelectField);
+            String extractConditionStr = buildCondition(extractCondition);
+
+            String tmpSelectSql = String.format(SELECT_TEMP_SQL,
+                    extractSelectFieldStr,
+                    node.toString(),
+                    extractConditionStr);
+
+            SqlParser sqlParser = SqlParser.create(tmpSelectSql, CalciteConfig.MYSQL_LEX_CONFIG);
+            SqlNode sqlNode = sqlParser.parseStmt();
+            SqlBasicCall sqlBasicCall = buildAsSqlNode(tableAlias, sqlNode);
+            queueInfo.offer(sqlBasicCall);
+
+            //TODO 打印合适的提示
+            System.out.println("-------build temporary query-----------");
+            System.out.println(tmpSelectSql);
+            System.out.println("---------------------------------------");
+        }catch (Exception e){
+            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
@@ -567,71 +578,6 @@ public class SideSQLParser {
         return new SqlBasicCall(equalsOperators, operands, SqlParserPos.ZERO);
     }
 
-
-    /**
-     *
-     * @param joinInfo
-     * @param sqlNode
-     * @param queueInfo
-     * @return   两个边关联后的新表表名
-     */
-    private String dealSelectResultWithJoinInfo(JoinInfo joinInfo, SqlSelect sqlNode, Queue<Object> queueInfo) {
-        //SideJoinInfo rename
-        if (joinInfo.checkIsSide()) {
-            joinInfo.setSelectFields(sqlNode.getSelectList());
-            joinInfo.setSelectNode(sqlNode);
-            if (joinInfo.isRightIsSideTable()) {
-                //Analyzing left is not a simple table
-                if (joinInfo.getLeftNode().getKind() == SELECT) {
-                    queueInfo.offer(joinInfo.getLeftNode());
-                }
-
-                queueInfo.offer(joinInfo);
-            } else {
-                //Determining right is not a simple table
-                if (joinInfo.getRightNode().getKind() == SELECT) {
-                    queueInfo.offer(joinInfo.getLeftNode());
-                }
-
-                queueInfo.offer(joinInfo);
-            }
-            replaceFromNodeForJoin(joinInfo, sqlNode);
-            return joinInfo.getNewTableName();
-        }
-        return "";
-    }
-
-    private void replaceFromNodeForJoin(JoinInfo joinInfo, SqlSelect sqlNode) {
-        //Update from node
-        SqlBasicCall sqlBasicCall = buildAsNodeByJoinInfo(joinInfo, null, null);
-        sqlNode.setFrom(sqlBasicCall);
-    }
-
-    private SqlBasicCall buildAsNodeByJoinInfo(JoinInfo joinInfo, SqlNode sqlNode0, String tableAlias) {
-        SqlOperator operator = new SqlAsOperator();
-
-        SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
-        String joinLeftTableName = joinInfo.getLeftTableName();
-        String joinLeftTableAlias = joinInfo.getLeftTableAlias();
-        joinLeftTableName = Strings.isNullOrEmpty(joinLeftTableName) ? joinLeftTableAlias : joinLeftTableName;
-        String newTableName = buildInternalTableName(joinLeftTableName, SPLIT, joinInfo.getRightTableName());
-        String newTableAlias = !StringUtils.isEmpty(tableAlias) ? tableAlias : buildInternalTableName(joinInfo.getLeftTableAlias(), SPLIT, joinInfo.getRightTableAlias());
-
-        if (null == sqlNode0) {
-            sqlNode0 = new SqlIdentifier(newTableName, null, sqlParserPos);
-        }
-
-        SqlIdentifier sqlIdentifierAlias = new SqlIdentifier(newTableAlias, null, sqlParserPos);
-        SqlNode[] sqlNodes = new SqlNode[2];
-        sqlNodes[0] = sqlNode0;
-        sqlNodes[1] = sqlIdentifierAlias;
-        return new SqlBasicCall(operator, sqlNodes, sqlParserPos);
-    }
-
-    private String buildInternalTableName(String left, char split, String right) {
-        StringBuilder sb = new StringBuilder();
-        return sb.append(left).append(split).append(right).toString();
-    }
 
     private boolean checkIsSideTable(String tableName, Set<String> sideTableList){
         if(sideTableList.contains(tableName)){

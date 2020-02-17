@@ -140,7 +140,6 @@ public class SideSqlExec {
                     tableEnv.registerTable(aliasInfo.getAlias(), table);
                     localTableCache.put(aliasInfo.getAlias(), table);
 
-                    //TODO 解析出as查询的表和字段的关系
                     FieldReplaceInfo fieldReplaceInfo = parseAsQuery((SqlBasicCall) pollSqlNode, tableCache);
                     if(fieldReplaceInfo != null){
                         replaceInfoList.add(fieldReplaceInfo);
@@ -160,8 +159,12 @@ public class SideSqlExec {
 
     }
 
-    //TODO
-    //FIXME 如果和create view 的名称命名相同
+    /**
+     * 解析出as查询的表和字段的关系
+     * @param asSqlNode
+     * @param tableCache
+     * @return
+     */
     private FieldReplaceInfo parseAsQuery(SqlBasicCall asSqlNode, Map<String, Table> tableCache){
         SqlNode info = asSqlNode.getOperands()[0];
         SqlNode alias = asSqlNode.getOperands()[1];
@@ -172,7 +175,6 @@ public class SideSqlExec {
         }
 
         List<FieldInfo> extractFieldList = TableUtils.parserSelectField((SqlSelect) info, tableCache);
-        System.out.println(extractFieldList);
 
         HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
         for (FieldInfo fieldInfo : extractFieldList) {
@@ -190,7 +192,12 @@ public class SideSqlExec {
     }
 
 
-    //TODO
+    /**
+     * 添加字段别名
+     * @param pollSqlNode
+     * @param fieldList
+     * @param mappingTable
+     */
     private void addAliasForFieldNode(SqlNode pollSqlNode, List<String> fieldList, HashBasedTable<String, String, String> mappingTable) {
         SqlKind sqlKind = pollSqlNode.getKind();
         switch (sqlKind) {
