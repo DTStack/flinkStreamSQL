@@ -19,13 +19,15 @@ public class Elasticsearch6SideParser extends AbsSideTableParser {
 
     private static final String KEY_ES6_INDEX = "index";
 
-    private static final String KEY_ES6_TYPE = "estype";
+    private static final String KEY_ES6_TYPE = "esType";
 
     private static final String KEY_ES6_AUTHMESH = "authMesh";
 
     private static final String KEY_ES6_USERNAME = "userName";
 
     private static final String KEY_ES6_PASSWORD = "password";
+
+    private static final String KEY_ES6_TIMEOUT = "timeout";
 
     @Override
     protected boolean fieldNameNeedsUpperCase() {
@@ -41,6 +43,7 @@ public class Elasticsearch6SideParser extends AbsSideTableParser {
         elasticsearch6SideTableInfo.setClusterName((String) props.get(KEY_ES6_CLUSTER.toLowerCase()));
         elasticsearch6SideTableInfo.setIndex((String) props.get(KEY_ES6_INDEX.toLowerCase()));
         elasticsearch6SideTableInfo.setEsType((String) props.get(KEY_ES6_TYPE.toLowerCase()));
+        elasticsearch6SideTableInfo.setTimeout(MathUtil.getIntegerVal(props.get(KEY_ES6_TIMEOUT.toLowerCase())));
 
         String authMeshStr = (String) props.get(KEY_ES6_AUTHMESH.toLowerCase());
         if (authMeshStr != null && StringUtils.equalsIgnoreCase("true", authMeshStr)) {

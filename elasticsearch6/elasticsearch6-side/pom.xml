@@ -13,8 +13,8 @@
     <packaging>pom</packaging>
     <name>elasticsearch6-side</name>
     <modules>
-<!--        <module>elasticsearch6-all-side</module>-->
-<!--        <module>elasticsearch6-async-side</module>-->
+        <module>elasticsearch6-all-side</module>
+        <module>elasticsearch6-async-side</module>
         <module>elasticsearch6-side-core</module>
     </modules>
 

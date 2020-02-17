@@ -12,6 +12,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -40,13 +41,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author yinxi
  * @date 2020/1/13 - 1:00
  */
-public class Elasticsearh6AllReqRow extends AllReqRow {
+public class Elasticsearch6AllReqRow extends AllReqRow {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Elasticsearh6AllReqRow.class);
-    private static final int CONN_RETRY_NUM = 3;
+    private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch6AllReqRow.class);
+
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
-    public Elasticsearh6AllReqRow(SideInfo sideInfo) {
+    public Elasticsearch6AllReqRow(SideInfo sideInfo) {
         super(sideInfo);
     }
 
@@ -155,44 +156,55 @@ public class Elasticsearh6AllReqRow extends AllReqRow {
         Elasticsearch6SideTableInfo tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
         RestHighLevelClient rhlClient = null;
 
-        try {
-            for (int i = 0; i < CONN_RETRY_NUM; i++) {
-                try {
-                    rhlClient = getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
-                    break;
-                } catch (Exception e) {
-                    if (i == CONN_RETRY_NUM - 1) {
-                        throw new RuntimeException("", e);
-                    }
-
-                    try {
-                        String connInfo = "address: " + tableInfo.getAddress() + ";userName:" + tableInfo.getUserName() + ",pwd:" + tableInfo.getPassword();
-                        LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
-                        Thread.sleep(5 * 1000);
-                    } catch (InterruptedException e1) {
-                        LOG.error("", e1);
-                    }
-                }
-            }
+        try{
+            rhlClient = getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword(), tableInfo.getTimeout());
 
             // load data from tableA
-            SearchSourceBuilder searchSourceBuilder = Elasticsearch6AllSideInfo.searchSourceBuilder;
+            SearchSourceBuilder searchSourceBuilder = tableInfo.getSearchSourceBuilder();
             searchSourceBuilder.size(getFetchSize());
-            SearchRequest searchRequest = new SearchRequest(tableInfo.getIndex());
-            searchRequest.types(tableInfo.getEsType());
+            SearchRequest searchRequest = new SearchRequest();
+
+            // determine existence of index
+            String index = tableInfo.getIndex().trim();
+            if(!StringUtils.isEmpty(index)){
+                // strip leading and trailing spaces from a string
+                String[] indexes = StringUtils.split(index, ",");
+                for(int i=0; i < indexes.length; i++ ){
+                    indexes[i] = indexes[i].trim();
+                }
+
+                searchRequest.indices(indexes);
+
+            }
+
+            // determine existence of type
+            String type = tableInfo.getEsType().trim();
+            if(!StringUtils.isEmpty(type)){
+                // strip leading and trailing spaces from a string
+                String[] types = StringUtils.split(type, ",");
+                for(int i=0; i < types.length; i++ ){
+                    types[i] = types[i].trim();
+                }
+
+                searchRequest.types(types);
+            }
+
+            // add query condition
             searchRequest.source(searchSourceBuilder);
 
+            // get query reults
             SearchResponse searchResponse = rhlClient.search(searchRequest);
             SearchHit[] searchHits = searchResponse.getHits().getHits();
-            String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
-            String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
+
+            String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
+            String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
 
             Map<String, Object> oneRow = Maps.newHashMap();
             for (SearchHit searchHit : searchHits) {
                 for(String fieldName : sideFieldNames){
                     Object object = searchHit.getSourceAsMap().get(fieldName.trim());
                     int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
-                    object = SwitchUtil.getTarget(object, fields[fieldIndex]);
+                    object = SwitchUtil.getTarget(object, sideFieldTypes[fieldIndex]);
                     oneRow.put(fieldName.trim(), object);
                 }
 
@@ -212,11 +224,11 @@ public class Elasticsearh6AllReqRow extends AllReqRow {
 
     }
 
-    public RestHighLevelClient getClient(String esAddress, Boolean isAuthMesh, String userName, String password) {
+    public RestHighLevelClient getClient(String esAddress, Boolean isAuthMesh, String userName, String password, Integer timeout) {
         List<HttpHost> httpHostList = new ArrayList<>();
-        String[] address = esAddress.split(",");
+        String[] address = StringUtils.split(esAddress, ",");
         for (String addr : address) {
-            String[] infoArray = addr.split(":");
+            String[] infoArray = StringUtils.split(addr, ":");
             int port = 9200;
             String host = infoArray[0].trim();
             if (infoArray.length > 1) {
@@ -226,6 +238,11 @@ public class Elasticsearh6AllReqRow extends AllReqRow {
         }
 
         RestClientBuilder restClientBuilder = RestClient.builder(httpHostList.toArray(new HttpHost[httpHostList.size()]));
+
+        if (timeout != null) {
+            restClientBuilder.setMaxRetryTimeoutMillis(timeout * 1000);
+        }
+
         if (isAuthMesh) {
             // 进行用户和密码认证
             final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
@@ -235,6 +252,23 @@ public class Elasticsearh6AllReqRow extends AllReqRow {
         }
 
         RestHighLevelClient rhlClient = new RestHighLevelClient(restClientBuilder);
+
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Pinging Elasticsearch cluster via hosts {} ...", httpHostList);
+        }
+
+        try{
+            if (!rhlClient.ping()) {
+                throw new RuntimeException("There are no reachable Elasticsearch nodes!");
+            }
+        } catch (IOException e){
+            LOG.warn("", e);
+        }
+
+
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Created Elasticsearch RestHighLevelClient connected to {}", httpHostList.toString());
+        }
 
         return rhlClient;
 
