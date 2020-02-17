@@ -77,6 +77,8 @@ import java.util.Properties;
 import java.util.Set;
 
 import com.dtstack.flink.sql.option.Options;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 
 /**
  * Date: 2018/6/26
@@ -105,9 +107,9 @@ public class Main {
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
         String confProp = options.getConfProp();
-
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
+        setLogLevel(options.getLogLevel());
 
         List<String> addJarFileList = Lists.newArrayList();
         if (!Strings.isNullOrEmpty(addJarListStr)) {
@@ -303,5 +305,11 @@ public class Main {
 
         StreamEnvConfigManager.streamExecutionEnvironmentConfig(env, confProperties);
         return env;
+    }
+    private static void setLogLevel(String level){
+        LoggerContext loggerContext= (LoggerContext) LoggerFactory.getILoggerFactory();
+        //设置全局日志级别
+        ch.qos.logback.classic.Logger logger = loggerContext.getLogger("root");
+        logger.setLevel(Level.toLevel(level, Level.INFO));
     }
 }
