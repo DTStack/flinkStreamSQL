@@ -12,6 +12,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -110,10 +111,10 @@ public class KuduAllReqRow extends AllReqRow {
 
 
     @Override
-    public void flatMap(Row value, Collector<Row> out) throws Exception {
+    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = value.getField(conValIndex);
+            Object equalObj = input.row().getField(conValIndex);
             if (equalObj == null) {
                 out.collect(null);
             }
@@ -124,14 +125,14 @@ public class KuduAllReqRow extends AllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(value, null);
-                out.collect(row);
+                Row row = fillData(input.row(), null);
+                out.collect(new CRow(row, input.change()));
             }
             return;
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(fillData(value, one));
+            out.collect(new CRow(fillData(input.row(), one), input.change()));
         }
     }
 
