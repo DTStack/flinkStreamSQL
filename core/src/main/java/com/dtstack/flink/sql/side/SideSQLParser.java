@@ -22,15 +22,20 @@ package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.config.CalciteConfig;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -38,15 +43,19 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.table.api.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -66,6 +75,9 @@ public class SideSQLParser {
     private Map<String, Table> localTableCache = Maps.newHashMap();
     private final char SPLIT = '_';
 
+    //regular joins(不带时间窗口) 不允许查询出rowtime或者proctime
+    private final String SELECT_TEMP_SQL = "select %s from %s %s";
+
     public Queue<Object> getExeQueue(String exeSql, Set<String> sideTableSet) throws SqlParseException {
         System.out.println("---exeSql---");
         System.out.println(exeSql);
@@ -76,7 +88,7 @@ public class SideSQLParser {
         SqlParser sqlParser = SqlParser.create(exeSql, CalciteConfig.MYSQL_LEX_CONFIG);
         SqlNode sqlNode = sqlParser.parseStmt();
 
-        parseSql(sqlNode, sideTableSet, queueInfo);
+        parseSql(sqlNode, sideTableSet, queueInfo, null, null);
         queueInfo.offer(sqlNode);
         return queueInfo;
     }
@@ -123,7 +135,7 @@ public class SideSQLParser {
     }
 
 
-    private Object parseSql(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo){
+    private Object parseSql(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo, SqlNode parentWhere, SqlNodeList parentSelectList){
         SqlKind sqlKind = sqlNode.getKind();
         switch (sqlKind){
             case WITH: {
@@ -131,19 +143,22 @@ public class SideSQLParser {
                 SqlNodeList sqlNodeList = sqlWith.withList;
                 for (SqlNode withAsTable : sqlNodeList) {
                     SqlWithItem sqlWithItem = (SqlWithItem) withAsTable;
-                    parseSql(sqlWithItem.query, sideTableSet, queueInfo);
+                    parseSql(sqlWithItem.query, sideTableSet, queueInfo, parentWhere, parentSelectList);
                     queueInfo.add(sqlWithItem);
                 }
-                parseSql(sqlWith.body, sideTableSet, queueInfo);
+                parseSql(sqlWith.body, sideTableSet, queueInfo, parentWhere, parentSelectList);
                 break;
             }
             case INSERT:
                 SqlNode sqlSource = ((SqlInsert)sqlNode).getSource();
-                return parseSql(sqlSource, sideTableSet, queueInfo);
+                return parseSql(sqlSource, sideTableSet, queueInfo, parentWhere, parentSelectList);
             case SELECT:
                 SqlNode sqlFrom = ((SqlSelect)sqlNode).getFrom();
+                SqlNode sqlWhere = ((SqlSelect)sqlNode).getWhere();
+                SqlNodeList selectList = ((SqlSelect)sqlNode).getSelectList();
+
                 if(sqlFrom.getKind() != IDENTIFIER){
-                    Object result = parseSql(sqlFrom, sideTableSet, queueInfo);
+                    Object result = parseSql(sqlFrom, sideTableSet, queueInfo, sqlWhere, selectList);
                     if(result instanceof JoinInfo){
                         return dealSelectResultWithJoinInfo((JoinInfo) result, (SqlSelect) sqlNode, queueInfo);
                     }else if(result instanceof AliasInfo){
@@ -160,7 +175,7 @@ public class SideSQLParser {
                 }
                 break;
             case JOIN:
-                return dealJoinNode((SqlJoin) sqlNode, sideTableSet, queueInfo);
+                return dealJoinNode((SqlJoin) sqlNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
             case AS:
                 SqlNode info = ((SqlBasicCall)sqlNode).getOperands()[0];
                 SqlNode alias = ((SqlBasicCall) sqlNode).getOperands()[1];
@@ -169,7 +184,7 @@ public class SideSQLParser {
                 if(info.getKind() == IDENTIFIER){
                     infoStr = info.toString();
                 } else {
-                    infoStr = parseSql(info, sideTableSet, queueInfo).toString();
+                    infoStr = parseSql(info, sideTableSet, queueInfo, parentWhere, parentSelectList).toString();
                 }
 
                 AliasInfo aliasInfo = new AliasInfo();
@@ -182,12 +197,12 @@ public class SideSQLParser {
                 SqlNode unionLeft = ((SqlBasicCall)sqlNode).getOperands()[0];
                 SqlNode unionRight = ((SqlBasicCall)sqlNode).getOperands()[1];
 
-                parseSql(unionLeft, sideTableSet, queueInfo);
-                parseSql(unionRight, sideTableSet, queueInfo);
+                parseSql(unionLeft, sideTableSet, queueInfo, parentWhere, parentSelectList);
+                parseSql(unionRight, sideTableSet, queueInfo, parentWhere, parentSelectList);
                 break;
             case ORDER_BY:
                 SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
-                parseSql(sqlOrderBy.query, sideTableSet, queueInfo);
+                parseSql(sqlOrderBy.query, sideTableSet, queueInfo, parentWhere, parentSelectList);
         }
         return "";
     }
@@ -228,7 +243,8 @@ public class SideSQLParser {
         return new SqlBasicCall(operator, sqlNodes, sqlParserPos);
     }
 
-    private JoinInfo dealJoinNode(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo) {
+    private JoinInfo dealJoinNode(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo,
+                                  SqlNode parentWhere, SqlNodeList parentSelectList) {
         SqlNode leftNode = joinNode.getLeft();
         SqlNode rightNode = joinNode.getRight();
         JoinType joinType = joinNode.getJoinType();
@@ -244,12 +260,12 @@ public class SideSQLParser {
             leftTbName = leftNode.toString();
         } else if (leftNode.getKind() == JOIN) {
             //处理连续join
-            SqlBasicCall sqlBasicCall = dealNestJoin((SqlJoin) leftNode, sideTableSet, queueInfo);
+            SqlBasicCall sqlBasicCall = dealNestJoin((SqlJoin) leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
             leftTbName = sqlBasicCall.getOperands()[0].toString();
             leftTbAlias = sqlBasicCall.getOperands()[1].toString();
             leftTbisTmp = true;
         } else if (leftNode.getKind() == AS) {
-            AliasInfo aliasInfo = (AliasInfo) parseSql(leftNode, sideTableSet, queueInfo);
+            AliasInfo aliasInfo = (AliasInfo) parseSql(leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
             leftTbName = aliasInfo.getName();
             leftTbAlias = aliasInfo.getAlias();
 
@@ -262,7 +278,7 @@ public class SideSQLParser {
             throw new RuntimeException("side-table must be at the right of join operator");
         }
 
-        rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo);
+        rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
         rightTableName = rightTableNameAndAlias.f0;
         rightTableAlias = rightTableNameAndAlias.f1;
 
@@ -294,33 +310,207 @@ public class SideSQLParser {
         tableInfo.setRightNode(rightNode);
         tableInfo.setJoinType(joinType);
         tableInfo.setCondition(joinNode.getCondition());
+
+        //TODO 抽取
+        if(tableInfo.getLeftNode().getKind() != AS){
+            //build 临时中间查询
+            try{
+                //父一级的where 条件中如果只和临时查询相关的条件都截取进来
+                Set<String> fromTableNameSet = Sets.newHashSet();
+                List<SqlBasicCall> extractCondition = Lists.newArrayList();
+
+                getFromTableInfo(tableInfo.getLeftNode(), fromTableNameSet);
+                checkAndRemoveCondition(fromTableNameSet, (SqlBasicCall) parentWhere, extractCondition);
+
+                //TODO 查询的字段需要根据最上层的字段中获取,而不是直接设置为*,当然如果上一层就是*另说
+
+                List<String> extractSelectField = extractSelectList(parentSelectList, fromTableNameSet);
+                String extractSelectFieldStr = buildSelectNode(extractSelectField);
+                String extractConditionStr = buildCondition(extractCondition);
+
+                String tmpSelectSql = String.format(SELECT_TEMP_SQL,
+                        extractSelectFieldStr,
+                        tableInfo.getLeftNode().toString(),
+                        extractConditionStr);
+
+                SqlParser sqlParser = SqlParser.create(tmpSelectSql, CalciteConfig.MYSQL_LEX_CONFIG);
+                SqlNode sqlNode = sqlParser.parseStmt();
+                SqlBasicCall sqlBasicCall = buildAsSqlNode(tableInfo.getLeftTableAlias(), sqlNode);
+                queueInfo.offer(sqlBasicCall);
+
+                //TODO 打印合适的提示
+                System.out.println(tmpSelectSql);
+            }catch (Exception e){
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+
+        }else {
+            SqlKind asFirstKind = ((SqlBasicCall)tableInfo.getLeftNode()).operands[0].getKind();
+            if(asFirstKind == SELECT){
+                queueInfo.offer(tableInfo.getLeftNode());
+                tableInfo.setLeftNode(((SqlBasicCall)tableInfo.getLeftNode()).operands[1]);
+            }
+        }
         return tableInfo;
     }
 
     //构建新的查询
-    private SqlBasicCall dealNestJoin(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo){
+    private SqlBasicCall dealNestJoin(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo, SqlNode parentWhere, SqlNodeList selectList){
         SqlNode rightNode = joinNode.getRight();
 
-        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo);
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, selectList);
+
+        JoinInfo joinInfo = dealJoinNode(joinNode, sideTableSet, queueInfo, parentWhere, selectList);
+
         String rightTableName = rightTableNameAndAlias.f0;
         boolean rightIsSide = checkIsSideTable(rightTableName, sideTableSet);
-
         if(!rightIsSide){
-            return null;
+            //右表不是维表的情况
+        }else{
+            //右边表是维表需要重新构建左表的临时查询
+            queueInfo.offer(joinInfo);
         }
 
-        JoinInfo joinInfo = dealJoinNode(joinNode, sideTableSet, queueInfo);
-        queueInfo.offer(joinInfo);
         return buildAsNodeByJoinInfo(joinInfo, null, null);
-
     }
 
-    private Tuple2<String, String> parseRightNode(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo) {
+    public boolean checkAndRemoveCondition(Set<String> fromTableNameSet, SqlBasicCall parentWhere, List<SqlBasicCall> extractContition){
+        SqlKind kind = parentWhere.getKind();
+        if(kind == AND){
+            boolean removeLeft = checkAndRemoveCondition(fromTableNameSet, (SqlBasicCall) parentWhere.getOperands()[0], extractContition);
+            boolean removeRight = checkAndRemoveCondition(fromTableNameSet, (SqlBasicCall) parentWhere.getOperands()[1], extractContition);
+            //DO remove
+            if(removeLeft){
+                extractContition.add(removeWhereConditionNode(parentWhere, 0));
+            }
+
+            if(removeRight){
+                extractContition.add(removeWhereConditionNode(parentWhere, 1));
+            }
+
+            return false;
+        }else{
+            Set<String> conditionRefTableNameSet = Sets.newHashSet();
+            getConditionRefTable(parentWhere, conditionRefTableNameSet);
+
+            if(fromTableNameSet.containsAll(conditionRefTableNameSet)){
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    /**
+     * 抽取上层需用使用到的字段
+     * 由于where字段已经抽取到上一层了所以不用查询出来
+     * @param parentSelectList
+     * @param fromTableNameSet
+     * @return
+     */
+    private List<String> extractSelectList(SqlNodeList parentSelectList, Set<String> fromTableNameSet){
+        List<String> extractFieldList = Lists.newArrayList();
+        for(SqlNode selectNode : parentSelectList.getList()){
+            extractSelectField(selectNode, extractFieldList, fromTableNameSet);
+        }
+
+        return extractFieldList;
+    }
+
+    private void extractSelectField(SqlNode selectNode, List<String> extractFieldList, Set<String> fromTableNameSet){
+        if (selectNode.getKind() == AS) {
+            SqlNode leftNode = ((SqlBasicCall) selectNode).getOperands()[0];
+            extractSelectField(leftNode, extractFieldList, fromTableNameSet);
+
+        }else if(selectNode.getKind() == IDENTIFIER) {
+            SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
+
+            if(sqlIdentifier.names.size() == 1){
+               return;
+            }
+
+            String tableName = sqlIdentifier.names.get(0);
+            if(fromTableNameSet.contains(tableName)){
+                extractFieldList.add(sqlIdentifier.toString());
+            }
+
+        }else if(  AGGREGATE.contains(selectNode.getKind())
+                || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
+                || COMPARISON.contains(selectNode.getKind())
+                || selectNode.getKind() == OTHER_FUNCTION
+                || selectNode.getKind() == DIVIDE
+                || selectNode.getKind() == CAST
+                || selectNode.getKind() == TRIM
+                || selectNode.getKind() == TIMES
+                || selectNode.getKind() == PLUS
+                || selectNode.getKind() == NOT_IN
+                || selectNode.getKind() == OR
+                || selectNode.getKind() == AND
+                || selectNode.getKind() == MINUS
+                || selectNode.getKind() == TUMBLE
+                || selectNode.getKind() == TUMBLE_START
+                || selectNode.getKind() == TUMBLE_END
+                || selectNode.getKind() == SESSION
+                || selectNode.getKind() == SESSION_START
+                || selectNode.getKind() == SESSION_END
+                || selectNode.getKind() == HOP
+                || selectNode.getKind() == HOP_START
+                || selectNode.getKind() == HOP_END
+                || selectNode.getKind() == BETWEEN
+                || selectNode.getKind() == IS_NULL
+                || selectNode.getKind() == IS_NOT_NULL
+                || selectNode.getKind() == CONTAINS
+                || selectNode.getKind() == TIMESTAMP_ADD
+                || selectNode.getKind() == TIMESTAMP_DIFF
+                || selectNode.getKind() == LIKE
+
+        ){
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
+            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if(sqlNode instanceof SqlLiteral){
+                    continue;
+                }
+
+                if(sqlNode instanceof SqlDataTypeSpec){
+                    continue;
+                }
+
+                extractSelectField(sqlNode, extractFieldList, fromTableNameSet);
+            }
+
+        }else if(selectNode.getKind() == CASE){
+            System.out.println("selectNode");
+            SqlCase sqlCase = (SqlCase) selectNode;
+            SqlNodeList whenOperands = sqlCase.getWhenOperands();
+            SqlNodeList thenOperands = sqlCase.getThenOperands();
+            SqlNode elseNode = sqlCase.getElseOperand();
+
+            for(int i=0; i<whenOperands.size(); i++){
+                SqlNode oneOperand = whenOperands.get(i);
+                extractSelectField(oneOperand, extractFieldList, fromTableNameSet);
+            }
+
+            for(int i=0; i<thenOperands.size(); i++){
+                SqlNode oneOperand = thenOperands.get(i);
+                extractSelectField(oneOperand, extractFieldList, fromTableNameSet);
+            }
+
+            extractSelectField(elseNode, extractFieldList, fromTableNameSet);
+        }else {
+            //do nothing
+        }
+    }
+
+
+    private Tuple2<String, String> parseRightNode(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo,
+                                                  SqlNode parentWhere, SqlNodeList selectList) {
         Tuple2<String, String> tabName = new Tuple2<>("", "");
         if(sqlNode.getKind() == IDENTIFIER){
             tabName.f0 = sqlNode.toString();
         }else{
-            AliasInfo aliasInfo = (AliasInfo)parseSql(sqlNode, sideTableSet, queueInfo);
+            AliasInfo aliasInfo = (AliasInfo)parseSql(sqlNode, sideTableSet, queueInfo, parentWhere, selectList);
             tabName.f0 = aliasInfo.getName();
             tabName.f1 = aliasInfo.getAlias();
         }
@@ -343,6 +533,38 @@ public class SideSQLParser {
         }
 
         return tabName;
+    }
+
+    public SqlBasicCall removeWhereConditionNode(SqlBasicCall parentWhere, int index){
+        //构造1=1 条件
+        SqlBasicCall oldCondition = (SqlBasicCall) parentWhere.getOperands()[index];
+        parentWhere.setOperand(index, buildDefaultCondition());
+        return oldCondition;
+    }
+
+    public String buildCondition(List<SqlBasicCall> conditionList){
+        if(CollectionUtils.isEmpty(conditionList)){
+            return "";
+        }
+
+        return " where " + StringUtils.join(conditionList, " AND ");
+    }
+
+    public String buildSelectNode(List<String> extractSelectField){
+        if(CollectionUtils.isEmpty(extractSelectField)){
+            throw new RuntimeException("no field is used");
+        }
+
+        return StringUtils.join(extractSelectField, ",");
+    }
+
+    public SqlBasicCall buildDefaultCondition(){
+        SqlBinaryOperator equalsOperators = SqlStdOperatorTable.EQUALS;
+        SqlNode[] operands = new SqlNode[2];
+        operands[0] = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+        operands[1] = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+
+        return new SqlBasicCall(equalsOperators, operands, SqlParserPos.ZERO);
     }
 
 
@@ -420,5 +642,94 @@ public class SideSQLParser {
 
     public void setLocalTableCache(Map<String, Table> localTableCache) {
         this.localTableCache = localTableCache;
+    }
+
+    //TODO 之后抽取
+    private void getConditionRefTable(SqlNode selectNode, Set<String> tableNameSet) {
+       if(selectNode.getKind() == IDENTIFIER){
+            SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
+
+            if(sqlIdentifier.names.size() == 1){
+                return;
+            }
+
+            String tableName = sqlIdentifier.names.asList().get(0);
+            tableNameSet.add(tableName);
+            return;
+        }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
+            return;
+        }else if(  AGGREGATE.contains(selectNode.getKind())
+                || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
+                || COMPARISON.contains(selectNode.getKind())
+                || selectNode.getKind() == OTHER_FUNCTION
+                || selectNode.getKind() == DIVIDE
+                || selectNode.getKind() == CAST
+                || selectNode.getKind() == TRIM
+                || selectNode.getKind() == TIMES
+                || selectNode.getKind() == PLUS
+                || selectNode.getKind() == NOT_IN
+                || selectNode.getKind() == OR
+                || selectNode.getKind() == AND
+                || selectNode.getKind() == MINUS
+                || selectNode.getKind() == TUMBLE
+                || selectNode.getKind() == TUMBLE_START
+                || selectNode.getKind() == TUMBLE_END
+                || selectNode.getKind() == SESSION
+                || selectNode.getKind() == SESSION_START
+                || selectNode.getKind() == SESSION_END
+                || selectNode.getKind() == HOP
+                || selectNode.getKind() == HOP_START
+                || selectNode.getKind() == HOP_END
+                || selectNode.getKind() == BETWEEN
+                || selectNode.getKind() == IS_NULL
+                || selectNode.getKind() == IS_NOT_NULL
+                || selectNode.getKind() == CONTAINS
+                || selectNode.getKind() == TIMESTAMP_ADD
+                || selectNode.getKind() == TIMESTAMP_DIFF
+                || selectNode.getKind() == LIKE
+
+        ){
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
+            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if(sqlNode instanceof SqlLiteral){
+                    continue;
+                }
+
+                if(sqlNode instanceof SqlDataTypeSpec){
+                    continue;
+                }
+
+                getConditionRefTable(sqlNode, tableNameSet);
+            }
+
+            return;
+        }else if(selectNode.getKind() == OTHER){
+            //不处理
+            return;
+        }else{
+            throw new RuntimeException(String.format("not support node kind of %s to replace name now.", selectNode.getKind()));
+        }
+    }
+
+
+    public void getFromTableInfo(SqlNode fromTable, Set<String> tableNameSet){
+        System.out.println(fromTable);
+        SqlKind sqlKind = fromTable.getKind();
+        switch (sqlKind){
+            case AS:
+                SqlNode alias = ((SqlBasicCall) fromTable).getOperands()[1];
+                tableNameSet.add(alias.toString());
+                return;
+            case JOIN:
+                getFromTableInfo(((SqlJoin)fromTable).getLeft(), tableNameSet);
+                getFromTableInfo(((SqlJoin)fromTable).getRight(), tableNameSet);
+                return;
+            case IDENTIFIER:
+                tableNameSet.add(((SqlIdentifier)fromTable).getSimple());
+                return;
+            default:
+                throw new RuntimeException("not support sqlKind:" + sqlKind);
+        }
     }
 }

@@ -27,6 +27,10 @@ import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
+import com.dtstack.flink.sql.util.TableUtils;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -45,30 +49,24 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.StreamQueryConfig;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
-import org.apache.flink.table.plan.schema.DataStreamTable;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -141,6 +139,12 @@ public class SideSqlExec {
                     Table table = tableEnv.sqlQuery(aliasInfo.getName());
                     tableEnv.registerTable(aliasInfo.getAlias(), table);
                     localTableCache.put(aliasInfo.getAlias(), table);
+
+                    //TODO 解析出as查询的表和字段的关系
+                    FieldReplaceInfo fieldReplaceInfo = parseAsQuery((SqlBasicCall) pollSqlNode, tableCache);
+                    if(fieldReplaceInfo != null){
+                        replaceInfoList.add(fieldReplaceInfo);
+                    }
                 } else if (pollSqlNode.getKind() == WITH_ITEM) {
                     SqlWithItem sqlWithItem = (SqlWithItem) pollSqlNode;
                     String TableAlias = sqlWithItem.name.toString();
@@ -154,6 +158,35 @@ public class SideSqlExec {
             }
         }
 
+    }
+
+    //TODO
+    //FIXME 如果和create view 的名称命名相同
+    private FieldReplaceInfo parseAsQuery(SqlBasicCall asSqlNode, Map<String, Table> tableCache){
+        SqlNode info = asSqlNode.getOperands()[0];
+        SqlNode alias = asSqlNode.getOperands()[1];
+
+        SqlKind infoKind = info.getKind();
+        if(infoKind != SELECT){
+            return null;
+        }
+
+        List<FieldInfo> extractFieldList = TableUtils.parserSelectField((SqlSelect) info, tableCache);
+        System.out.println(extractFieldList);
+
+        HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
+        for (FieldInfo fieldInfo : extractFieldList) {
+            String tableName = fieldInfo.getTable();
+            String fieldName = fieldInfo.getFieldName();
+            String mappingFieldName = ParseUtils.dealDuplicateFieldName(mappingTable, fieldName);
+            mappingTable.put(tableName, fieldName, mappingFieldName);
+        }
+
+        FieldReplaceInfo replaceInfo = new FieldReplaceInfo();
+        replaceInfo.setMappingTable(mappingTable);
+        replaceInfo.setTargetTableName(alias.toString());
+        replaceInfo.setTargetTableAlias(alias.toString());
+        return replaceInfo;
     }
 
 
@@ -335,7 +368,6 @@ public class SideSqlExec {
                                 sqlGroup.set(i, replaceNode);
                             }
                         }
-                        System.out.println("-----------------");
                     }
                 }else{
                     //TODO
@@ -742,10 +774,6 @@ public class SideSqlExec {
         SqlKind sqlKind = joinInfo.getLeftNode().getKind();
         if(sqlKind == AS){
             dealAsSourceTable(tableEnv, joinInfo.getLeftNode());
-        } else if(joinInfo.isLeftIsTmpTable()){
-            //do nothing
-        } else {
-            throw new RuntimeException("unsupport left table for join");
         }
 
         Table leftTable = getTableFromCache(localTableCache, joinInfo.getLeftTableAlias(), joinInfo.getLeftTableName());
@@ -785,7 +813,7 @@ public class SideSqlExec {
         RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getTypes(), targetTable.getSchema().getColumnNames());
 
         DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
-                                .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
+                                .map((Tuple2<Boolean, Row> f0) -> f0.f1)
                                 .returns(Row.class);
 
 
@@ -798,12 +826,13 @@ public class SideSqlExec {
             adaptStream = adaptStream.keyBy(leftJoinColArr);
         }
 
-        DataStream dsOut = null;
+        DataStream dsOut;
         if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
         }else{
             dsOut = SideAsyncOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
         }
+
         // TODO  将嵌套表中的字段传递过去, 去除冗余的ROWtime
         HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
         RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
@@ -819,7 +848,8 @@ public class SideSqlExec {
 
         //判断之前是不是被替换过,被替换过则设置之前的替换信息作为上一个节点
         for(FieldReplaceInfo tmp : replaceInfoList){
-            if(tmp.getTargetTableName().equalsIgnoreCase(joinInfo.getLeftTableName())){
+            if(tmp.getTargetTableName().equalsIgnoreCase(joinInfo.getLeftTableName())
+            ||tmp.getTargetTableName().equalsIgnoreCase(joinInfo.getLeftTableAlias())){
                 replaceInfo.setPreNode(tmp);
                 break;
             }
