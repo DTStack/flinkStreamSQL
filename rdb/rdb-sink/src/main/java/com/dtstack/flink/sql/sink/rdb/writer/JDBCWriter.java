@@ -30,7 +30,7 @@ import java.sql.SQLException;
  */
 public interface JDBCWriter extends Serializable {
 
-	public static final int DIRTYDATA_PRINT_FREQUENTY = 1000;
+	int DIRTYDATA_PRINT_FREQUENTY = 1000;
 
 	/**
 	 * Open the writer by JDBC Connection. It can create Statement from Connection.

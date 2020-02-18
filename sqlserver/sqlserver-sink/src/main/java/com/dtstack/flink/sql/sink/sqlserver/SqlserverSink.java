@@ -38,9 +38,13 @@ public class SqlserverSink  extends RdbSink implements IStreamSinkGener<RdbSink>
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDBUrl(dbURL).setDialect(jdbcDialect)
-                .setUsername(userName).setPassword(password)
-                .setTableName(tableName).setScheam(schema).build();
+                .setDBUrl(dbURL)
+                .setDialect(jdbcDialect)
+                .setUsername(userName)
+                .setPassword(password)
+                .setTableName(tableName)
+                .setScheam(schema)
+                .build();
 
         return JDBCUpsertOutputFormat.builder()
                 .setOptions(jdbcOptions)

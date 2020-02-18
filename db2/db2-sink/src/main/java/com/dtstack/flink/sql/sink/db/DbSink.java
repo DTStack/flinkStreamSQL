@@ -9,8 +9,6 @@ import java.util.Map;
 
 public class DbSink extends RdbSink {
 
-    private static final String DB2_DRIVER = "com.ibm.db2.jcc.DB2Driver";
-
     public DbSink() {
         super(new DbDialect());
     }

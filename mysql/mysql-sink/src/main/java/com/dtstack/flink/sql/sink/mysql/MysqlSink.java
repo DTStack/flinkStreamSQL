@@ -42,9 +42,12 @@ public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDBUrl(dbURL).setDialect(jdbcDialect)
-                .setUsername(userName).setPassword(password)
-                .setTableName(tableName).build();
+                .setDBUrl(dbURL)
+                .setDialect(jdbcDialect)
+                .setUsername(userName)
+                .setPassword(password)
+                .setTableName(tableName)
+                .build();
 
         return JDBCUpsertOutputFormat.builder()
                 .setOptions(jdbcOptions)
@@ -54,6 +57,7 @@ public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
                 .setFieldTypes(sqlTypes)
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
-                .setUpdateMode(updateMode).build();
+                .setUpdateMode(updateMode)
+                .build();
     }
 }

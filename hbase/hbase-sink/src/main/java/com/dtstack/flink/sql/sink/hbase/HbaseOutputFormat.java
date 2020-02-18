@@ -46,7 +46,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * author: jingzhen@dtstack.com
+ * @author: jingzhen@dtstack.com
  * date: 2017-6-29
  */
 public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
@@ -94,16 +94,16 @@ public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
     @Override
     public void writeRecord(Tuple2 tuple2) {
         Tuple2<Boolean, Row> tupleTrans = tuple2;
-        Boolean retract = tupleTrans.getField(0);
-        if (!retract && StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
-            dealDelete(tupleTrans);
-        } else {
-            dealInsert(tupleTrans);
+        Boolean retract = tupleTrans.f0;
+        Row row = tupleTrans.f1;
+        if (retract) {
+            dealInsert(row);
+        } else if (!retract && StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
+            dealDelete(row);
         }
     }
 
-    protected void dealInsert(Tuple2<Boolean, Row> tupleTrans) {
-        Row record = tupleTrans.getField(1);
+    protected void dealInsert(Row record) {
         Put put = getPutByRow(record);
         if (put == null) {
             return;
@@ -112,11 +112,11 @@ public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
         try {
             table.put(put);
         } catch (IOException e) {
-            outDirtyRecords.inc();
             if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                LOG.error("record insert failed ..", record.toString());
+                LOG.error("record insert failed ..{}", record.toString());
                 LOG.error("", e);
             }
+            outDirtyRecords.inc();
         }
 
         if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
@@ -125,19 +125,18 @@ public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
         outRecords.inc();
     }
 
-    protected void dealDelete(Tuple2<Boolean, Row> tupleTrans) {
-        Row record = tupleTrans.getField(1);
+    protected void dealDelete(Row record) {
         String rowKey = buildRowKey(record);
         if (!StringUtils.isEmpty(rowKey)) {
             Delete delete = new Delete(Bytes.toBytes(rowKey));
             try {
                 table.delete(delete);
             } catch (IOException e) {
-                outDirtyRecords.inc();
                 if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                    LOG.error("record insert failed ..", record.toString());
+                    LOG.error("record insert failed ..{}", record.toString());
                     LOG.error("", e);
                 }
+                outDirtyRecords.inc();
             }
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
                 LOG.info(record.toString());
@@ -170,7 +169,7 @@ public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
         List<String> rowKeyValues = getRowKeyValues(record);
         // all rowkey not null
         if (rowKeyValues.size() != rowkey.length) {
-            LOG.error("row key value must not null,record is ..", record);
+            LOG.error("row key value must not null,record is ..{}", record);
             outDirtyRecords.inc();
             return "";
         }

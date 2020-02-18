@@ -6,9 +6,6 @@ import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
 
 public class PolardbSink extends RdbSink {
-
-    private static final String POLARDB_DRIVER = "com.mysql.cj.jdbc.Driver";
-
     public PolardbSink() {
         super(new PolardbDialect());
     }

@@ -26,7 +26,7 @@ import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
 /**
- *
+ * @author maqi
  */
 public class PostgresqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     public PostgresqlSink() {
@@ -36,9 +36,13 @@ public class PostgresqlSink extends RdbSink implements IStreamSinkGener<RdbSink>
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDBUrl(dbURL).setDialect(jdbcDialect)
-                .setUsername(userName).setPassword(password)
-                .setTableName(tableName).setScheam(schema).build();
+                .setDBUrl(dbURL)
+                .setDialect(jdbcDialect)
+                .setUsername(userName)
+                .setPassword(password)
+                .setTableName(tableName)
+                .setScheam(schema)
+                .build();
 
         return JDBCUpsertOutputFormat.builder()
                 .setOptions(jdbcOptions)
@@ -48,6 +52,7 @@ public class PostgresqlSink extends RdbSink implements IStreamSinkGener<RdbSink>
                 .setFieldTypes(sqlTypes)
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
-                .setUpdateMode(updateMode).build();
+                .setUpdateMode(updateMode)
+                .build();
     }
 }

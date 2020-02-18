@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class ImpalaDialect implements JDBCDialect {
     private static final long serialVersionUID = 1L;
 
-    private static final String IMPALA_PARTITION_KEYWORD = " partition";
+    private static final String IMPALA_PARTITION_KEYWORD = "partition";
 
     @Override
     public boolean canHandle(String url) {
@@ -76,7 +76,7 @@ public class ImpalaDialect implements JDBCDialect {
                 .map(field -> field.replaceAll("\"", "'"))
                 .collect(Collectors.joining(", "));
 
-        String partitionStatement = StringUtils.isEmpty(partitionFieldStr) ? "" : IMPALA_PARTITION_KEYWORD + "(" + partitionFieldStr + ")";
+        String partitionStatement = StringUtils.isEmpty(partitionFieldStr) ? "" : " " + IMPALA_PARTITION_KEYWORD + "(" + partitionFieldStr + ")";
 
         return "INSERT INTO " + schemaInfo + quoteIdentifier(tableName) +
                 "(" + columns + ")" + partitionStatement + " VALUES (" + placeholders + ")";

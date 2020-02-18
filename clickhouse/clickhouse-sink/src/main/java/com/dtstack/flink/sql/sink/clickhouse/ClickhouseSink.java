@@ -30,9 +30,6 @@ import java.util.Map;
 
 
 public class ClickhouseSink extends RdbSink implements IStreamSinkGener<RdbSink> {
-
-    private static final String CLICKHOUSE_DRIVER = "ru.yandex.clickhouse.ClickHouseDriver";
-
     public ClickhouseSink() {
         super(new ClickhouseDialect());
     }
@@ -40,9 +37,12 @@ public class ClickhouseSink extends RdbSink implements IStreamSinkGener<RdbSink>
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDBUrl(dbURL).setDialect(jdbcDialect)
-                .setUsername(userName).setPassword(password)
-                .setTableName(tableName).build();
+                .setDBUrl(dbURL)
+                .setDialect(jdbcDialect)
+                .setUsername(userName)
+                .setPassword(password)
+                .setTableName(tableName)
+                .build();
 
         return JDBCUpsertOutputFormat.builder()
                 .setOptions(jdbcOptions)
@@ -52,7 +52,8 @@ public class ClickhouseSink extends RdbSink implements IStreamSinkGener<RdbSink>
                 .setFieldTypes(sqlTypes)
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
-                .setUpdateMode(updateMode).build();
+                .setUpdateMode(updateMode)
+                .build();
     }
 
 

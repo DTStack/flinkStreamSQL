@@ -149,11 +149,12 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
     public synchronized void writeRecord(Tuple2<Boolean, Row> tuple2) throws IOException {
         checkConnectionOpen();
         try {
-            // Receive data
-            outRecords.inc();
             if (outRecords.getCount() % RECEIVEDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
                 LOG.info("Receive data : {}", tuple2);
             }
+            // Receive data
+            outRecords.inc();
+
             jdbcWriter.addRecord(tuple2);
             batchCount++;
             if (batchCount >= flushMaxSize) {

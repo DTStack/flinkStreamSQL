@@ -22,23 +22,12 @@ import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
-import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import com.dtstack.flink.sql.util.JDBCUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
-import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import java.io.IOException;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Date: 2019/11/11
@@ -58,9 +47,12 @@ public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDBUrl(getImpalaJdbcUrl()).setDialect(jdbcDialect)
-                .setUsername(userName).setPassword(password)
-                .setTableName(tableName).build();
+                .setDBUrl(getImpalaJdbcUrl())
+                .setDialect(jdbcDialect)
+                .setUsername(userName)
+                .setPassword(password)
+                .setTableName(tableName)
+                .build();
 
         return JDBCUpsertOutputFormat.builder()
                 .setOptions(jdbcOptions)
@@ -71,7 +63,8 @@ public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
                 .setKeyFields(primaryKeys)
                 .setPartitionFields(impalaTableInfo.getPartitionFields())
                 .setAllReplace(allReplace)
-                .setUpdateMode(updateMode).build();
+                .setUpdateMode(updateMode)
+                .build();
     }
 
 
@@ -79,19 +72,19 @@ public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         Integer authMech = impalaTableInfo.getAuthMech();
         String newUrl = dbURL;
         StringBuffer urlBuffer = new StringBuffer(dbURL);
-        if (authMech == 0) {
+        if (authMech == EAuthMech.NoAuthentication.getType()) {
             return newUrl;
-        } else if (authMech == 1) {
+        } else if (authMech == EAuthMech.Kerberos.getType()) {
             String keyTabFilePath = impalaTableInfo.getKeyTabFilePath();
             String krb5FilePath = impalaTableInfo.getKrb5FilePath();
             String principal = impalaTableInfo.getPrincipal();
             String krbRealm = impalaTableInfo.getKrbRealm();
-            String krbHostFQDN = impalaTableInfo.getKrbHostFQDN();
+            String krbHostFqdn = impalaTableInfo.getKrbHostFQDN();
             String krbServiceName = impalaTableInfo.getKrbServiceName();
             urlBuffer.append(";"
                     .concat("AuthMech=1;")
                     .concat("KrbRealm=").concat(krbRealm).concat(";")
-                    .concat("KrbHostFQDN=").concat(krbHostFQDN).concat(";")
+                    .concat("KrbHostFQDN=").concat(krbHostFqdn).concat(";")
                     .concat("KrbServiceName=").concat(krbServiceName).concat(";")
             );
             newUrl = urlBuffer.toString();
@@ -106,7 +99,7 @@ public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
                 throw new RuntimeException("loginUserFromKeytab error ..", e);
             }
 
-        } else if (authMech == 2) {
+        } else if (authMech == EAuthMech.UserName.getType()) {
             urlBuffer.append(";"
                     .concat("AuthMech=3;")
                     .concat("UID=").concat(userName).concat(";")
@@ -114,7 +107,7 @@ public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
                     .concat("UseSasl=0")
             );
             newUrl = urlBuffer.toString();
-        } else if (authMech == 3) {
+        } else if (authMech == EAuthMech.NameANDPassword.getType()) {
             urlBuffer.append(";"
                     .concat("AuthMech=3;")
                     .concat("UID=").concat(userName).concat(";")
