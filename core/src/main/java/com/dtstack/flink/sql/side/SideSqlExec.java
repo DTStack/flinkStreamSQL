@@ -54,12 +54,17 @@ import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.StreamQueryConfig;
 import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.runtime.CRowKeySelector;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.runtime.types.CRowTypeInfo;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -249,27 +254,6 @@ public class SideSqlExec {
         return new RowTypeInfo(sideOutTypes, sideOutNames);
     }
 
-    /**
-     *  对时间类型进行类型转换
-     * @param leftTypeInfo
-     * @return
-     */
-    private RowTypeInfo buildLeftTableOutType(RowTypeInfo leftTypeInfo) {
-        TypeInformation[] sideOutTypes = new TypeInformation[leftTypeInfo.getFieldNames().length];
-        TypeInformation<?>[] fieldTypes = leftTypeInfo.getFieldTypes();
-        for (int i = 0; i < sideOutTypes.length; i++) {
-            sideOutTypes[i] = convertTimeAttributeType(fieldTypes[i]);
-        }
-        RowTypeInfo rowTypeInfo = new RowTypeInfo(sideOutTypes, leftTypeInfo.getFieldNames());
-        return rowTypeInfo;
-    }
-
-    private TypeInformation convertTimeAttributeType(TypeInformation typeInformation) {
-        if (typeInformation instanceof TimeIndicatorTypeInfo) {
-            return TypeInformation.of(Timestamp.class);
-        }
-        return typeInformation;
-    }
 
     //需要考虑更多的情况
     private void replaceFieldName(SqlNode sqlNode, HashBasedTable<String, String, String> mappingTable, String targetTableName, String tableAlias) {
@@ -773,21 +757,21 @@ public class SideSqlExec {
 
         RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getTypes(), targetTable.getSchema().getColumnNames());
 
-        DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
-                                .map((Tuple2<Boolean, Row> f0) -> { return f0.f1; })
-                                .returns(Row.class);
+        DataStream<CRow> adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
+                .map((Tuple2<Boolean, Row> tp2) -> {
+                    return new CRow(tp2.f1, tp2.f0);
+                }).returns(CRow.class);
 
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
-        if(sideTableInfo.isPartitionedJoin()){
-            RowTypeInfo leftTableOutType = buildLeftTableOutType(leftTypeInfo);
-            adaptStream.getTransformation().setOutputType(leftTableOutType);
+        if (sideTableInfo.isPartitionedJoin()) {
             List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias(), sideTableInfo);
-            String[] leftJoinColArr = leftJoinColList.toArray(new String[leftJoinColList.size()]);
-            adaptStream = adaptStream.keyBy(leftJoinColArr);
+            List<String> fieldNames = Arrays.asList(targetTable.getSchema().getFieldNames());
+            int[] keyIndex = leftJoinColList.stream().mapToInt(fieldNames::indexOf).toArray();
+            adaptStream = adaptStream.keyBy(new CRowKeySelector(keyIndex, projectedTypeInfo(keyIndex, targetTable.getSchema())));
         }
 
-        DataStream dsOut = null;
+        DataStream<CRow> dsOut = null;
         if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
         }else{
@@ -796,7 +780,10 @@ public class SideSqlExec {
 
         HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
         RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
-        dsOut.getTransformation().setOutputType(sideOutTypeInfo);
+
+        CRowTypeInfo cRowTypeInfo = new CRowTypeInfo(sideOutTypeInfo);
+        dsOut.getTransformation().setOutputType(cRowTypeInfo);
+
         String targetTableName = joinInfo.getNewTableName();
         String targetTableAlias = joinInfo.getNewTableAlias();
 
@@ -808,10 +795,18 @@ public class SideSqlExec {
         replaceInfoList.add(replaceInfo);
 
         if (!tableEnv.isRegistered(joinInfo.getNewTableName())){
-            tableEnv.registerDataStream(joinInfo.getNewTableName(), dsOut, String.join(",", sideOutTypeInfo.getFieldNames()));
+            tableEnv.registerDataStream(joinInfo.getNewTableName(), dsOut);
         }
     }
 
+    private TypeInformation<Row> projectedTypeInfo(int[] fields, TableSchema schema) {
+        String[] fieldNames = schema.getFieldNames();
+        TypeInformation<?>[] fieldTypes = schema.getFieldTypes();
+
+        String[] projectedNames = Arrays.stream(fields).mapToObj(i -> fieldNames[i]).toArray(String[]::new);
+        TypeInformation[] projectedTypes = Arrays.stream(fields).mapToObj(i -> fieldTypes[i]).toArray(TypeInformation[]::new);
+        return new RowTypeInfo(projectedTypes, projectedNames);
+    }
 
 
     private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table) {
