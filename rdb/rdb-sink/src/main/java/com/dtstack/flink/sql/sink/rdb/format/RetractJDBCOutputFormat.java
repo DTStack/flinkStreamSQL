@@ -58,6 +58,8 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private static int receiveDataPrintFrequency = 1000;
 
+    private static final Object LOCK = new Object();
+
     private String username;
     private String password;
     private String drivername;
@@ -191,10 +193,12 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 writeSingleRecord(row);
             } else {
                 updatePreparedStmt(row, upload);
-                rows.add(row);
                 upload.addBatch();
-                if (rows.size() >= batchNum) {
-                    submitExecuteBatch();
+                synchronized (LOCK) {
+                    rows.add(row);
+                    if (rows.size() >= batchNum) {
+                        submitExecuteBatch();
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -307,20 +311,22 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     }
 
 
-    private synchronized void submitExecuteBatch() {
-        try {
-            this.upload.executeBatch();
-            dbConn.commit();
-        } catch (SQLException e) {
+    private void submitExecuteBatch() {
+        synchronized (LOCK) {
             try {
-                dbConn.rollback();
-            } catch (SQLException e1) {
-                LOG.error("rollback  data error !", e);
-            }
+                this.upload.executeBatch();
+                dbConn.commit();
+            } catch (SQLException e) {
+                try {
+                    dbConn.rollback();
+                } catch (SQLException e1) {
+                    LOG.error("rollback  data error !", e);
+                }
 
-            rows.forEach(this::writeSingleRecord);
-        } finally {
-            rows.clear();
+                rows.forEach(this::writeSingleRecord);
+            } finally {
+                rows.clear();
+            }
         }
     }
 
