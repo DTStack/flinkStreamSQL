@@ -16,28 +16,31 @@
  * limitations under the License.
  */
 
+package com.dtstack.flink.sql.sink.clickhouse;
 
-package com.dtstack.flink.sql.sink.postgresql.table;
+import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 
-import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
-import com.dtstack.flink.sql.table.TableInfo;
-
-import java.util.Map;
+import java.util.Optional;
 
 /**
- * Date: 2019-08-22
- * Company: mmg
- *
- * @author tcm
+ * Date: 2020/1/15
+ * Company: www.dtstack.com
+ * @author maqi
  */
-
-public class PostgresqlSinkParser extends RdbSinkParser {
-    private static final String CURR_TYPE = "postgresql";
+public class ClickhouseDialect implements JDBCDialect {
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo pgTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-        pgTableInfo.setType(CURR_TYPE);
-        return pgTableInfo;
+    public boolean canHandle(String url) {
+        return url.startsWith("jdbc:clickhouse:");
+    }
+
+    @Override
+    public Optional<String> defaultDriverName() {
+        return Optional.of("ru.yandex.clickhouse.ClickHouseDriver");
+    }
+
+    @Override
+    public String getUpdateStatement(String tableName, String[] fieldNames, String[] conditionFields) {
+        throw new RuntimeException("Clickhouse does not support update sql, please remove primary key or use append mode");
     }
 }

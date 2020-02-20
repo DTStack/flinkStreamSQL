@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.sink.hbase;
 
 import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -31,10 +32,13 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -42,10 +46,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * author: jingzhen@dtstack.com
+ * @author: jingzhen@dtstack.com
  * date: 2017-6-29
  */
-public class HbaseOutputFormat extends DtRichOutputFormat {
+public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseOutputFormat.class);
 
@@ -54,8 +58,9 @@ public class HbaseOutputFormat extends DtRichOutputFormat {
     private String[] rowkey;
     private String tableName;
     private String[] columnNames;
+    private String updateMode;
     private String[] columnTypes;
-    private Map<String,String> columnNameFamily;
+    private Map<String, String> columnNameFamily;
 
     private String[] families;
     private String[] qualifiers;
@@ -71,7 +76,7 @@ public class HbaseOutputFormat extends DtRichOutputFormat {
         LOG.warn("---configure---");
         conf = HBaseConfiguration.create();
         conf.set("hbase.zookeeper.quorum", host);
-        if(zkParent != null && !"".equals(zkParent)){
+        if (zkParent != null && !"".equals(zkParent)) {
             conf.set("zookeeper.znode.parent", zkParent);
         }
         LOG.warn("---configure end ---");
@@ -87,27 +92,66 @@ public class HbaseOutputFormat extends DtRichOutputFormat {
     }
 
     @Override
-    public void writeRecord(Tuple2 tuple2)  {
-
+    public void writeRecord(Tuple2 tuple2) {
         Tuple2<Boolean, Row> tupleTrans = tuple2;
-        Boolean retract = tupleTrans.getField(0);
-        if(!retract){
-            //FIXME 暂时不处理hbase删除操作--->hbase要求有key,所有认为都是可以执行update查找
+        Boolean retract = tupleTrans.f0;
+        Row row = tupleTrans.f1;
+        if (retract) {
+            dealInsert(row);
+        } else if (!retract && StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
+            dealDelete(row);
+        }
+    }
+
+    protected void dealInsert(Row record) {
+        Put put = getPutByRow(record);
+        if (put == null) {
             return;
         }
 
-        Row record = tupleTrans.getField(1);
-        List<String> rowKeyValues = getRowKeyValues(record);
-        // all rowkey not null
-        if (rowKeyValues.size() != rowkey.length ) {
-            LOG.error("row key value must not null,record is ..", record);
+        try {
+            table.put(put);
+        } catch (IOException e) {
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                LOG.error("record insert failed ..{}", record.toString());
+                LOG.error("", e);
+            }
             outDirtyRecords.inc();
-            return;
         }
 
-        String key = StringUtils.join(rowKeyValues, "-");
-        Put put = new Put(key.getBytes());
-        for(int i = 0; i < record.getArity(); ++i) {
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+            LOG.info(record.toString());
+        }
+        outRecords.inc();
+    }
+
+    protected void dealDelete(Row record) {
+        String rowKey = buildRowKey(record);
+        if (!StringUtils.isEmpty(rowKey)) {
+            Delete delete = new Delete(Bytes.toBytes(rowKey));
+            try {
+                table.delete(delete);
+            } catch (IOException e) {
+                if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                    LOG.error("record insert failed ..{}", record.toString());
+                    LOG.error("", e);
+                }
+                outDirtyRecords.inc();
+            }
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                LOG.info(record.toString());
+            }
+            outRecords.inc();
+        }
+    }
+
+    private Put getPutByRow(Row record) {
+        String rowKey = buildRowKey(record);
+        if (StringUtils.isEmpty(rowKey)) {
+            return null;
+        }
+        Put put = new Put(rowKey.getBytes());
+        for (int i = 0; i < record.getArity(); ++i) {
             Object fieldVal = record.getField(i);
             if (fieldVal == null) {
                 continue;
@@ -118,31 +162,25 @@ public class HbaseOutputFormat extends DtRichOutputFormat {
 
             put.addColumn(cf, qualifier, val);
         }
+        return put;
+    }
 
-        try {
-            table.put(put);
-        } catch (IOException e) {
-
-            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                LOG.error("record insert failed,dirty record num:{}, current row:{}", outDirtyRecords.getCount(), record.toString());
-                LOG.error("", e);
-            }
-
+    private String buildRowKey(Row record) {
+        List<String> rowKeyValues = getRowKeyValues(record);
+        // all rowkey not null
+        if (rowKeyValues.size() != rowkey.length) {
+            LOG.error("row key value must not null,record is ..{}", record);
             outDirtyRecords.inc();
+            return "";
         }
-
-        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-            LOG.info(record.toString());
-        }
-        outRecords.inc();
-
+        return StringUtils.join(rowKeyValues, "-");
     }
 
     private List<String> getRowKeyValues(Row record) {
         List<String> rowKeyValues = Lists.newArrayList();
         for (int i = 0; i < rowkey.length; ++i) {
             String colName = rowkey[i];
-            int rowKeyIndex = 0;  //rowkey index
+            int rowKeyIndex = 0;
             for (; rowKeyIndex < columnNames.length; ++rowKeyIndex) {
                 if (columnNames[rowKeyIndex].equals(colName)) {
                     break;
@@ -166,13 +204,14 @@ public class HbaseOutputFormat extends DtRichOutputFormat {
 
     @Override
     public void close() throws IOException {
-        if(conn != null) {
+        if (conn != null) {
             conn.close();
             conn = null;
         }
     }
 
-    private HbaseOutputFormat() {}
+    private HbaseOutputFormat() {
+    }
 
     public static HbaseOutputFormatBuilder buildHbaseOutputFormat() {
         return new HbaseOutputFormatBuilder();
@@ -191,7 +230,7 @@ public class HbaseOutputFormat extends DtRichOutputFormat {
             return this;
         }
 
-        public HbaseOutputFormatBuilder setZkParent(String parent){
+        public HbaseOutputFormatBuilder setZkParent(String parent) {
             format.zkParent = parent;
             return this;
         }
@@ -204,6 +243,11 @@ public class HbaseOutputFormat extends DtRichOutputFormat {
 
         public HbaseOutputFormatBuilder setRowkey(String[] rowkey) {
             format.rowkey = rowkey;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setUpdateMode(String updateMode) {
+            format.updateMode = updateMode;
             return this;
         }
 
