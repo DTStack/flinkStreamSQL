@@ -56,6 +56,7 @@ public class ConsoleOutputFormat extends DtRichOutputFormat {
 
     @Override
     public void writeRecord(Tuple2 tuple2) throws IOException {
+        System.out.println("received oriainal data:" + tuple2);
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
         if (!retract) {
