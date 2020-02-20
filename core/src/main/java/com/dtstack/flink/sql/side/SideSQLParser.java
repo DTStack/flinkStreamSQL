@@ -175,7 +175,8 @@ public class SideSQLParser {
                 }
                 break;
             case JOIN:
-                return dealJoinNode((SqlJoin) sqlNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
+                Set<Tuple2<String, String>> joinFieldSet = Sets.newHashSet();
+                return dealJoinNode((SqlJoin) sqlNode, sideTableSet, queueInfo, parentWhere, parentSelectList, joinFieldSet);
             case AS:
                 SqlNode info = ((SqlBasicCall)sqlNode).getOperands()[0];
                 SqlNode alias = ((SqlBasicCall) sqlNode).getOperands()[1];
@@ -248,7 +249,7 @@ public class SideSQLParser {
      * @return
      */
     private JoinInfo dealJoinNode(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo,
-                                  SqlNode parentWhere, SqlNodeList parentSelectList) {
+                                  SqlNode parentWhere, SqlNodeList parentSelectList, Set<Tuple2<String, String>> joinFieldSet) {
         SqlNode leftNode = joinNode.getLeft();
         SqlNode rightNode = joinNode.getRight();
         JoinType joinType = joinNode.getJoinType();
@@ -261,12 +262,14 @@ public class SideSQLParser {
 
         //如果是连续join 判断是否已经处理过添加到执行队列
         Boolean alreadyOffer = false;
+        extractJoinField(joinNode.getCondition(), joinFieldSet);
 
         if(leftNode.getKind() == IDENTIFIER){
             leftTbName = leftNode.toString();
         } else if (leftNode.getKind() == JOIN) {
             //处理连续join
-            Tuple2<Boolean, SqlBasicCall> nestJoinResult = dealNestJoin((SqlJoin) leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
+            Tuple2<Boolean, SqlBasicCall> nestJoinResult = dealNestJoin((SqlJoin) leftNode, sideTableSet,
+                    queueInfo, parentWhere, parentSelectList, joinFieldSet);
             alreadyOffer = nestJoinResult.f0;
             leftTbName = nestJoinResult.f1.getOperands()[0].toString();
             leftTbAlias = nestJoinResult.f1.getOperands()[1].toString();
@@ -320,7 +323,8 @@ public class SideSQLParser {
         }
 
         if(tableInfo.getLeftNode().getKind() != AS){
-            extractTemporaryQuery(tableInfo.getLeftNode(), tableInfo.getLeftTableAlias(), (SqlBasicCall) parentWhere, parentSelectList, queueInfo);
+            extractTemporaryQuery(tableInfo.getLeftNode(), tableInfo.getLeftTableAlias(), (SqlBasicCall) parentWhere,
+                    parentSelectList, queueInfo, joinFieldSet);
         }else {
             SqlKind asNodeFirstKind = ((SqlBasicCall)tableInfo.getLeftNode()).operands[0].getKind();
             if(asNodeFirstKind == SELECT){
@@ -331,11 +335,14 @@ public class SideSQLParser {
         return tableInfo;
     }
 
+
     //构建新的查询
-    private Tuple2<Boolean, SqlBasicCall> dealNestJoin(SqlJoin joinNode, Set<String> sideTableSet, Queue<Object> queueInfo, SqlNode parentWhere, SqlNodeList selectList){
+    private Tuple2<Boolean, SqlBasicCall> dealNestJoin(SqlJoin joinNode, Set<String> sideTableSet,
+                                                       Queue<Object> queueInfo, SqlNode parentWhere,
+                                                       SqlNodeList selectList, Set<Tuple2<String, String>> joinFieldSet){
         SqlNode rightNode = joinNode.getRight();
         Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, selectList);
-        JoinInfo joinInfo = dealJoinNode(joinNode, sideTableSet, queueInfo, parentWhere, selectList);
+        JoinInfo joinInfo = dealJoinNode(joinNode, sideTableSet, queueInfo, parentWhere, selectList, joinFieldSet);
 
         String rightTableName = rightTableNameAndAlias.f0;
         boolean rightIsSide = checkIsSideTable(rightTableName, sideTableSet);
@@ -352,7 +359,7 @@ public class SideSQLParser {
         return Tuple2.of(alreadyOffer, TableUtils.buildAsNodeByJoinInfo(joinInfo, null, null));
     }
 
-    public boolean checkAndRemoveCondition(Set<String> fromTableNameSet, SqlBasicCall parentWhere, List<SqlBasicCall> extractContition){
+    public boolean checkAndRemoveCondition(Set<String> fromTableNameSet, SqlBasicCall parentWhere, List<SqlBasicCall> extractCondition){
 
         if(parentWhere == null){
             return false;
@@ -360,15 +367,15 @@ public class SideSQLParser {
 
         SqlKind kind = parentWhere.getKind();
         if(kind == AND){
-            boolean removeLeft = checkAndRemoveCondition(fromTableNameSet, (SqlBasicCall) parentWhere.getOperands()[0], extractContition);
-            boolean removeRight = checkAndRemoveCondition(fromTableNameSet, (SqlBasicCall) parentWhere.getOperands()[1], extractContition);
+            boolean removeLeft = checkAndRemoveCondition(fromTableNameSet, (SqlBasicCall) parentWhere.getOperands()[0], extractCondition);
+            boolean removeRight = checkAndRemoveCondition(fromTableNameSet, (SqlBasicCall) parentWhere.getOperands()[1], extractCondition);
             //DO remove
             if(removeLeft){
-                extractContition.add(removeWhereConditionNode(parentWhere, 0));
+                extractCondition.add(removeWhereConditionNode(parentWhere, 0));
             }
 
             if(removeRight){
-                extractContition.add(removeWhereConditionNode(parentWhere, 1));
+                extractCondition.add(removeWhereConditionNode(parentWhere, 1));
             }
 
             return false;
@@ -385,7 +392,8 @@ public class SideSQLParser {
     }
 
     private void extractTemporaryQuery(SqlNode node, String tableAlias, SqlBasicCall parentWhere,
-                                       SqlNodeList parentSelectList, Queue<Object> queueInfo){
+                                       SqlNodeList parentSelectList, Queue<Object> queueInfo,
+                                       Set<Tuple2<String, String>> joinFieldSet){
         try{
             //父一级的where 条件中如果只和临时查询相关的条件都截取进来
             Set<String> fromTableNameSet = Sets.newHashSet();
@@ -394,8 +402,9 @@ public class SideSQLParser {
             getFromTableInfo(node, fromTableNameSet);
             checkAndRemoveCondition(fromTableNameSet, parentWhere, extractCondition);
 
-            List<String> extractSelectField = extractSelectList(parentSelectList, fromTableNameSet);
-            String extractSelectFieldStr = buildSelectNode(extractSelectField);
+            Set<String> extractSelectField = extractSelectFields(parentSelectList, fromTableNameSet);
+            Set<String> fieldFromJoinCondition = extractSelectFieldFromJoinCondition(joinFieldSet, fromTableNameSet);
+            String extractSelectFieldStr = buildSelectNode(extractSelectField, fieldFromJoinCondition);
             String extractConditionStr = buildCondition(extractCondition);
 
             String tmpSelectSql = String.format(SELECT_TEMP_SQL,
@@ -425,8 +434,8 @@ public class SideSQLParser {
      * @param fromTableNameSet
      * @return
      */
-    private List<String> extractSelectList(SqlNodeList parentSelectList, Set<String> fromTableNameSet){
-        List<String> extractFieldList = Lists.newArrayList();
+    private Set<String> extractSelectFields(SqlNodeList parentSelectList, Set<String> fromTableNameSet){
+        Set<String> extractFieldList = Sets.newHashSet();
         for(SqlNode selectNode : parentSelectList.getList()){
             extractSelectField(selectNode, extractFieldList, fromTableNameSet);
         }
@@ -434,10 +443,41 @@ public class SideSQLParser {
         return extractFieldList;
     }
 
-    private void extractSelectField(SqlNode selectNode, List<String> extractFieldList, Set<String> fromTableNameSet){
+    private Set<String> extractSelectFieldFromJoinCondition(Set<Tuple2<String, String>> joinFieldSet, Set<String> fromTableNameSet){
+        Set<String> extractFieldList = Sets.newHashSet();
+        for(Tuple2<String, String> field : joinFieldSet){
+            if(fromTableNameSet.contains(field.f0)){
+                extractFieldList.add(field.f0 + "." + field.f1);
+            }
+        }
+
+        return extractFieldList;
+    }
+
+    /**
+     * 从join的条件中获取字段信息
+     * @param condition
+     * @param joinFieldSet
+     */
+    private void extractJoinField(SqlNode condition, Set<Tuple2<String, String>> joinFieldSet){
+        SqlKind joinKind = condition.getKind();
+        if( joinKind == AND ){
+            extractJoinField(((SqlBasicCall)condition).operands[0], joinFieldSet);
+            extractJoinField(((SqlBasicCall)condition).operands[1], joinFieldSet);
+        }else if( joinKind == EQUALS ){
+            extractJoinField(((SqlBasicCall)condition).operands[0], joinFieldSet);
+            extractJoinField(((SqlBasicCall)condition).operands[1], joinFieldSet);
+        }else{
+            Preconditions.checkState(((SqlIdentifier)condition).names.size() == 2, "join condition must be format table.field");
+            Tuple2<String, String> tuple2 = Tuple2.of(((SqlIdentifier)condition).names.get(0), ((SqlIdentifier)condition).names.get(1));
+            joinFieldSet.add(tuple2);
+        }
+    }
+
+    private void extractSelectField(SqlNode selectNode, Set<String> extractFieldSet, Set<String> fromTableNameSet){
         if (selectNode.getKind() == AS) {
             SqlNode leftNode = ((SqlBasicCall) selectNode).getOperands()[0];
-            extractSelectField(leftNode, extractFieldList, fromTableNameSet);
+            extractSelectField(leftNode, extractFieldSet, fromTableNameSet);
 
         }else if(selectNode.getKind() == IDENTIFIER) {
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
@@ -448,7 +488,7 @@ public class SideSQLParser {
 
             String tableName = sqlIdentifier.names.get(0);
             if(fromTableNameSet.contains(tableName)){
-                extractFieldList.add(sqlIdentifier.toString());
+                extractFieldSet.add(sqlIdentifier.toString());
             }
 
         }else if(  AGGREGATE.contains(selectNode.getKind())
@@ -493,7 +533,7 @@ public class SideSQLParser {
                     continue;
                 }
 
-                extractSelectField(sqlNode, extractFieldList, fromTableNameSet);
+                extractSelectField(sqlNode, extractFieldSet, fromTableNameSet);
             }
 
         }else if(selectNode.getKind() == CASE){
@@ -505,15 +545,15 @@ public class SideSQLParser {
 
             for(int i=0; i<whenOperands.size(); i++){
                 SqlNode oneOperand = whenOperands.get(i);
-                extractSelectField(oneOperand, extractFieldList, fromTableNameSet);
+                extractSelectField(oneOperand, extractFieldSet, fromTableNameSet);
             }
 
             for(int i=0; i<thenOperands.size(); i++){
                 SqlNode oneOperand = thenOperands.get(i);
-                extractSelectField(oneOperand, extractFieldList, fromTableNameSet);
+                extractSelectField(oneOperand, extractFieldSet, fromTableNameSet);
             }
 
-            extractSelectField(elseNode, extractFieldList, fromTableNameSet);
+            extractSelectField(elseNode, extractFieldSet, fromTableNameSet);
         }else {
             //do nothing
         }
@@ -566,12 +606,14 @@ public class SideSQLParser {
         return " where " + StringUtils.join(conditionList, " AND ");
     }
 
-    public String buildSelectNode(List<String> extractSelectField){
+    public String buildSelectNode(Set<String> extractSelectField, Set<String> joinFieldSet){
         if(CollectionUtils.isEmpty(extractSelectField)){
             throw new RuntimeException("no field is used");
         }
 
-        return StringUtils.join(extractSelectField, ",");
+        Sets.SetView view = Sets.union(extractSelectField, joinFieldSet);
+
+        return StringUtils.join(view, ",");
     }
 
     public SqlBasicCall buildDefaultCondition(){
