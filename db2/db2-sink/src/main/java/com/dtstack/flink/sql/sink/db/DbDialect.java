@@ -16,28 +16,31 @@
  * limitations under the License.
  */
 
+package com.dtstack.flink.sql.sink.db;
 
-package com.dtstack.flink.sql.sink.postgresql.table;
+import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 
-import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
-import com.dtstack.flink.sql.table.TableInfo;
-
-import java.util.Map;
+import java.util.Optional;
 
 /**
- * Date: 2019-08-22
- * Company: mmg
- *
- * @author tcm
+ * Date: 2020/1/19
+ * Company: www.dtstack.com
+ * @author maqi
  */
-
-public class PostgresqlSinkParser extends RdbSinkParser {
-    private static final String CURR_TYPE = "postgresql";
+public class DbDialect implements JDBCDialect {
+    @Override
+    public boolean canHandle(String url) {
+        return url.startsWith("jdbc:db2:");
+    }
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo pgTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-        pgTableInfo.setType(CURR_TYPE);
-        return pgTableInfo;
+    public Optional<String> defaultDriverName() {
+        return Optional.of("com.ibm.db2.jcc.DB2Driver");
     }
+
+    @Override
+    public String quoteIdentifier(String identifier) {
+        return identifier;
+    }
+
 }
