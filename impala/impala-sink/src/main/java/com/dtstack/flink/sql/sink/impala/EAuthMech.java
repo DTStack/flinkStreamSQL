@@ -16,28 +16,31 @@
  * limitations under the License.
  */
 
-
-package com.dtstack.flink.sql.sink.postgresql.table;
-
-import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
-import com.dtstack.flink.sql.table.TableInfo;
-
-import java.util.Map;
+package com.dtstack.flink.sql.sink.impala;
 
 /**
- * Date: 2019-08-22
- * Company: mmg
- *
- * @author tcm
+ *  impala kdnc AuthMech params
+ * Date: 2020/2/18
+ * Company: www.dtstack.com
+ * @author maqi
  */
+public enum EAuthMech {
+    // 0 for No Authentication
+    NoAuthentication(0),
+    // 1 for Kerberos
+    Kerberos(1),
+    // 2 for User Name
+    UserName(2),
+    // 3 for User Name and Password
+    NameANDPassword(3);
 
-public class PostgresqlSinkParser extends RdbSinkParser {
-    private static final String CURR_TYPE = "postgresql";
+    private int type;
 
-    @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo pgTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-        pgTableInfo.setType(CURR_TYPE);
-        return pgTableInfo;
+    EAuthMech(int type) {
+        this.type = type;
+    }
+
+    public int getType() {
+        return this.type;
     }
 }

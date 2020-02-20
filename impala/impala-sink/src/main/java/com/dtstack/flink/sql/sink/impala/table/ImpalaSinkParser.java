@@ -70,8 +70,8 @@ public class ImpalaSinkParser extends RdbSinkParser {
             String krbRealm = MathUtil.getString(props.get(ImpalaTableInfo.KRBREALM_KEY.toLowerCase()));
             krbRealm = krbRealm == null ? "HADOOP.COM" : krbRealm;
             impalaTableInfo.setKrbRealm(krbRealm);
-            impalaTableInfo.setKrbHostFQDN(MathUtil.getString(props.get(impalaTableInfo.KRBHOSTFQDN_KEY.toLowerCase())));
-            impalaTableInfo.setKrbServiceName(MathUtil.getString(props.get(impalaTableInfo.KRBSERVICENAME_KEY.toLowerCase())));
+            impalaTableInfo.setKrbHostFQDN(MathUtil.getString(props.get(ImpalaTableInfo.KRBHOSTFQDN_KEY.toLowerCase())));
+            impalaTableInfo.setKrbServiceName(MathUtil.getString(props.get(ImpalaTableInfo.KRBSERVICENAME_KEY.toLowerCase())));
         } else if (authMech == 2) {
             impalaTableInfo.setUserName(MathUtil.getString(props.get(ImpalaTableInfo.USER_NAME_KEY.toLowerCase())));
         } else if (authMech == 3) {

@@ -16,28 +16,29 @@
  * limitations under the License.
  */
 
-
-package com.dtstack.flink.sql.sink.postgresql.table;
-
-import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
-import com.dtstack.flink.sql.table.TableInfo;
-
-import java.util.Map;
+package com.dtstack.flink.sql.enums;
 
 /**
- * Date: 2019-08-22
- * Company: mmg
- *
- * @author tcm
+ * restract stream数据处理模式
+ * 
+ * Reason:
+ * Date: 2019/1/2
+ * Company: www.dtstack.com
+ * @author maqi
  */
+public enum EUpdateMode {
+    // 不回撤数据，只下发增量数据
+    APPEND(0),
+    // 先删除回撤数据，然后更新
+    UPSERT(1);
 
-public class PostgresqlSinkParser extends RdbSinkParser {
-    private static final String CURR_TYPE = "postgresql";
+    private int type;
 
-    @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo pgTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-        pgTableInfo.setType(CURR_TYPE);
-        return pgTableInfo;
+    EUpdateMode(int type) {
+        this.type = type;
+    }
+
+    public int getType() {
+        return this.type;
     }
 }

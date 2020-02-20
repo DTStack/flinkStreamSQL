@@ -16,7 +16,7 @@ CREATE TABLE tableName(
 ```
 
 ## 2.支持版本
- postgresql-8.2+
+ postgresql-9.5+
  
 ## 3.表结构定义
  
@@ -36,8 +36,6 @@ CREATE TABLE tableName(
 | password | postgresql连接密码|是||
 | tableName | postgresqll表名称|是||
 | parallelism | 并行度设置|否|1|
-| isUpsert | 使用upsert模式插入数据(版本9.5之后才支持upsert) |否|false
-| keyField | 设置更新主键字段名（isupsert为true时为必填项）|否|
 
 ## 5.样例：
 ```
