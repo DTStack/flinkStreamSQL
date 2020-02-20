@@ -353,6 +353,11 @@ public class SideSQLParser {
     }
 
     public boolean checkAndRemoveCondition(Set<String> fromTableNameSet, SqlBasicCall parentWhere, List<SqlBasicCall> extractContition){
+
+        if(parentWhere == null){
+            return false;
+        }
+
         SqlKind kind = parentWhere.getKind();
         if(kind == AND){
             boolean removeLeft = checkAndRemoveCondition(fromTableNameSet, (SqlBasicCall) parentWhere.getOperands()[0], extractContition);
