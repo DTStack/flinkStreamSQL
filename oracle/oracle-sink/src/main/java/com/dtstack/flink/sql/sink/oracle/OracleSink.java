@@ -43,7 +43,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
                 .setUsername(userName)
                 .setPassword(password)
                 .setTableName(tableName)
-                .setScheam(schema)
+                .setSchema(schema)
                 .build();
 
         return JDBCUpsertOutputFormat.builder()

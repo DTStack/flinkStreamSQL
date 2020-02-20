@@ -105,7 +105,7 @@ public class JDBCOptions {
 		private String driverName;
 		private String username;
 		private String password;
-        private String scheam;
+        private String schema;
 		private JDBCDialect dialect;
 
 		/**
@@ -144,8 +144,8 @@ public class JDBCOptions {
         /**
          *  optional, schema info
          */
-        public Builder setScheam(String scheam) {
-            this.scheam = scheam;
+        public Builder setSchema(String schema) {
+            this.schema = schema;
             return this;
         }
 
@@ -173,7 +173,7 @@ public class JDBCOptions {
 				});
 			}
 
-            return new JDBCOptions(dbURL, tableName, driverName, username, password, scheam, dialect);
+            return new JDBCOptions(dbURL, tableName, driverName, username, password, schema, dialect);
 		}
 	}
 }
