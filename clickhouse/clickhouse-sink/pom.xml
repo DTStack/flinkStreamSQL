@@ -71,14 +71,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/clickhousesink">
+                                <copy todir="${basedir}/../../sqlplugins/clickhousesink">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/clickhousesink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/clickhousesink/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../sqlplugins/clickhousesink/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/clickhousesink/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

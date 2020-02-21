@@ -72,14 +72,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/clickhouseallside">
+                                <copy todir="${basedir}/../../../sqlplugins/clickhouseallside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/clickhouseallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/clickhouseallside/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../../sqlplugins/clickhouseallside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/clickhouseallside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

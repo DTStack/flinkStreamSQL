@@ -70,14 +70,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/cassandraallside">
+                                <copy todir="${basedir}/../../../sqlplugins/cassandraallside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/cassandraallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/cassandraallside/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../../../sqlplugins/cassandraallside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/cassandraallside/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

@@ -30,7 +30,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
-import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -132,17 +131,17 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         }
     }
 
-    @Override
-    public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        StreamRecordQueueEntry<Row> future = (StreamRecordQueueEntry<Row>)resultFuture;
-        try {
-            if (null == future.get()) {
-                resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out."));
-            }
-        } catch (Exception e) {
-            resultFuture.completeExceptionally(new Exception(e));
-        }
-    }
+//    @Override
+//    public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
+//        StreamRecordQueueEntry<Row> future = (StreamRecordQueueEntry<Row>)resultFuture;
+//        try {
+//            if (null == future.get()) {
+//                resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out."));
+//            }
+//        } catch (Exception e) {
+//            resultFuture.completeExceptionally(new Exception(e));
+//        }
+//    }
 
 
     protected void dealFillDataError(ResultFuture<Row> resultFuture, Exception e, Object sourceData) {

@@ -72,14 +72,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/postgresqlsink">
+                                <copy todir="${basedir}/../../sqlplugins/postgresqlsink">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/postgresqlsink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/postgresqlsink/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../sqlplugins/postgresqlsink/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/postgresqlsink/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

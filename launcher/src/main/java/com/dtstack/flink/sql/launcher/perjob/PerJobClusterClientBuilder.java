@@ -28,10 +28,11 @@ import com.google.common.base.Strings;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.SecurityUtils;
-import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
+import org.apache.flink.yarn.YarnClientYarnClusterInformationRetriever;
 import org.apache.flink.yarn.YarnClusterDescriptor;
+import org.apache.flink.yarn.configuration.YarnConfigOptions;
+import org.apache.flink.yarn.executors.YarnJobClusterExecutor;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.slf4j.Logger;
@@ -82,11 +83,15 @@ public class PerJobClusterClientBuilder {
         System.out.println("----init yarn success ----");
     }
 
-    public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(String flinkJarPath, Options launcherOptions, JobGraph jobGraph)
+    public YarnClusterDescriptor createPerJobClusterDescriptor(String flinkJarPath, Options launcherOptions, JobGraph jobGraph)
             throws MalformedURLException {
 
-        String flinkConf = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? DEFAULT_CONF_DIR : launcherOptions.getFlinkconf();
-        AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(flinkConfig, yarnConf, flinkConf);
+        flinkConfig.setString(YarnConfigOptions.APPLICATION_NAME,launcherOptions.getName());
+        String queue = launcherOptions.getQueue();
+        if (!Strings.isNullOrEmpty(queue)) {
+            flinkConfig.setString(YarnConfigOptions.APPLICATION_QUEUE,queue);
+        }
+        YarnClusterDescriptor clusterDescriptor = getClusterDescriptor(flinkConfig, yarnConf);
 
         if (StringUtils.isNotBlank(flinkJarPath)) {
             if (!new File(flinkJarPath).exists()) {
@@ -120,11 +125,6 @@ public class PerJobClusterClientBuilder {
         }
 
         clusterDescriptor.addShipFiles(shipFiles);
-        clusterDescriptor.setName(launcherOptions.getName());
-        String queue = launcherOptions.getQueue();
-        if (!Strings.isNullOrEmpty(queue)) {
-            clusterDescriptor.setQueue(queue);
-        }
         return clusterDescriptor;
     }
 
@@ -148,15 +148,15 @@ public class PerJobClusterClientBuilder {
         return shipFiles;
     }
 
-    private AbstractYarnClusterDescriptor getClusterDescriptor(
+    private YarnClusterDescriptor getClusterDescriptor(
             Configuration configuration,
-            YarnConfiguration yarnConfiguration,
-            String configurationDirectory) {
+            YarnConfiguration yarnConfiguration) {
+
         return new YarnClusterDescriptor(
                 configuration,
                 yarnConfiguration,
-                configurationDirectory,
                 yarnClient,
+                YarnClientYarnClusterInformationRetriever.create(yarnClient),
                 false);
     }
 

@@ -74,14 +74,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/impalaasyncside">
+                                <copy todir="${basedir}/../../../sqlplugins/impalaasyncside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/impalaasyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/impalaasyncside/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../../sqlplugins/impalaasyncside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/impalaasyncside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

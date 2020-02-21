@@ -92,23 +92,29 @@ public class LauncherMain {
         String pluginRoot = launcherOptions.getLocalSqlPluginPath();
         File jarFile = new File(getLocalCoreJarPath(pluginRoot));
         String[] remoteArgs = argList.toArray(new String[argList.size()]);
-        PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
 
+        SavepointRestoreSettings savepointRestoreSettings = SavepointRestoreSettings.none();
         String savePointPath = confProperties.getProperty(ConfigConstrant.SAVE_POINT_PATH_KEY);
-        if(StringUtils.isNotBlank(savePointPath)){
+        if (StringUtils.isNotBlank(savePointPath)) {
             String allowNonRestoredState = confProperties.getOrDefault(ConfigConstrant.ALLOW_NON_RESTORED_STATE_KEY, "false").toString();
-            program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(savePointPath, BooleanUtils.toBoolean(allowNonRestoredState)));
+            savepointRestoreSettings = SavepointRestoreSettings.forPath(savePointPath, BooleanUtils.toBoolean(allowNonRestoredState));
         }
+
+        PackagedProgram program = PackagedProgram.newBuilder()
+                .setJarFile(jarFile)
+                .setArguments(remoteArgs)
+                .setSavepointRestoreSettings(savepointRestoreSettings)
+                .build();
 
         if(mode.equals(ClusterMode.yarnPer.name())){
             String flinkConfDir = launcherOptions.getFlinkconf();
             Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
-            JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1);
+            JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1,false);
             PerJobSubmitter.submit(launcherOptions, jobGraph, config);
         } else {
-            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
-            clusterClient.run(program, 1);
-            clusterClient.shutdown();
+//            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
+//            clusterClient.run(program, 1);
+//            clusterClient.shutdown();
         }
 
     }

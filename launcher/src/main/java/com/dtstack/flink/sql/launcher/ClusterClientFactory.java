@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.program.ClusterClient;
+import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.client.program.MiniClusterClient;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
@@ -34,7 +35,6 @@ import org.apache.flink.runtime.akka.AkkaUtils;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 import org.apache.flink.runtime.util.LeaderConnectionInfo;
-import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -62,7 +62,7 @@ public class ClusterClientFactory {
         if (mode.equals(ClusterMode.standalone.name())) {
             return createStandaloneClient(launcherOptions);
         } else if (mode.equals(ClusterMode.yarn.name())) {
-            return createYarnSessionClient(launcherOptions);
+//            return createYarnSessionClient(launcherOptions);
         }
         throw new IllegalArgumentException("Unsupported cluster client type: ");
     }
@@ -74,58 +74,53 @@ public class ClusterClientFactory {
         configBuilder.setConfiguration(config);
         MiniCluster miniCluster = new MiniCluster(configBuilder.build());
         MiniClusterClient clusterClient = new MiniClusterClient(config, miniCluster);
-        LeaderConnectionInfo connectionInfo = clusterClient.getClusterConnectionInfo();
-        InetSocketAddress address = AkkaUtils.getInetSocketAddressFromAkkaURL(connectionInfo.getAddress());
-        config.setString(JobManagerOptions.ADDRESS, address.getAddress().getHostName());
-        config.setInteger(JobManagerOptions.PORT, address.getPort());
-        clusterClient.setDetached(true);
         return clusterClient;
     }
 
-    public static ClusterClient createYarnSessionClient(Options launcherOptions) {
-        String flinkConfDir = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? "" : launcherOptions.getFlinkconf();
-        Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
-        String yarnConfDir = launcherOptions.getYarnconf();
-
-        if (StringUtils.isNotBlank(yarnConfDir)) {
-            try {
-                config.setString(ConfigConstants.PATH_HADOOP_CONFIG, yarnConfDir);
-                FileSystem.initialize(config, null);
-
-                YarnConfiguration yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
-                YarnClient yarnClient = YarnClient.createYarnClient();
-                yarnClient.init(yarnConf);
-                yarnClient.start();
-                ApplicationId applicationId = null;
-
-                String yarnSessionConf = launcherOptions.getYarnSessionConf();
-                yarnSessionConf = URLDecoder.decode(yarnSessionConf, Charsets.UTF_8.toString());
-                Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
-                Object yid = yarnSessionConfProperties.get("yid");
-
-                if (null != yid) {
-                    applicationId = toApplicationId(yid.toString());
-                } else {
-                    applicationId = getYarnClusterApplicationId(yarnClient);
-                }
-
-                System.out.println("applicationId=" + applicationId.toString());
-
-                if (StringUtils.isEmpty(applicationId.toString())) {
-                    throw new RuntimeException("No flink session found on yarn cluster.");
-                }
-
-                AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, flinkConfDir, yarnClient, false);
-                ClusterClient clusterClient = clusterDescriptor.retrieve(applicationId);
-                clusterClient.setDetached(true);
-                return clusterClient;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }else{
-            throw new RuntimeException("yarn mode must set param of 'yarnconf'!!!");
-        }
-    }
+//    public static ClusterClient createYarnSessionClient(Options launcherOptions) {
+//        String flinkConfDir = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? "" : launcherOptions.getFlinkconf();
+//        Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
+//        String yarnConfDir = launcherOptions.getYarnconf();
+//
+//        if (StringUtils.isNotBlank(yarnConfDir)) {
+//            try {
+//                config.setString(ConfigConstants.PATH_HADOOP_CONFIG, yarnConfDir);
+//                FileSystem.initialize(config, null);
+//
+//                YarnConfiguration yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
+//                YarnClient yarnClient = YarnClient.createYarnClient();
+//                yarnClient.init(yarnConf);
+//                yarnClient.start();
+//                ApplicationId applicationId = null;
+//
+//                String yarnSessionConf = launcherOptions.getYarnSessionConf();
+//                yarnSessionConf = URLDecoder.decode(yarnSessionConf, Charsets.UTF_8.toString());
+//                Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
+//                Object yid = yarnSessionConfProperties.get("yid");
+//
+//                if (null != yid) {
+//                    applicationId = toApplicationId(yid.toString());
+//                } else {
+//                    applicationId = getYarnClusterApplicationId(yarnClient);
+//                }
+//
+//                System.out.println("applicationId=" + applicationId.toString());
+//
+//                if (StringUtils.isEmpty(applicationId.toString())) {
+//                    throw new RuntimeException("No flink session found on yarn cluster.");
+//                }
+//
+//                AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, flinkConfDir, yarnClient, false);
+//                ClusterClient clusterClient = clusterDescriptor.retrieve(applicationId);
+//                clusterClient.setDetached(true);
+//                return clusterClient;
+//            } catch (Exception e) {
+//                throw new RuntimeException(e);
+//            }
+//        }else{
+//            throw new RuntimeException("yarn mode must set param of 'yarnconf'!!!");
+//        }
+//    }
 
 
     private static ApplicationId getYarnClusterApplicationId(YarnClient yarnClient) throws Exception {

@@ -64,14 +64,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/kafkasource">
+                                <copy todir="${basedir}/../../sqlplugins/kafkasource">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/kafkasource/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/kafkasource/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../../sqlplugins/kafkasource/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/kafkasource/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

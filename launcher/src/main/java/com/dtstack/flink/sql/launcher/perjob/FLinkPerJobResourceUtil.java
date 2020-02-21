@@ -72,7 +72,6 @@ public class FLinkPerJobResourceUtil {
         return new ClusterSpecification.ClusterSpecificationBuilder()
                 .setMasterMemoryMB(jobmanagerMemoryMb)
                 .setTaskManagerMemoryMB(taskmanagerMemoryMb)
-                .setNumberTaskManagers(numberTaskManagers)
                 .setSlotsPerTaskManager(slotsPerTaskManager)
                 .createClusterSpecification();
     }

@@ -63,14 +63,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/kudusink">
+                                <copy todir="${basedir}/../../sqlplugins/kudusink">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/kudusink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/kudusink/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../sqlplugins/kudusink/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/kudusink/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

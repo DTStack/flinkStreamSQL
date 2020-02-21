@@ -73,14 +73,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/oracleallside">
+                                <copy todir="${basedir}/../../../sqlplugins/oracleallside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/oracleallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/oracleallside/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../../sqlplugins/oracleallside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/oracleallside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

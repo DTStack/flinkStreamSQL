@@ -72,14 +72,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/oracleasyncside">
+                                <copy todir="${basedir}/../../../sqlplugins/oracleasyncside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/oracleasyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/oracleasyncside/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../../sqlplugins/oracleasyncside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/oracleasyncside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

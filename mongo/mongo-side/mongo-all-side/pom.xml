@@ -69,14 +69,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/mongoallside">
+                                <copy todir="${basedir}/../../../sqlplugins/mongoallside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/mongoallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/mongoallside/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../../../sqlplugins/mongoallside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/mongoallside/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

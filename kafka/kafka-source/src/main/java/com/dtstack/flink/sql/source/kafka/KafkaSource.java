@@ -117,7 +117,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 
         DataStreamSource kafkaSource = env.addSource(kafkaSrc, sourceOperatorName, typeInformation);
         Integer parallelism = kafkaSourceTableInfo.getParallelism();
-        if (parallelism != null) {
+        if (parallelism > 0) {
             kafkaSource.setParallelism(parallelism);
         }
         return tableEnv.fromDataStream(kafkaSource, fields);

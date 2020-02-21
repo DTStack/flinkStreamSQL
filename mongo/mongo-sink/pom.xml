@@ -60,14 +60,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/mongosink">
+                                <copy todir="${basedir}/../../sqlplugins/mongosink">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/mongosink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/mongosink/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../../sqlplugins/mongosink/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/mongosink/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

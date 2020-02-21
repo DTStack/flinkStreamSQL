@@ -62,14 +62,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/hbasesink">
+                                <copy todir="${basedir}/../../sqlplugins/hbasesink">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/hbasesink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/hbasesink/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../../sqlplugins/hbasesink/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/hbasesink/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

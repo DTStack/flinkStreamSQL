@@ -27,21 +27,23 @@ import org.apache.flink.table.api.internal.TableEnvironmentImpl;
 import org.apache.flink.table.api.internal.TableImpl;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.api.java.internal.StreamTableEnvironmentImpl;
+import org.apache.flink.table.catalog.CatalogManager;
+import org.apache.flink.table.catalog.ObjectIdentifier;
+import org.apache.flink.table.operations.Operation;
 import org.apache.flink.table.operations.QueryOperation;
 import org.apache.flink.table.planner.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.planner.delegation.PlannerBase;
 import org.apache.flink.table.planner.delegation.StreamPlanner;
-import org.apache.flink.table.planner.operations.PlannerQueryOperation;
 import org.apache.flink.table.planner.operations.SqlToOperationConverter;
 import org.apache.flink.table.sinks.TableSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
+import scala.Tuple2;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
 
 
 /**
@@ -51,12 +53,13 @@ import java.util.List;
  */
 public class FlinkSQLExec {
     private static final Logger LOG = LoggerFactory.getLogger(FlinkSQLExec.class);
+
     public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt) throws Exception {
         StreamTableEnvironmentImpl tableEnvImpl = ((StreamTableEnvironmentImpl) tableEnv);
         StreamPlanner streamPlanner = (StreamPlanner)tableEnvImpl.getPlanner();
         FlinkPlannerImpl flinkPlanner = streamPlanner.createFlinkPlanner();
 
-        RichSqlInsert insert = (RichSqlInsert)flinkPlanner.parse(stmt);
+        RichSqlInsert insert = (RichSqlInsert) flinkPlanner.validate(flinkPlanner.parser().parse(stmt));
         TableImpl queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
 
         String targetTableName = ((SqlIdentifier) ((SqlInsert) insert).getTargetTable()).names.get(0);
@@ -93,19 +96,28 @@ public class FlinkSQLExec {
 
     }
 
+    private static SqlToOperationConverter createSqlToOperationConverter(FlinkPlannerImpl flinkPlanner, CatalogManager catalogManager)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+
+        Constructor<SqlToOperationConverter> declaredConstructor = SqlToOperationConverter.class.getDeclaredConstructor(FlinkPlannerImpl.class, CatalogManager.class);
+        declaredConstructor.setAccessible(true);
+        SqlToOperationConverter sqlToOperationConverter = declaredConstructor.newInstance(flinkPlanner, catalogManager);
+        return sqlToOperationConverter;
+    }
+
     private static TableSink getTableSinkByPlanner(StreamPlanner streamPlanner, String targetTableName)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        Method getTableSink = PlannerBase.class.getDeclaredMethod("getTableSink", List.class);
+        Method getTableSink = PlannerBase.class.getDeclaredMethod("getTableSink", ObjectIdentifier.class);
         getTableSink.setAccessible(true);
-        Option tableSinkOption = (Option) getTableSink.invoke(streamPlanner, Arrays.asList(targetTableName));
-        return (TableSink) tableSinkOption.get();
+        ObjectIdentifier objectIdentifier = ObjectIdentifier.of(streamPlanner.catalogManager().getCurrentCatalog(), streamPlanner.catalogManager().getCurrentDatabase(), targetTableName);
+        Option tableSinkOption = (Option) getTableSink.invoke(streamPlanner, objectIdentifier);
+        return (TableSink) ((Tuple2) tableSinkOption.get())._2;
     }
 
     private static TableImpl extractQueryTableFromInsertCaluse(StreamTableEnvironmentImpl tableEnvImpl, FlinkPlannerImpl flinkPlanner, RichSqlInsert insert)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-
-        PlannerQueryOperation queryOperation = (PlannerQueryOperation) SqlToOperationConverter.convert(flinkPlanner,
-                insert.getSource());
+        StreamPlanner streamPlanner = (StreamPlanner) tableEnvImpl.getPlanner();
+        Operation queryOperation = SqlToOperationConverter.convert(flinkPlanner, streamPlanner.catalogManager(), insert.getSource()).get();
         Method createTableMethod = TableEnvironmentImpl.class.getDeclaredMethod("createTable", QueryOperation.class);
         createTableMethod.setAccessible(true);
         return (TableImpl) createTableMethod.invoke(tableEnvImpl, queryOperation);

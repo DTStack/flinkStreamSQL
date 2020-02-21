@@ -24,10 +24,11 @@ import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
+import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
+import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,10 +66,9 @@ public class PerJobSubmitter {
         perJobClusterClientBuilder.init(launcherOptions.getYarnconf(), flinkConfig, confProperties);
 
         String flinkJarPath = launcherOptions.getFlinkJarPath();
-        AbstractYarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(flinkJarPath, launcherOptions, jobGraph);
-        ClusterClient<ApplicationId> clusterClient = yarnClusterDescriptor.deployJobCluster(clusterSpecification, jobGraph,true);
-
-        String applicationId = clusterClient.getClusterId().toString();
+        YarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(flinkJarPath, launcherOptions, jobGraph);
+        ClusterClientProvider<ApplicationId> applicationIdClusterClientProvider = yarnClusterDescriptor.deployJobCluster(clusterSpecification, jobGraph, true);
+        String applicationId = applicationIdClusterClientProvider.getClusterClient().getClusterId().toString();
         String flinkJobId = jobGraph.getJobID().toString();
 
         String tips = String.format("deploy per_job with appId: %s, jobId: %s", applicationId, flinkJobId);
