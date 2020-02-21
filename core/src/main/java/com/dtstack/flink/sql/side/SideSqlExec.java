@@ -872,7 +872,7 @@ public class SideSqlExec {
         replaceInfoList.add(replaceInfo);
 
         if (!tableEnv.isRegistered(joinInfo.getNewTableName())){
-            Table joinTable = tableEnv.fromDataStream(dsOut, String.join(",", sideOutTypeInfo.getFieldNames()));
+            Table joinTable = tableEnv.fromDataStream(dsOut);
             tableEnv.registerTable(joinInfo.getNewTableName(), joinTable);
             localTableCache.put(joinInfo.getNewTableName(), joinTable);
         }
