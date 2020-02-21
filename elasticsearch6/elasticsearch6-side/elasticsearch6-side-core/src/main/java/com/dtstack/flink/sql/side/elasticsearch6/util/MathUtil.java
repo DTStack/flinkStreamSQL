@@ -103,6 +103,8 @@ public class MathUtil {
             return (Float) obj;
         } else if (obj instanceof BigDecimal) {
             return ((BigDecimal) obj).floatValue();
+        } else if (obj instanceof Double) {
+            return ((Double) obj).floatValue();
         }
 
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Float.");

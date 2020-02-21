@@ -20,20 +20,17 @@ package com.dtstack.flink.sql.side.elasticsearch6;
 
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
-import com.dtstack.flink.sql.side.*;
-import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.commons.lang.StringUtils;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -49,73 +46,17 @@ public class Elasticsearch6AsyncSideInfo extends SideInfo {
 
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
-        Elasticsearch6SideTableInfo elasticsearch6SideTableInfo = (Elasticsearch6SideTableInfo) sideTableInfo;
 
         String sideTableName = joinInfo.getSideTableName();
         SqlNode conditionNode = joinInfo.getCondition();
-
         List<SqlNode> sqlNodeList = Lists.newArrayList();
-        List<String> sqlJoinCompareOperate= Lists.newArrayList();
-
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
-        ParseUtils.parseJoinCompareOperate(conditionNode, sqlJoinCompareOperate);
 
         for (SqlNode sqlNode : sqlNodeList) {
             dealOneEqualCon(sqlNode, sideTableName);
         }
 
-        // set query condition
-        elasticsearch6SideTableInfo.setSearchSourceBuilder(getSelectFromStatement(sideTableInfo.getPredicateInfoes()));
-
     }
-
-    private SearchSourceBuilder getSelectFromStatement(List<PredicateInfo> predicateInfoes) {
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-
-        if (predicateInfoes.size() != 0) {
-            BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
-            for (PredicateInfo info : sideTableInfo.getPredicateInfoes()) {
-                boolQueryBuilder = buildFilterCondition(boolQueryBuilder, info);
-            }
-
-            searchSourceBuilder.query(boolQueryBuilder);
-        }
-
-        return searchSourceBuilder;
-    }
-
-    public BoolQueryBuilder buildFilterCondition(BoolQueryBuilder boolQueryBuilder, PredicateInfo info){
-        switch (info.getOperatorKind()) {
-            case "GREATER_THAN_OR_EQUAL":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).gte(info.getCondition()));
-            case "GREATER_THAN":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).gt(info.getCondition()));
-            case "LESS_THAN_OR_EQUAL":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).lte(info.getCondition()));
-            case "LESS_THAN":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).lt(info.getCondition()));
-            case "EQUALS":
-                return boolQueryBuilder.must(QueryBuilders.termQuery(info.getFieldName(), info.getCondition()));
-            case "NOT_EQUALS":
-                return boolQueryBuilder.mustNot(QueryBuilders.termQuery(info.getFieldName(), info.getCondition()));
-            case "LIKE":
-                return boolQueryBuilder.must(QueryBuilders.fuzzyQuery(info.getFieldName(), info.getCondition()));
-            case "IN":
-                return boolQueryBuilder.must(QueryBuilders.termsQuery(info.getFieldName(), Arrays.asList(StringUtils.split(info.getCondition().trim(), ","))));
-            case "NOT_IN":
-                return boolQueryBuilder.mustNot(QueryBuilders.termsQuery(info.getFieldName(), Arrays.asList(StringUtils.split(info.getCondition().trim(), ","))));
-            default:
-                try {
-                    throw new Exception("Predicate does not match!");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                return boolQueryBuilder;
-        }
-
-    }
-
 
     @Override
     public void dealOneEqualCon(SqlNode sqlNode, String sideTableName) {

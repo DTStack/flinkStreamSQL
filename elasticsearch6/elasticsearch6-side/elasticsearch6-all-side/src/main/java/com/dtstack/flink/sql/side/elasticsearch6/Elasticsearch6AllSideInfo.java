@@ -20,18 +20,14 @@ package com.dtstack.flink.sql.side.elasticsearch6;
 
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
-import com.dtstack.flink.sql.side.*;
-import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -41,7 +37,6 @@ import java.util.List;
  */
 public class Elasticsearch6AllSideInfo extends SideInfo {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch6AllSideInfo.class);
 
     public Elasticsearch6AllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
@@ -50,56 +45,8 @@ public class Elasticsearch6AllSideInfo extends SideInfo {
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
 
-        Elasticsearch6SideTableInfo elasticsearch6SideTableInfo = (Elasticsearch6SideTableInfo) sideTableInfo;
-
-        elasticsearch6SideTableInfo.setSearchSourceBuilder(getSelectFromStatement(sideTableInfo.getPredicateInfoes()));
-
     }
 
-    private SearchSourceBuilder getSelectFromStatement(List<PredicateInfo> predicateInfoes) {
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        if (predicateInfoes.size() != 0) {
-            BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
-            for (PredicateInfo info : sideTableInfo.getPredicateInfoes()) {
-                boolQueryBuilder = buildFilterCondition(boolQueryBuilder, info);
-            }
-
-            searchSourceBuilder.query(boolQueryBuilder);
-        }
-
-        return searchSourceBuilder;
-    }
-
-    public BoolQueryBuilder buildFilterCondition(BoolQueryBuilder boolQueryBuilder, PredicateInfo info) {
-        switch (info.getOperatorKind()) {
-            case "IN":
-                return boolQueryBuilder.must(QueryBuilders.termsQuery(info.getFieldName(), StringUtils.split(info.getCondition().trim(), ",")));
-            case "NOT_IN":
-                return boolQueryBuilder.mustNot(QueryBuilders.termsQuery(info.getFieldName(), StringUtils.split(info.getCondition().trim(), ",")));
-            case "GREATER_THAN_OR_EQUAL":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).gte(info.getCondition()));
-            case "GREATER_THAN":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).gt(info.getCondition()));
-            case "LESS_THAN_OR_EQUAL":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).lte(info.getCondition()));
-            case "LESS_THAN":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).lt(info.getCondition()));
-            case "EQUALS":
-                return boolQueryBuilder.must(QueryBuilders.termQuery(info.getFieldName(), info.getCondition()));
-            case "NOT_EQUALS":
-                return boolQueryBuilder.mustNot(QueryBuilders.termQuery(info.getFieldName(), info.getCondition()));
-            default:
-                try {
-                    throw new Exception("elasticsearch6 does not support this operation: " + info.getOperatorName());
-                } catch (Exception e) {
-
-                    e.printStackTrace();
-                    LOG.error(e.getMessage());
-                }
-                return boolQueryBuilder;
-        }
-
-    }
 
     @Override
     public void parseSelectFields(JoinInfo joinInfo) {
