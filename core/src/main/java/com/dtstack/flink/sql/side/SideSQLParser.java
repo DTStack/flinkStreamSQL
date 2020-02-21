@@ -417,7 +417,6 @@ public class SideSQLParser {
             SqlBasicCall sqlBasicCall = buildAsSqlNode(tableAlias, sqlNode);
             queueInfo.offer(sqlBasicCall);
 
-            //TODO 打印合适的提示
             System.out.println("-------build temporary query-----------");
             System.out.println(tmpSelectSql);
             System.out.println("---------------------------------------");
