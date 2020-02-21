@@ -461,10 +461,7 @@ public class SideSQLParser {
      */
     private void extractJoinField(SqlNode condition, Set<Tuple2<String, String>> joinFieldSet){
         SqlKind joinKind = condition.getKind();
-        if( joinKind == AND ){
-            extractJoinField(((SqlBasicCall)condition).operands[0], joinFieldSet);
-            extractJoinField(((SqlBasicCall)condition).operands[1], joinFieldSet);
-        }else if( joinKind == EQUALS ){
+        if( joinKind == AND || joinKind == EQUALS ){
             extractJoinField(((SqlBasicCall)condition).operands[0], joinFieldSet);
             extractJoinField(((SqlBasicCall)condition).operands[1], joinFieldSet);
         }else{
