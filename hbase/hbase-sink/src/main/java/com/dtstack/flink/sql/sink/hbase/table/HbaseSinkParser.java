@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.sink.hbase.table;
 
 
+import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
@@ -50,6 +51,8 @@ public class HbaseSinkParser extends AbsTableParser {
 
     public static final String TABLE_NAME_KEY = "tableName";
 
+    public static final String UPDATE_KEY = "updateMode";
+
     @Override
     protected boolean fieldNameNeedsUpperCase() {
         return false;
@@ -66,6 +69,8 @@ public class HbaseSinkParser extends AbsTableParser {
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
         hbaseTableInfo.setRowkey(rk.split(","));
+        String updateMode = (String) props.getOrDefault(UPDATE_KEY, EUpdateMode.APPEND.name());
+        hbaseTableInfo.setUpdateMode(updateMode);
         return hbaseTableInfo;
     }
 

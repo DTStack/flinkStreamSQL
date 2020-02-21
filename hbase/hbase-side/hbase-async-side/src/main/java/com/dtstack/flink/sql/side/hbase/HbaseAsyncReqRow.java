@@ -36,6 +36,7 @@ import com.stumbleupon.async.Deferred;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.hbase.async.HBaseClient;
@@ -122,14 +123,14 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = Row.copy(input);
+    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow inputCopy = new CRow(input.row(), input.change());
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputRow.getField(conValIndex);
+            Object equalObj = inputCopy.row().getField(conValIndex);
             if(equalObj == null){
-                dealMissKey(inputRow, resultFuture);
+                dealMissKey(inputCopy, resultFuture);
                 return;
             }
             refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
@@ -138,34 +139,34 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
         String rowKeyStr = ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
 
         //get from cache
-        if(openCache()){
+        if (openCache()) {
             CacheObj val = getFromCache(rowKeyStr);
-            if(val != null){
-                if(ECacheContentType.MissVal == val.getType()){
-                    dealMissKey(inputRow, resultFuture);
+            if (val != null) {
+                if (ECacheContentType.MissVal == val.getType()) {
+                    dealMissKey(inputCopy, resultFuture);
                     return;
-                }else if(ECacheContentType.SingleLine == val.getType()){
+                } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
-                        Row row = fillData(inputRow, val);
-                        resultFuture.complete(Collections.singleton(row));
+                        Row row = fillData(inputCopy.row(), val);
+                        resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
-                }else if(ECacheContentType.MultiLine == val.getType()){
+                } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        for(Object one : (List)val.getContent()){
-                            Row row = fillData(inputRow, one);
-                            resultFuture.complete(Collections.singleton(row));
+                        for (Object one : (List) val.getContent()) {
+                            Row row = fillData(inputCopy.row(), one);
+                            resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
                         }
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 }
                 return;
             }
         }
 
-        rowKeyMode.asyncGetData(tableName, rowKeyStr, inputRow, resultFuture, sideInfo.getSideCache());
+        rowKeyMode.asyncGetData(tableName, rowKeyStr, inputCopy, resultFuture, sideInfo.getSideCache());
     }
 
     @Override

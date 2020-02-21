@@ -45,6 +45,8 @@ public class RedisTableInfo extends TargetTableInfo {
 
     public static final String MASTER_NAME = "masterName";
 
+    public static final String PRIMARY_KEYS_NAME = "primarykeys";
+
     public RedisTableInfo(){
         setType(CURR_TYPE);
     }

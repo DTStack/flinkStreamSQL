@@ -26,6 +26,7 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -89,14 +90,14 @@ public class RedisAllReqRow extends AllReqRow{
     }
 
     @Override
-    public void flatMap(Row row, Collector<Row> out) throws Exception {
+    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
         Map<String, String> inputParams = Maps.newHashMap();
         for(Integer conValIndex : sideInfo.getEqualValIndex()){
-            Object equalObj = row.getField(conValIndex);
+            Object equalObj = input.row().getField(conValIndex);
             if(equalObj == null){
-                if(sideInfo.getJoinType() == JoinType.LEFT){
-                    Row data = fillData(row, null);
-                    out.collect(data);
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
+                    Row data = fillData(input.row(), null);
+                    out.collect(new CRow(data, input.change()));
                 }
                 return;
             }
@@ -109,8 +110,8 @@ public class RedisAllReqRow extends AllReqRow{
 
         if (cacheMap == null){
             if(sideInfo.getJoinType() == JoinType.LEFT){
-                Row data = fillData(row, null);
-                out.collect(data);
+                Row data = fillData(input.row(), null);
+                out.collect(new CRow(data, input.change()));
             }else{
                 return;
             }
@@ -118,8 +119,8 @@ public class RedisAllReqRow extends AllReqRow{
             return;
         }
 
-        Row newRow = fillData(row, cacheMap);
-        out.collect(newRow);
+        Row newRow = fillData(input.row(), cacheMap);
+        out.collect(new CRow(newRow, input.change()));
     }
 
     private String buildKey(Map<String, String> inputParams) {
