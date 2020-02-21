@@ -51,13 +51,13 @@ public class ParserJoinField {
      */
     public static List<FieldInfo> getRowTypeInfo(SqlNode sqlNode, JoinScope scope, boolean getAll){
 
-        if(sqlNode.getKind() != SqlKind.SELECT){
-            throw new RuntimeException("------not select node--------\n" + sqlNode.toString());
-        }
-
         List<FieldInfo> fieldInfoList = Lists.newArrayList();
         if(getAll){
             return getAllField(scope);
+        }
+
+        if(sqlNode.getKind() != SqlKind.SELECT){
+            throw new RuntimeException("------not select node--------\n" + sqlNode.toString());
         }
 
         SqlSelect sqlSelect = (SqlSelect)sqlNode;
@@ -65,7 +65,6 @@ public class ParserJoinField {
         for(SqlNode fieldNode : sqlNodeList.getList()){
             SqlIdentifier identifier = (SqlIdentifier)fieldNode;
             if(!identifier.isStar()) {
-                System.out.println(identifier);
                 String tableName = identifier.getComponent(0).getSimple();
                 String fieldName = identifier.getComponent(1).getSimple();
                 TypeInformation<?> type = scope.getFieldType(tableName, fieldName);
@@ -76,7 +75,6 @@ public class ParserJoinField {
                 fieldInfoList.add(fieldInfo);
             } else {
                 //处理
-                System.out.println("----------");
                 int identifierSize = identifier.names.size();
 
                 switch(identifierSize) {
@@ -108,6 +106,7 @@ public class ParserJoinField {
         return fieldInfoList;
     }
 
+    //TODO 丢弃多余的PROCTIME
     private static List<FieldInfo> getAllField(JoinScope scope){
         Iterator prefixId = scope.getChildren().iterator();
         List<FieldInfo> fieldInfoList = Lists.newArrayList();
