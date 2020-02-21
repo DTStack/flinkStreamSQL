@@ -13,6 +13,7 @@ import com.google.common.collect.Lists;
 import org.apache.flink.configuration.Configuration;
 import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
@@ -120,8 +121,8 @@ public class KuduAsyncReqRow extends AsyncReqRow {
 
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = Row.copy(input);
+    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow inputCopy = new CRow(input.row(), input.change());
         //scannerBuilder 设置为null重新加载过滤条件
         scannerBuilder = null;
         connKuDu();
@@ -129,9 +130,9 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         Schema schema = table.getSchema();
         //  @wenbaoup fix bug
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Object equalObj = inputRow.getField(sideInfo.getEqualValIndex().get(i));
+            Object equalObj = inputCopy.row().getField(sideInfo.getEqualValIndex().get(i));
             if (equalObj == null) {
-                dealMissKey(inputRow, resultFuture);
+                dealMissKey(inputCopy, resultFuture);
                 return;
             }
             //增加过滤条件
@@ -159,25 +160,25 @@ public class KuduAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(key);
             if (val != null) {
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     return;
                 } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
-                        Row row = fillData(inputRow, val);
-                        resultFuture.complete(Collections.singleton(row));
+                        Row row = fillData(inputCopy.row(), val);
+                        resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        List<Row> rowList = Lists.newArrayList();
+                        List<CRow> rowList = Lists.newArrayList();
                         for (Object jsonArray : (List) val.getContent()) {
-                            Row row = fillData(inputRow, jsonArray);
-                            rowList.add(row);
+                            Row row = fillData(inputCopy.row(), jsonArray);
+                            rowList.add(new CRow(row, inputCopy.change()));
                         }
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
@@ -187,10 +188,10 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         }
         List<Map<String, Object>> cacheContent = Lists.newArrayList();
         AsyncKuduScanner asyncKuduScanner = scannerBuilder.build();
-        List<Row> rowList = Lists.newArrayList();
+        List<CRow> rowList = Lists.newArrayList();
         Deferred<RowResultIterator> data = asyncKuduScanner.nextRows();
         //从之前的同步修改为调用异步的Callback
-        data.addCallbackDeferring(new GetListRowCB(inputRow, cacheContent, rowList, asyncKuduScanner, resultFuture, key));
+        data.addCallbackDeferring(new GetListRowCB(inputCopy, cacheContent, rowList, asyncKuduScanner, resultFuture, key));
     }
 
 
@@ -243,18 +244,18 @@ public class KuduAsyncReqRow extends AsyncReqRow {
     }
 
     class GetListRowCB implements Callback<Deferred<List<Row>>, RowResultIterator> {
-        private Row input;
+        private CRow input;
         private List<Map<String, Object>> cacheContent;
-        private List<Row> rowList;
+        private List<CRow> rowList;
         private AsyncKuduScanner asyncKuduScanner;
-        private ResultFuture<Row> resultFuture;
+        private ResultFuture<CRow> resultFuture;
         private String key;
 
 
         public GetListRowCB() {
         }
 
-        GetListRowCB(Row input, List<Map<String, Object>> cacheContent, List<Row> rowList, AsyncKuduScanner asyncKuduScanner, ResultFuture<Row> resultFuture, String key) {
+        GetListRowCB(CRow input, List<Map<String, Object>> cacheContent, List<CRow> rowList, AsyncKuduScanner asyncKuduScanner, ResultFuture<CRow> resultFuture, String key) {
             this.input = input;
             this.cacheContent = cacheContent;
             this.rowList = rowList;
@@ -274,11 +275,11 @@ public class KuduAsyncReqRow extends AsyncReqRow {
                         KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
                     }
                 }
-                Row row = fillData(input, oneRow);
+                Row row = fillData(input.row(), oneRow);
                 if (openCache()) {
                     cacheContent.add(oneRow);
                 }
-                rowList.add(row);
+                rowList.add(new CRow(row, input.change()));
             }
             if (asyncKuduScanner.hasMoreRows()) {
                 return asyncKuduScanner.nextRows().addCallbackDeferring(this);

@@ -23,7 +23,7 @@ package com.dtstack.flink.sql.side;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.runtime.types.CRow;
 
 import java.sql.SQLException;
 import java.util.concurrent.Executors;
@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public abstract class AllReqRow extends RichFlatMapFunction<Row, Row> implements ISideReqRow {
+public abstract class AllReqRow extends RichFlatMapFunction<CRow, CRow> implements ISideReqRow {
 
     protected SideInfo sideInfo;
 

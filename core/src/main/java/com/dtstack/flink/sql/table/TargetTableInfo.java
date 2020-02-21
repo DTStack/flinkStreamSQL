@@ -20,6 +20,8 @@
 
 package com.dtstack.flink.sql.table;
 
+import com.dtstack.flink.sql.format.FormatType;
+
 /**
  * Reason:
  * Date: 2018/6/25
@@ -33,7 +35,7 @@ public abstract class TargetTableInfo extends TableInfo {
 
     public static final String SINK_DATA_TYPE = "sinkdatatype";
 
-    private String sinkDataType = "json";
+    private String sinkDataType = FormatType.JSON.name();
 
     public String getSinkDataType() {
         return sinkDataType;

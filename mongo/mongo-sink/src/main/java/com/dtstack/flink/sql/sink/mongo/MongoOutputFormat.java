@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.sink.mongo;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
@@ -47,7 +47,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class MongoOutputFormat extends MetricOutputFormat {
+public class MongoOutputFormat extends DtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(MongoOutputFormat.class);
 
     private String address;
@@ -62,10 +62,6 @@ public class MongoOutputFormat extends MetricOutputFormat {
     private MongoDatabase db;
 
     private static String PK = "_ID";
-
-    private static int rowLenth = 1000;
-
-    public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
 
     @Override
     public void configure(Configuration parameters) {
@@ -110,7 +106,7 @@ public class MongoOutputFormat extends MetricOutputFormat {
             dbCollection.insertOne(doc);
         }
 
-        if (outRecords.getCount()%rowLenth == 0){
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
         }
         outRecords.inc();

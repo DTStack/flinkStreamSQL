@@ -26,6 +26,7 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -114,14 +115,14 @@ public abstract class RdbAllReqRow extends AllReqRow {
 
 
     @Override
-    public void flatMap(Row value, Collector<Row> out) throws Exception {
+    public void flatMap(CRow value, Collector<CRow> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = value.getField(conValIndex);
+            Object equalObj = value.row().getField(conValIndex);
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row row = fillData(value, null);
-                    out.collect(row);
+                    Row row = fillData(value.row(), null);
+                    out.collect(new CRow(row, value.change()));
                 }
                 return;
             }
@@ -132,8 +133,8 @@ public abstract class RdbAllReqRow extends AllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(value, null);
-                out.collect(row);
+                Row row = fillData(value.row(), null);
+                out.collect(new CRow(row, value.change()));
             } else {
                 return;
             }
@@ -142,9 +143,8 @@ public abstract class RdbAllReqRow extends AllReqRow {
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(fillData(value, one));
+            out.collect(new CRow(fillData(value.row(), one), value.change()));
         }
-
     }
 
     private String buildKey(List<Object> equalValList) {

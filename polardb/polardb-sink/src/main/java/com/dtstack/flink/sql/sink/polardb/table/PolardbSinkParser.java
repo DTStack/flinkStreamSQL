@@ -10,8 +10,8 @@ public class PolardbSinkParser extends RdbSinkParser {
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo mysqlTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-        mysqlTableInfo.setType(CURR_TYPE);
-        return mysqlTableInfo;
+        TableInfo polardbTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+        polardbTableInfo.setType(CURR_TYPE);
+        return polardbTableInfo;
     }
 }

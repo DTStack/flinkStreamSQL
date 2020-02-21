@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.redis;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -31,7 +31,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 
-public class RedisOutputFormat extends MetricOutputFormat {
+public class RedisOutputFormat extends DtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
 
     private String url;
@@ -67,8 +67,6 @@ public class RedisOutputFormat extends MetricOutputFormat {
     private JedisSentinelPool jedisSentinelPool;
 
     private GenericObjectPoolConfig poolConfig;
-
-    private static int rowLenth = 1000;
 
     private RedisOutputFormat(){
     }
@@ -148,7 +146,6 @@ public class RedisOutputFormat extends MetricOutputFormat {
         }
 
         HashMap<String, Integer> map = new HashMap<>();
-
         for (String primaryKey : primaryKeys){
             for (int i=0; i<fieldNames.length; i++){
                 if (fieldNames[i].equals(primaryKey)){
@@ -166,8 +163,6 @@ public class RedisOutputFormat extends MetricOutputFormat {
         }
 
         String perKey = String.join(":", kvList);
-
-
         for (int i = 0; i < fieldNames.length; i++) {
             StringBuilder key = new StringBuilder();
             key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
@@ -180,7 +175,7 @@ public class RedisOutputFormat extends MetricOutputFormat {
             jedis.set(key.toString(), value);
         }
 
-        if (outRecords.getCount()%rowLenth == 0){
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
         }
         outRecords.inc();
