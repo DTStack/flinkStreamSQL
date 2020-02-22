@@ -49,31 +49,6 @@ public class MongoAsyncSideInfo extends SideInfo {
 
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
-        MongoSideTableInfo MongoSideTableInfo = (MongoSideTableInfo) sideTableInfo;
-
-        String sideTableName = joinInfo.getSideTableName();
-
-        SqlNode conditionNode = joinInfo.getCondition();
-
-        List<SqlNode> sqlNodeList = Lists.newArrayList();
-        ParseUtils.parseAnd(conditionNode, sqlNodeList);
-
-        for(SqlNode sqlNode : sqlNodeList){
-            dealOneEqualCon(sqlNode, sideTableName);
-        }
-
-        sqlCondition = "select ${selectField} from ${tableName} where ";
-        for(int i=0; i<equalFieldList.size(); i++){
-            String equalField = equalFieldList.get(i);
-
-            sqlCondition += equalField + "=? ";
-            if(i != equalFieldList.size() - 1){
-                sqlCondition += " and ";
-            }
-        }
-
-        sqlCondition = sqlCondition.replace("${tableName}", MongoSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
 

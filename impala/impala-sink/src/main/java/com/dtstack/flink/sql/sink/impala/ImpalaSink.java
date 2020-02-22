@@ -20,16 +20,14 @@ package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
+import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
-import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
+import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
-import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
 
 /**
  * Date: 2019/11/11
@@ -40,106 +38,93 @@ import java.util.Map;
 
 public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
-    private static final String IMPALA_DRIVER = "com.cloudera.impala.jdbc41.Driver";
-
     private ImpalaTableInfo impalaTableInfo;
 
     public ImpalaSink() {
+        super(new ImpalaDialect());
     }
 
     @Override
-    public RichSinkFunction createJdbcSinkFunc() {
-        ImpalaOutputFormat outputFormat = (ImpalaOutputFormat) getOutputFormat();
-        outputFormat.setDbURL(dbURL);
-        outputFormat.setDrivername(driverName);
-        outputFormat.setUsername(userName);
-        outputFormat.setPassword(password);
-        outputFormat.setInsertQuery(sql);
-        outputFormat.setBatchNum(batchNum);
-        outputFormat.setBatchWaitInterval(batchWaitInterval);
-        outputFormat.setTypesArray(sqlTypes);
-        outputFormat.setTableName(tableName);
-        outputFormat.setDbType(dbType);
-        outputFormat.setSchema(impalaTableInfo.getSchema());
-        outputFormat.setDbSink(this);
-        outputFormat.setImpalaTableInfo(impalaTableInfo);
+    public JDBCUpsertOutputFormat getOutputFormat() {
+        JDBCOptions jdbcOptions = JDBCOptions.builder()
+                .setDBUrl(getImpalaJdbcUrl())
+                .setDialect(jdbcDialect)
+                .setUsername(userName)
+                .setPassword(password)
+                .setTableName(tableName)
+                .build();
 
-        outputFormat.verifyField();
-        OutputFormatSinkFunction outputFormatSinkFunc = new OutputFormatSinkFunction(outputFormat);
-        return outputFormatSinkFunc;
+        return JDBCUpsertOutputFormat.builder()
+                .setOptions(jdbcOptions)
+                .setFieldNames(fieldNames)
+                .setFlushMaxSize(batchNum)
+                .setFlushIntervalMills(batchWaitInterval)
+                .setFieldTypes(sqlTypes)
+                .setKeyFields(primaryKeys)
+                .setPartitionFields(impalaTableInfo.getPartitionFields())
+                .setAllReplace(allReplace)
+                .setUpdateMode(updateMode)
+                .build();
+    }
+
+
+    public String getImpalaJdbcUrl() {
+        Integer authMech = impalaTableInfo.getAuthMech();
+        String newUrl = dbURL;
+        StringBuffer urlBuffer = new StringBuffer(dbURL);
+        if (authMech == EAuthMech.NoAuthentication.getType()) {
+            return newUrl;
+        } else if (authMech == EAuthMech.Kerberos.getType()) {
+            String keyTabFilePath = impalaTableInfo.getKeyTabFilePath();
+            String krb5FilePath = impalaTableInfo.getKrb5FilePath();
+            String principal = impalaTableInfo.getPrincipal();
+            String krbRealm = impalaTableInfo.getKrbRealm();
+            String krbHostFqdn = impalaTableInfo.getKrbHostFQDN();
+            String krbServiceName = impalaTableInfo.getKrbServiceName();
+            urlBuffer.append(";"
+                    .concat("AuthMech=1;")
+                    .concat("KrbRealm=").concat(krbRealm).concat(";")
+                    .concat("KrbHostFQDN=").concat(krbHostFqdn).concat(";")
+                    .concat("KrbServiceName=").concat(krbServiceName).concat(";")
+            );
+            newUrl = urlBuffer.toString();
+
+            System.setProperty("java.security.krb5.conf", krb5FilePath);
+            Configuration configuration = new Configuration();
+            configuration.set("hadoop.security.authentication", "Kerberos");
+            UserGroupInformation.setConfiguration(configuration);
+            try {
+                UserGroupInformation.loginUserFromKeytab(principal, keyTabFilePath);
+            } catch (IOException e) {
+                throw new RuntimeException("loginUserFromKeytab error ..", e);
+            }
+
+        } else if (authMech == EAuthMech.UserName.getType()) {
+            urlBuffer.append(";"
+                    .concat("AuthMech=3;")
+                    .concat("UID=").concat(userName).concat(";")
+                    .concat("PWD=;")
+                    .concat("UseSasl=0")
+            );
+            newUrl = urlBuffer.toString();
+        } else if (authMech == EAuthMech.NameANDPassword.getType()) {
+            urlBuffer.append(";"
+                    .concat("AuthMech=3;")
+                    .concat("UID=").concat(userName).concat(";")
+                    .concat("PWD=").concat(password)
+            );
+            newUrl = urlBuffer.toString();
+        } else {
+            throw new IllegalArgumentException("The value of authMech is illegal, Please select 0, 1, 2, 3");
+        }
+        return newUrl;
     }
 
     @Override
     public RdbSink genStreamSink(TargetTableInfo targetTableInfo) {
-        ImpalaTableInfo impalaTableInfo = (ImpalaTableInfo) targetTableInfo;
-        this.impalaTableInfo = impalaTableInfo;
         super.genStreamSink(targetTableInfo);
+        this.impalaTableInfo = (ImpalaTableInfo) targetTableInfo;
         return this;
     }
 
-    @Override
-    public void buildSql(String schema, String tableName, List<String> fields) {
-        buildInsertSql(tableName, fields);
-    }
-
-    public void buildInsertSql(String tableName, List<String> fields) {
-
-        String sqlTmp = "insert into " + tableName + " (${fields}) " + "${partition}"+ " values (${placeholder})";
-        int fieldsSize = fields.size();
-        boolean enablePartition = impalaTableInfo.isEnablePartition();
-        if (enablePartition) {
-            String partitionFieldsStr = impalaTableInfo.getPartitionFields();
-            List<String> partitionFields = Arrays.asList(partitionFieldsStr.split(","));
-            List<String> newFields = new ArrayList<>();
-            for (String field : fields) {
-                if (partitionFields.contains(field)){
-                    continue;
-                }
-                newFields.add(field);
-            }
-            fields = newFields;
-            String partition = String.format("partition(%s)", partitionFieldsStr);
-            sqlTmp = sqlTmp.replace("${partition}", partition);
-        } else {
-            sqlTmp = sqlTmp.replace("${partition}", "");
-        }
-
-        String fieldsStr = "";
-        String placeholder = "";
-        for (int i= 0; i < fieldsSize; i++) {
-            placeholder += ",?";
-        }
-        for (String fieldName : fields) {
-            fieldsStr += "," + fieldName;
-        }
-        fieldsStr = fieldsStr.replaceFirst(",", "");
-        placeholder = placeholder.replaceFirst(",", "");
-        sqlTmp = sqlTmp.replace("${fields}", fieldsStr).replace("${placeholder}", placeholder);
-
-        this.sql = sqlTmp;
-    }
-
-    @Override
-    public String buildUpdateSql(String schema, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
-        return null;
-    }
-
-    @Override
-    public String getDriverName() {
-        return IMPALA_DRIVER;
-    }
-
-    @Override
-    public RetractJDBCOutputFormat getOutputFormat() {
-        return new ImpalaOutputFormat();
-    }
-
-
-    public ImpalaTableInfo getImpalaTableInfo() {
-        return impalaTableInfo;
-    }
-
-    public void setImpalaTableInfo(ImpalaTableInfo impalaTableInfo) {
-        this.impalaTableInfo = impalaTableInfo;
-    }
 }

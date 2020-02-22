@@ -21,10 +21,12 @@ package com.dtstack.flink.sql.side.redis;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
+import com.esotericsoftware.minlog.Log;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -88,14 +90,14 @@ public class RedisAllReqRow extends AllReqRow{
     }
 
     @Override
-    public void flatMap(Row row, Collector<Row> out) throws Exception {
+    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
         Map<String, String> inputParams = Maps.newHashMap();
         for(Integer conValIndex : sideInfo.getEqualValIndex()){
-            Object equalObj = row.getField(conValIndex);
+            Object equalObj = input.row().getField(conValIndex);
             if(equalObj == null){
-                if(sideInfo.getJoinType() == JoinType.LEFT){
-                    Row data = fillData(row, null);
-                    out.collect(data);
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
+                    Row data = fillData(input.row(), null);
+                    out.collect(new CRow(data, input.change()));
                 }
                 return;
             }
@@ -108,8 +110,8 @@ public class RedisAllReqRow extends AllReqRow{
 
         if (cacheMap == null){
             if(sideInfo.getJoinType() == JoinType.LEFT){
-                Row data = fillData(row, null);
-                out.collect(data);
+                Row data = fillData(input.row(), null);
+                out.collect(new CRow(data, input.change()));
             }else{
                 return;
             }
@@ -117,8 +119,8 @@ public class RedisAllReqRow extends AllReqRow{
             return;
         }
 
-        Row newRow = fillData(row, cacheMap);
-        out.collect(newRow);
+        Row newRow = fillData(input.row(), cacheMap);
+        out.collect(new CRow(newRow, input.change()));
     }
 
     private String buildKey(Map<String, String> inputParams) {
@@ -150,7 +152,7 @@ public class RedisAllReqRow extends AllReqRow{
                         LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + jedisInfo);
                         Thread.sleep(5 * 1000);
                     } catch (InterruptedException e1) {
-                        e1.printStackTrace();
+                        LOG.error("", e1);
                     }
                 }
             }
@@ -207,7 +209,7 @@ public class RedisAllReqRow extends AllReqRow{
                 try {
                     ((Closeable) jedis).close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Log.error("", e);
                 }
             }
             if (jedisSentinelPool != null) {

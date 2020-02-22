@@ -18,12 +18,18 @@
 
 package com.dtstack.flink.sql.sink.kudu;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
-import org.apache.kudu.client.*;
+import org.apache.kudu.client.AsyncKuduClient;
+import org.apache.kudu.client.AsyncKuduSession;
+import org.apache.kudu.client.KuduClient;
+import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduTable;
+import org.apache.kudu.client.Operation;
+import org.apache.kudu.client.PartialRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,13 +38,24 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Date;
 
-public class KuduOutputFormat extends MetricOutputFormat {
+/**
+ *  @author  gituser
+ *  @modify  xiuzhu
+ */
+public class KuduOutputFormat extends DtRichOutputFormat<Tuple2> {
 
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(KuduOutputFormat.class);
 
-    public enum WriteMode {INSERT, UPDATE, UPSERT}
+    public enum WriteMode {
+        // insert
+        INSERT,
+        // update
+        UPDATE,
+        // update or insert
+        UPSERT
+    }
 
     private String kuduMasters;
 
@@ -105,22 +122,31 @@ public class KuduOutputFormat extends MetricOutputFormat {
         }
         Row row = tupleTrans.getField(1);
         if (row.getArity() != fieldNames.length) {
+            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
+                LOG.error("record insert failed ..{}", row.toString());
+                LOG.error("cause by row.getArity() != fieldNames.length");
+            }
+            outDirtyRecords.inc();
             return;
         }
-
         Operation operation = toOperation(writeMode, row);
         AsyncKuduSession session = client.newSession();
 
         try {
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                LOG.info("Receive data : {}", row);
+            }
+
             session.apply(operation);
             session.close();
             outRecords.inc();
         } catch (KuduException e) {
+            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
+                LOG.error("record insert failed ..{}", row.toString().substring(0, 100));
+                LOG.error("", e);
+            }
             outDirtyRecords.inc();
-            LOG.error("record insert failed ..", row.toString().substring(0, 100));
-            LOG.error("", e);
         }
-
     }
 
     @Override

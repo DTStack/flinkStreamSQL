@@ -23,14 +23,11 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
-import com.dtstack.flink.sql.util.ParseUtils;
-import com.google.common.collect.Lists;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSelect;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Date: 2019/11/12
@@ -46,68 +43,36 @@ public class ImpalaAsyncSideInfo extends RdbAsyncSideInfo {
     }
 
     @Override
-    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
+    public String getAdditionalWhereClause() {
         ImpalaSideTableInfo impalaSideTableInfo = (ImpalaSideTableInfo) sideTableInfo;
-
-        String sideTableName = joinInfo.getSideTableName();
-
-        SqlNode conditionNode = joinInfo.getCondition();
-
-        List<SqlNode> sqlNodeList = Lists.newArrayList();
-
-        List<String> sqlJoinCompareOperate= Lists.newArrayList();
-
-        ParseUtils.parseAnd(conditionNode, sqlNodeList);
-        ParseUtils.parseJoinCompareOperate(conditionNode, sqlJoinCompareOperate);
-
-        for (SqlNode sqlNode : sqlNodeList) {
-            dealOneEqualCon(sqlNode, sideTableName);
-        }
-
-        sqlCondition = "select ${selectField} from ${tableName} where ";
-        for (int i = 0; i < equalFieldList.size(); i++) {
-            String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
-
-            sqlCondition += equalField + " " + sqlJoinCompareOperate.get(i) + " ? ";
-            if (i != equalFieldList.size() - 1) {
-                sqlCondition += " and ";
-            }
-        }
-        sqlCondition = sqlCondition.replace("${tableName}", impalaSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-
-        boolean enablePartiton = impalaSideTableInfo.isEnablePartition();
-        if (enablePartiton){
-            String whereTmp = " ";
-            String[] partitionfields = impalaSideTableInfo.getPartitionfields();
-            String[] partitionFieldTypes = impalaSideTableInfo.getPartitionFieldTypes();
-            Map<String, List> partitionVaules = impalaSideTableInfo.getPartitionValues();
-            int fieldsSize = partitionfields.length;
-            for (int i=0; i < fieldsSize; i++) {
-                String fieldName = partitionfields[i];
-                String fieldType = partitionFieldTypes[i];
-                List values = partitionVaules.get(fieldName);
-                String vauleAppend = getVauleAppend(fieldType, values);
-                whereTmp = whereTmp + String.format("and %s in (%s) ", fieldName, vauleAppend);
-
-            }
-            sqlCondition = sqlCondition + whereTmp;
-        }
-
-        System.out.println("--------side sql query:-------------------");
-        System.out.println(sqlCondition);
+        return impalaSideTableInfo.isEnablePartition() ? buildPartitionCondition(impalaSideTableInfo) : "";
     }
 
-    public String getVauleAppend(String fieldType, List values) {
-        String vauleAppend = "";
-        for(int i=0; i < values.size(); i++) {
-            if (fieldType.toLowerCase().equals("string") || fieldType.toLowerCase().equals("varchar")) {
-                vauleAppend = vauleAppend + "," + "'" + values.get(i) + "'";
-                continue;
-            }
-            vauleAppend = vauleAppend + "," + values.get(i).toString();
+
+    private String buildPartitionCondition(ImpalaSideTableInfo impalaSideTableInfo) {
+        String partitionCondtion = " ";
+        String[] partitionfields = impalaSideTableInfo.getPartitionfields();
+        String[] partitionFieldTypes = impalaSideTableInfo.getPartitionFieldTypes();
+        Map<String, List> partitionVaules = impalaSideTableInfo.getPartitionValues();
+
+        int fieldsSize = partitionfields.length;
+        for (int i = 0; i < fieldsSize; i++) {
+            String fieldName = partitionfields[i];
+            String fieldType = partitionFieldTypes[i];
+            List values = partitionVaules.get(fieldName);
+            String partitionVaule = getPartitionVaule(fieldType, values);
+            partitionCondtion += String.format("AND %s IN (%s) ", fieldName, partitionVaule);
         }
-        vauleAppend = vauleAppend.replaceFirst(",", "");
-        return vauleAppend;
+        return partitionCondtion;
+    }
+
+
+    private String getPartitionVaule(String fieldType, List values) {
+        String partitionVaule = values.stream().map(val -> {
+            return (fieldType.toLowerCase().equals("string") || fieldType.toLowerCase().equals("varchar")) ? "'" + val + "'" : val.toString();
+        }).collect(Collectors.joining(" , ")).toString();
+
+        return partitionVaule;
     }
 
 }

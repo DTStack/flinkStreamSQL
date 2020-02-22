@@ -20,7 +20,6 @@
 
 package com.dtstack.flink.sql.table;
 
-import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.regex.Matcher;
@@ -44,24 +43,20 @@ public abstract class AbsSourceParser extends AbsTableParser {
     private static Pattern waterMarkKeyPattern = Pattern.compile("(?i)^\\s*WATERMARK\\s+FOR\\s+(\\S+)\\s+AS\\s+withOffset\\(\\s*(\\S+)\\s*,\\s*(\\d+)\\s*\\)$");
     private static Pattern notNullKeyPattern = Pattern.compile("(?i)^(\\w+)\\s+(\\w+)\\s+NOT\\s+NULL?$");
 
-    static {
-        keyPatternMap.put(VIRTUAL_KEY, virtualFieldKeyPattern);
-        keyPatternMap.put(WATERMARK_KEY, waterMarkKeyPattern);
-        keyPatternMap.put(NOTNULL_KEY, notNullKeyPattern);
-
-        keyHandlerMap.put(VIRTUAL_KEY, AbsSourceParser::dealVirtualField);
-        keyHandlerMap.put(WATERMARK_KEY, AbsSourceParser::dealWaterMark);
-        keyHandlerMap.put(NOTNULL_KEY, AbsSourceParser::dealNotNull);
+    public AbsSourceParser() {
+        addParserHandler(VIRTUAL_KEY, virtualFieldKeyPattern, this::dealVirtualField);
+        addParserHandler(WATERMARK_KEY, waterMarkKeyPattern, this::dealWaterMark);
+        addParserHandler(NOTNULL_KEY, notNullKeyPattern, this::dealNotNull);
     }
 
-    static void dealVirtualField(Matcher matcher, TableInfo tableInfo){
+    protected void dealVirtualField(Matcher matcher, TableInfo tableInfo){
         SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
         String fieldName = matcher.group(2);
         String expression = matcher.group(1);
         sourceTableInfo.addVirtualField(fieldName, expression);
     }
 
-    static void dealWaterMark(Matcher matcher, TableInfo tableInfo){
+    protected void dealWaterMark(Matcher matcher, TableInfo tableInfo){
         SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
         String eventTimeField = matcher.group(1);
         //FIXME Temporarily resolve the second parameter row_time_field
@@ -70,10 +65,10 @@ public abstract class AbsSourceParser extends AbsTableParser {
         sourceTableInfo.setMaxOutOrderness(offset);
     }
 
-    static void dealNotNull(Matcher matcher, TableInfo tableInfo) {
+    protected void dealNotNull(Matcher matcher, TableInfo tableInfo) {
         String fieldName = matcher.group(1);
         String fieldType = matcher.group(2);
-        Class fieldClass= ClassUtil.stringConvertClass(fieldType);
+        Class fieldClass= dbTypeConvertToJavaType(fieldType);
         TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
         fieldExtraInfo.setNotNull(true);
 
@@ -83,4 +78,5 @@ public abstract class AbsSourceParser extends AbsTableParser {
         tableInfo.addFieldType(fieldType);
         tableInfo.addFieldExtraInfo(fieldExtraInfo);
     }
+
 }

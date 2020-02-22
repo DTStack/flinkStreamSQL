@@ -21,9 +21,10 @@
 package com.dtstack.flink.sql.side;
 
 import com.google.common.collect.HashBasedTable;
+import org.apache.commons.lang3.StringUtils;
 
 /**
- * Reason:
+ * 用于记录转换之后的表和原来表直接字段的关联关系
  * Date: 2018/8/30
  * Company: www.dtstack.com
  * @author xuchao
@@ -36,6 +37,8 @@ public class FieldReplaceInfo {
     private String targetTableName = null;
 
     private String targetTableAlias = null;
+
+    private FieldReplaceInfo preNode = null;
 
     public void setMappingTable(HashBasedTable<String, String, String> mappingTable) {
         this.mappingTable = mappingTable;
@@ -57,7 +60,39 @@ public class FieldReplaceInfo {
         return targetTableAlias;
     }
 
+    public FieldReplaceInfo getPreNode() {
+        return preNode;
+    }
+
+    public void setPreNode(FieldReplaceInfo preNode) {
+        this.preNode = preNode;
+    }
+
     public void setTargetTableAlias(String targetTableAlias) {
         this.targetTableAlias = targetTableAlias;
+    }
+
+    /**
+     * 根据原始的tableName + fieldName 获取转换之后的fieldName
+     * @param tableName
+     * @param fieldName
+     * @return
+     */
+    public String getTargetFieldName(String tableName, String fieldName){
+        String targetFieldName = mappingTable.get(tableName, fieldName);
+        if(StringUtils.isNotBlank(targetFieldName)){
+            return targetFieldName;
+        }
+
+        if(preNode == null){
+            return null;
+        }
+
+        String preNodeTargetFieldName = preNode.getTargetFieldName(tableName, fieldName);
+        if(StringUtils.isBlank(preNodeTargetFieldName)){
+            return null;
+        }
+
+        return mappingTable.get(preNode.getTargetTableAlias(), preNodeTargetFieldName);
     }
 }

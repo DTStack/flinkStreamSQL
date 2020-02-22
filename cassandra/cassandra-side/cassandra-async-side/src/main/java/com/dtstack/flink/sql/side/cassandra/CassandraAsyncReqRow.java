@@ -47,6 +47,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -160,17 +161,17 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-
+    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow inputCopy = new CRow(input.row(), input.change());
         JsonArray inputParams = new JsonArray();
         StringBuffer stringBuffer = new StringBuffer();
         String sqlWhere = " where ";
 
         for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = inputCopy.row().getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(input, resultFuture);
+                dealMissKey(inputCopy, resultFuture);
                 return;
             }
             inputParams.add(equalObj);
@@ -194,13 +195,13 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
             if (val != null) {
 
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<Row> rowList = Lists.newArrayList();
+                    List<CRow> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, jsonArray);
-                        rowList.add(row);
+                        Row row = fillData(inputCopy.row(), jsonArray);
+                        rowList.add(new CRow(row, inputCopy.change()));
                     }
                     resultFuture.complete(rowList);
                 } else {
@@ -238,20 +239,20 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
                 cluster.closeAsync();
                 if (rows.size() > 0) {
                     List<com.datastax.driver.core.Row> cacheContent = Lists.newArrayList();
-                    List<Row> rowList = Lists.newArrayList();
+                    List<CRow> rowList = Lists.newArrayList();
                     for (com.datastax.driver.core.Row line : rows) {
-                        Row row = fillData(input, line);
+                        Row row = fillData(inputCopy.row(), line);
                         if (openCache()) {
                             cacheContent.add(line);
                         }
-                        rowList.add(row);
+                        rowList.add(new CRow(row,inputCopy.change()));
                     }
                     resultFuture.complete(rowList);
                     if (openCache()) {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }
                 } else {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     if (openCache()) {
                         putCache(key, CacheMissVal.getMissKeyObj());
                     }

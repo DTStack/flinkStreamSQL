@@ -53,9 +53,10 @@ public class ConfigConstrant {
     public static final String SQL_BUFFER_TIMEOUT_MILLIS = "sql.buffer.timeout.millis";
 
     public static final String FLINK_TIME_CHARACTERISTIC_KEY = "time.characteristic";
+    // default 200ms
+    public static final String AUTO_WATERMARK_INTERVAL_KEY = "autoWatermarkInterval";
 
     public static final String SQL_TTL_MINTIME = "sql.ttl.min";
-
     public static final String SQL_TTL_MAXTIME = "sql.ttl.max";
 
     public static final String STATE_BACKEND_KEY = "state.backend";

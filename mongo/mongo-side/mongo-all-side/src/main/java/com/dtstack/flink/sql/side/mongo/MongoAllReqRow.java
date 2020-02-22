@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
+import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -38,6 +39,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -127,14 +129,14 @@ public class MongoAllReqRow extends AllReqRow {
     }
 
     @Override
-    public void flatMap(Row value, Collector<Row> out) throws Exception {
+    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = value.getField(conValIndex);
+            Object equalObj = input.row().getField(conValIndex);
             if (equalObj == null) {
                 if(sideInfo.getJoinType() == JoinType.LEFT){
-                    Row data = fillData(value, null);
-                    out.collect(data);
+                    Row data = fillData(input.row(), null);
+                    out.collect(new CRow(data, input.change()));
                 }
                 return;
             }
@@ -146,8 +148,8 @@ public class MongoAllReqRow extends AllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(value, null);
-                out.collect(row);
+                Row row = fillData(input.row(), null);
+                out.collect(new CRow(row, input.change()));
             } else {
                 return;
             }
@@ -156,7 +158,7 @@ public class MongoAllReqRow extends AllReqRow {
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(fillData(value, one));
+            out.collect(new CRow(fillData(input.row(), one), input.change()));
         }
     }
 
@@ -228,7 +230,7 @@ public class MongoAllReqRow extends AllReqRow {
                         LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
                         Thread.sleep(5 * 1000);
                     } catch (InterruptedException e1) {
-                        e1.printStackTrace();
+                        LOG.error("", e1);
                     }
                 }
             }
@@ -239,7 +241,22 @@ public class MongoAllReqRow extends AllReqRow {
             for (String selectField : sideFieldNames) {
                 basicDBObject.append(selectField, 1);
             }
-            FindIterable<Document> findIterable = dbCollection.find().projection(basicDBObject).limit(FETCH_SIZE);
+            BasicDBObject filterObject = new BasicDBObject();
+            try {
+                // 填充谓词
+                sideInfo.getSideTableInfo().getPredicateInfoes().stream().map(info -> {
+                    BasicDBObject filterCondition = MongoUtil.buildFilterObject(info);
+                    if (null != filterCondition) {
+                        filterObject.append(info.getFieldName(), filterCondition);
+                    }
+                    return info;
+                }).count();
+            } catch (Exception e) {
+                LOG.info("add predicate infoes error ", e);
+            }
+
+
+            FindIterable<Document> findIterable = dbCollection.find(filterObject).projection(basicDBObject).limit(FETCH_SIZE);
             MongoCursor<Document> mongoCursor = findIterable.iterator();
             while (mongoCursor.hasNext()) {
                 Document doc = mongoCursor.next();

@@ -21,12 +21,15 @@ package com.dtstack.flink.sql.watermarker;
 
 import com.dtstack.flink.sql.metric.EventDelayGauge;
 import com.dtstack.flink.sql.metric.MetricConstant;
+import com.dtstack.flink.sql.util.MathUtil;
 import org.apache.flink.api.common.functions.IterationRuntimeContext;
 import org.apache.flink.api.common.functions.RichFunction;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
+
+import java.util.TimeZone;
 
 /**
  * Reason:
@@ -45,6 +48,12 @@ public abstract class AbsCustomerWaterMarker<T> extends BoundedOutOfOrdernessTim
     private transient RuntimeContext runtimeContext;
 
     protected transient EventDelayGauge eventDelayGauge;
+
+    protected int pos;
+
+    protected long lastTime = 0;
+
+    protected TimeZone timezone;
 
     public AbsCustomerWaterMarker(Time maxOutOfOrderness) {
         super(maxOutOfOrderness);
@@ -89,5 +98,14 @@ public abstract class AbsCustomerWaterMarker<T> extends BoundedOutOfOrdernessTim
 
     public void setFromSourceTag(String fromSourceTag) {
         this.fromSourceTag = fromSourceTag;
+    }
+
+    protected long getExtractTimestamp(Long extractTime){
+
+        lastTime = extractTime + timezone.getOffset(extractTime);
+
+        eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - extractTime)/1000));
+
+        return lastTime;
     }
 }
