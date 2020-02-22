@@ -45,6 +45,8 @@ CREATE TABLE tableName(
 | enablePartition | 是否支持分区 |否|false|
 | partitionFields | 分区字段名|否，enablePartition='true'时为必填||
 | parallelism | 并行度设置|否|1|
+| batchSize | 批插入数量|否|100|
+| batchWaitInterval |自动触发刷新的间隔|否|10000，单位毫秒|
 
 
 ## 5.样例：

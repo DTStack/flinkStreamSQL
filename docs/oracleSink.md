@@ -37,6 +37,10 @@ CREATE TABLE tableName(
 | tableName | oracle表名称|是||
 | schema | oracle 的schema|否|当前登录用户|
 | parallelism | 并行度设置|否|1|
+| updateMode | 回溯流的处理模式，update或者append，默认根据主键判断,update模式下需要指定主键|否||
+| allReplace | 主键冲突时对数据的处理，全部替换or 非空值替换。|否|false|
+| batchSize | 批插入数量|否|100|
+| batchWaitInterval |自动触发刷新的间隔|否|10000，单位毫秒|
   
 ## 5.样例：
 ```

@@ -35,19 +35,38 @@ CREATE TABLE tableName(
 |userName | mysql连接用户名 |是||
 | password | mysql连接密码|是||
 | tableName | mysql表名称|是||
-| parallelism | 并行度设置|否|1|
+| parallelism | 并行度设置|否||
+| updateMode | 回溯流的处理模式，update或者append，默认根据主键判断,update模式下需要指定主键|否||
+| allReplace | 主键冲突时对数据的处理，全部替换or 非空值替换。|否|false|
+| batchSize | 批插入数量|否|100|
+| batchWaitInterval |自动触发刷新的间隔|否|10000，单位毫秒|
+
+
+
+
+
+
+
+
   
 ## 5.样例：
 ```
-CREATE TABLE MyResult(
-    channel VARCHAR,
-    pv VARCHAR
- )WITH(
-    type ='mysql',
-    url ='jdbc:mysql://172.16.8.104:3306/test?charset=utf8',
-    userName ='dtstack',
-    password ='abc123',
-    tableName ='pv2',
-    parallelism ='1'
- )
+ CREATE TABLE MyResult (
+ 	 id varchar, 
+ 	 name varchar,
+ 	 city varchar,
+ 	 b3 varchar,
+ 	 primary key (id)
+)  WITH (
+ 	type='mysql',
+ 	url='jdbc:mysql://172.16.8.109:3306/mqtest?charset=utf8',
+    userName='dtstack',
+    password='abc123',
+    tableName='sink_table_02',
+    batchSize='1',
+ 	updateMode = 'update',
+ 	updateMode = 'append',
+ 	--allReplace = 'false'
+ 	allReplace = 'true'
+ );
  ```
