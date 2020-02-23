@@ -73,7 +73,7 @@ public class RdbAsyncSideInfo extends SideInfo {
 
         sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(sideSelectFields.split(",")),
                 equalFieldList, sqlJoinCompareOperate, sideTableInfo.getPredicateInfoes());
-        System.out.println("--------side sql query-------\n" + sqlCondition);
+        System.out.println("----------dimension sql query-----------\n" + sqlCondition);
     }
 
 

@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.sink.elasticsearch;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -171,7 +172,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         index = elasticsearchTableInfo.getIndex();
         type = elasticsearchTableInfo.getEsType();
         String id = elasticsearchTableInfo.getId();
-        String[] idField = id.split(",");
+        String[] idField = StringUtils.split(id, ",");
         idIndexList = new ArrayList<>();
 
         for(int i = 0; i < idField.length; ++i) {
