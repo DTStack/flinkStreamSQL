@@ -24,30 +24,26 @@ import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.AllReqRow;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
+import com.dtstack.flink.sql.side.elasticsearch6.util.Es6Util;
 import com.dtstack.flink.sql.side.elasticsearch6.util.SwitchUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.elasticsearch.action.search.*;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,9 +51,10 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 /**
  * @author yinxi
@@ -67,18 +64,15 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch6AllReqRow.class);
 
-    private static final Integer SCROLL_TIME = 1;
     private static final int CONN_RETRY_NUM = 3;
-    private static final String KEY_WORD_TYPE = ".keyword";
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
-    private String scrollId;
-    private Scroll scroll;
     private transient RestHighLevelClient rhlClient;
+    private SearchRequest searchRequest;
+    private BoolQueryBuilder boolQueryBuilder;
 
     public Elasticsearch6AllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new Elasticsearch6AllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
-
 
     @Override
     public void flatMap(CRow value, Collector<CRow> out) throws Exception {
@@ -165,6 +159,8 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
         Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
         cacheRef.set(newCache);
         try {
+            searchRequest = Es6Util.setSearchRequest(sideInfo);
+            boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
             loadData(newCache);
         } catch (Exception e) {
             LOG.error("", e);
@@ -191,7 +187,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
         try {
             for (int i = 0; i < CONN_RETRY_NUM; i++) {
                 try {
-                    rhlClient = getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
+                    rhlClient = Es6Util.getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
                     break;
                 } catch (Exception e) {
                     if (i == CONN_RETRY_NUM - 1) {
@@ -208,81 +204,56 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
                 }
 
             }
-
-
-            // load data from tableA
-            SearchSourceBuilder searchSourceBuilder = getSelectFromStatement(sideInfo.getSideTableInfo().getPredicateInfoes());
-            searchSourceBuilder.size(getFetchSize());
-            SearchRequest searchRequest = new SearchRequest();
-            scroll = new Scroll(TimeValue.timeValueMinutes(SCROLL_TIME));
-            searchRequest.scroll(scroll);
-
-            // determine existence of index
-            String index = tableInfo.getIndex().trim();
-            if (!StringUtils.isEmpty(index)) {
-                // strip leading and trailing spaces from a string
-                String[] indexes = StringUtils.split(index, ",");
-                for (int i = 0; i < indexes.length; i++) {
-                    indexes[i] = indexes[i].trim();
-                }
-
-                searchRequest.indices(indexes);
-
-            }
-
-            // determine existence of type
-            String type = tableInfo.getEsType().trim();
-            if (!StringUtils.isEmpty(type)) {
-                // strip leading and trailing spaces from a string
-                String[] types = StringUtils.split(type, ",");
-                for (int i = 0; i < types.length; i++) {
-                    types[i] = types[i].trim();
-                }
-
-                searchRequest.types(types);
-            }
-
-            // add query condition
-            searchRequest.source(searchSourceBuilder);
-
-            // get query reults
-            searchScroll(searchRequest, tmpCache);
-
+            SearchSourceBuilder searchSourceBuilder = initConfiguration(boolQueryBuilder);
+            searchData(searchSourceBuilder, tmpCache);
 
         } catch (Exception e) {
             LOG.error("", e);
         } finally {
-            if (!StringUtils.isEmpty(scrollId)) {
-                clearScroll();
-            }
 
             if (rhlClient != null) {
                 rhlClient.close();
             }
         }
-
     }
 
-    public void searchScroll(SearchRequest searchRequest, Map<String, List<Map<String, Object>>> tmpCache) throws IOException {
-        SearchResponse searchResponse = rhlClient.search(searchRequest, RequestOptions.DEFAULT);
-        scrollId = searchResponse.getScrollId();
-        SearchHit[] searchHits = searchResponse.getHits().getHits();
-        loadToCache(searchHits, tmpCache);
+    private SearchSourceBuilder initConfiguration(BoolQueryBuilder boolQueryBuilder){
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            if (boolQueryBuilder != null) {
+                searchSourceBuilder.query(boolQueryBuilder);
+            }
 
-        if (!StringUtils.isEmpty(scrollId)) {
-            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-            scrollRequest.scroll(scroll);
-            while (true) {
-                SearchResponse scrollResponse = rhlClient.scroll(scrollRequest, RequestOptions.DEFAULT);
-                if (scrollResponse.getHits().getHits() == null || scrollResponse.getHits().getHits().length < 1) {
-                    break;
+            searchSourceBuilder.size(getFetchSize());
+            searchSourceBuilder.sort("_id", SortOrder.DESC);
+            String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
+            searchSourceBuilder.fetchSource(sideFieldNames, null);
+            return searchSourceBuilder;
+    }
+
+
+    private void searchData(SearchSourceBuilder searchSourceBuilder, Map<String, List<Map<String, Object>>> tmpCache) {
+
+        Object[] searchAfterParameter = null;
+        SearchResponse searchResponse = null;
+        SearchHit[] searchHits = null;
+
+        while (true) {
+            try {
+                if (searchAfterParameter != null) {
+                    searchSourceBuilder.searchAfter(searchAfterParameter);
                 }
+                searchRequest.source(searchSourceBuilder);
+                searchResponse = rhlClient.search(searchRequest, RequestOptions.DEFAULT);
                 searchHits = searchResponse.getHits().getHits();
                 loadToCache(searchHits, tmpCache);
+                
+                if (searchHits.length < getFetchSize()) {
+                    break;
+                }
 
-                scrollId = scrollResponse.getScrollId();
-                scrollRequest.scrollId(scrollId);
-
+                searchAfterParameter = searchHits[searchHits.length - 1].getSortValues();
+            } catch (IOException e) {
+                LOG.error("Query failed!", e);
             }
         }
     }
@@ -305,138 +276,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
         }
     }
 
-    private void clearScroll() throws IOException {
-        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-        clearScrollRequest.addScrollId(scrollId);
-        ClearScrollResponse clearScrollResponse = rhlClient.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
-        boolean succeeded = clearScrollResponse.isSucceeded();
-        LOG.info("Clear scroll response:{}", succeeded);
-    }
-
-    public RestHighLevelClient getClient(String esAddress, Boolean isAuthMesh, String userName, String password) {
-        List<HttpHost> httpHostList = new ArrayList<>();
-        String[] address = StringUtils.split(esAddress, ",");
-        for (String addr : address) {
-            String[] infoArray = StringUtils.split(addr, ":");
-            int port = 9200;
-            String host = infoArray[0].trim();
-            if (infoArray.length > 1) {
-                port = Integer.valueOf(infoArray[1].trim());
-            }
-            httpHostList.add(new HttpHost(host, port, "http"));
-        }
-
-        RestClientBuilder restClientBuilder = RestClient.builder(httpHostList.toArray(new HttpHost[httpHostList.size()]));
-
-        if (isAuthMesh) {
-            // 进行用户和密码认证
-            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName.trim(), password.trim()));
-            restClientBuilder.setHttpClientConfigCallback(httpAsyncClientBuilder ->
-                    httpAsyncClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
-        }
-
-        RestHighLevelClient rhlClient = new RestHighLevelClient(restClientBuilder);
-
-        if (LOG.isInfoEnabled()) {
-            LOG.info("Pinging Elasticsearch cluster via hosts {} ...", httpHostList);
-        }
-
-        try {
-            if (!rhlClient.ping()) {
-                throw new RuntimeException("There are no reachable Elasticsearch nodes!");
-            }
-        } catch (IOException e) {
-            LOG.warn("", e);
-        }
-
-
-        if (LOG.isInfoEnabled()) {
-            LOG.info("Created Elasticsearch RestHighLevelClient connected to {}", httpHostList.toString());
-        }
-
-        return rhlClient;
-
-    }
-
     public int getFetchSize() {
         return 1000;
     }
-
-    private SearchSourceBuilder getSelectFromStatement(List<PredicateInfo> predicateInfoes) {
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-
-        if (predicateInfoes.size() > 0) {
-            BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
-            for (PredicateInfo info : predicateInfoes) {
-                boolQueryBuilder = buildFilterCondition(boolQueryBuilder, info);
-            }
-
-            searchSourceBuilder.query(boolQueryBuilder);
-        }
-
-        return searchSourceBuilder;
-    }
-
-    public BoolQueryBuilder buildFilterCondition(BoolQueryBuilder boolQueryBuilder, PredicateInfo info) {
-        switch (info.getOperatorKind()) {
-            case "IN":
-                return boolQueryBuilder.must(QueryBuilders.termsQuery(textConvertToKeyword(info.getFieldName()), removeSpaces(info.getCondition())));
-            case "NOT_IN":
-                return boolQueryBuilder.mustNot(QueryBuilders.termsQuery(textConvertToKeyword(info.getFieldName()), removeSpaces(info.getCondition())));
-            case "GREATER_THAN_OR_EQUAL":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).gte(info.getCondition()));
-            case "GREATER_THAN":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).gt(info.getCondition()));
-            case "LESS_THAN_OR_EQUAL":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).lte(info.getCondition()));
-            case "LESS_THAN":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).lt(info.getCondition()));
-            case "BETWEEN":
-                return boolQueryBuilder.must(QueryBuilders.rangeQuery(info.getFieldName()).gte(StringUtils.split(info.getCondition().toUpperCase(), "AND")[0].trim())
-                        .lte(StringUtils.split(info.getCondition().toUpperCase(), "AND")[1].trim()));
-            case "IS_NULL":
-                return boolQueryBuilder.mustNot(QueryBuilders.existsQuery(info.getFieldName()));
-            case "IS_NOT_NULL":
-                return boolQueryBuilder.must(QueryBuilders.existsQuery(info.getFieldName()));
-            case "EQUALS":
-                return boolQueryBuilder.must(QueryBuilders.termQuery(textConvertToKeyword(info.getFieldName()), info.getCondition()));
-            case "NOT_EQUALS":
-                return boolQueryBuilder.mustNot(QueryBuilders.termQuery(textConvertToKeyword(info.getFieldName()), info.getCondition()));
-            default:
-                try {
-                    throw new Exception("elasticsearch6 does not support this operation: " + info.getOperatorName());
-                } catch (Exception e) {
-
-                    e.printStackTrace();
-                    LOG.error(e.getMessage());
-                }
-                return boolQueryBuilder;
-        }
-
-    }
-
-    public String[] removeSpaces(String str) {
-        String[] split = StringUtils.split(str, ",");
-        String[] result = new String[split.length];
-        Arrays.asList(split).stream().map(f -> f.trim()).collect(Collectors.toList()).toArray(result);
-        return result;
-    }
-
-    public String textConvertToKeyword(String fieldName) {
-        String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
-        String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
-        int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
-        String fieldType = sideFieldTypes[fieldIndex];
-        switch (fieldType.toLowerCase()) {
-            case "varchar":
-            case "char":
-            case "text":
-                return fieldName + KEY_WORD_TYPE;
-            default:
-                return fieldName;
-        }
-    }
-
-
 }
