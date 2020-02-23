@@ -32,6 +32,7 @@ import org.apache.flink.types.Row;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.elasticsearch6.table.ElasticsearchTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHost;
 import org.slf4j.Logger;
@@ -39,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -105,7 +105,7 @@ public class Elasticsearch6Sink implements RetractStreamTableSink<Row>, IStreamS
     private RichSinkFunction createEsSinkFunction() {
 
 
-        Map<String, String> userConfig = new HashMap<>();
+        Map<String, String> userConfig = Maps.newHashMap();
         userConfig.put("cluster.name", clusterName);
         // This instructs the sink to emit after every element, otherwise they would be buffered
         userConfig.put(org.apache.flink.streaming.connectors.elasticsearch6.ElasticsearchSink.CONFIG_KEY_BULK_FLUSH_MAX_ACTIONS, "" + bulkFlushMaxActions);

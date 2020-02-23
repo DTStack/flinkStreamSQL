@@ -31,6 +31,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -48,17 +49,17 @@ import java.util.Map;
  * @author yinxi
  * @date 2020/1/9 - 15:09
  */
-public class ExtendES6ApiCallBridge implements ElasticsearchApiCallBridge<RestHighLevelClient> {
+public class ExtendEs6ApiCallBridge implements ElasticsearchApiCallBridge<RestHighLevelClient> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ExtendES6ApiCallBridge.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ExtendEs6ApiCallBridge.class);
 
     private final List<HttpHost> HttpAddresses;
 
     protected ElasticsearchTableInfo es6TableInfo;
 
-    public ExtendES6ApiCallBridge(List<HttpHost> HttpAddresses, ElasticsearchTableInfo es6TableInfo) {
-        Preconditions.checkArgument(HttpAddresses != null && !HttpAddresses.isEmpty());
-        this.HttpAddresses = HttpAddresses;
+    public ExtendEs6ApiCallBridge(List<HttpHost> httpAddresses, ElasticsearchTableInfo es6TableInfo) {
+        Preconditions.checkArgument(httpAddresses != null && !httpAddresses.isEmpty());
+        this.HttpAddresses = httpAddresses;
         this.es6TableInfo = es6TableInfo;
     }
 
@@ -81,7 +82,7 @@ public class ExtendES6ApiCallBridge implements ElasticsearchApiCallBridge<RestHi
         }
 
         try{
-            if (!rhlClient.ping()) {
+            if (!rhlClient.ping(RequestOptions.DEFAULT)) {
                 throw new RuntimeException("There are no reachable Elasticsearch nodes!");
             }
         } catch (IOException e){

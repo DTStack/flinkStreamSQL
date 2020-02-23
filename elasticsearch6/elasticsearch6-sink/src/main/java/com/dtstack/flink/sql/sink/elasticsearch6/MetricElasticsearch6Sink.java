@@ -49,7 +49,7 @@ public class MetricElasticsearch6Sink<T> extends ElasticsearchSinkBase<T, RestHi
     public MetricElasticsearch6Sink(Map userConfig, List transportAddresses,
                                     ElasticsearchSinkFunction elasticsearchSinkFunction,
                                     ElasticsearchTableInfo es6TableInfo) {
-        super(new ExtendES6ApiCallBridge(transportAddresses, es6TableInfo), userConfig, elasticsearchSinkFunction, new NoOpFailureHandler());
+        super(new ExtendEs6ApiCallBridge(transportAddresses, es6TableInfo), userConfig, elasticsearchSinkFunction, new NoOpFailureHandler());
         this.customerSinkFunc = (CustomerSinkFunc) elasticsearchSinkFunction;
         this.userConfig = userConfig;
     }
