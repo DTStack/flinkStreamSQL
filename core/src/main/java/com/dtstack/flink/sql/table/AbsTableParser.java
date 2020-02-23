@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -84,6 +85,10 @@ public abstract class AbsTableParser {
         List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
+
+            if(StringUtils.isBlank(fieldRow)){
+                throw new RuntimeException(String.format("table [%s],exists field empty.", tableInfo.getName()));
+            }
 
             String[] filedInfoArr = fieldRow.split("\\s+");
             if(filedInfoArr.length < 2 ){

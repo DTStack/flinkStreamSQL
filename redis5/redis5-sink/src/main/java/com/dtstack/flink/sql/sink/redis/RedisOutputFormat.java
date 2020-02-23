@@ -31,7 +31,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 
-public class RedisOutputFormat extends DtRichOutputFormat {
+public class RedisOutputFormat extends DtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
 
     private String url;
@@ -111,8 +111,8 @@ public class RedisOutputFormat extends DtRichOutputFormat {
         if (timeout == 0){
             timeout = 10000;
         }
-
-        if (database == null) {
+        if (database == null)
+        {
             database = "0";
         }
 
@@ -140,7 +140,6 @@ public class RedisOutputFormat extends DtRichOutputFormat {
         if (!retract) {
             return;
         }
-
         Row row = tupleTrans.getField(1);
         if (row.getArity() != fieldNames.length) {
             return;
@@ -173,14 +172,12 @@ public class RedisOutputFormat extends DtRichOutputFormat {
             if (field != null) {
                 value = field.toString();
             }
-
             jedis.set(key.toString(), value);
         }
 
         if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
         }
-
         outRecords.inc();
     }
 
@@ -189,11 +186,9 @@ public class RedisOutputFormat extends DtRichOutputFormat {
         if (jedisSentinelPool != null) {
             jedisSentinelPool.close();
         }
-
         if (pool != null) {
             pool.close();
         }
-
         if (jedis != null){
             if (jedis instanceof Closeable){
                 ((Closeable) jedis).close();

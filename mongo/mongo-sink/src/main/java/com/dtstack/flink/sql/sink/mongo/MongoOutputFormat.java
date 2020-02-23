@@ -47,7 +47,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class MongoOutputFormat extends DtRichOutputFormat {
+public class MongoOutputFormat extends DtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(MongoOutputFormat.class);
 
     private String address;
@@ -93,7 +93,6 @@ public class MongoOutputFormat extends DtRichOutputFormat {
         for (int i = 0; i < fieldNames.length; i++) {
             doc.append(fieldNames[i], record.getField(i));
         }
-
         if (doc.containsKey(PK)) {
             Document updateValue = new Document();
             Document filter = new Document(PK.toLowerCase(), new ObjectId(doc.getString(PK)));
