@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.side.elasticsearch6.util;
 
@@ -31,6 +30,7 @@ import java.sql.Timestamp;
  * Reason: TODO ADD REASON(可选)
  * Date: 2017年03月10日 下午1:16:37
  * Company: www.dtstack.com
+ *
  * @author sishu.yss
  */
 public class ClassUtil {
@@ -89,10 +89,10 @@ public class ClassUtil {
             case "decimal":
             case "decimalunsigned":
                 return BigDecimal.class;
-
+            default:
+                throw new RuntimeException("不支持 " + str + " 类型");
         }
 
-        throw new RuntimeException("不支持 " + str + " 类型");
     }
 
     public static Object convertType(Object field, String fromType, String toType) {

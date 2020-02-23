@@ -28,6 +28,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -80,7 +81,7 @@ public class Es6Util {
         }
 
         try {
-            if (!rhlClient.ping()) {
+            if (!rhlClient.ping(RequestOptions.DEFAULT)) {
                 throw new RuntimeException("There are no reachable Elasticsearch nodes!");
             }
         } catch (IOException e) {

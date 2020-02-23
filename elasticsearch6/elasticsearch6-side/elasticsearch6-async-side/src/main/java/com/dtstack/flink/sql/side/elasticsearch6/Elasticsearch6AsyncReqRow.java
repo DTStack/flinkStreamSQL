@@ -47,6 +47,7 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.List;
@@ -121,6 +122,35 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
 
         searchRequest.source(searchSourceBuilder);
 
+
+//        List<Object> cacheContent = Lists.newArrayList();
+//        List<CRow> rowList = Lists.newArrayList();
+//        ActionListener<SearchResponse> searchActionListener = new ActionListener<SearchResponse>() {
+//            @Override
+//            public void onResponse(SearchResponse searchResponse) {
+//
+//                SearchHit[] searchHits = searchResponse.getHits().getHits();
+//                while (searchHits != null && searchHits.length > 0){
+//                    loadDataToCache(searchHits, rowList, cacheContent, copyCrow);
+//                    if (searchHits.length < getFetchSize()) {
+//                        break;
+//                    }
+//
+//                    Object[] searchAfterParameter = searchHits[searchHits.length - 1].getSortValues();
+//                    searchSourceBuilder.searchAfter(searchAfterParameter);
+//                    searchRequest.source(searchSourceBuilder);
+//                    SearchResponse newSearchResponse = rhlClient.search(searchRequest, RequestOptions.DEFAULT);
+//                    searchHits = newSearchResponse.getHits().getHits();
+//
+//                }
+//            }
+//
+//            @Override
+//            public void onFailure(Exception e) {
+//
+//            }
+//        };
+
         // 异步查询数据
         rhlClient.searchAsync(searchRequest, RequestOptions.DEFAULT, new ActionListener<SearchResponse>() {
 
@@ -132,35 +162,42 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
                 List<CRow> rowList = Lists.newArrayList();
                 SearchHit[] searchHits = searchResponse.getHits().getHits();
                 if (searchHits.length > 0) {
-                    try{
-                        loadDataToCache(searchHits, rowList, cacheContent, copyCrow);
+                    Elasticsearch6SideTableInfo tableInfo = null;
+                    RestHighLevelClient tmpRhlClient = null;
+                    try {
                         while (true) {
+                            loadDataToCache(searchHits, rowList, cacheContent, copyCrow);
                             if (searchHits.length < getFetchSize()) {
                                 break;
                             }
-                            BoolQueryBuilder newBoolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
-                            newBoolQueryBuilder = setInputParams(inputParams, newBoolQueryBuilder);
+                            if (tableInfo == null && tmpRhlClient == null) {
+                                tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
+                                tmpRhlClient = Es6Util.getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
+                            }
                             Object[] searchAfterParameter = searchHits[searchHits.length - 1].getSortValues();
-                            SearchSourceBuilder newSearchSourceBuilder = initConfiguration();
-                            newSearchSourceBuilder.searchAfter(searchAfterParameter);
-                            newSearchSourceBuilder.query(newBoolQueryBuilder);
-                            searchRequest.source(newSearchSourceBuilder);
-                            searchResponse = rhlClient.search(searchRequest, RequestOptions.DEFAULT);
+                            searchSourceBuilder.searchAfter(searchAfterParameter);
+                            searchRequest.source(searchSourceBuilder);
+                            searchResponse = tmpRhlClient.search(searchRequest, RequestOptions.DEFAULT);
                             searchHits = searchResponse.getHits().getHits();
-                            loadDataToCache(searchHits, rowList, cacheContent, copyCrow);
                         }
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
                         dealFillDataError(resultFuture, e, copyCrow);
+                    } finally {
+                        if (tmpRhlClient != null) {
+                            try {
+                                tmpRhlClient.close();
+                            } catch (IOException e) {
+                                LOG.warn("Failed to shut down tmpRhlClient.", e);
+                            }
+                        }
                     }
                 } else {
                     dealMissKey(copyCrow, resultFuture);
                     dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
             }
-
-
 
             // 响应失败处理
             @Override

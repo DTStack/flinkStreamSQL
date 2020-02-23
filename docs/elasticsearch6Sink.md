@@ -27,11 +27,11 @@ CREATE TABLE tableName(
 ## 4.参数：
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
-|type|表明 输出表类型[mysq&#124;hbase&#124;elasticsearch]|是||
+|type|表明 输出表类型[elasticsearch6]|是||
 |address | 连接ES Transport地址(tcp地址)|是||
 |cluster | ES 集群名称 |是||
 |index | 选择的ES上的index名称|是||
-|estype | 选择ES上的type名称|是||
+|esType | 选择ES上的type名称|是||
 |id | 生成id的规则(当前是根据指定的字段pos获取字段信息,拼接生成id;|是||
 | |若id为空字符串或索引都超出范围，则随机生成id值)|||
 |authMesh | 是否进行用户名密码认证 | 否 | false|

@@ -40,7 +40,7 @@
 
   |参数名称|含义|是否必填|默认值|
   |----|---|---|----|
-  type|表明 输出表类型[mysq&#124;hbase&#124;elasticsearch6]|是||
+  type|表明 输出表类型[elasticsearch6]|是||
   |address | 连接ES Transport地址(tcp地址)|是||
   |cluster | ES 集群名称 |是||
   |index | 选择的ES上的index名称|否||

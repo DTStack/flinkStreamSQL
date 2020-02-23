@@ -46,6 +46,8 @@ public class Elasticsearch6SideParser extends AbsSideTableParser {
 
     private static final String KEY_ES6_PASSWORD = "password";
 
+    private static final String KEY_TRUE = "true";
+
 
     @Override
     protected boolean fieldNameNeedsUpperCase() {
@@ -64,7 +66,7 @@ public class Elasticsearch6SideParser extends AbsSideTableParser {
         elasticsearch6SideTableInfo.setEsType((String) props.get(KEY_ES6_TYPE.toLowerCase()));
 
         String authMeshStr = (String) props.get(KEY_ES6_AUTHMESH.toLowerCase());
-        if (authMeshStr != null && StringUtils.equalsIgnoreCase("true", authMeshStr)) {
+        if (authMeshStr != null && StringUtils.equalsIgnoreCase(KEY_TRUE, authMeshStr)) {
             elasticsearch6SideTableInfo.setAuthMesh(MathUtil.getBoolean(authMeshStr));
             elasticsearch6SideTableInfo.setUserName(MathUtil.getString(props.get(KEY_ES6_USERNAME.toLowerCase())));
             elasticsearch6SideTableInfo.setPassword(MathUtil.getString(props.get(KEY_ES6_PASSWORD.toLowerCase())));
