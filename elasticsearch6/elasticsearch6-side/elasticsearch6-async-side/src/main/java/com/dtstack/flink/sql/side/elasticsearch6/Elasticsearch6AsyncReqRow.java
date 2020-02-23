@@ -71,7 +71,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
     }
 
     @Override
-    public void open(Configuration parameters) throws Exception{
+    public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         Elasticsearch6SideTableInfo tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
         rhlClient = Es6Util.getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
@@ -117,39 +117,8 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
         BoolQueryBuilder boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
         boolQueryBuilder = setInputParams(inputParams, boolQueryBuilder);
         SearchSourceBuilder searchSourceBuilder = initConfiguration();
-
         searchSourceBuilder.query(boolQueryBuilder);
-
         searchRequest.source(searchSourceBuilder);
-
-
-//        List<Object> cacheContent = Lists.newArrayList();
-//        List<CRow> rowList = Lists.newArrayList();
-//        ActionListener<SearchResponse> searchActionListener = new ActionListener<SearchResponse>() {
-//            @Override
-//            public void onResponse(SearchResponse searchResponse) {
-//
-//                SearchHit[] searchHits = searchResponse.getHits().getHits();
-//                while (searchHits != null && searchHits.length > 0){
-//                    loadDataToCache(searchHits, rowList, cacheContent, copyCrow);
-//                    if (searchHits.length < getFetchSize()) {
-//                        break;
-//                    }
-//
-//                    Object[] searchAfterParameter = searchHits[searchHits.length - 1].getSortValues();
-//                    searchSourceBuilder.searchAfter(searchAfterParameter);
-//                    searchRequest.source(searchSourceBuilder);
-//                    SearchResponse newSearchResponse = rhlClient.search(searchRequest, RequestOptions.DEFAULT);
-//                    searchHits = newSearchResponse.getHits().getHits();
-//
-//                }
-//            }
-//
-//            @Override
-//            public void onFailure(Exception e) {
-//
-//            }
-//        };
 
         // 异步查询数据
         rhlClient.searchAsync(searchRequest, RequestOptions.DEFAULT, new ActionListener<SearchResponse>() {
@@ -209,7 +178,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
 
     }
 
-    private void loadDataToCache(SearchHit[] searchHits, List<CRow> rowList, List<Object> cacheContent, CRow copyCrow){
+    private void loadDataToCache(SearchHit[] searchHits, List<CRow> rowList, List<Object> cacheContent, CRow copyCrow) {
         List<Object> results = Lists.newArrayList();
         for (SearchHit searchHit : searchHits) {
             Map<String, Object> object = searchHit.getSourceAsMap();
@@ -289,8 +258,8 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
     }
 
 
-    private BoolQueryBuilder setInputParams(List<Object> inputParams, BoolQueryBuilder boolQueryBuilder){
-        if(boolQueryBuilder == null){
+    private BoolQueryBuilder setInputParams(List<Object> inputParams, BoolQueryBuilder boolQueryBuilder) {
+        if (boolQueryBuilder == null) {
             boolQueryBuilder = new BoolQueryBuilder();
         }
 
