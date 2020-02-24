@@ -96,7 +96,7 @@ public class ImpalaSideParser extends RdbSideParser {
             String partitionfieldsStr = MathUtil.getString(props.get(ImpalaSideTableInfo.PARTITIONFIELDS_KEY.toLowerCase()));
             impalaSideTableInfo.setPartitionfields(StringUtils.split(partitionfieldsStr, ","));
             String partitionfieldTypesStr = MathUtil.getString(props.get(ImpalaSideTableInfo.PARTITIONFIELDTYPES_KEY.toLowerCase()));
-            impalaSideTableInfo.setPartitionFieldTypes(StringUtils.split(partitionfieldsStr, ","));
+            impalaSideTableInfo.setPartitionFieldTypes(StringUtils.split(partitionfieldTypesStr, ","));
             String partitionfieldValuesStr = MathUtil.getString(props.get(ImpalaSideTableInfo.PARTITIONVALUES_KEY.toLowerCase()));
             impalaSideTableInfo.setPartitionValues(setPartitionFieldValues(partitionfieldValuesStr));
         }
