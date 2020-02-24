@@ -99,7 +99,7 @@ public class ParamsInfo {
     }
 
     public String convertJarUrlListToString(List<URL> jarUrlList) {
-        return jarUrlList.stream().map(URL::toString).reduce((pre, last) -> pre + last).get();
+        return jarUrlList.stream().map(URL::toString).reduce((pre, last) -> pre + last).orElse("");
     }
 
     public static ParamsInfo.Builder builder() {

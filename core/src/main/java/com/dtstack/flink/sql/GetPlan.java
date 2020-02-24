@@ -18,10 +18,9 @@
 
 package com.dtstack.flink.sql;
 
-import com.dtstack.flink.sql.exec.BuildProcess;
+import com.dtstack.flink.sql.exec.ApiResult;
+import com.dtstack.flink.sql.exec.ExecuteProcessHelper;
 import com.dtstack.flink.sql.exec.ParamsInfo;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
@@ -32,28 +31,15 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
  * @author maqi
  */
 public class GetPlan {
-    public static final String STATUS_KEY = "status";
-    public static final String MSG_KEY = "msg";
-    public static final Integer FAIL = 0;
-    public static final Integer SUCCESS = 1;
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static String getExecutionPlan(String[] args) {
         try {
-            ParamsInfo paramsInfo = BuildProcess.parseParams(args);
-            StreamExecutionEnvironment env = BuildProcess.getStreamExecution(paramsInfo);
+            ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
+            StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
             String executionPlan = env.getExecutionPlan();
-            return getJsonStr(SUCCESS, executionPlan);
+            return ApiResult.createSuccessResultJsonStr(executionPlan);
         } catch (Exception e) {
-            return getJsonStr(FAIL, ExceptionUtils.getFullStackTrace(e));
+            return ApiResult.createErrorResultJsonStr(ExceptionUtils.getFullStackTrace(e));
         }
-    }
-
-    public static String getJsonStr(int status, String msg) {
-        ObjectNode objectNode = OBJECT_MAPPER.createObjectNode();
-        objectNode.put(STATUS_KEY, status);
-        objectNode.put(MSG_KEY, msg);
-        return objectNode.toString();
     }
 }

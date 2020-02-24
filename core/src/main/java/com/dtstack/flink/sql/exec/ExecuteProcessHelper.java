@@ -76,15 +76,15 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- *  提取任务执行时共同的流程方法
+ *  任务执行时的流程方法
  * Date: 2020/2/17
  * Company: www.dtstack.com
  * @author maqi
  */
-public class BuildProcess {
+public class ExecuteProcessHelper {
 
     private static final String CLASS_FILE_NAME_FMT = "class_path_%d";
-    private static final Logger LOG = LoggerFactory.getLogger(BuildProcess.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ExecuteProcessHelper.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 
@@ -125,7 +125,7 @@ public class BuildProcess {
     }
 
     public static StreamExecutionEnvironment getStreamExecution(ParamsInfo paramsInfo) throws Exception {
-        StreamExecutionEnvironment env = BuildProcess.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
+        StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
         StreamQueryConfig streamQueryConfig = StreamEnvConfigManager.getStreamQueryConfig(tableEnv, paramsInfo.getConfProp());
 
@@ -136,14 +136,14 @@ public class BuildProcess {
         Map<String, Table> registerTableCache = Maps.newHashMap();
 
         //register udf
-        BuildProcess.registerUserDefinedFunction(sqlTree, paramsInfo.getJarUrlList(), tableEnv);
+        ExecuteProcessHelper.registerUserDefinedFunction(sqlTree, paramsInfo.getJarUrlList(), tableEnv);
         //register table schema
-        Set<URL> classPathSets = BuildProcess.registerTable(sqlTree, env, tableEnv, paramsInfo.getLocalSqlPluginPath(),
+        Set<URL> classPathSets = ExecuteProcessHelper.registerTable(sqlTree, env, tableEnv, paramsInfo.getLocalSqlPluginPath(),
                 paramsInfo.getRemoteSqlPluginPath(), paramsInfo.getPluginLoadMode(), sideTableMap, registerTableCache);
         // cache classPathSets
-        BuildProcess.registerPluginUrlToCachedFile(env, classPathSets);
+        ExecuteProcessHelper.registerPluginUrlToCachedFile(env, classPathSets);
 
-        BuildProcess.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), tableEnv, sqlTree, sideTableMap, registerTableCache, streamQueryConfig);
+        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), tableEnv, sqlTree, sideTableMap, registerTableCache, streamQueryConfig);
 
         if (env instanceof MyLocalStreamEnvironment) {
             ((MyLocalStreamEnvironment) env).setClasspaths(ClassLoaderManager.getClassPath());

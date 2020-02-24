@@ -20,9 +20,11 @@
 package com.dtstack.flink.sql;
 
 
-import com.dtstack.flink.sql.exec.BuildProcess;
+import com.dtstack.flink.sql.exec.ExecuteProcessHelper;
 import com.dtstack.flink.sql.exec.ParamsInfo;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -32,10 +34,12 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
  */
 
 public class Main {
+    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws Exception {
-        ParamsInfo paramsInfo = BuildProcess.parseParams(args);
-        StreamExecutionEnvironment env = BuildProcess.getStreamExecution(paramsInfo);
+        ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
+        StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
         env.execute(paramsInfo.getName());
+        LOG.info("program {} execution success", paramsInfo.getName());
     }
 }

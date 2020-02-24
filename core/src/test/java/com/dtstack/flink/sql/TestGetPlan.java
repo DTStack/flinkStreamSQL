@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql;
 
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.exec.ApiResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Assert;
@@ -69,7 +70,7 @@ public class TestGetPlan {
         String jsonStr = (String) getExecutionPlan.invoke(aClass.newInstance(), (Object)params);
 
         ObjectNode jsonNodes = OBJECT_MAPPER.readValue(jsonStr, ObjectNode.class);
-        Assert.assertEquals(jsonNodes.get(GetPlan.STATUS_KEY).asLong(), GetPlan.SUCCESS.longValue());
+        Assert.assertEquals(jsonNodes.get("code").asLong(), ApiResult.SUCCESS.longValue());
     }
 
 
