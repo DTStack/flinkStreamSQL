@@ -227,9 +227,6 @@ public class KuduAllReqRow extends AllReqRow {
                 if (null != workerCount) {
                     kuduClientBuilder.workerCount(workerCount);
                 }
-                if (null != defaultSocketReadTimeoutMs) {
-                    kuduClientBuilder.defaultSocketReadTimeoutMs(defaultSocketReadTimeoutMs);
-                }
 
                 if (null != defaultOperationTimeoutMs) {
                     kuduClientBuilder.defaultOperationTimeoutMs(defaultOperationTimeoutMs);

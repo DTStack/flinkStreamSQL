@@ -86,6 +86,7 @@ public class KuduSinkParser extends AbsTableParser {
                 return BigDecimal.class;
             case "binary":
                 return byte[].class;
+            default:
         }
 
         throw new RuntimeException("不支持 " + fieldType + " 类型");

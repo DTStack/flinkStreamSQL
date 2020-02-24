@@ -82,9 +82,6 @@ public class KuduAsyncReqRow extends AsyncReqRow {
             if (null != workerCount) {
                 asyncKuduClientBuilder.workerCount(workerCount);
             }
-            if (null != defaultSocketReadTimeoutMs) {
-                asyncKuduClientBuilder.defaultSocketReadTimeoutMs(defaultSocketReadTimeoutMs);
-            }
 
             if (null != defaultOperationTimeoutMs) {
                 asyncKuduClientBuilder.defaultOperationTimeoutMs(defaultOperationTimeoutMs);
