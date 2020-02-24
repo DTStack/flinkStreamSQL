@@ -48,7 +48,7 @@ CREATE TABLE MyResult(
     aa INT,
     bb INT
  )WITH(
-    type ='elasticsearch',
+    type ='elasticsearch6',
     address ='172.16.10.47:9500',
     cluster='es_47_menghan',
     esType ='type1',

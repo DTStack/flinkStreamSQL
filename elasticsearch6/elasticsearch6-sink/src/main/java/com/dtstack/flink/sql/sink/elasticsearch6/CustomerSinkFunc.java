@@ -68,19 +68,19 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     @Override
     public void process(Tuple2 tuple2, RuntimeContext ctx, RequestIndexer indexer) {
-        try{
+        try {
             Tuple2<Boolean, Row> tupleTrans = tuple2;
             Boolean retract = tupleTrans.getField(0);
             Row element = tupleTrans.getField(1);
-            if(!retract){
+            if (!retract) {
                 return;
             }
 
-
             indexer.add(createIndexRequest(element));
             outRecords.inc();
-        }catch (Throwable e){
-            logger.error("", e);
+        } catch (Throwable e) {
+            logger.error("Failed to store source data {}. ", tuple2.getField(1));
+            logger.error("Failed to create index request exception. ", e);
         }
     }
 
