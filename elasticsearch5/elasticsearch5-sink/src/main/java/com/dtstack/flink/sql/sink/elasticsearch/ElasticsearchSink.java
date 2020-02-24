@@ -20,10 +20,6 @@
 
 package com.dtstack.flink.sql.sink.elasticsearch;
 
-import com.dtstack.flink.sql.sink.IStreamSinkGener;
-import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -34,15 +30,17 @@ import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
+
+import com.dtstack.flink.sql.sink.IStreamSinkGener;
+import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
+import com.dtstack.flink.sql.table.TargetTableInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * table output elastic5plugin
@@ -116,7 +114,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         List<InetSocketAddress> transports = new ArrayList<>();
 
         for(String address : esAddressList){
-            String[] infoArray = address.split(":");
+            String[] infoArray = StringUtils.split(address, ":");
             int port = 9300;
             String host = infoArray[0];
             if(infoArray.length > 1){
@@ -167,7 +165,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         esTableInfo = elasticsearchTableInfo;
         clusterName = elasticsearchTableInfo.getClusterName();
         String address = elasticsearchTableInfo.getAddress();
-        String[] addr = address.split(",");
+        String[] addr = StringUtils.split(address, ",");
         esAddressList = Arrays.asList(addr);
         index = elasticsearchTableInfo.getIndex();
         type = elasticsearchTableInfo.getEsType();

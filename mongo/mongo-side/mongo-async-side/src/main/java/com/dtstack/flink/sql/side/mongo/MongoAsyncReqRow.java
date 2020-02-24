@@ -19,6 +19,13 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.AsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
@@ -27,36 +34,22 @@ import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
+import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 import com.mongodb.async.SingleResultCallback;
-import com.mongodb.async.client.MongoClient;
-import com.mongodb.async.client.MongoClientSettings;
-import com.mongodb.async.client.MongoClients;
-import com.mongodb.async.client.MongoCollection;
-import com.mongodb.async.client.MongoDatabase;
+import com.mongodb.async.client.*;
 import com.mongodb.connection.ClusterSettings;
 import com.mongodb.connection.ConnectionPoolSettings;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -91,13 +84,13 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     public void connMongoDB() throws Exception {
         MongoCredential mongoCredential;
-        String[] servers = MongoSideTableInfo.getAddress().split(",");
+        String[] servers = StringUtils.split(MongoSideTableInfo.getAddress(), ",");
         String host;
         Integer port;
         String[] hostAndPort;
         List<ServerAddress> lists = new ArrayList<>();
         for (String server : servers) {
-            hostAndPort = server.split(":");
+            hostAndPort = StringUtils.split(server, ":");
             host = hostAndPort[0];
             port = Integer.parseInt(hostAndPort[1]);
             lists.add(new ServerAddress(host, port));

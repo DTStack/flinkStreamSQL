@@ -18,9 +18,11 @@
 
 package com.dtstack.flink.sql.sink.elasticsearch;
 
-import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
+
+import com.dtstack.flink.sql.util.DtStringUtil;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +42,7 @@ public class EsUtil {
         int i = 0;
         for(; i < fields.size(); ++i) {
             String field = fields.get(i);
-            String[] parts = field.split("\\.");
+            String[] parts = StringUtils.split(field, "\\.");
             Map<String, Object> currMap = jsonMap;
             for(int j = 0; j < parts.length - 1; ++j) {
                 String key = parts[j];

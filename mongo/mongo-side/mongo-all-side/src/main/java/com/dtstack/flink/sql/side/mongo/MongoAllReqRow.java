@@ -18,17 +18,21 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+import org.apache.flink.util.Collector;
+
 import com.dtstack.flink.sql.side.AllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
-import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoCredential;
-import com.mongodb.ServerAddress;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.mongodb.*;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -36,13 +40,6 @@ import com.mongodb.client.MongoDatabase;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,13 +181,13 @@ public class MongoAllReqRow extends AllReqRow {
         MongoCollection dbCollection;
         try {
             MongoCredential credential;
-            String[] servers = address.split(",");
+            String[] servers = StringUtils.split(address, ",");
             String host;
             Integer port;
             String[] hostAndPort;
             List<ServerAddress> lists = new ArrayList<>();
             for (String server : servers) {
-                hostAndPort = server.split(":");
+                hostAndPort = StringUtils.split(server, ":");
                 host = hostAndPort[0];
                 port = Integer.parseInt(hostAndPort[1]);
                 lists.add(new ServerAddress(host, port));
@@ -236,7 +233,7 @@ public class MongoAllReqRow extends AllReqRow {
             }
 
             //load data from table
-            String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
+            String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
             BasicDBObject basicDBObject = new BasicDBObject();
             for (String selectField : sideFieldNames) {
                 basicDBObject.append(selectField, 1);

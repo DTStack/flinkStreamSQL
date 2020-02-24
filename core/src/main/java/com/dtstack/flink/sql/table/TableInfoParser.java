@@ -29,6 +29,7 @@ import com.dtstack.flink.sql.source.StreamSourceFactory;
 import com.dtstack.flink.sql.util.MathUtil;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -109,11 +110,11 @@ public class TableInfoParser {
      * @param tableField
      * @return
      */
-    private static boolean checkIsSideTable(String tableField){
-        String[] fieldInfos = tableField.split(",");
-        for(String field : fieldInfos){
+    private static boolean checkIsSideTable(String tableField) {
+        String[] fieldInfos = StringUtils.split(tableField, ",");
+        for (String field : fieldInfos) {
             Matcher matcher = SIDE_PATTERN.matcher(field.trim());
-            if(matcher.find()){
+            if (matcher.find()) {
                 return true;
             }
         }
