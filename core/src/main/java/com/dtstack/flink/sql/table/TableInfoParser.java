@@ -110,11 +110,11 @@ public class TableInfoParser {
      * @param tableField
      * @return
      */
-    private static boolean checkIsSideTable(String tableField) {
+    private static boolean checkIsSideTable(String tableField){
         String[] fieldInfos = StringUtils.split(tableField, ",");
-        for (String field : fieldInfos) {
+        for(String field : fieldInfos){
             Matcher matcher = SIDE_PATTERN.matcher(field.trim());
-            if (matcher.find()) {
+            if(matcher.find()){
                 return true;
             }
         }

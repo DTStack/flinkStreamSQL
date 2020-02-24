@@ -20,7 +20,11 @@ package com.dtstack.flink.sql.side.rdb.all;
 
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
+import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.google.common.collect.Lists;

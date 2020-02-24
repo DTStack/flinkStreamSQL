@@ -36,12 +36,23 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.*;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -178,7 +189,7 @@ public class RedisAllReqRow extends AllReqRow{
                     kv.put(primaryKv[1], primaryKv[2]);
                     String pattern = key + "*";
                     Set<String> realKeys = ((Jedis) jedis).keys(pattern);
-                    for (String realKey : realKeys) {
+                    for (String realKey : realKeys){
                         kv.put(StringUtils.split(realKey, ":")[3], jedis.get(realKey));
                     }
                     tmpCache.put(key, kv);
