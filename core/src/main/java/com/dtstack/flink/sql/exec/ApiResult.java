@@ -15,23 +15,25 @@ import java.util.UUID;
 public class ApiResult {
 
     private static final Logger LOG = LoggerFactory.getLogger(ApiResult.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static final Integer FAIL = 0;
     public static final Integer SUCCESS = 1;
 
     private int code;
+    private long space;
     private Object data;
     private String errorMsg;
 
     public ApiResult() {
     }
 
-    public static String createSuccessResultJsonStr(String message) {
+    public static String createSuccessResultJsonStr(String message,long space) {
         ApiResult apiResult = createSuccessResult(SUCCESS, message);
+        apiResult.setSpace(space);
         String result;
         try {
-            result = objectMapper.writeValueAsString(apiResult);
+            result = OBJECT_MAPPER.writeValueAsString(apiResult);
         } catch (Exception e) {
             LOG.error("", e);
             result = "code:" + SUCCESS + ",message:" + message;
@@ -50,7 +52,7 @@ public class ApiResult {
         ApiResult apiResult = createErrorResult(message, FAIL);
         String result;
         try {
-            result = objectMapper.writeValueAsString(apiResult);
+            result = OBJECT_MAPPER.writeValueAsString(apiResult);
         } catch (Exception e) {
             LOG.error("", e);
             result = "code:" + FAIL + ",message:" + message;
@@ -87,5 +89,13 @@ public class ApiResult {
 
     public void setErrorMsg(String errorMsg) {
         this.errorMsg = errorMsg;
+    }
+
+    public long getSpace() {
+        return space;
+    }
+
+    public void setSpace(long space) {
+        this.space = space;
     }
 }

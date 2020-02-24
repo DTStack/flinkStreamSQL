@@ -34,10 +34,12 @@ public class GetPlan {
 
     public static String getExecutionPlan(String[] args) {
         try {
+            long start = System.currentTimeMillis();
             ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
             StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
             String executionPlan = env.getExecutionPlan();
-            return ApiResult.createSuccessResultJsonStr(executionPlan);
+            long end = System.currentTimeMillis();
+            return ApiResult.createSuccessResultJsonStr(executionPlan, end - start);
         } catch (Exception e) {
             return ApiResult.createErrorResultJsonStr(ExceptionUtils.getFullStackTrace(e));
         }

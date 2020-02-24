@@ -22,6 +22,7 @@ import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.config.CalciteConfig;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.enums.EPluginLoadMode;
 import com.dtstack.flink.sql.environment.MyLocalStreamEnvironment;
 import com.dtstack.flink.sql.environment.StreamEnvConfigManager;
 import com.dtstack.flink.sql.function.FunctionManager;
@@ -43,6 +44,7 @@ import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -50,6 +52,7 @@ import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -106,6 +109,8 @@ public class ExecuteProcessHelper {
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
 
+        Preconditions.checkArgument(checkRemoteSqlPluginPath(remoteSqlPluginPath, deployMode, pluginLoadMode),
+                "Non-local mode or shipfile deployment mode, remoteSqlPluginPath is required");
         String confProp = URLDecoder.decode(options.getConfProp(), Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
@@ -123,6 +128,22 @@ public class ExecuteProcessHelper {
                 .build();
 
     }
+
+    /**
+     *   非local模式或者shipfile部署模式，remoteSqlPluginPath必填
+     * @param remoteSqlPluginPath
+     * @param deployMode
+     * @param pluginLoadMode
+     * @return
+     */
+    public static boolean checkRemoteSqlPluginPath(String remoteSqlPluginPath, String deployMode, String pluginLoadMode) {
+        if (StringUtils.isEmpty(remoteSqlPluginPath)) {
+            return StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.SHIPFILE.name())
+                    || StringUtils.equalsIgnoreCase(deployMode, ClusterMode.local.name());
+        }
+        return true;
+    }
+
 
     public static StreamExecutionEnvironment getStreamExecution(ParamsInfo paramsInfo) throws Exception {
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
