@@ -53,7 +53,9 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private List<String> fieldTypes;
 
-    public transient Counter outRecords;
+    private transient Counter outRecords;
+
+    private transient Counter outDirtyRecords;
 
     /** 默认分隔符为'_' */
     private char sp = '_';
@@ -79,6 +81,7 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
             indexer.add(createIndexRequest(element));
             outRecords.inc();
         } catch (Throwable e) {
+            outDirtyRecords.inc();
             logger.error("Failed to store source data {}. ", tuple2.getField(1));
             logger.error("Failed to create index request exception. ", e);
         }
@@ -86,6 +89,10 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     public void setOutRecords(Counter outRecords) {
         this.outRecords = outRecords;
+    }
+
+    public void setOutDirtyRecords(Counter outDirtyRecords) {
+        this.outDirtyRecords = outDirtyRecords;
     }
 
     private IndexRequest createIndexRequest(Row element) {
