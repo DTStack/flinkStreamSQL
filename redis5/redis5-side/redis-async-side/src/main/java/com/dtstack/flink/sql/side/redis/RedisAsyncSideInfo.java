@@ -28,7 +28,9 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 
 import java.util.List;
-
+/**
+ * @author yanxi
+ */
 public class RedisAsyncSideInfo extends SideInfo {
     private static final long serialVersionUID = -4851348392924455039L;
 

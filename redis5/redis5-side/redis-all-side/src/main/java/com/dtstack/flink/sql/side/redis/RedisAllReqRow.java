@@ -39,7 +39,9 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
+/**
+ * @author yanxi
+ */
 public class RedisAllReqRow extends AllReqRow{
 
     private static final long serialVersionUID = 7578879189085344807L;
@@ -259,7 +261,8 @@ public class RedisAllReqRow extends AllReqRow{
                 break;
             //集群
             case 3:
-                jedis = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
+                jedis = new JedisCluster(addresses, timeout, timeout, 1, poolConfig);
+            default:
         }
 
         return jedis;

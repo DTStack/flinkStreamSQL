@@ -24,6 +24,9 @@ import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 
+/**
+ * @author yanxi
+ */
 public class RedisSideParser extends AbsSideTableParser {
 
     @Override

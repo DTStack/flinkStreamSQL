@@ -28,7 +28,7 @@ import com.google.common.base.Preconditions;
  * @author maqi
  */
 public class ServersocketSourceTableInfo extends SourceTableInfo {
-	//version
+
 	private static final String CURR_TYPE = "serversocket";
 
 	public static final String HOSTNAME_KEY = "host";

@@ -33,7 +33,9 @@ import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
 import java.util.List;
-
+/**
+ * @author yanxi
+ */
 public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<RedisSink> {
 
     protected String[] fieldNames;

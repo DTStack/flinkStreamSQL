@@ -43,7 +43,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-
+/**
+ * @author yanxi
+ */
 public class RedisAsyncReqRow extends AsyncReqRow {
 
     private static final long serialVersionUID = -2079908694523987738L;
@@ -108,6 +110,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                 clusterClient = RedisClusterClient.create(clusterUri.toString());
                 clusterConnection = clusterClient.connect();
                 async = clusterConnection.async();
+            default:
         }
     }
 

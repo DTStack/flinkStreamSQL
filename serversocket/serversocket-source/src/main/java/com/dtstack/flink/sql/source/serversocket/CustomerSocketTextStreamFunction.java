@@ -94,7 +94,7 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 						while (buffer.length() >= delimiter.length() && (delimPos = buffer.indexOf(delimiter)) != -1) {
 							String record = buffer.substring(0, delimPos);
 							// truncate trailing carriage return
-							if (delimiter.equals("\n") && record.endsWith("\r")) {
+							if ("\n".equals(delimiter) && "\r".endsWith(record)) {
 								record = record.substring(0, record.length() - 1);
 							}
 							try {
