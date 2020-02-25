@@ -68,7 +68,7 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, pgClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, pgClientConfig));
     }
 
 }

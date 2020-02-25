@@ -66,7 +66,7 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, impalaClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, impalaClientConfig));
     }
 
     public JsonObject getClientConfig() {

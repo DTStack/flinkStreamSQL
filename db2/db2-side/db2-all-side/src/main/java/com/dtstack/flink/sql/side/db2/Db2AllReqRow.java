@@ -21,9 +21,7 @@ package com.dtstack.flink.sql.side.db2;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
-import com.dtstack.flink.sql.util.DtStringUtil;
-import com.google.common.collect.Maps;
+import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Date: 2019/11/20
@@ -40,7 +37,7 @@ import java.util.Map;
  * @author xiuzhu
  */
 
-public class Db2AllReqRow extends RdbAllReqRow {
+public class Db2AllReqRow extends AbstractRdbAllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(Db2AllReqRow.class);
 

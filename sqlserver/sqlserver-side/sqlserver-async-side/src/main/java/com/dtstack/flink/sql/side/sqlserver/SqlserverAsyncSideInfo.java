@@ -23,10 +23,15 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+
 import java.util.List;
 
 
-
+/**
+ * Date: 2019/11/26
+ * Company: www.dtstack.com
+ * @author maqi
+ */
 public class SqlserverAsyncSideInfo extends RdbAsyncSideInfo {
 
     public SqlserverAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {

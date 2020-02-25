@@ -47,16 +47,16 @@ public abstract class AbstractJDBCOutputFormat<T> extends DtRichOutputFormat<T> 
 
 	protected final String username;
 	protected final String password;
-	private final String drivername;
+	private final String driverName;
 	protected final String dbURL;
 
 	protected transient Connection connection;
 
-	public AbstractJDBCOutputFormat(String username, String password, String drivername, String dbURL) {
+	public AbstractJDBCOutputFormat(String username, String password, String driverName, String dbUrl) {
 		this.username = username;
 		this.password = password;
-		this.drivername = drivername;
-		this.dbURL = dbURL;
+		this.driverName = driverName;
+		this.dbURL = dbUrl;
 	}
 
 	@Override
@@ -64,7 +64,7 @@ public abstract class AbstractJDBCOutputFormat<T> extends DtRichOutputFormat<T> 
 	}
 
 	protected void establishConnection() throws SQLException, ClassNotFoundException, IOException {
-		JDBCUtils.forName(drivername, getClass().getClassLoader());
+		JDBCUtils.forName(driverName, getClass().getClassLoader());
 		if (username == null) {
 			connection = DriverManager.getConnection(dbURL);
 		} else {

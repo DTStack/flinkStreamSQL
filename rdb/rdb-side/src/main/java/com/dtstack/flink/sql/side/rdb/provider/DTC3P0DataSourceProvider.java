@@ -25,13 +25,19 @@ import io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider;
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
 import java.sql.SQLException;
-
+/**
+ * Date: 2019/9/17
+ * Company: www.dtstack.com
+ * @author maqi
+ */
 public class DTC3P0DataSourceProvider extends C3P0DataSourceProvider {
 
     @Override
     public DataSource getDataSource(JsonObject config) throws SQLException {
         String url = config.getString("url");
-        if (url == null) throw new NullPointerException("url cannot be null");
+        if (url == null) {
+            throw new NullPointerException("url cannot be null");
+        }
         String driverClass = config.getString("driver_class");
         String user = config.getString("user");
         String password = config.getString("password");

@@ -74,7 +74,7 @@ public class Db2AsyncReqRow extends RdbAsyncReqRow {
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, db2lientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, db2lientConfig));
     }
 
 }

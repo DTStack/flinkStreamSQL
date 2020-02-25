@@ -21,7 +21,7 @@ package com.dtstack.flink.sql.side.postgresql;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
+import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
@@ -41,7 +41,7 @@ import java.util.Map;
  * @author tcm
  */
 
-public class PostgresqlAllReqRow extends RdbAllReqRow {
+public class PostgresqlAllReqRow extends AbstractRdbAllReqRow {
 
     private static final long serialVersionUID = 2098635140857937717L;
 
@@ -54,13 +54,13 @@ public class PostgresqlAllReqRow extends RdbAllReqRow {
     }
 
     @Override
-    public Connection getConn(String dbURL, String userName, String password) {
+    public Connection getConn(String dbUrl, String userName, String password) {
         try {
             Class.forName(POSTGRESQL_DRIVER);
             //add param useCursorFetch=true
             Map<String, String> addParams = Maps.newHashMap();
             addParams.put("useCursorFetch", "true");
-            String targetDbUrl = DtStringUtil.addJdbcParam(dbURL, addParams, true);
+            String targetDbUrl = DtStringUtil.addJdbcParam(dbUrl, addParams, true);
             return DriverManager.getConnection(targetDbUrl, userName, password);
         } catch (Exception e) {
             LOG.error("", e);

@@ -21,7 +21,11 @@ import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import java.util.Map;
 
-
+/**
+ * Date: 2019/11/26
+ * Company: www.dtstack.com
+ * @author maqi
+ */
 public class SqlserverSideParser extends RdbSideParser {
     private static final String CURR_TYPE = "sqlserver";
 

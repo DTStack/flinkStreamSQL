@@ -21,21 +21,26 @@ package com.dtstack.flink.sql.side.sqlserver;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
+import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
 import java.util.Map;
 
+
 /**
- * side operator with cache for all(period reload)
+ *  side operator with cache for all(period reload)
+ * Date: 2019/11/26
+ * Company: www.dtstack.com
+ * @author maqi
  */
-public class SqlserverAllReqRow extends RdbAllReqRow {
+public class SqlserverAllReqRow extends AbstractRdbAllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(SqlserverAllReqRow.class);
 
@@ -46,13 +51,12 @@ public class SqlserverAllReqRow extends RdbAllReqRow {
     }
 
     @Override
-    public Connection getConn(String dbURL, String userName, String password) {
+    public Connection getConn(String dbUrl, String userName, String password) {
         try {
             Class.forName(SQLSERVER_DRIVER);
             //add param useCursorFetch=true
             Map<String, String> addParams = Maps.newHashMap();
-            //addParams.put("useCursorFetch", "true");
-            String targetDbUrl = DtStringUtil.addJdbcParam(dbURL, addParams, true);
+            String targetDbUrl = DtStringUtil.addJdbcParam(dbUrl, addParams, true);
             return DriverManager.getConnection(targetDbUrl, userName, password);
         } catch (Exception e) {
             LOG.error("", e);

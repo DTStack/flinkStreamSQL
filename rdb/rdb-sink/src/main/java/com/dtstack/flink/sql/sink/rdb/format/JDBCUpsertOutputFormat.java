@@ -25,7 +25,7 @@ import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import com.dtstack.flink.sql.sink.rdb.writer.AppendOnlyWriter;
 import com.dtstack.flink.sql.sink.rdb.writer.JDBCWriter;
-import com.dtstack.flink.sql.sink.rdb.writer.UpsertWriter;
+import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
@@ -44,6 +44,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * An upsert OutputFormat for JDBC.
+ * @author maqi
  */
 public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Boolean, Row>> {
 
@@ -83,7 +84,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             long flushIntervalMills,
             boolean allReplace,
             String updateMode) {
-        super(options.getUsername(), options.getPassword(), options.getDriverName(), options.getDbURL());
+        super(options.getUsername(), options.getPassword(), options.getDriverName(), options.getDbUrl());
         this.schema = options.getSchema();
         this.tableName = options.getTableName();
         this.dialect = options.getDialect();
@@ -111,12 +112,12 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             initMetric();
 
             if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || keyFields == null || keyFields.length == 0) {
-                String insertSQL = dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields);
-                LOG.info("execute insert sql： {}", insertSQL);
-                System.out.println("execute insert sql :" + insertSQL);
-                jdbcWriter = new AppendOnlyWriter(insertSQL, fieldTypes, this);
+                String insertSql = dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields);
+                LOG.info("execute insert sql： {}", insertSql);
+                System.out.println("execute insert sql :" + insertSql);
+                jdbcWriter = new AppendOnlyWriter(insertSql, fieldTypes, this);
             } else {
-                jdbcWriter = UpsertWriter.create(
+                jdbcWriter = AbstractUpsertWriter.create(
                         dialect, schema, tableName, fieldNames, fieldTypes, keyFields, partitionFields,
                         getRuntimeContext().getExecutionConfig().isObjectReuseEnabled(), allReplace, this);
             }

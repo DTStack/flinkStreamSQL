@@ -21,7 +21,6 @@ import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -34,10 +33,6 @@ import org.apache.flink.types.Row;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 
@@ -48,11 +43,8 @@ import java.util.List;
  *
  * @author maqi
  */
-public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializable, IStreamSinkGener<RdbSink> {
-
-    protected String driverName;
-
-    protected String dbURL;
+public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Serializable, IStreamSinkGener<AbstractRdbSink> {
+    protected String dbUrl;
 
     protected String userName;
 
@@ -88,18 +80,18 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     protected String updateMode;
 
-    public RdbSink(JDBCDialect jdbcDialect) {
+    public AbstractRdbSink(JDBCDialect jdbcDialect) {
         this.jdbcDialect = jdbcDialect;
     }
 
     @Override
-    public RdbSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public AbstractRdbSink genStreamSink(TargetTableInfo targetTableInfo) {
         RdbTableInfo rdbTableInfo = (RdbTableInfo) targetTableInfo;
         this.batchNum = rdbTableInfo.getBatchSize() == null ? batchNum : rdbTableInfo.getBatchSize();
         this.batchWaitInterval = rdbTableInfo.getBatchWaitInterval() == null ?
                 batchWaitInterval : rdbTableInfo.getBatchWaitInterval();
         this.parallelism = rdbTableInfo.getParallelism() == null ? parallelism : rdbTableInfo.getParallelism();
-        this.dbURL = rdbTableInfo.getUrl();
+        this.dbUrl = rdbTableInfo.getUrl();
         this.userName = rdbTableInfo.getUserName();
         this.password = rdbTableInfo.getPassword();
         this.tableName = rdbTableInfo.getTableName();

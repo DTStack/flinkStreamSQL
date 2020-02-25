@@ -58,7 +58,7 @@ public class ClickhouseAsyncReqRow extends RdbAsyncReqRow {
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, clickhouseClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, clickhouseClientConfig));
     }
 
 }

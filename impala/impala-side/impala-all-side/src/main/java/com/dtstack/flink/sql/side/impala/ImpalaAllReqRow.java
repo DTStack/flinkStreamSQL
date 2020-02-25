@@ -22,10 +22,8 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
-import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.JDBCUtils;
-import com.google.common.collect.Maps;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -36,7 +34,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
-import java.util.Map;
 
 /**
  * side operator with cache for all(period reload)
@@ -46,7 +43,7 @@ import java.util.Map;
  * @author xiuzhu
  */
 
-public class ImpalaAllReqRow extends RdbAllReqRow {
+public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
 
     private static final long serialVersionUID = 2098635140857937717L;
 

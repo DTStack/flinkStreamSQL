@@ -21,20 +21,17 @@ package com.dtstack.flink.sql.side.clickhouse;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
-import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
-import java.util.Map;
 
-public class ClickhouseAllReqRow extends RdbAllReqRow {
+public class ClickhouseAllReqRow extends AbstractRdbAllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickhouseAllReqRow.class);
 

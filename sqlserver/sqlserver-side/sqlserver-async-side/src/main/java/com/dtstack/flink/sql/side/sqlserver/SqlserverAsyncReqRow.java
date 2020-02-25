@@ -33,7 +33,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-
+/**
+ * Date: 2019/11/26
+ * Company: www.dtstack.com
+ * @author maqi
+ */
 public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(SqlserverAsyncReqRow.class);
@@ -67,6 +71,6 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
         vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, sqlserverClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, sqlserverClientConfig));
     }
 }

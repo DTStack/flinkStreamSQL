@@ -34,6 +34,7 @@ import static com.dtstack.flink.sql.sink.rdb.JDBCTypeConvertUtils.setRecordToSta
 
 /**
  * Just append record to jdbc, can not receive retract/delete message.
+ * @author maqi
  */
 public class AppendOnlyWriter implements JDBCWriter {
 
@@ -41,7 +42,7 @@ public class AppendOnlyWriter implements JDBCWriter {
 
     private static final Logger LOG = LoggerFactory.getLogger(AppendOnlyWriter.class);
 
-    private final String insertSQL;
+    private final String insertSql;
     private final int[] fieldTypes;
 
     private transient PreparedStatement statement;
@@ -49,8 +50,8 @@ public class AppendOnlyWriter implements JDBCWriter {
     // only use metric
     private transient DtRichOutputFormat metricOutputFormat;
 
-    public AppendOnlyWriter(String insertSQL, int[] fieldTypes, DtRichOutputFormat metricOutputFormat) {
-        this.insertSQL = insertSQL;
+    public AppendOnlyWriter(String insertSql, int[] fieldTypes, DtRichOutputFormat metricOutputFormat) {
+        this.insertSql = insertSql;
         this.fieldTypes = fieldTypes;
         this.metricOutputFormat = metricOutputFormat;
     }
@@ -58,7 +59,7 @@ public class AppendOnlyWriter implements JDBCWriter {
     @Override
     public void open(Connection connection) throws SQLException {
         this.rows = new ArrayList();
-        this.statement = connection.prepareStatement(insertSQL);
+        this.statement = connection.prepareStatement(insertSql);
     }
 
     /**

@@ -20,16 +20,12 @@
 package com.dtstack.flink.sql.side.rdb.async;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.AsyncReqRow;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
@@ -41,8 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -73,7 +67,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     public final static String PREFERRED_TEST_QUERY_SQL = "select 1 from dual";
 
-    private transient SQLClient rdbSQLClient;
+    private transient SQLClient rdbSqlClient;
 
     public RdbAsyncReqRow(SideInfo sideInfo) {
         super(sideInfo);
@@ -113,7 +107,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             }
         }
 
-        rdbSQLClient.getConnection(conn -> {
+        rdbSqlClient.getConnection(conn -> {
             if (conn.failed()) {
                 //Treatment failures
                 resultFuture.completeExceptionally(conn.cause());
@@ -195,8 +189,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        if (rdbSQLClient != null) {
-            rdbSQLClient.close();
+        if (rdbSqlClient != null) {
+            rdbSqlClient.close();
         }
 
     }
@@ -211,8 +205,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         return sb.toString();
     }
 
-    public void setRdbSQLClient(SQLClient rdbSQLClient) {
-        this.rdbSQLClient = rdbSQLClient;
+    public void setRdbSqlClient(SQLClient rdbSqlClient) {
+        this.rdbSqlClient = rdbSqlClient;
     }
 
 }
