@@ -63,7 +63,10 @@ public class MetricElasticsearch6Sink<T> extends ElasticsearchSinkBase<T, RestHi
 
     public void initMetric() {
         Counter counter = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
+        Counter outDirtyRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_DIRTY_RECORDS_OUT);
+
         customerSinkFunc.setOutRecords(counter);
+        customerSinkFunc.setOutDirtyRecords(outDirtyRecords);
         outRecordsRate = getRuntimeContext().getMetricGroup().meter(MetricConstant.DT_NUM_RECORDS_OUT_RATE, new MeterView(counter, 20));
     }
 }
