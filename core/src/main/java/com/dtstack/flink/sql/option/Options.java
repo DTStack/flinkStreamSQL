@@ -48,7 +48,7 @@ public class Options {
     @OptionRequired(required = true,description = "Sql local plugin root")
     private  String localSqlPluginPath;
 
-    @OptionRequired(required = true,description = "Sql remote plugin root")
+    @OptionRequired(required = false,description = "Sql remote plugin root")
     private  String remoteSqlPluginPath ;
 
     @OptionRequired(description = "sql ext jar,eg udf jar")
@@ -68,6 +68,8 @@ public class Options {
 
     @OptionRequired(description = "plugin load mode, by classpath or shipfile")
     private String pluginLoadMode = EPluginLoadMode.CLASSPATH.name();
+
+    private String logLevel;
 
     public String getMode() {
         return mode;
@@ -171,5 +173,13 @@ public class Options {
 
     public void setPluginLoadMode(String pluginLoadMode) {
         this.pluginLoadMode = pluginLoadMode;
+    }
+
+    public String getLogLevel() {
+        return logLevel;
+    }
+
+    public void setLogLevel(String logLevel) {
+        this.logLevel = logLevel;
     }
 }
