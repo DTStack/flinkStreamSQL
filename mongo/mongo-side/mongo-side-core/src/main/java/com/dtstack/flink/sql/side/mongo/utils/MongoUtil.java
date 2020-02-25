@@ -55,6 +55,7 @@ public class MongoUtil {
                 return new BasicDBObject("$exists", true);
             case "IS NULL":
                 return new BasicDBObject("$exists", false);
+            default:
         }
         return null;
     }

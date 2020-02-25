@@ -29,11 +29,12 @@ import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
+import com.mongodb.ConnectionString;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoClient;
-import com.mongodb.async.client.MongoClientSettings;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
@@ -70,13 +71,11 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoAsyncReqRow.class);
 
-    private final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = 20;
-
     private transient MongoClient mongoClient;
 
     private MongoDatabase db;
 
-    private MongoSideTableInfo MongoSideTableInfo;
+    private MongoSideTableInfo mongoSideTableInfo;
 
     public MongoAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new MongoAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -85,48 +84,25 @@ public class MongoAsyncReqRow extends AsyncReqRow {
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        MongoSideTableInfo = (MongoSideTableInfo) sideInfo.getSideTableInfo();
-        connMongoDB();
+        mongoSideTableInfo = (MongoSideTableInfo) sideInfo.getSideTableInfo();
+        connMongoDb();
     }
 
-    public void connMongoDB() throws Exception {
-        MongoCredential mongoCredential;
-        String[] servers = MongoSideTableInfo.getAddress().split(",");
-        String host;
-        Integer port;
-        String[] hostAndPort;
-        List<ServerAddress> lists = new ArrayList<>();
-        for (String server : servers) {
-            hostAndPort = server.split(":");
-            host = hostAndPort[0];
-            port = Integer.parseInt(hostAndPort[1]);
-            lists.add(new ServerAddress(host, port));
-        }
-        ClusterSettings clusterSettings = ClusterSettings.builder().hosts(lists).build();
-        ConnectionPoolSettings connectionPoolSettings = ConnectionPoolSettings.builder()
-                .maxSize(DEFAULT_MAX_DB_CONN_POOL_SIZE)
+    public void connMongoDb() throws Exception {
+        String address = mongoSideTableInfo.getAddress();
+        ConnectionString connectionString = new ConnectionString(address);
+
+        MongoClientSettings settings = MongoClientSettings.builder()
+                .applyConnectionString(connectionString)
                 .build();
-        if (!StringUtils.isEmpty(MongoSideTableInfo.getUserName()) || !StringUtils.isEmpty(MongoSideTableInfo.getPassword())) {
-            mongoCredential = MongoCredential.createCredential(MongoSideTableInfo.getUserName(), MongoSideTableInfo.getDatabase(),
-                    MongoSideTableInfo.getPassword().toCharArray());
-            MongoClientSettings settings = MongoClientSettings.builder().credential(mongoCredential)
-                    .clusterSettings(clusterSettings)
-                    .connectionPoolSettings(connectionPoolSettings)
-                    .build();
-            mongoClient = MongoClients.create(settings);
-        } else {
-            MongoClientSettings settings = MongoClientSettings.builder().clusterSettings(clusterSettings)
-                    .connectionPoolSettings(connectionPoolSettings)
-                    .build();
-            mongoClient = MongoClients.create(settings);
-        }
-        db = mongoClient.getDatabase(MongoSideTableInfo.getDatabase());
+        mongoClient = MongoClients.create(settings);
+        db = mongoClient.getDatabase(mongoSideTableInfo.getDatabase());
     }
 
     @Override
     public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
         CRow inputCopy = new CRow(input.row(), input.change());
-        BasicDBObject basicDBObject = new BasicDBObject();
+        BasicDBObject basicDbObject = new BasicDBObject();
         for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = inputCopy.row().getField(conValIndex);
@@ -134,14 +110,14 @@ public class MongoAsyncReqRow extends AsyncReqRow {
                 dealMissKey(inputCopy, resultFuture);
                 return;
             }
-            basicDBObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
+            basicDbObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
         try {
             // 填充谓词
             sideInfo.getSideTableInfo().getPredicateInfoes().stream().map(info -> {
                 BasicDBObject filterCondition = MongoUtil.buildFilterObject(info);
                 if (null != filterCondition) {
-                    basicDBObject.append(info.getFieldName(), filterCondition);
+                    basicDbObject.append(info.getFieldName(), filterCondition);
                 }
                 return info;
             }).count();
@@ -149,7 +125,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             LOG.info("add predicate infoes error ", e);
         }
 
-        String key = buildCacheKey(basicDBObject.values());
+        String key = buildCacheKey(basicDbObject.values());
         if (openCache()) {
             CacheObj val = getFromCache(key);
             if (val != null) {
@@ -171,7 +147,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             }
         }
         AtomicInteger atomicInteger = new AtomicInteger(0);
-        MongoCollection dbCollection = db.getCollection(MongoSideTableInfo.getTableName(), Document.class);
+        MongoCollection dbCollection = db.getCollection(mongoSideTableInfo.getTableName(), Document.class);
         List<Document> cacheContent = Lists.newArrayList();
         Block<Document> printDocumentBlock = new Block<Document>() {
             @Override
@@ -197,7 +173,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
                 }
             }
         };
-        dbCollection.find(basicDBObject).forEach(printDocumentBlock, callbackWhenFinished);
+        dbCollection.find(basicDbObject).forEach(printDocumentBlock, callbackWhenFinished);
     }
 
     @Override

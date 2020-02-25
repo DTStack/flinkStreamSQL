@@ -26,16 +26,13 @@ import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoCredential;
-import com.mongodb.ServerAddress;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -49,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -180,34 +176,13 @@ public class MongoAllReqRow extends AllReqRow {
         return sb.toString();
     }
 
-    private MongoCollection getConn(String address, String userName, String password, String database, String tableName) {
+    private MongoCollection getConn(String address, String database, String tableName) {
         MongoCollection dbCollection;
-        try {
-            MongoCredential credential;
-            String[] servers = address.split(",");
-            String host;
-            Integer port;
-            String[] hostAndPort;
-            List<ServerAddress> lists = new ArrayList<>();
-            for (String server : servers) {
-                hostAndPort = server.split(":");
-                host = hostAndPort[0];
-                port = Integer.parseInt(hostAndPort[1]);
-                lists.add(new ServerAddress(host, port));
-            }
-            if (!StringUtils.isEmpty(userName) || !StringUtils.isEmpty(password)) {
-                credential = MongoCredential.createCredential(userName, database, password.toCharArray());
-                // To connect to mongodb server
-                mongoClient = new MongoClient(lists, credential, new MongoClientOptions.Builder().build());
-            } else {
-                mongoClient = new MongoClient(lists);
-            }
-            db = mongoClient.getDatabase(database);
-            dbCollection = db.getCollection(tableName, Document.class);
-            return dbCollection;
-        } catch (Exception e) {
-            throw new RuntimeException("[connMongoDB]:" + e.getMessage());
-        }
+        mongoClient = new MongoClient(new MongoClientURI(address));
+        db = mongoClient.getDatabase(database);
+        dbCollection = db.getCollection(tableName, Document.class);
+        return dbCollection;
+
     }
 
     private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws SQLException {
@@ -217,8 +192,7 @@ public class MongoAllReqRow extends AllReqRow {
         try {
             for (int i = 0; i < CONN_RETRY_NUM; i++) {
                 try {
-                    dbCollection = getConn(tableInfo.getAddress(), tableInfo.getUserName(), tableInfo.getPassword(),
-                            tableInfo.getDatabase(), tableInfo.getTableName());
+                    dbCollection = getConn(tableInfo.getAddress(), tableInfo.getDatabase(), tableInfo.getTableName());
                     break;
                 } catch (Exception e) {
                     if (i == CONN_RETRY_NUM - 1) {
@@ -237,9 +211,9 @@ public class MongoAllReqRow extends AllReqRow {
 
             //load data from table
             String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
-            BasicDBObject basicDBObject = new BasicDBObject();
+            BasicDBObject basicDbObject = new BasicDBObject();
             for (String selectField : sideFieldNames) {
-                basicDBObject.append(selectField, 1);
+                basicDbObject.append(selectField, 1);
             }
             BasicDBObject filterObject = new BasicDBObject();
             try {
@@ -256,7 +230,7 @@ public class MongoAllReqRow extends AllReqRow {
             }
 
 
-            FindIterable<Document> findIterable = dbCollection.find(filterObject).projection(basicDBObject).limit(FETCH_SIZE);
+            FindIterable<Document> findIterable = dbCollection.find(filterObject).projection(basicDbObject).limit(FETCH_SIZE);
             MongoCursor<Document> mongoCursor = findIterable.iterator();
             while (mongoCursor.hasNext()) {
                 Document doc = mongoCursor.next();

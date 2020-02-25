@@ -40,8 +40,6 @@
   |----|---|---|----|
   | type |表明 输出表类型 mongo|是||
   | address | 连接mongo数据库 jdbcUrl |是||
-  | userName | mongo连接用户名|否||
-  | password | mongo连接密码|否||
   | tableName | mongo表名称|是||
   | database  | mongo表名称|是||
   | cache | 维表缓存策略(NONE/LRU)|否|NONE|
@@ -64,7 +62,8 @@ create table sideTable(
     PERIOD FOR SYSTEM_TIME
  )WITH(
     type ='mongo',
-    address ='172.21.32.1:27017,172.21.32.1:27017',
+    //mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]]/[?options]]
+    address ='mongodb://172.21.32.1:27017,172.21.32.1:27017',
     database ='test',
     tableName ='sidetest',
     cache ='LRU',
