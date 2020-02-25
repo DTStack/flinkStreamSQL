@@ -20,14 +20,15 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
-import com.dtstack.flink.sql.enums.EUpdateMode;
-import com.google.common.collect.Lists;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
+
+import com.dtstack.flink.sql.enums.EUpdateMode;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
@@ -280,7 +281,7 @@ public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
                 String[] columns = keySet.toArray(new String[keySet.size()]);
                 for (int i = 0; i < columns.length; ++i) {
                     String col = columns[i];
-                    String[] part = col.split(":");
+                    String[] part = StringUtils.split(col, ":");
                     families[i] = part[0];
                     qualifiers[i] = part[1];
                 }

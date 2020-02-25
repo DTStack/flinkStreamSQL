@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.sink.impala.table;
 
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
 import com.google.common.base.Preconditions;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Date: 2019/11/13
@@ -144,7 +145,7 @@ public class ImpalaTableInfo extends RdbTableInfo {
     }
 
     public void setPartitionFields(String partitionFields) {
-        this.partitionFields = partitionFields.split(PARTITION_FIELD_SPLIT_REGEX);
+        this.partitionFields = StringUtils.split(partitionFields, PARTITION_FIELD_SPLIT_REGEX);
     }
 
     @Override

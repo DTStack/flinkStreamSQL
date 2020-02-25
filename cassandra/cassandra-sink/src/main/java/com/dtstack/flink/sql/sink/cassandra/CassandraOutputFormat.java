@@ -38,6 +38,12 @@
 
 package com.dtstack.flink.sql.sink.cassandra;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.types.Row;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.HostDistance;
@@ -49,13 +55,10 @@ import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.types.Row;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.sql.DriverManager;
@@ -145,9 +148,9 @@ public class CassandraOutputFormat extends DtRichOutputFormat<Tuple2> {
                 //重试策略
                 RetryPolicy retryPolicy = DowngradingConsistencyRetryPolicy.INSTANCE;
 
-                for (String server : address.split(",")) {
-                    cassandraPort = Integer.parseInt(server.split(":")[1]);
-                    serversList.add(InetAddress.getByName(server.split(":")[0]));
+                for (String server : StringUtils.split(address, ",")) {
+                    cassandraPort = Integer.parseInt(StringUtils.split(server, ":")[1]);
+                    serversList.add(InetAddress.getByName(StringUtils.split(server, ":")[0]));
                 }
 
                 if (userName == null || userName.isEmpty() || password == null || password.isEmpty()) {

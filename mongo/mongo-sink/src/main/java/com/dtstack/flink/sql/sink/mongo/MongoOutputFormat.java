@@ -19,6 +19,11 @@
 
 package com.dtstack.flink.sql.sink.mongo;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.types.Row;
+
 import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -28,16 +33,12 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.UpdateResult;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.types.Row;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -126,13 +127,13 @@ public class MongoOutputFormat extends DtRichOutputFormat<Tuple2> {
     private void establishConnection() {
         try {
             MongoCredential credential;
-            String[] servers = address.split(",");
+            String[] servers = StringUtils.split(address, ",");
             String host;
             Integer port;
             String[] hostAndPort;
             List<ServerAddress> lists = new ArrayList<>();
             for (String server : servers) {
-                hostAndPort = server.split(":");
+                hostAndPort = StringUtils.split(server, ":");
                 host = hostAndPort[0];
                 port = Integer.parseInt(hostAndPort[1]);
                 lists.add(new ServerAddress(host, port));

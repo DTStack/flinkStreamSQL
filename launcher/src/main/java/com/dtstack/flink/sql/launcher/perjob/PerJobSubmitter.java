@@ -18,16 +18,17 @@
 
 package com.dtstack.flink.sql.launcher.perjob;
 
-import com.dtstack.flink.sql.option.Options;
-import com.dtstack.flink.sql.util.PluginUtil;
-import org.apache.commons.io.Charsets;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
+
+import com.dtstack.flink.sql.option.Options;
+import com.dtstack.flink.sql.util.PluginUtil;
+import org.apache.commons.io.Charsets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +83,7 @@ public class PerJobSubmitter {
 		if (addjarPath.length() > 2) {
 			addjarPath = addjarPath.substring(1,addjarPath.length()-1).replace("\"","");
 		}
-		List<String> paths = Arrays.asList(addjarPath.split(","));
+        List<String> paths = Arrays.asList(StringUtils.split(addjarPath, ","));
 		return paths;
 	}
 
