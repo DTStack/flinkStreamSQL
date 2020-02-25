@@ -51,6 +51,7 @@ public class Es6Util {
     private static final String KEY_WORD_TYPE = ".keyword";
     private static final String APOSTROPHE = "\'";
 
+    // connect to the elasticsearch
     public static RestHighLevelClient getClient(String esAddress, Boolean isAuthMesh, String userName, String password) {
         List<HttpHost> httpHostList = new ArrayList<>();
         String[] address = StringUtils.split(esAddress, ",");
@@ -96,6 +97,7 @@ public class Es6Util {
         return rhlClient;
     }
 
+    // add index and type to search request
     public static SearchRequest setSearchRequest(SideInfo sideInfo) {
         SearchRequest searchRequest = new SearchRequest();
         Elasticsearch6SideTableInfo tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
@@ -126,6 +128,7 @@ public class Es6Util {
         return searchRequest;
     }
 
+    // build where cause
     public static BoolQueryBuilder setPredicateclause(SideInfo sideInfo) {
 
         BoolQueryBuilder boolQueryBuilder = null;
@@ -140,6 +143,7 @@ public class Es6Util {
         return boolQueryBuilder;
     }
 
+    // build filter condition
     public static BoolQueryBuilder buildFilterCondition(BoolQueryBuilder boolQueryBuilder, PredicateInfo info, SideInfo sideInfo) {
         switch (info.getOperatorKind()) {
             case "IN":
@@ -184,6 +188,7 @@ public class Es6Util {
 
     }
 
+    // remove extra spaces and apostrophes
     public static String[] removeSpaceAndApostrophe(String str) {
         String[] split = StringUtils.split(str, ",");
         for (int i = 0; i < split.length; i++) {
@@ -196,6 +201,7 @@ public class Es6Util {
         return split;
     }
 
+    // prevent word segmentation
     public static String textConvertToKeyword(String fieldName, SideInfo sideInfo) {
         String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
         int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
