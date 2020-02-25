@@ -69,8 +69,8 @@ public class ConfigConstrant {
     // restart plocy
     public static final int failureRate = 3;
 
-    public static final int failureInterval = 6; //min
+    public static final String FAILUREINTERVAL = "failure.interval"; //min
 
-    public static final int delayInterval = 10; //sec
+    public static final String  DELAYINTERVAL= "delay.interval"; //sec
 
 }
