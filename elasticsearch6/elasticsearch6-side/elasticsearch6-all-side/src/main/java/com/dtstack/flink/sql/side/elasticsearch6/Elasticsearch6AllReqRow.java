@@ -159,7 +159,6 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
         Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
         cacheRef.set(newCache);
         try {
-            // create search request and build where cause
             searchRequest = Es6Util.setSearchRequest(sideInfo);
             boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
             loadData(newCache);
@@ -218,7 +217,6 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
         }
     }
 
-    // initialize searchSourceBuilder
     private SearchSourceBuilder initConfiguration(BoolQueryBuilder boolQueryBuilder){
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             if (boolQueryBuilder != null) {
@@ -227,8 +225,6 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
 
             searchSourceBuilder.size(getFetchSize());
             searchSourceBuilder.sort("_id", SortOrder.DESC);
-
-            // fields included in the source data
             String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
             searchSourceBuilder.fetchSource(sideFieldNames, null);
             return searchSourceBuilder;
@@ -244,7 +240,6 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
         while (true) {
             try {
                 if (searchAfterParameter != null) {
-                    // set search mark
                     searchSourceBuilder.searchAfter(searchAfterParameter);
                 }
                 searchRequest.source(searchSourceBuilder);
@@ -263,7 +258,6 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
         }
     }
 
-    // data load to cache
     private void loadToCache(SearchHit[] searchHits, Map<String, List<Map<String, Object>>> tmpCache) {
         String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
         String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();

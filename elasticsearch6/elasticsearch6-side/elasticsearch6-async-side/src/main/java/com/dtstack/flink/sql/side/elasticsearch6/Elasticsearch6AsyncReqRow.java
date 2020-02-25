@@ -136,12 +136,10 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
                     try {
                         while (true) {
                             loadDataToCache(searchHits, rowList, cacheContent, copyCrow);
-                            // determine if all results haven been ferched
                             if (searchHits.length < getFetchSize()) {
                                 break;
                             }
                             if (tableInfo == null && tmpRhlClient == null) {
-                                // create new connection to fetch data
                                 tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
                                 tmpRhlClient = Es6Util.getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
                             }
@@ -188,6 +186,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
         }
         rowList.addAll(getRows(copyCrow, cacheContent, results));
     }
+
 
     protected List<CRow> getRows(CRow inputRow, List<Object> cacheContent, List<Object> results) {
         List<CRow> rowList = Lists.newArrayList();
@@ -258,6 +257,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
         return searchSourceBuilder;
     }
 
+
     private BoolQueryBuilder setInputParams(List<Object> inputParams, BoolQueryBuilder boolQueryBuilder) {
         if (boolQueryBuilder == null) {
             boolQueryBuilder = new BoolQueryBuilder();
@@ -272,6 +272,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
 
         return boolQueryBuilder;
     }
+
 
     public int getFetchSize() {
         return 1000;
