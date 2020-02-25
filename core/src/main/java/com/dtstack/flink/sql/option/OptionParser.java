@@ -20,8 +20,8 @@ package com.dtstack.flink.sql.option;
 
 import com.google.common.collect.Lists;
 import com.dtstack.flink.sql.util.PluginUtil;
-import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang.StringUtils;
 import java.lang.reflect.InvocationTargetException;
@@ -46,7 +46,7 @@ public class OptionParser {
 
     private org.apache.commons.cli.Options options = new org.apache.commons.cli.Options();
 
-    private BasicParser parser = new BasicParser();
+    private DefaultParser parser = new DefaultParser();
 
     private Options properties = new Options();
 

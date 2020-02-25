@@ -16,31 +16,32 @@
  * limitations under the License.
  */
 
-
 package com.dtstack.flink.sql;
 
-
-
+import com.dtstack.flink.sql.exec.ApiResult;
 import com.dtstack.flink.sql.exec.ExecuteProcessHelper;
 import com.dtstack.flink.sql.exec.ParamsInfo;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 
 /**
- * Date: 2018/6/26
+ *  local模式获取sql任务的执行计划
+ * Date: 2020/2/17
  * Company: www.dtstack.com
- * @author xuchao
+ * @author maqi
  */
+public class GetPlan {
 
-public class Main {
-    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
-
-    public static void main(String[] args) throws Exception {
-        ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
-        StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
-        env.execute(paramsInfo.getName());
-        LOG.info("program {} execution success", paramsInfo.getName());
+    public static String getExecutionPlan(String[] args) {
+        try {
+            long start = System.currentTimeMillis();
+            ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
+            StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
+            String executionPlan = env.getExecutionPlan();
+            long end = System.currentTimeMillis();
+            return ApiResult.createSuccessResultJsonStr(executionPlan, end - start);
+        } catch (Exception e) {
+            return ApiResult.createErrorResultJsonStr(ExceptionUtils.getFullStackTrace(e));
+        }
     }
 }
