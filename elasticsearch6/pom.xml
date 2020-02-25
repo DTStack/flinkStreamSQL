@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>elasticsearch6-side</module>
+        <module>elasticsearch6-sink</module>
     </modules>
 
     <dependencies>

@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.side.hbase.table;
 import com.dtstack.flink.sql.table.AbsSideTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -83,7 +84,7 @@ public class HbaseSideParser extends AbsSideTableParser {
         String filedDefineStr = matcher.group(1);
         String aliasStr = matcher.group(2);
 
-        String[] filedInfoArr = filedDefineStr.split("\\s+");
+        String[] filedInfoArr = StringUtils.split(filedDefineStr, "\\s+");
         if(filedInfoArr.length < 2){
             throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), matcher.group(0)));
         }
