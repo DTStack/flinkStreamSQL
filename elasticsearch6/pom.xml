@@ -12,6 +12,7 @@
     <artifactId>sql.elasticsearch6</artifactId>
     <packaging>pom</packaging>
     <modules>
+        <module>elasticsearch6-side</module>
         <module>elasticsearch6-sink</module>
     </modules>
 
