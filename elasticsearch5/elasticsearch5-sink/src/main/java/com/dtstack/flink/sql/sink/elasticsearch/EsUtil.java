@@ -42,7 +42,7 @@ public class EsUtil {
         int i = 0;
         for(; i < fields.size(); ++i) {
             String field = fields.get(i);
-            String[] parts = StringUtils.split(field, "\\.");
+            String[] parts = field.split("\\.");
             Map<String, Object> currMap = jsonMap;
             for(int j = 0; j < parts.length - 1; ++j) {
                 String key = parts[j];

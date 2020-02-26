@@ -59,7 +59,7 @@ public class RowKeyBuilder implements Serializable{
                 fieldCols = infoAlias;
             }
 
-            String[] fieldArr = StringUtils.split(fieldCols, "\\+");
+            String[] fieldArr = fieldCols.split("\\+");
             List<ReplaceInfo> fieldList = Lists.newArrayList();
             for(String oneField : fieldArr){
                 ReplaceInfo replaceInfo =  getReplaceInfo(oneField);
@@ -109,7 +109,7 @@ public class RowKeyBuilder implements Serializable{
 
     public static String[] splitIgnoreQuotaBrackets(String str, String delimiter){
         String splitPatternStr = delimiter + "(?![^()]*+\\))(?![^{}]*+})(?![^\\[\\]]*+\\])";
-        return StringUtils.split(str, splitPatternStr);
+        return str.split(splitPatternStr);
     }
 
     /**

@@ -81,7 +81,7 @@ public class HbaseSinkParser extends AbsTableParser {
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
 
-            String[] filedInfoArr = StringUtils.split(fieldRow, "\\s+");
+            String[] filedInfoArr = fieldRow.split("\\s+");
             if(filedInfoArr.length < 2 ){
                 throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
             }
