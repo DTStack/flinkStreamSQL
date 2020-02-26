@@ -38,11 +38,10 @@ public class ParamsInfo {
     private String remoteSqlPluginPath;
     private String pluginLoadMode;
     private String deployMode;
-    private String logLevel;
     private Properties confProp;
 
     public ParamsInfo(String sql, String name, List<URL> jarUrlList, String localSqlPluginPath,
-                      String remoteSqlPluginPath, String pluginLoadMode, String deployMode, String logLevel, Properties confProp) {
+                      String remoteSqlPluginPath, String pluginLoadMode, String deployMode, Properties confProp) {
         this.sql = sql;
         this.name = name;
         this.jarUrlList = jarUrlList;
@@ -50,7 +49,6 @@ public class ParamsInfo {
         this.remoteSqlPluginPath = remoteSqlPluginPath;
         this.pluginLoadMode = pluginLoadMode;
         this.deployMode = deployMode;
-        this.logLevel = logLevel;
         this.confProp = confProp;
     }
 
@@ -86,9 +84,6 @@ public class ParamsInfo {
         return confProp;
     }
 
-    public String getLogLevel() {
-        return logLevel;
-    }
 
     @Override
     public String toString() {
@@ -100,7 +95,6 @@ public class ParamsInfo {
                 ", remoteSqlPluginPath='" + remoteSqlPluginPath + '\'' +
                 ", pluginLoadMode='" + pluginLoadMode + '\'' +
                 ", deployMode='" + deployMode + '\'' +
-                ", logLevel='" + logLevel + '\'' +
                 ", confProp=" + confProp +
                 '}';
     }
@@ -160,10 +154,6 @@ public class ParamsInfo {
             return this;
         }
 
-        public ParamsInfo.Builder setLogLevel(String logLevel) {
-            this.logLevel = logLevel;
-            return this;
-        }
 
         public ParamsInfo.Builder setConfProp(Properties confProp) {
             this.confProp = confProp;
@@ -172,7 +162,7 @@ public class ParamsInfo {
 
         public ParamsInfo build() {
             return new ParamsInfo(sql, name, jarUrlList, localSqlPluginPath,
-                    remoteSqlPluginPath, pluginLoadMode, deployMode, logLevel, confProp);
+                    remoteSqlPluginPath, pluginLoadMode, deployMode, confProp);
         }
     }
 }

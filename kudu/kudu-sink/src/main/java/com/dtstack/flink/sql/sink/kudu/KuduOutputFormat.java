@@ -18,19 +18,12 @@
 
 package com.dtstack.flink.sql.sink.kudu;
 
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
-
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
-import org.apache.kudu.client.AsyncKuduClient;
-import org.apache.kudu.client.AsyncKuduSession;
-import org.apache.kudu.client.KuduClient;
-import org.apache.kudu.client.KuduException;
-import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.Operation;
-import org.apache.kudu.client.PartialRow;
+import org.apache.kudu.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

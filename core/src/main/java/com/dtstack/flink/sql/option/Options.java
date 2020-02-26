@@ -69,8 +69,6 @@ public class Options {
     @OptionRequired(description = "plugin load mode, by classpath or shipfile")
     private String pluginLoadMode = EPluginLoadMode.CLASSPATH.name();
 
-    private String logLevel;
-
     public String getMode() {
         return mode;
     }
@@ -175,11 +173,4 @@ public class Options {
         this.pluginLoadMode = pluginLoadMode;
     }
 
-    public String getLogLevel() {
-        return logLevel;
-    }
-
-    public void setLogLevel(String logLevel) {
-        this.logLevel = logLevel;
-    }
 }

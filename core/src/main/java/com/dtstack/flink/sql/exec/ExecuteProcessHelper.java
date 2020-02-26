@@ -18,8 +18,18 @@
 
 package com.dtstack.flink.sql.exec;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.StreamQueryConfig;
+import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableEnvironment;
+import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.sinks.TableSink;
+import org.apache.flink.types.Row;
+
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.config.CalciteConfig;
 import com.dtstack.flink.sql.enums.ClusterMode;
@@ -55,17 +65,6 @@ import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.table.api.StreamQueryConfig;
-import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.TableEnvironment;
-import org.apache.flink.table.api.java.StreamTableEnvironment;
-import org.apache.flink.table.sinks.TableSink;
-import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +109,6 @@ public class ExecuteProcessHelper {
         String remoteSqlPluginPath = options.getRemoteSqlPluginPath();
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
-        String logLevel = options.getLogLevel();
 
         Preconditions.checkArgument(checkRemoteSqlPluginPath(remoteSqlPluginPath, deployMode, pluginLoadMode),
                 "Non-local mode or shipfile deployment mode, remoteSqlPluginPath is required");
@@ -128,7 +126,6 @@ public class ExecuteProcessHelper {
                 .setDeployMode(deployMode)
                 .setConfProp(confProperties)
                 .setJarUrlList(jarURList)
-                .setLogLevel(logLevel)
                 .build();
 
     }
@@ -153,8 +150,6 @@ public class ExecuteProcessHelper {
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
         StreamQueryConfig streamQueryConfig = StreamEnvConfigManager.getStreamQueryConfig(tableEnv, paramsInfo.getConfProp());
-
-        setLogLevel(paramsInfo.getLogLevel());
 
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
         SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql());
@@ -348,11 +343,5 @@ public class ExecuteProcessHelper {
         return env;
     }
 
-    private static void setLogLevel(String level){
-        LoggerContext loggerContext= (LoggerContext) LoggerFactory.getILoggerFactory();
-        //设置全局日志级别
-        ch.qos.logback.classic.Logger logger = loggerContext.getLogger("root");
-        logger.setLevel(Level.toLevel(level, Level.INFO));
-    }
 
 }
