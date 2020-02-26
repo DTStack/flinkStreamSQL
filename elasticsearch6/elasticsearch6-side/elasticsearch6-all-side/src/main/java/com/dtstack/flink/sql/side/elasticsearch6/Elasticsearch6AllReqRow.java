@@ -80,11 +80,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = value.row().getField(conValIndex);
             if (equalObj == null) {
-                if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row row = fillData(value.row(), null);
-                    out.collect(new CRow(row, value.change()));
-                }
-
+                sendOutputRow(value, null, out);
                 return;
             }
 
@@ -94,18 +90,12 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
         String key = buildKey(inputParams);
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
-            if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(value.row(), null);
-                out.collect(new CRow(row, value.change()));
-            } else {
-                return;
-            }
-
+            sendOutputRow(value, null, out);
             return;
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(new CRow(fillData(value.row(), one), value.change()));
+            sendOutputRow(value, one, out);
         }
     }
 
@@ -155,7 +145,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
     }
 
     @Override
-    protected void initCache() throws SQLException {
+    protected void initCache() {
         Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
         cacheRef.set(newCache);
         try {
@@ -165,6 +155,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
             loadData(newCache);
         } catch (Exception e) {
             LOG.error("", e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -176,6 +167,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
             loadData(newCache);
         } catch (Exception e) {
             LOG.error("", e);
+            throw new RuntimeException(e);
         }
 
         cacheRef.set(newCache);
@@ -210,6 +202,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
 
         } catch (Exception e) {
             LOG.error("", e);
+            throw new RuntimeException(e);
         } finally {
 
             if (rhlClient != null) {
@@ -220,18 +213,18 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
 
     // initialize searchSourceBuilder
     private SearchSourceBuilder initConfiguration(BoolQueryBuilder boolQueryBuilder){
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            if (boolQueryBuilder != null) {
-                searchSourceBuilder.query(boolQueryBuilder);
-            }
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        if (boolQueryBuilder != null) {
+            searchSourceBuilder.query(boolQueryBuilder);
+        }
 
-            searchSourceBuilder.size(getFetchSize());
-            searchSourceBuilder.sort("_id", SortOrder.DESC);
+        searchSourceBuilder.size(getFetchSize());
+        searchSourceBuilder.sort("_id", SortOrder.DESC);
 
-            // fields included in the source data
-            String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
-            searchSourceBuilder.fetchSource(sideFieldNames, null);
-            return searchSourceBuilder;
+        // fields included in the source data
+        String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
+        searchSourceBuilder.fetchSource(sideFieldNames, null);
+        return searchSourceBuilder;
     }
 
 
@@ -247,6 +240,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
                     // set search mark
                     searchSourceBuilder.searchAfter(searchAfterParameter);
                 }
+
                 searchRequest.source(searchSourceBuilder);
                 searchResponse = rhlClient.search(searchRequest, RequestOptions.DEFAULT);
                 searchHits = searchResponse.getHits().getHits();
@@ -267,6 +261,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
     private void loadToCache(SearchHit[] searchHits, Map<String, List<Map<String, Object>>> tmpCache) {
         String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
         String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
+
         for (SearchHit searchHit : searchHits) {
             Map<String, Object> oneRow = Maps.newHashMap();
             for (String fieldName : sideFieldNames) {
@@ -275,6 +270,7 @@ public class Elasticsearch6AllReqRow extends AllReqRow implements Serializable {
                 object = SwitchUtil.getTarget(object, sideFieldTypes[fieldIndex]);
                 oneRow.put(fieldName.trim(), object);
             }
+
             String cacheKey = buildKey(oneRow, sideInfo.getEqualFieldList());
             List<Map<String, Object>> list = tmpCache.computeIfAbsent(cacheKey, key -> Lists.newArrayList());
             list.add(oneRow);
