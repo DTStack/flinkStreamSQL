@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.elasticsearch6;
+package com.dtstack.flink.sql.sink.elasticsearch;
 
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchApiCallBridge;
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkBase;
 import org.apache.flink.util.Preconditions;
 
-import com.dtstack.flink.sql.sink.elasticsearch6.table.ElasticsearchTableInfo;
+import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;

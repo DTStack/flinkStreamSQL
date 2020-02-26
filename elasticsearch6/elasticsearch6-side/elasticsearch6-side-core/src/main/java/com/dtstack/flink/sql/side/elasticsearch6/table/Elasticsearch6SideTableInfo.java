@@ -16,26 +16,25 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.elasticsearch6.table;
+package com.dtstack.flink.sql.side.elasticsearch6.table;
 
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.google.common.base.Preconditions;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 /**
  * @author yinxi
- * @date 2020/1/9 - 15:06
+ * @date 2020/1/13 - 15:00
  */
-public class ElasticsearchTableInfo extends TargetTableInfo {
+public class Elasticsearch6SideTableInfo extends SideTableInfo {
 
     private static final String CURR_TYPE = "elasticsearch6";
 
     private String address;
 
-    private String index;
-
-    private String id;
-
     private String clusterName;
+
+    private String index;
 
     private String esType;
 
@@ -45,20 +44,14 @@ public class ElasticsearchTableInfo extends TargetTableInfo {
 
     private String password;
 
+    private transient SearchSourceBuilder searchSourceBuilder;
+
     public String getEsType() {
         return esType;
     }
 
     public void setEsType(String esType) {
         this.esType = esType;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public String getAddress() {
@@ -115,16 +108,22 @@ public class ElasticsearchTableInfo extends TargetTableInfo {
         this.password = password;
     }
 
-    public ElasticsearchTableInfo() {
+
+    public SearchSourceBuilder getSearchSourceBuilder() {
+        return searchSourceBuilder;
+    }
+
+    public void setSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder) {
+        this.searchSourceBuilder = searchSourceBuilder;
+    }
+
+    public Elasticsearch6SideTableInfo() {
         setType(CURR_TYPE);
     }
 
     @Override
     public boolean check() {
         Preconditions.checkNotNull(address, "elasticsearch6 type of address is required");
-        Preconditions.checkNotNull(index, "elasticsearch6 type of index is required");
-        Preconditions.checkNotNull(esType, "elasticsearch6 type of type is required");
-        Preconditions.checkNotNull(id, "elasticsearch6 type of id is required");
         Preconditions.checkNotNull(clusterName, "elasticsearch6 type of clusterName is required");
 
         if (isAuthMesh()) {
@@ -134,6 +133,4 @@ public class ElasticsearchTableInfo extends TargetTableInfo {
 
         return true;
     }
-
 }
-

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.elasticsearch6;
+package com.dtstack.flink.sql.sink.elasticsearch;
 
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
