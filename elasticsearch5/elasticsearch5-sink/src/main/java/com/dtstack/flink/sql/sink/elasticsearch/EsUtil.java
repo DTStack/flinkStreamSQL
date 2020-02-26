@@ -22,7 +22,6 @@ import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
