@@ -55,7 +55,6 @@ import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,9 +147,9 @@ public class CassandraOutputFormat extends DtRichOutputFormat<Tuple2> {
                 //重试策略
                 RetryPolicy retryPolicy = DowngradingConsistencyRetryPolicy.INSTANCE;
 
-                for (String server : StringUtils.split(address, ",")) {
-                    cassandraPort = Integer.parseInt(StringUtils.split(server, ":")[1]);
-                    serversList.add(InetAddress.getByName(StringUtils.split(server, ":")[0]));
+                for (String server : address.split(",")) {
+                    cassandraPort = Integer.parseInt(server.split(":")[1]);
+                    serversList.add(InetAddress.getByName(server.split(":")[0]));
                 }
 
                 if (userName == null || userName.isEmpty() || password == null || password.isEmpty()) {
@@ -219,7 +218,7 @@ public class CassandraOutputFormat extends DtRichOutputFormat<Tuple2> {
             }
         } catch (Exception e) {
             if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
-                LOG.error("record insert failed ..", row.toString().substring(0, 100));
+                LOG.error("record insert failed, total dirty num:{}, current record:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
             }
 

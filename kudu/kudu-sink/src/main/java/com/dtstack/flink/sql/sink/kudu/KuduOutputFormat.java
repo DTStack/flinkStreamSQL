@@ -18,11 +18,12 @@
 
 package com.dtstack.flink.sql.sink.kudu;
 
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
+
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.kudu.client.AsyncKuduClient;
 import org.apache.kudu.client.AsyncKuduSession;
 import org.apache.kudu.client.KuduClient;
@@ -123,7 +124,7 @@ public class KuduOutputFormat extends DtRichOutputFormat<Tuple2> {
         Row row = tupleTrans.getField(1);
         if (row.getArity() != fieldNames.length) {
             if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
-                LOG.error("record insert failed ..{}", row.toString());
+                LOG.error("record insert failed:{}", row.toString());
                 LOG.error("cause by row.getArity() != fieldNames.length");
             }
             outDirtyRecords.inc();
@@ -142,7 +143,7 @@ public class KuduOutputFormat extends DtRichOutputFormat<Tuple2> {
             outRecords.inc();
         } catch (KuduException e) {
             if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
-                LOG.error("record insert failed ..{}", row.toString().substring(0, 100));
+                LOG.error("record insert failed, total dirty record:{} current row:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
             }
             outDirtyRecords.inc();
