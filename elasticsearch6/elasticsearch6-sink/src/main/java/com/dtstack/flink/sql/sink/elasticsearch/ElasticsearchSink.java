@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.elasticsearch6;
+package com.dtstack.flink.sql.sink.elasticsearch;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -30,7 +30,7 @@ import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
-import com.dtstack.flink.sql.sink.elasticsearch6.table.ElasticsearchTableInfo;
+import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
@@ -47,9 +47,9 @@ import java.util.Map;
  * @author yinxi
  * @date 2020/1/9 - 15:08
  */
-public class Elasticsearch6Sink implements RetractStreamTableSink<Row>, IStreamSinkGener<Elasticsearch6Sink> {
+public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSinkGener<ElasticsearchSink> {
 
-    private final Logger logger = LoggerFactory.getLogger(Elasticsearch6Sink.class);
+    private final Logger logger = LoggerFactory.getLogger(ElasticsearchSink.class);
 
     private String clusterName;
 
@@ -150,7 +150,7 @@ public class Elasticsearch6Sink implements RetractStreamTableSink<Row>, IStreamS
     }
 
     @Override
-    public Elasticsearch6Sink genStreamSink(TargetTableInfo targetTableInfo) {
+    public ElasticsearchSink genStreamSink(TargetTableInfo targetTableInfo) {
         ElasticsearchTableInfo elasticsearchTableInfo = (ElasticsearchTableInfo) targetTableInfo;
         esTableInfo = elasticsearchTableInfo;
         clusterName = elasticsearchTableInfo.getClusterName();
