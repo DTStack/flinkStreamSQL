@@ -110,7 +110,6 @@ public class ExecuteProcessHelper {
         String remoteSqlPluginPath = options.getRemoteSqlPluginPath();
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
-        String logLevel = options.getLogLevel();
 
         Preconditions.checkArgument(checkRemoteSqlPluginPath(remoteSqlPluginPath, deployMode, pluginLoadMode),
                 "Non-local mode or shipfile deployment mode, remoteSqlPluginPath is required");
@@ -128,7 +127,6 @@ public class ExecuteProcessHelper {
                 .setDeployMode(deployMode)
                 .setConfProp(confProperties)
                 .setJarUrlList(jarURList)
-                .setLogLevel(logLevel)
                 .build();
 
     }
@@ -153,8 +151,6 @@ public class ExecuteProcessHelper {
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
         StreamQueryConfig streamQueryConfig = StreamEnvConfigManager.getStreamQueryConfig(tableEnv, paramsInfo.getConfProp());
-
-        setLogLevel(paramsInfo.getLogLevel());
 
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
         SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql());
@@ -348,11 +344,5 @@ public class ExecuteProcessHelper {
         return env;
     }
 
-    private static void setLogLevel(String level){
-        LoggerContext loggerContext= (LoggerContext) LoggerFactory.getILoggerFactory();
-        //设置全局日志级别
-        ch.qos.logback.classic.Logger logger = loggerContext.getLogger("root");
-        logger.setLevel(Level.toLevel(level, Level.INFO));
-    }
 
 }
