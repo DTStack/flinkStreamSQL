@@ -31,7 +31,6 @@ import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
 
 import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -50,7 +49,7 @@ public class KafkaConsumer extends FlinkKafkaConsumer<Row> {
     private DeserializationMetricWrapper deserializationMetricWrapper;
 
     public KafkaConsumer(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
-        super(Arrays.asList(StringUtils.split(topic, ",")), deserializationMetricWrapper, props);
+        super(Arrays.asList(topic.split(",")), deserializationMetricWrapper, props);
         this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 

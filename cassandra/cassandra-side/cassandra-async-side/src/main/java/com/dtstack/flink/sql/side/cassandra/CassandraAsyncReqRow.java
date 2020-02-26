@@ -51,7 +51,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.vertx.core.json.JsonArray;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,9 +134,9 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
                 //重试策略
                 RetryPolicy retryPolicy = DowngradingConsistencyRetryPolicy.INSTANCE;
 
-                for (String server : StringUtils.split(address, ",")) {
-                    cassandraPort = Integer.parseInt(StringUtils.split(server, ":")[1]);
-                    serversList.add(InetAddress.getByName(StringUtils.split(server, ":")[0]));
+                for (String server : address.split(",")) {
+                    cassandraPort = Integer.parseInt(server.split(":")[1]);
+                    serversList.add(InetAddress.getByName(server.split(":")[0]));
                 }
 
                 if (userName == null || userName.isEmpty() || password == null || password.isEmpty()) {

@@ -26,7 +26,6 @@ import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.MathUtil;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -69,7 +68,7 @@ public class HbaseSinkParser extends AbsTableParser {
         hbaseTableInfo.setHost((String) props.get(HBASE_ZOOKEEPER_QUORUM.toLowerCase()));
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
-        hbaseTableInfo.setRowkey(StringUtils.split(rk, ","));
+        hbaseTableInfo.setRowkey(rk.split(","));
         String updateMode = (String) props.getOrDefault(UPDATE_KEY, EUpdateMode.APPEND.name());
         hbaseTableInfo.setUpdateMode(updateMode);
         return hbaseTableInfo;
@@ -81,7 +80,7 @@ public class HbaseSinkParser extends AbsTableParser {
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
 
-            String[] filedInfoArr = StringUtils.split(fieldRow, "\\s+");
+            String[] filedInfoArr = fieldRow.split("\\s+");
             if(filedInfoArr.length < 2 ){
                 throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
             }
@@ -97,7 +96,7 @@ public class HbaseSinkParser extends AbsTableParser {
             String fieldName = String.join(" ", filedNameArr);
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
             Class fieldClass = dbTypeConvertToJavaType(fieldType);
-            String[] columnFamily = StringUtils.split(fieldName.trim(), ":");
+            String[] columnFamily = fieldName.trim().split(":");
             columnFamilies.put(fieldName.trim(),columnFamily[1]);
             tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
             tableInfo.addField(columnFamily[1]);

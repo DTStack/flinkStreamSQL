@@ -20,7 +20,6 @@ package com.dtstack.flink.sql.side.kudu.utils;
 
 import com.dtstack.flink.sql.side.PredicateInfo;
 import org.apache.commons.lang.math.NumberUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
@@ -164,7 +163,7 @@ public class KuduUtil {
             case "IN":
             case "NOT_IN":
             case "BETWEEN":
-                value = Arrays.asList(StringUtils.split(info.getCondition(), ",")).stream()
+                value = Arrays.asList(info.getCondition().split(",")).stream()
                         .map(val -> KuduUtil.getValue(val.trim(), column.getType())).collect(Collectors.toList());
                 break;
             case "IS_NOT_NULL":

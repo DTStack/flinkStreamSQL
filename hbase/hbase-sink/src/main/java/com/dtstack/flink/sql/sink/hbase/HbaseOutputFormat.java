@@ -281,7 +281,7 @@ public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
                 String[] columns = keySet.toArray(new String[keySet.size()]);
                 for (int i = 0; i < columns.length; ++i) {
                     String col = columns[i];
-                    String[] part = StringUtils.split(col, ":");
+                    String[] part = col.split(":");
                     families[i] = part[0];
                     qualifiers[i] = part[1];
                 }

@@ -180,14 +180,14 @@ public class DtStringUtil {
             return dbUrl;
         }
 
-        String[] splits = StringUtils.split(dbUrl, "\\?");
+        String[] splits = dbUrl.split("\\?");
         String preStr = splits[0];
         Map<String, String> params = Maps.newHashMap();
         if(splits.length > 1){
             String existsParamStr = splits[1];
-            String[] existsParams = StringUtils.split(existsParamStr, "&");
+            String[] existsParams = existsParamStr.split("&");
             for(String oneParam : existsParams){
-                String[] kv = StringUtils.split(oneParam, "=");
+                String[] kv = oneParam.split("=");
                 if(kv.length != 2){
                     throw new RuntimeException("illegal dbUrl:" + dbUrl);
                 }

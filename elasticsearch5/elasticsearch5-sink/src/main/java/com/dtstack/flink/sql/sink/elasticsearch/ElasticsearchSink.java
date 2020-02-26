@@ -118,7 +118,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         List<InetSocketAddress> transports = new ArrayList<>();
 
         for(String address : esAddressList){
-            String[] infoArray = StringUtils.split(address, ":");
+            String[] infoArray = address.split(":");
             int port = 9300;
             String host = infoArray[0];
             if(infoArray.length > 1){
@@ -169,7 +169,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         esTableInfo = elasticsearchTableInfo;
         clusterName = elasticsearchTableInfo.getClusterName();
         String address = elasticsearchTableInfo.getAddress();
-        String[] addr = StringUtils.split(address, ",");
+        String[] addr = address.split(",");
         esAddressList = Arrays.asList(addr);
         index = elasticsearchTableInfo.getIndex();
         type = elasticsearchTableInfo.getEsType();
