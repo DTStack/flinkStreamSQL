@@ -19,6 +19,13 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.AsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
@@ -27,6 +34,7 @@ import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
+import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.MongoCredential;
@@ -40,13 +48,6 @@ import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.connection.ClusterSettings;
 import com.mongodb.connection.ConnectionPoolSettings;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

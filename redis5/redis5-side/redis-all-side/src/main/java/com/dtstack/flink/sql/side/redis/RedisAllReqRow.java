@@ -18,25 +18,40 @@
 
 package com.dtstack.flink.sql.side.redis;
 
-import com.dtstack.flink.sql.side.*;
-import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
-import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
-import com.esotericsoftware.minlog.Log;
-import org.apache.calcite.sql.JoinType;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Maps;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
+
+import com.dtstack.flink.sql.side.AllReqRow;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
+import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
+import com.esotericsoftware.minlog.Log;
+import com.google.common.collect.Maps;
+import org.apache.calcite.sql.JoinType;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.*;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 

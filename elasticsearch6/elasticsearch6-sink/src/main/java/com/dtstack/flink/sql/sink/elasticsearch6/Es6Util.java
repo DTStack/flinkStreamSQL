@@ -16,10 +16,12 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.elasticsearch;
+package com.dtstack.flink.sql.sink.elasticsearch6;
 
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
+
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
 
@@ -28,16 +30,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Utilities for ElasticSearch
- *
- * Company: www.dtstack.com
- * @author huyifan.zju@163.com
+ * @author yinxi
+ * @date 2020/1/9 - 15:08
  */
-public class EsUtil {
+public class Es6Util {
 
     public static Map<String, Object> rowToJsonMap(Row row, List<String> fields, List<String> types) {
         Preconditions.checkArgument(row.getArity() == fields.size());
-        Map<String,Object> jsonMap = new HashMap<>();
+        Map<String,Object> jsonMap = Maps.newHashMap();
         int i = 0;
         for(; i < fields.size(); ++i) {
             String field = fields.get(i);
@@ -46,7 +46,8 @@ public class EsUtil {
             for(int j = 0; j < parts.length - 1; ++j) {
                 String key = parts[j];
                 if(currMap.get(key) == null) {
-                    currMap.put(key, new HashMap<String,Object>());
+                    HashMap<String, Object> hashMap = Maps.newHashMap();
+                    currMap.put(key, hashMap);
                 }
                 currMap = (Map<String, Object>) currMap.get(key);
             }

@@ -1,5 +1,12 @@
 package com.dtstack.flink.sql.side.kudu;
 
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+import org.apache.flink.util.Collector;
+import org.apache.flink.util.Preconditions;
+
 import com.dtstack.flink.sql.side.AllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
@@ -7,16 +14,10 @@ import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
-import org.apache.calcite.sql.JoinType;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
-import org.apache.flink.util.Preconditions;
+import org.apache.calcite.sql.JoinType;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.KuduClient;

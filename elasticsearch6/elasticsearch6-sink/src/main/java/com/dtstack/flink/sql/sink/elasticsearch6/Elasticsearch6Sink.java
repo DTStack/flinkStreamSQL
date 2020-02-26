@@ -16,9 +16,7 @@
  * limitations under the License.
  */
 
- 
-
-package com.dtstack.flink.sql.sink.elasticsearch;
+package com.dtstack.flink.sql.sink.elasticsearch6;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -32,30 +30,26 @@ import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
-import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
+import com.dtstack.flink.sql.sink.elasticsearch6.table.ElasticsearchTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.commons.lang3.StringUtils;
+import com.google.common.collect.Maps;
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpHost;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * table output elastic5plugin
- * Date: 2018/7/13
- * Company: www.dtstack.com
- * @author huyifan_zju@163.com
+ * @author yinxi
+ * @date 2020/1/9 - 15:08
  */
+public class Elasticsearch6Sink implements RetractStreamTableSink<Row>, IStreamSinkGener<Elasticsearch6Sink> {
 
-public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSinkGener<ElasticsearchSink> {
-
-    private final Logger logger = LoggerFactory.getLogger(ElasticsearchSink.class);
+    private final Logger logger = LoggerFactory.getLogger(Elasticsearch6Sink.class);
 
     private String clusterName;
 
@@ -108,49 +102,41 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     }
 
 
-    private RichSinkFunction createEsSinkFunction(){
+    private RichSinkFunction createEsSinkFunction() {
 
 
-        Map<String, String> userConfig = new HashMap<>();
+        Map<String, String> userConfig = Maps.newHashMap();
         userConfig.put("cluster.name", clusterName);
         // This instructs the sink to emit after every element, otherwise they would be buffered
-        userConfig.put(org.apache.flink.streaming.connectors.elasticsearch5.ElasticsearchSink.CONFIG_KEY_BULK_FLUSH_MAX_ACTIONS, "" + bulkFlushMaxActions);
-        List<InetSocketAddress> transports = new ArrayList<>();
+        userConfig.put(org.apache.flink.streaming.connectors.elasticsearch6.ElasticsearchSink.CONFIG_KEY_BULK_FLUSH_MAX_ACTIONS, "" + bulkFlushMaxActions);
+        List<HttpHost> transports = new ArrayList<>();
 
-        for(String address : esAddressList){
+        for (String address : esAddressList) {
             String[] infoArray = address.split(":");
-            int port = 9300;
+            int port = 9200;
             String host = infoArray[0];
-            if(infoArray.length > 1){
+            if (infoArray.length > 1) {
                 port = Integer.valueOf(infoArray[1].trim());
             }
 
             try {
-                transports.add(new InetSocketAddress(InetAddress.getByName(host), port));
-            }catch (Exception e){
+                transports.add(new HttpHost(host.trim(), port, "http"));
+            } catch (Exception e) {
                 logger.error("", e);
                 throw new RuntimeException(e);
             }
         }
 
-        boolean authMesh = esTableInfo.isAuthMesh();
-        if (authMesh) {
-            String username = esTableInfo.getUserName();
-            String password = esTableInfo.getPassword();
-            String authPassword = esTableInfo.getUserName() + ":" + esTableInfo.getPassword();
-            userConfig.put("xpack.security.user", authPassword);
-        }
-
         CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), idIndexList);
 
-        return new MetricElasticsearchSink(userConfig, transports, customerSinkFunc, esTableInfo);
+        return new MetricElasticsearch6Sink(userConfig, transports, customerSinkFunc, esTableInfo);
     }
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         RichSinkFunction richSinkFunction = createEsSinkFunction();
         DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
-        if(parallelism > 0){
+        if (parallelism > 0) {
             streamSink.setParallelism(parallelism);
         }
     }
@@ -164,7 +150,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     }
 
     @Override
-    public ElasticsearchSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public Elasticsearch6Sink genStreamSink(TargetTableInfo targetTableInfo) {
         ElasticsearchTableInfo elasticsearchTableInfo = (ElasticsearchTableInfo) targetTableInfo;
         esTableInfo = elasticsearchTableInfo;
         clusterName = elasticsearchTableInfo.getClusterName();
@@ -177,12 +163,11 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         String[] idField = StringUtils.split(id, ",");
         idIndexList = new ArrayList<>();
 
-        for(int i = 0; i < idField.length; ++i) {
+        for (int i = 0; i < idField.length; ++i) {
             idIndexList.add(Integer.valueOf(idField[i]));
         }
 
         columnTypes = elasticsearchTableInfo.getFieldTypes();
-
         return this;
     }
 }

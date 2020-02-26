@@ -38,6 +38,12 @@
 
 package com.dtstack.flink.sql.sink.cassandra;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.types.Row;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.HostDistance;
@@ -49,13 +55,9 @@ import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.sql.DriverManager;
