@@ -22,7 +22,6 @@ package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
 import java.util.List;
@@ -59,7 +58,7 @@ public class RowKeyBuilder implements Serializable{
                 fieldCols = infoAlias;
             }
 
-            String[] fieldArr = StringUtils.split(fieldCols, "\\+");
+            String[] fieldArr = fieldCols.split("\\+");
             List<ReplaceInfo> fieldList = Lists.newArrayList();
             for(String oneField : fieldArr){
                 ReplaceInfo replaceInfo =  getReplaceInfo(oneField);
@@ -109,7 +108,7 @@ public class RowKeyBuilder implements Serializable{
 
     public static String[] splitIgnoreQuotaBrackets(String str, String delimiter){
         String splitPatternStr = delimiter + "(?![^()]*+\\))(?![^{}]*+})(?![^\\[\\]]*+\\])";
-        return StringUtils.split(str, splitPatternStr);
+        return str.split(splitPatternStr);
     }
 
     /**

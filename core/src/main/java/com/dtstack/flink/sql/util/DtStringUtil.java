@@ -180,7 +180,7 @@ public class DtStringUtil {
             return dbUrl;
         }
 
-        String[] splits = StringUtils.split(dbUrl, "\\?");
+        String[] splits = dbUrl.split("\\?");
         String preStr = splits[0];
         Map<String, String> params = Maps.newHashMap();
         if(splits.length > 1){

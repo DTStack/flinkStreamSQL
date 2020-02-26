@@ -895,7 +895,7 @@ public class SideSqlExec {
         String fieldsInfo = result.getFieldsInfoStr();
         String[] fields = StringUtils.split(fieldsInfo, ",");
         for (int i = 0; i < fields.length; i++) {
-            String[] filed = StringUtils.split(fields[i], "\\s");
+            String[] filed = fields[i].split("\\s");
             if (filed.length < 2 || fields.length != table.getSchema().getColumnNames().length){
                 return false;
             } else {
