@@ -202,4 +202,23 @@ public class JoinInfo implements Serializable {
     public void setLeftIsTmpTable(boolean leftIsTmpTable) {
         this.leftIsTmpTable = leftIsTmpTable;
     }
+
+    @Override
+    public String toString() {
+        return "JoinInfo{" +
+                "leftIsSideTable=" + leftIsSideTable +
+                ", leftIsTmpTable=" + leftIsTmpTable +
+                ", rightIsSideTable=" + rightIsSideTable +
+                ", leftTableName='" + leftTableName + '\'' +
+                ", leftTableAlias='" + leftTableAlias + '\'' +
+                ", rightTableName='" + rightTableName + '\'' +
+                ", rightTableAlias='" + rightTableAlias + '\'' +
+                ", leftNode=" + leftNode +
+                ", rightNode=" + rightNode +
+                ", condition=" + condition +
+                ", selectFields=" + selectFields +
+                ", selectNode=" + selectNode +
+                ", joinType=" + joinType +
+                '}';
+    }
 }

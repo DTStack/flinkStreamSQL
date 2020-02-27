@@ -31,6 +31,7 @@ import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -67,6 +68,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -86,10 +88,10 @@ public class SideSqlExec {
     private String tmpFields = null;
 
     private SideSQLParser sideSQLParser = new SideSQLParser();
+
     private SidePredicatesParser sidePredicatesParser = new SidePredicatesParser();
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
-    private StreamTableEnvironment tableEnv ;
 
     public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
                      Map<String, Table> tableCache, StreamQueryConfig queryConfig) throws Exception {
@@ -142,6 +144,17 @@ public class SideSqlExec {
 
                     FieldReplaceInfo fieldReplaceInfo = parseAsQuery((SqlBasicCall) pollSqlNode, tableCache);
                     if(fieldReplaceInfo != null){
+                        //as 的源表
+                        Set<String> fromTableNameSet = Sets.newHashSet();
+                        SqlNode fromNode = ((SqlBasicCall)pollSqlNode).getOperands()[0];
+                        TableUtils.getFromTableInfo(fromNode, fromTableNameSet);
+                        for(FieldReplaceInfo tmp : replaceInfoList){
+                            if(fromTableNameSet.contains(tmp.getTargetTableName())
+                                    || fromTableNameSet.contains(tmp.getTargetTableAlias())){
+                                fieldReplaceInfo.setPreNode(tmp);
+                                break;
+                            }
+                        }
                         replaceInfoList.add(fieldReplaceInfo);
                     }
                 } else if (pollSqlNode.getKind() == WITH_ITEM) {
@@ -152,6 +165,8 @@ public class SideSqlExec {
                 }
 
             }else if (pollObj instanceof JoinInfo){
+                System.out.println("----------exec join info----------");
+                System.out.println(pollObj.toString());
                 preIsSideJoin = true;
                 joinFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
             }
@@ -694,6 +709,7 @@ public class SideSqlExec {
         return conditionFields;
     }
 
+    //TODO 合并临时表处理逻辑
     public void registerTmpTable(CreateTmpTableParser.SqlParserResult result,
                                  Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
                                  Map<String, Table> tableCache)
@@ -748,6 +764,8 @@ public class SideSqlExec {
 
             }else if (pollObj instanceof JoinInfo){
                 preIsSideJoin = true;
+                System.out.println("----------exec join info----------");
+                System.out.println(pollObj.toString());
                 joinFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
             }
         }
