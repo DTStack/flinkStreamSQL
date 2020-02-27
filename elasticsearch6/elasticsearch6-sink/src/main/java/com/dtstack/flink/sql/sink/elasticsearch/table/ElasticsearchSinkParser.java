@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.elasticsearch6.table;
+package com.dtstack.flink.sql.sink.elasticsearch.table;
 
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;

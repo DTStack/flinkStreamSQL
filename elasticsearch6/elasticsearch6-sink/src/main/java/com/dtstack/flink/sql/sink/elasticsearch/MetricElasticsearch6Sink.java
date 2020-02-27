@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.elasticsearch6;
+package com.dtstack.flink.sql.sink.elasticsearch;
 
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
@@ -27,7 +27,7 @@ import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkFunc
 import org.apache.flink.streaming.connectors.elasticsearch.util.NoOpFailureHandler;
 
 import com.dtstack.flink.sql.metric.MetricConstant;
-import com.dtstack.flink.sql.sink.elasticsearch6.table.ElasticsearchTableInfo;
+import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
 import org.elasticsearch.client.RestHighLevelClient;
 
 import java.util.List;
