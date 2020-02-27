@@ -67,8 +67,8 @@ public abstract class AllReqRow extends RichFlatMapFunction<CRow, CRow> implemen
         es.scheduleAtFixedRate(() -> reloadCache(), sideTableInfo.getCacheTimeout(), sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS);
     }
 
-    protected void sendOutputRow(CRow value, Object sideInput, Collector<CRow> out){
-        if(sideInput == null && sideInfo.getJoinType() != JoinType.LEFT){
+    protected void sendOutputRow(CRow value, Object sideInput, Collector<CRow> out) {
+        if (sideInput == null && sideInfo.getJoinType() != JoinType.LEFT) {
             return;
         }
 
@@ -76,4 +76,10 @@ public abstract class AllReqRow extends RichFlatMapFunction<CRow, CRow> implemen
         out.collect(new CRow(row, value.change()));
     }
 
+    @Override
+    public void close() throws Exception {
+        if (null != es && !es.isShutdown()) {
+            es.shutdown();
+        }
+    }
 }
