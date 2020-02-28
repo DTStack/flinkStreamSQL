@@ -63,14 +63,12 @@ public class ConfigConstrant {
     public static final String CHECKPOINTS_DIRECTORY_KEY = "state.checkpoints.dir";
     public static final String STATE_BACKEND_INCREMENTAL_KEY = "state.backend.incremental";
 
-    public static final String RESTOREENABLE = "restore.enable";
-
 
     // restart plocy
     public static final int failureRate = 3;
 
-    public static final String FAILUREINTERVAL = "failure.interval"; //min
+    public static final int failureInterval = 6; //min
 
-    public static final String  DELAYINTERVAL= "delay.interval"; //sec
+    public static final int delayInterval = 10; //sec
 
 }

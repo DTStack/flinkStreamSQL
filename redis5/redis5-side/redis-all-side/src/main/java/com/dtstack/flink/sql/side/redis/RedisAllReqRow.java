@@ -32,7 +32,6 @@ import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
 import com.esotericsoftware.minlog.Log;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,19 +177,19 @@ public class RedisAllReqRow extends AllReqRow{
                 Set<String> keys = ((Jedis) jedis).keys(perKey);
                 List<String> newPerKeys = new LinkedList<>();
                 for (String key : keys){
-                    String[] splitKey = StringUtils.split(key, ":");
+                    String[] splitKey = key.split(":");
                     String newKey = splitKey[0] + ":" + splitKey[1] + ":" + splitKey[2];
                     newPerKeys.add(newKey);
                 }
                 List<String> list = newPerKeys.stream().distinct().collect(Collectors.toList());
                 for(String key : list){
                     Map<String, String> kv = Maps.newHashMap();
-                    String[] primaryKv = StringUtils.split(key, ":");
+                    String[] primaryKv = key.split(":");
                     kv.put(primaryKv[1], primaryKv[2]);
                     String pattern = key + "*";
                     Set<String> realKeys = ((Jedis) jedis).keys(pattern);
                     for (String realKey : realKeys){
-                        kv.put(StringUtils.split(realKey, ":")[3], jedis.get(realKey));
+                        kv.put(realKey.split(":")[3], jedis.get(realKey));
                     }
                     tmpCache.put(key, kv);
                 }
@@ -199,19 +198,19 @@ public class RedisAllReqRow extends AllReqRow{
                 Set<String> keys = keys((JedisCluster) jedis, perKey);
                 List<String> newPerKeys = new LinkedList<>();
                 for (String key : keys){
-                    String[] splitKey = StringUtils.split(key, ":");
+                    String[] splitKey = key.split(":");
                     String newKey = splitKey[0] + ":" + splitKey[1] + ":" + splitKey[2];
                     newPerKeys.add(newKey);
                 }
                 List<String> list = newPerKeys.stream().distinct().collect(Collectors.toList());
                 for(String key : list){
                     Map<String, String> kv = Maps.newHashMap();
-                    String[] primaryKv = StringUtils.split(key, ":");
+                    String[] primaryKv = key.split(":");
                     kv.put(primaryKv[1], primaryKv[2]);
                     String pattern = key + "*";
                     Set<String> realKeys = keys((JedisCluster) jedis, pattern);
                     for (String realKey : realKeys){
-                        kv.put(StringUtils.split(key, ":")[3], jedis.get(realKey));
+                        kv.put(realKey.split(":")[3], jedis.get(realKey));
                     }
                     tmpCache.put(key, kv);
                 }
@@ -246,15 +245,15 @@ public class RedisAllReqRow extends AllReqRow{
             timeout = 1000;
         }
 
-        String[] nodes = StringUtils.split(url, ",");
-        String[] firstIpPort = StringUtils.split(nodes[0], ":");
+        String[] nodes = url.split(",");
+        String[] firstIpPort = nodes[0].split(":");
         String firstIp = firstIpPort[0];
         String firstPort = firstIpPort[1];
         Set<HostAndPort> addresses = new HashSet<>();
         Set<String> ipPorts = new HashSet<>();
         for (String ipPort : nodes) {
             ipPorts.add(ipPort);
-            String[] ipPortPair = StringUtils.split(ipPort, ":");
+            String[] ipPortPair = ipPort.split(":");
             addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
         }
         if (timeout == 0){

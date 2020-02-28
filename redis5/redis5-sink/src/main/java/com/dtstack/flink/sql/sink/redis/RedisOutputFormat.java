@@ -24,7 +24,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,15 +107,15 @@ public class RedisOutputFormat extends DtRichOutputFormat<Tuple2> {
 
     private void establishConnection() {
         poolConfig = setPoolConfig(maxTotal, maxIdle, minIdle);
-        String[] nodes = StringUtils.split(url, ",");
-        String[] firstIpPort = StringUtils.split(nodes[0], ":");
+        String[] nodes = url.split(",");
+        String[] firstIpPort = nodes[0].split(":");
         String firstIp = firstIpPort[0];
         String firstPort = firstIpPort[1];
         Set<HostAndPort> addresses = new HashSet<>();
         Set<String> ipPorts = new HashSet<>();
         for (String ipPort : nodes) {
             ipPorts.add(ipPort);
-            String[] ipPortPair = StringUtils.split(ipPort, ":");
+            String[] ipPortPair = ipPort.split(":");
             addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
         }
         if (timeout == 0){

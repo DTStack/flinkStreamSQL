@@ -63,7 +63,6 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -893,7 +892,7 @@ public class SideSqlExec {
     private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table) {
         List<String> fieldNames = new LinkedList<>();
         String fieldsInfo = result.getFieldsInfoStr();
-        String[] fields = StringUtils.split(fieldsInfo, ",");
+        String[] fields = fieldsInfo.split(",");
         for (int i = 0; i < fields.length; i++) {
             String[] filed = fields[i].split("\\s");
             if (filed.length < 2 || fields.length != table.getSchema().getColumnNames().length){

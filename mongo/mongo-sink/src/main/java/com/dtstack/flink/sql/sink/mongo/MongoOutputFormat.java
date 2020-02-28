@@ -127,13 +127,13 @@ public class MongoOutputFormat extends DtRichOutputFormat<Tuple2> {
     private void establishConnection() {
         try {
             MongoCredential credential;
-            String[] servers = StringUtils.split(address, ",");
+            String[] servers = address.split(",");
             String host;
             Integer port;
             String[] hostAndPort;
             List<ServerAddress> lists = new ArrayList<>();
             for (String server : servers) {
-                hostAndPort = StringUtils.split(server, ":");
+                hostAndPort = server.split(":");
                 host = hostAndPort[0];
                 port = Integer.parseInt(hostAndPort[1]);
                 lists.add(new ServerAddress(host, port));
