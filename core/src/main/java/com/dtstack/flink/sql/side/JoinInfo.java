@@ -213,8 +213,6 @@ public class JoinInfo implements Serializable {
                 ", leftTableAlias='" + leftTableAlias + '\'' +
                 ", rightTableName='" + rightTableName + '\'' +
                 ", rightTableAlias='" + rightTableAlias + '\'' +
-                ", leftNode=" + leftNode +
-                ", rightNode=" + rightNode +
                 ", condition=" + condition +
                 ", selectFields=" + selectFields +
                 ", selectNode=" + selectNode +
