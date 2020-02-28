@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -71,7 +72,7 @@ public class RdbAsyncSideInfo extends SideInfo {
             dealOneEqualCon(sqlNode, sideTableName);
         }
 
-        sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(sideSelectFields.split(",")),
+        sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(StringUtils.split(sideSelectFields, ",")),
                 equalFieldList, sqlJoinCompareOperate, sideTableInfo.getPredicateInfoes());
         System.out.println("----------dimension sql query-----------\n" + sqlCondition);
     }

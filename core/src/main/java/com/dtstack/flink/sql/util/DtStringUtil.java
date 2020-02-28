@@ -185,9 +185,9 @@ public class DtStringUtil {
         Map<String, String> params = Maps.newHashMap();
         if(splits.length > 1){
             String existsParamStr = splits[1];
-            String[] existsParams = existsParamStr.split("&");
+            String[] existsParams = StringUtils.split(existsParamStr, "&");
             for(String oneParam : existsParams){
-                String[] kv = oneParam.split("=");
+                String[] kv = StringUtils.split(oneParam, "=");
                 if(kv.length != 2){
                     throw new RuntimeException("illegal dbUrl:" + dbUrl);
                 }

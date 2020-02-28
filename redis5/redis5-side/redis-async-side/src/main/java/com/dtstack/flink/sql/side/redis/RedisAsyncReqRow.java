@@ -43,6 +43,7 @@ import io.lettuce.core.api.async.RedisKeyAsyncCommands;
 import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -172,7 +173,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                 public void accept(List<KeyValue<String, String>> keyValues) {
                     if (keyValues.size() != 0) {
                         for (int i = 0; i < keyValues.size(); i++) {
-                            String[] splitKeys = keyValues.get(i).getKey().split(":");
+                            String[] splitKeys = StringUtils.split(keyValues.get(i).getKey(), ":");
                             keyValue.put(splitKeys[1], splitKeys[2]);
                             keyValue.put(splitKeys[3], keyValues.get(i).getValue());
                         }
