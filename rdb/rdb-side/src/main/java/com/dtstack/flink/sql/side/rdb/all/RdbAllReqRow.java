@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,7 +199,7 @@ public abstract class RdbAllReqRow extends AllReqRow {
             Statement statement = connection.createStatement();
             statement.setFetchSize(getFetchSize());
             ResultSet resultSet = statement.executeQuery(sql);
-            String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
+            String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
             String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
             while (resultSet.next()) {
                 Map<String, Object> oneRow = Maps.newHashMap();

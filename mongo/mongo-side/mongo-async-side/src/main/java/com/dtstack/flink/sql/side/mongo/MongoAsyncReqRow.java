@@ -92,13 +92,13 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     public void connMongoDB() throws Exception {
         MongoCredential mongoCredential;
-        String[] servers = MongoSideTableInfo.getAddress().split(",");
+        String[] servers = StringUtils.split(MongoSideTableInfo.getAddress(), ",");
         String host;
         Integer port;
         String[] hostAndPort;
         List<ServerAddress> lists = new ArrayList<>();
         for (String server : servers) {
-            hostAndPort = server.split(":");
+            hostAndPort = StringUtils.split(server, ":");
             host = hostAndPort[0];
             port = Integer.parseInt(hostAndPort[1]);
             lists.add(new ServerAddress(host, port));

@@ -185,13 +185,13 @@ public class MongoAllReqRow extends AllReqRow {
         MongoCollection dbCollection;
         try {
             MongoCredential credential;
-            String[] servers = address.split(",");
+            String[] servers = StringUtils.split(address, ",");
             String host;
             Integer port;
             String[] hostAndPort;
             List<ServerAddress> lists = new ArrayList<>();
             for (String server : servers) {
-                hostAndPort = server.split(":");
+                hostAndPort = StringUtils.split(server, ":");
                 host = hostAndPort[0];
                 port = Integer.parseInt(hostAndPort[1]);
                 lists.add(new ServerAddress(host, port));
@@ -237,7 +237,7 @@ public class MongoAllReqRow extends AllReqRow {
             }
 
             //load data from table
-            String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
+            String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
             BasicDBObject basicDBObject = new BasicDBObject();
             for (String selectField : sideFieldNames) {
                 basicDBObject.append(selectField, 1);

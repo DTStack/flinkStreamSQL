@@ -83,7 +83,7 @@ public class PerJobSubmitter {
 		if (addjarPath.length() > 2) {
 			addjarPath = addjarPath.substring(1,addjarPath.length()-1).replace("\"","");
 		}
-		List<String> paths = Arrays.asList(addjarPath.split(","));
+        List<String> paths = Arrays.asList(StringUtils.split(addjarPath, ","));
 		return paths;
 	}
 

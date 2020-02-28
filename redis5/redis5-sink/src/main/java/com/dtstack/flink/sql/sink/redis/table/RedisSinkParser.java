@@ -24,7 +24,6 @@ import com.dtstack.flink.sql.util.MathUtil;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +50,7 @@ public class RedisSinkParser extends AbsTableParser {
         String primaryKeysStr = MathUtil.getString(props.get(RedisTableInfo.PRIMARY_KEYS_NAME));
         List<String> primaryKeysList = Lists.newArrayList();
         if (!StringUtils.isEmpty(primaryKeysStr)) {
-            primaryKeysList = Arrays.asList(primaryKeysStr.split(","));
+            primaryKeysList = Arrays.asList(StringUtils.split(primaryKeysStr, ","));
         }
         redisTableInfo.setPrimaryKeys(primaryKeysList);
 

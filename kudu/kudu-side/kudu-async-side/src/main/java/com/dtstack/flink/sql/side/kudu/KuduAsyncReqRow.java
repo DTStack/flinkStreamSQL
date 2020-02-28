@@ -23,6 +23,7 @@ import com.google.common.collect.Maps;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import io.vertx.core.json.JsonArray;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.AsyncKuduClient;
@@ -113,7 +114,7 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         Long limitNum = kuduSideTableInfo.getLimitNum();
         Boolean isFaultTolerant = kuduSideTableInfo.getFaultTolerant();
         //查询需要的字段
-        String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
+        String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
 
         if (null == limitNum || limitNum <= 0) {
             scannerBuilder.limit(FETCH_SIZE);
@@ -280,7 +281,7 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         public Deferred<List<Row>> call(RowResultIterator results) throws Exception {
             for (RowResult result : results) {
                 Map<String, Object> oneRow = Maps.newHashMap();
-                for (String sideFieldName1 : sideInfo.getSideSelectFields().split(",")) {
+                for (String sideFieldName1 : StringUtils.split(sideInfo.getSideSelectFields(), ",")) {
                     String sideFieldName = sideFieldName1.trim();
                     ColumnSchema columnSchema = table.getSchema().getColumn(sideFieldName);
                     if (null != columnSchema) {

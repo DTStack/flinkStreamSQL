@@ -18,6 +18,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.KuduClient;
@@ -160,7 +161,7 @@ public class KuduAllReqRow extends AllReqRow {
             }
             //load data from table
             assert scanner != null;
-            String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
+            String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
 
 
             while (scanner.hasMoreRows()) {
@@ -263,7 +264,7 @@ public class KuduAllReqRow extends AllReqRow {
         Long limitNum = tableInfo.getLimitNum();
         Boolean isFaultTolerant = tableInfo.getFaultTolerant();
         //查询需要的字段
-        String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
+        String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
         //主键过滤条件 主键最小值
         String lowerBoundPrimaryKey = tableInfo.getLowerBoundPrimaryKey();
         //主键过滤条件 主键最大值
@@ -317,7 +318,7 @@ public class KuduAllReqRow extends AllReqRow {
     }
 
     private String[] splitString(String data) {
-        return data.split(",");
+        return StringUtils.split(data, ",");
     }
 
     @Override
