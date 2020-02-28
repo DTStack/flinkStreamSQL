@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.kudu;
 
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
