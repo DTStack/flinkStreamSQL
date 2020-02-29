@@ -53,6 +53,8 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     public static final String ASYNC_TIMEOUT_KEY = "asyncTimeout";
 
+    public static final String ASYNC_TIMEOUT_NUM_KEY = "asyncTimeoutNum";
+
     private String cacheType = "none";//None or LRU or ALL
 
     private int cacheSize = 10000;
@@ -62,6 +64,8 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
     private int  asyncCapacity=100;
 
     private int  asyncTimeout=10000;
+
+    private int asyncTimeoutNumLimit = 0;
 
     private boolean partitionedJoin = false;
 
@@ -143,4 +147,13 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
     public List<PredicateInfo> getPredicateInfoes() {
         return predicateInfoes;
     }
+
+    public int getAsyncTimeoutNumLimit() {
+        return asyncTimeoutNumLimit;
+    }
+
+    public void setAsyncTimeoutNumLimit(int asyncTimeoutNumLimit) {
+        this.asyncTimeoutNumLimit = asyncTimeoutNumLimit;
+    }
+
 }

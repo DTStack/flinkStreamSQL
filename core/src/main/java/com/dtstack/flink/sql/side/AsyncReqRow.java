@@ -125,11 +125,13 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
 
         //TODO 需要添加数据指标
         if(timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0){
-            LOG.info("Async function call has timed out. input:" + input.toString());
+            LOG.info("Async function call has timed out. input:{}, timeOutNum:{}",input.toString(), timeOutNum);
+        }
+        timeOutNum ++;
+        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncTimeoutNumLimit()){
+            resultFuture.complete(null);
         }
 
-        timeOutNum++;
-        resultFuture.complete(null);
     }
 
 
