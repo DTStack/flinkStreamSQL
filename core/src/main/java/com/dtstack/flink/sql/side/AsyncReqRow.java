@@ -130,6 +130,8 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         timeOutNum ++;
         if(timeOutNum > sideInfo.getSideTableInfo().getAsyncTimeoutNumLimit()){
             resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
+        } else {
+            resultFuture.complete(null);
         }
     }
 
