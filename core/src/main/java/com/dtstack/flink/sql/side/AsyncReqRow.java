@@ -122,13 +122,14 @@ public abstract class AsyncReqRow extends RichAsyncFunction<CRow, CRow> implemen
 
     @Override
     public void timeout(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        StreamRecordQueueEntry<CRow> future = (StreamRecordQueueEntry<CRow>)resultFuture;
-        try {
-            if (null == future.get()) {
-                resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out."));
-            }
-        } catch (Exception e) {
-            resultFuture.completeExceptionally(new Exception(e));
+
+        if(timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0){
+            LOG.info("Async function call has timed out. input:{}, timeOutNum:{}",input.toString(), timeOutNum);
+        }
+
+        timeOutNum ++;
+        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncTimeoutNumLimit()){
+            resultFuture.complete(null);
         }
     }
 
