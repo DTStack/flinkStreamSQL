@@ -111,7 +111,7 @@ public abstract class AbsSideTableParser extends AbsTableParser {
             if(props.containsKey(SideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase())){
                 Integer asyncTimeoutNum = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase()));
                 if (asyncTimeoutNum > 0){
-                    sideTableInfo.setAsyncTimeout(asyncTimeoutNum);
+                    sideTableInfo.setAsyncTimeoutNumLimit(asyncTimeoutNum);
                 }
             }
         }

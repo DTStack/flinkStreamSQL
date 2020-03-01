@@ -65,7 +65,7 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
 
     private int  asyncTimeout=10000;
 
-    private int asyncTimeoutNumLimit = Integer.MAX_VALUE;
+    private int asyncTimeoutNumLimit = 0;
 
     private boolean partitionedJoin = false;
 
