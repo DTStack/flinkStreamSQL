@@ -101,11 +101,15 @@ public final class StreamEnvConfigManager {
             }
         });
 
-        streamEnv.setRestartStrategy(RestartStrategies.failureRateRestart(
-                ConfigConstrant.failureRate,
-                Time.of(ConfigConstrant.failureInterval, TimeUnit.MINUTES),
-                Time.of(ConfigConstrant.delayInterval, TimeUnit.SECONDS)
-        ));
+        if(isRestore(confProperties).get()){
+            streamEnv.setRestartStrategy(RestartStrategies.failureRateRestart(
+                    ConfigConstrant.failureRate,
+                    Time.of(getFailureInterval(confProperties).get(), TimeUnit.MINUTES),
+                    Time.of(getDelayInterval(confProperties).get(), TimeUnit.SECONDS)
+            ));
+        } else {
+            streamEnv.setRestartStrategy(RestartStrategies.noRestart());
+        }
 
         // checkpoint config
         Optional<Boolean> checkpointingEnabled = isCheckpointingEnabled(confProperties);
@@ -161,6 +165,20 @@ public final class StreamEnvConfigManager {
     public static Optional<Long> getAutoWatermarkInterval(Properties properties) {
         String autoWatermarkInterval = properties.getProperty(ConfigConstrant.AUTO_WATERMARK_INTERVAL_KEY);
         return StringUtils.isNotBlank(autoWatermarkInterval) ? Optional.of(Long.valueOf(autoWatermarkInterval)) : Optional.empty();
+    }
+
+    public static Optional<Boolean> isRestore(Properties properties){
+        String restoreEnable = properties.getProperty(ConfigConstrant.RESTOREENABLE, "true");
+        return Optional.of(Boolean.valueOf(restoreEnable));
+    }
+
+    public static Optional<Integer> getDelayInterval(Properties properties){
+        String delayInterval = properties.getProperty(ConfigConstrant.DELAYINTERVAL, "10");
+        return Optional.of(Integer.valueOf(delayInterval));
+    }
+    public static Optional<Integer> getFailureInterval(Properties properties){
+        String failureInterval = properties.getProperty(ConfigConstrant.FAILUREINTERVAL, "6");
+        return Optional.of(Integer.valueOf(failureInterval));
     }
 
     /**

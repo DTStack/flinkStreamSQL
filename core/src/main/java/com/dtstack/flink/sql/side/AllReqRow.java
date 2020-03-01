@@ -21,9 +21,12 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.factory.DTThreadFactory;
+import org.apache.calcite.sql.JoinType;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.types.Row;
+import org.apache.flink.util.Collector;
 
 import java.sql.SQLException;
 import java.util.concurrent.Executors;
@@ -64,4 +67,19 @@ public abstract class AllReqRow extends RichFlatMapFunction<CRow, CRow> implemen
         es.scheduleAtFixedRate(() -> reloadCache(), sideTableInfo.getCacheTimeout(), sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS);
     }
 
+    protected void sendOutputRow(CRow value, Object sideInput, Collector<CRow> out) {
+        if (sideInput == null && sideInfo.getJoinType() != JoinType.LEFT) {
+            return;
+        }
+
+        Row row = fillData(value.row(), sideInput);
+        out.collect(new CRow(row, value.change()));
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (null != es && !es.isShutdown()) {
+            es.shutdown();
+        }
+    }
 }
