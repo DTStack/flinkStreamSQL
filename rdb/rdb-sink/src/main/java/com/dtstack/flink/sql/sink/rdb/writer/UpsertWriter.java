@@ -110,6 +110,11 @@ public abstract class UpsertWriter implements JDBCWriter {
     @Override
     public void open(Connection connection) throws SQLException {
         this.keyToRows = new HashMap<>();
+        prepareStatement(connection);
+    }
+
+    @Override
+    public void prepareStatement(Connection connection) throws SQLException {
         this.deleteStatement = connection.prepareStatement(deleteSQL);
     }
 
@@ -224,6 +229,11 @@ public abstract class UpsertWriter implements JDBCWriter {
         @Override
         public void open(Connection connection) throws SQLException {
             super.open(connection);
+        }
+
+        @Override
+        public void prepareStatement(Connection connection) throws SQLException {
+            super.prepareStatement(connection);
             upsertStatement = connection.prepareStatement(upsertSQL);
         }
 
@@ -284,6 +294,11 @@ public abstract class UpsertWriter implements JDBCWriter {
         @Override
         public void open(Connection connection) throws SQLException {
             super.open(connection);
+        }
+
+        @Override
+        public void prepareStatement(Connection connection) throws SQLException {
+            super.prepareStatement(connection);
             existStatement = connection.prepareStatement(existSQL);
             insertStatement = connection.prepareStatement(insertSQL);
             updateStatement = connection.prepareStatement(updateSQL);

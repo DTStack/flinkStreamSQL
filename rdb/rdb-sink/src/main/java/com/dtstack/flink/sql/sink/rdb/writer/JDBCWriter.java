@@ -33,9 +33,15 @@ public interface JDBCWriter extends Serializable {
 	int DIRTYDATA_PRINT_FREQUENTY = 1000;
 
 	/**
-	 * Open the writer by JDBC Connection. It can create Statement from Connection.
+	 * Open the writer by JDBC Connection.
 	 */
 	void open(Connection connection) throws SQLException;
+
+	/**
+	 *  Create Statement from Connection. Used where the connection is created
+	 * @throws SQLException
+	 */
+	void prepareStatement(Connection connection) throws SQLException;
 
 	/**
 	 * Add record to writer, the writer may cache the data.
