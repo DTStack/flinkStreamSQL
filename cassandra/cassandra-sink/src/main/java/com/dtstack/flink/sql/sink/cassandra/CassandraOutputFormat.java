@@ -69,7 +69,7 @@ import java.util.ArrayList;
  * @see Tuple
  * @see DriverManager
  */
-public class CassandraOutputFormat extends DtRichOutputFormat {
+public class CassandraOutputFormat extends DtRichOutputFormat<Tuple2> {
     private static final long serialVersionUID = -7994311331389155692L;
 
     private static final Logger LOG = LoggerFactory.getLogger(CassandraOutputFormat.class);

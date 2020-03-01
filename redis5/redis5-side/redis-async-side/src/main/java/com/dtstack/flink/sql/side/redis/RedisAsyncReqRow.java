@@ -36,6 +36,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 
 import java.util.Collections;
@@ -116,14 +117,14 @@ public class RedisAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = Row.copy(input);
+    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow inputCopy = new CRow(input.row(),input.change());
         List<String> keyData = Lists.newLinkedList();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputRow.getField(conValIndex);
+            Object equalObj = inputCopy.row().getField(conValIndex);
             if(equalObj == null){
-                dealMissKey(inputRow, resultFuture);
+                dealMissKey(inputCopy, resultFuture);
                 return;
             }
             String value = equalObj.toString();
@@ -137,14 +138,14 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(key);
             if(val != null){
                 if(ECacheContentType.MissVal == val.getType()){
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){
                     try {
-                        Row row = fillData(inputRow, val.getContent());
-                        resultFuture.complete(Collections.singleton(row));
+                        Row row = fillData(inputCopy.row(), val.getContent());
+                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 }else{
                     RuntimeException exception = new RuntimeException("not support cache obj type " + val.getType());
@@ -157,8 +158,8 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         Map<String, String> keyValue = Maps.newHashMap();
         List<String> value = async.keys(key + ":*").get();
         String[] values = value.toArray(new String[value.size()]);
-        if (values.length == 0){
-            dealMissKey(inputRow, resultFuture);
+        if (values.length == 0) {
+            dealMissKey(inputCopy, resultFuture);
         } else {
             RedisFuture<List<KeyValue<String, String>>> future = ((RedisStringAsyncCommands) async).mget(values);
             future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
@@ -171,15 +172,15 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                             keyValue.put(splitKeys[3], keyValues.get(i).getValue());
                         }
                         try {
-                            Row row = fillData(inputRow, keyValue);
-                            dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
-                            resultFuture.complete(Collections.singleton(row));
+                            Row row = fillData(inputCopy.row(), keyValue);
+                            dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
+                            resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
                         } catch (Exception e) {
-                            dealFillDataError(resultFuture, e, inputRow);
+                            dealFillDataError(resultFuture, e, inputCopy);
                         }
                     } else {
-                        dealMissKey(inputRow, resultFuture);
-                        dealCacheData(key,CacheMissVal.getMissKeyObj());
+                        dealMissKey(inputCopy, resultFuture);
+                        dealCacheData(key, CacheMissVal.getMissKeyObj());
                     }
                 }
             });
