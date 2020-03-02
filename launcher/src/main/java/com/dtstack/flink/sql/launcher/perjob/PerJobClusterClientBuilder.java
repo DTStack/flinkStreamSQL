@@ -31,7 +31,7 @@ import org.apache.flink.runtime.security.SecurityUtils;
 import org.apache.flink.yarn.YarnClientYarnClusterInformationRetriever;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.flink.yarn.configuration.YarnConfigOptions;
-import org.apache.flink.yarn.executors.YarnJobClusterExecutor;
+import org.apache.flink.yarn.configuration.YarnConfigOptionsInternal;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -39,12 +39,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -58,7 +58,8 @@ public class PerJobClusterClientBuilder {
 
     private static final Logger LOG = LoggerFactory.getLogger(PerJobClusterClientBuilder.class);
 
-    private static final String DEFAULT_CONF_DIR = "./";
+    public static final String CONFIG_FILE_LOGBACK_NAME = "logback.xml";
+    public static final String CONFIG_FILE_LOG4J_NAME = "log4j.properties";
 
     private YarnClient yarnClient;
 
@@ -79,41 +80,44 @@ public class PerJobClusterClientBuilder {
         yarnClient = YarnClient.createYarnClient();
         yarnClient.init(yarnConf);
         yarnClient.start();
-
         System.out.println("----init yarn success ----");
     }
 
     public YarnClusterDescriptor createPerJobClusterDescriptor(String flinkJarPath, Options launcherOptions, JobGraph jobGraph)
             throws MalformedURLException {
+        fillFlinkConfig(launcherOptions);
 
-        flinkConfig.setString(YarnConfigOptions.APPLICATION_NAME,launcherOptions.getName());
-        String queue = launcherOptions.getQueue();
-        if (!Strings.isNullOrEmpty(queue)) {
-            flinkConfig.setString(YarnConfigOptions.APPLICATION_QUEUE,queue);
-        }
         YarnClusterDescriptor clusterDescriptor = getClusterDescriptor(flinkConfig, yarnConf);
+        List<File> shipFiles = getShipFiles(flinkJarPath, launcherOptions, jobGraph, clusterDescriptor);
+        clusterDescriptor.addShipFiles(shipFiles);
+        return clusterDescriptor;
+    }
 
-        if (StringUtils.isNotBlank(flinkJarPath)) {
-            if (!new File(flinkJarPath).exists()) {
-                throw new RuntimeException("The param '-flinkJarPath' ref dir is not exist");
-            }
-        }
+    protected List<File> getShipFiles(String flinkJarPath, Options launcherOptions, JobGraph jobGraph, YarnClusterDescriptor clusterDescriptor)
+            throws MalformedURLException {
 
         List<File> shipFiles = new ArrayList<>();
-        if (flinkJarPath != null) {
-            File[] jars = new File(flinkJarPath).listFiles();
-            for (File file : jars) {
-                if (file.toURI().toURL().toString().contains("flink-dist")) {
-                    clusterDescriptor.setLocalJarPath(new Path(file.toURI().toURL().toString()));
-                } else {
-                    shipFiles.add(file);
-                }
-            }
-        } else {
-            throw new RuntimeException("The Flink jar path is null");
+        dealFlinkLibJar(flinkJarPath, clusterDescriptor, shipFiles);
+        dealUserJarByPluginLoadMode(launcherOptions.getPluginLoadMode(), jobGraph, shipFiles);
+        return shipFiles;
+    }
+
+    private void dealFlinkLibJar(String flinkJarPath, YarnClusterDescriptor clusterDescriptor, List<File> shipFiles) throws MalformedURLException {
+        if (StringUtils.isEmpty(flinkJarPath) || !new File(flinkJarPath).exists()) {
+            throw new RuntimeException("The param '-flinkJarPath' ref dir is not exist");
         }
+        File[] jars = new File(flinkJarPath).listFiles();
+        for (File file : jars) {
+            if (file.toURI().toURL().toString().contains("flink-dist")) {
+                clusterDescriptor.setLocalJarPath(new Path(file.toURI().toURL().toString()));
+            } else {
+                shipFiles.add(file);
+            }
+        }
+    }
+
+    private void dealUserJarByPluginLoadMode(String pluginLoadMode, JobGraph jobGraph, List<File> shipFiles) throws MalformedURLException {
         // classpath , all node need contain plugin jar
-        String pluginLoadMode = launcherOptions.getPluginLoadMode();
         if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
             fillJobGraphClassPath(jobGraph);
         } else if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.SHIPFILE.name())) {
@@ -123,9 +127,41 @@ public class PerJobClusterClientBuilder {
             throw new IllegalArgumentException("Unsupported plugin loading mode " + pluginLoadMode
                     + " Currently only classpath and shipfile are supported.");
         }
+    }
 
-        clusterDescriptor.addShipFiles(shipFiles);
-        return clusterDescriptor;
+    private void fillFlinkConfig(Options launcherOptions) {
+        if (!StringUtils.isEmpty(launcherOptions.getName())) {
+            flinkConfig.setString(YarnConfigOptions.APPLICATION_NAME, launcherOptions.getName());
+        }
+
+        if (!StringUtils.isEmpty(launcherOptions.getQueue())) {
+            flinkConfig.setString(YarnConfigOptions.APPLICATION_QUEUE, launcherOptions.getQueue());
+        }
+
+        if (!StringUtils.isEmpty(launcherOptions.getFlinkconf())) {
+            discoverLogConfigFile(launcherOptions.getFlinkconf()).ifPresent(file ->
+                    flinkConfig.setString(YarnConfigOptionsInternal.APPLICATION_LOG_CONFIG_FILE, file.getPath()));
+        }
+    }
+
+    private Optional<File> discoverLogConfigFile(final String configurationDirectory) {
+        Optional<File> logConfigFile = Optional.empty();
+
+        final File log4jFile = new File(configurationDirectory + File.separator + CONFIG_FILE_LOG4J_NAME);
+        if (log4jFile.exists()) {
+            logConfigFile = Optional.of(log4jFile);
+        }
+
+        final File logbackFile = new File(configurationDirectory + File.separator + CONFIG_FILE_LOGBACK_NAME);
+        if (logbackFile.exists()) {
+            if (logConfigFile.isPresent()) {
+                LOG.warn("The configuration directory ('" + configurationDirectory + "') already contains a LOG4J config file." +
+                        "If you want to use logback, then please delete or rename the log configuration file.");
+            } else {
+                logConfigFile = Optional.of(logbackFile);
+            }
+        }
+        return logConfigFile;
     }
 
     private static void fillJobGraphClassPath(JobGraph jobGraph) throws MalformedURLException {
@@ -149,11 +185,11 @@ public class PerJobClusterClientBuilder {
     }
 
     private YarnClusterDescriptor getClusterDescriptor(
-            Configuration configuration,
+            Configuration flinkConfig,
             YarnConfiguration yarnConfiguration) {
 
         return new YarnClusterDescriptor(
-                configuration,
+                flinkConfig,
                 yarnConfiguration,
                 yarnClient,
                 YarnClientYarnClusterInformationRetriever.create(yarnClient),

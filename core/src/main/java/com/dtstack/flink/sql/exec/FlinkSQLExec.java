@@ -87,22 +87,13 @@ public class FlinkSQLExec {
         }
 
         try {
-            tableEnv.insertInto(newTable, targetTableName);
+            tableEnv.insertInto(targetTableName, newTable);
         } catch (Exception e) {
             LOG.warn("Field name case of query result and registered TableSink do not match. ", e);
             newTable = queryResult.select(String.join(",", ignoreCase(queryFieldNames, sinkFieldNames)));
-            tableEnv.insertInto(newTable, targetTableName);
+            tableEnv.insertInto(targetTableName, newTable);
         }
 
-    }
-
-    private static SqlToOperationConverter createSqlToOperationConverter(FlinkPlannerImpl flinkPlanner, CatalogManager catalogManager)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-
-        Constructor<SqlToOperationConverter> declaredConstructor = SqlToOperationConverter.class.getDeclaredConstructor(FlinkPlannerImpl.class, CatalogManager.class);
-        declaredConstructor.setAccessible(true);
-        SqlToOperationConverter sqlToOperationConverter = declaredConstructor.newInstance(flinkPlanner, catalogManager);
-        return sqlToOperationConverter;
     }
 
     private static TableSink getTableSinkByPlanner(StreamPlanner streamPlanner, String targetTableName)
