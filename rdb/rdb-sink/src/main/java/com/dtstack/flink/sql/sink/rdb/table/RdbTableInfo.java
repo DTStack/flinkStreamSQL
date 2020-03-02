@@ -29,6 +29,8 @@ import com.google.common.base.Preconditions;
  */
 public class RdbTableInfo extends TargetTableInfo {
 
+    public static final int MAX_BATCH_SIZE = 10000;
+
     public static final String URL_KEY = "url";
 
     public static final String TABLE_NAME_KEY = "tableName";
@@ -144,6 +146,10 @@ public class RdbTableInfo extends TargetTableInfo {
         Preconditions.checkNotNull(tableName, "rdb field of tableName is required");
         Preconditions.checkNotNull(userName, "rdb field of userName is required");
         Preconditions.checkNotNull(password, "rdb field of password is required");
+
+        if (null != batchSize) {
+            Preconditions.checkArgument(batchSize <= MAX_BATCH_SIZE, "batchSize must be less than " + MAX_BATCH_SIZE);
+        }
         return true;
     }
 
