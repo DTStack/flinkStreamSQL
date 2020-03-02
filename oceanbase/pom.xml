@@ -15,6 +15,7 @@
 
     <modules>
         <module>oceanbase-sink</module>
+        <module>oceanbase-side</module>
     </modules>
 
     <properties>
