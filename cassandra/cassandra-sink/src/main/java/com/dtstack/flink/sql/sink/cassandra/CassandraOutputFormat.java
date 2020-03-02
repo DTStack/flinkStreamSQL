@@ -219,7 +219,7 @@ public class CassandraOutputFormat extends DtRichOutputFormat<Tuple2> {
             }
         } catch (Exception e) {
             if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
-                LOG.error("record insert failed ..", row.toString().substring(0, 100));
+                LOG.error("record insert failed, total dirty num:{}, current record:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
             }
 
