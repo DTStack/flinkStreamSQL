@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
 import com.dtstack.flink.sql.table.TargetTableInfo;
+import org.apache.commons.lang.StringUtils;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 
@@ -89,6 +90,8 @@ public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         boolean enablePartition = impalaTableInfo.isEnablePartition();
         if (enablePartition) {
             String partitionFieldsStr = impalaTableInfo.getPartitionFields();
+            partitionFieldsStr = !StringUtils.isEmpty(partitionFieldsStr) ? partitionFieldsStr.replaceAll("\"", "'") : partitionFieldsStr;
+
             List<String> partitionFields = Arrays.asList(partitionFieldsStr.split(","));
             List<String> newFields = new ArrayList<>();
             for (String field : fields) {

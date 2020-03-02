@@ -22,9 +22,17 @@ import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.*;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * Reason:
@@ -35,6 +43,7 @@ import java.util.*;
  */
 
 public class ImpalaSideParser extends RdbSideParser {
+    private static final Logger LOG = LoggerFactory.getLogger(ImpalaSideParser.class);
 
     private static final String CURR_TYPE = "impala";
 
@@ -107,11 +116,39 @@ public class ImpalaSideParser extends RdbSideParser {
             }
             return fieldValues;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("",e);
             throw new RuntimeException(e);
         }
+    }
 
+    @Override
+    public  Class dbTypeConvertToJavaType(String fieldType) {
+        switch (fieldType.toLowerCase()) {
+            case "boolean":
+                return Boolean.class;
+            case "char":
+                return Character.class;
+            case "double":
+                return Double.class;
+            case "float":
+                return Float.class;
+            case "tinyint":
+                return Byte.class;
+            case "smallint":
+                return Short.class;
+            case "int":
+                return Integer.class;
+            case "bigint":
+                return Long.class;
+            case "decimal":
+                return BigDecimal.class;
+            case "string":
+            case "varchar":
+                return String.class;
+            case "timestamp":
+                return Timestamp.class;
+        }
 
-
+        throw new RuntimeException("不支持 " + fieldType + " 类型");
     }
 }

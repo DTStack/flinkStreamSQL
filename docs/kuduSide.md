@@ -47,7 +47,7 @@ create table sideTable(
  ```
 
 ## 2.支持版本
-kudu 1.9.0+cdh6.2.0 
+kudu 1.10.0+cdh6.2.0 
 
 ## 3.表结构定义
    

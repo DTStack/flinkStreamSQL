@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.table;
 
@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -40,16 +41,18 @@ import java.util.regex.Pattern;
 public abstract class AbsTableParser {
 
     private static final String PRIMARY_KEY = "primaryKey";
+    private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
 
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
+    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
 
-    public static Map<String, Pattern> keyPatternMap = Maps.newHashMap();
+    private Map<String, Pattern> patternMap = Maps.newHashMap();
 
-    public static Map<String, ITableFieldDealHandler> keyHandlerMap = Maps.newHashMap();
+    private Map<String, ITableFieldDealHandler> handlerMap = Maps.newHashMap();
 
-    static {
-        keyPatternMap.put(PRIMARY_KEY, primaryKeyPattern);
-        keyHandlerMap.put(PRIMARY_KEY, AbsTableParser::dealPrimaryKey);
+    public AbsTableParser() {
+        addParserHandler(PRIMARY_KEY, primaryKeyPattern, this::dealPrimaryKey);
+        addParserHandler(NEST_JSON_FIELD_KEY, nestJsonFieldKeyPattern, this::dealNestField);
     }
 
     protected boolean fieldNameNeedsUpperCase() {
@@ -59,12 +62,12 @@ public abstract class AbsTableParser {
     public abstract TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception;
 
     public boolean dealKeyPattern(String fieldRow, TableInfo tableInfo){
-        for(Map.Entry<String, Pattern> keyPattern : keyPatternMap.entrySet()){
+        for(Map.Entry<String, Pattern> keyPattern : patternMap.entrySet()){
             Pattern pattern = keyPattern.getValue();
             String key = keyPattern.getKey();
             Matcher matcher = pattern.matcher(fieldRow);
             if(matcher.find()){
-                ITableFieldDealHandler handler = keyHandlerMap.get(key);
+                ITableFieldDealHandler handler = handlerMap.get(key);
                 if(handler == null){
                     throw new RuntimeException("parse field [" + fieldRow + "] error.");
                 }
@@ -82,6 +85,10 @@ public abstract class AbsTableParser {
         List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
+
+            if(StringUtils.isBlank(fieldRow)){
+                throw new RuntimeException(String.format("table [%s],exists field empty.", tableInfo.getName()));
+            }
 
             String[] filedInfoArr = fieldRow.split("\\s+");
             if(filedInfoArr.length < 2 ){
@@ -110,15 +117,40 @@ public abstract class AbsTableParser {
         tableInfo.finish();
     }
 
-    public static void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
+    public void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
         String primaryFields = matcher.group(1).trim();
         String[] splitArry = primaryFields.split(",");
         List<String> primaryKes = Lists.newArrayList(splitArry);
         tableInfo.setPrimaryKeys(primaryKes);
     }
 
+    /**
+     * add parser for alias field
+     * @param matcher
+     * @param tableInfo
+     */
+    protected void dealNestField(Matcher matcher, TableInfo tableInfo) {
+        String physicalField = matcher.group(1);
+        String fieldType = matcher.group(3);
+        String mappingField = matcher.group(4);
+        Class fieldClass= dbTypeConvertToJavaType(fieldType);
+        boolean notNull = matcher.group(5) != null;
+        TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
+        fieldExtraInfo.setNotNull(notNull);
+
+        tableInfo.addPhysicalMappings(mappingField, physicalField);
+        tableInfo.addField(mappingField);
+        tableInfo.addFieldClass(fieldClass);
+        tableInfo.addFieldType(fieldType);
+        tableInfo.addFieldExtraInfo(fieldExtraInfo);
+    }
+
     public Class dbTypeConvertToJavaType(String fieldType) {
         return ClassUtil.stringConvertClass(fieldType);
     }
 
+    protected void addParserHandler(String parserName, Pattern pattern, ITableFieldDealHandler handler) {
+        patternMap.put(parserName, pattern);
+        handlerMap.put(parserName, handler);
+    }
 }
