@@ -27,9 +27,6 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
-
 /**
  * Date: 2018/6/26
  * Company: www.dtstack.com
@@ -44,11 +41,5 @@ public class Main {
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
         env.execute(paramsInfo.getName());
         LOG.info("program {} execution success", paramsInfo.getName());
-    }
-    private static void setLogLevel(String level){
-        LoggerContext loggerContext= (LoggerContext) LoggerFactory.getILoggerFactory();
-        //设置全局日志级别
-        ch.qos.logback.classic.Logger logger = loggerContext.getLogger("root");
-        logger.setLevel(Level.toLevel(level, Level.INFO));
     }
 }
