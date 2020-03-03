@@ -66,8 +66,6 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     /** The schema of the table. */
     private TableSchema schema;
 
-    /** Partitioner to select Kafka partition for each item. */
-    protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
     private String[] partitionKeys;
 
     @Override
@@ -82,7 +80,6 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
             properties.setProperty(key, kafka10SinkTableInfo.getKafkaParam(key));
         }
 
-        this.partitioner = Optional.of(new CustomerFlinkPartition<>());
         this.partitionKeys = getPartitionKeys(kafka10SinkTableInfo);
         this.fieldNames = kafka10SinkTableInfo.getFields();
         TypeInformation[] types = new TypeInformation[kafka10SinkTableInfo.getFields().length];
@@ -102,7 +99,8 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         if (parallelism != null) {
             this.parallelism = parallelism;
         }
-        this.kafkaProducer010 = (FlinkKafkaProducer010<Row>) new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
+        this.kafkaProducer010 = (FlinkKafkaProducer010<Row>) new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties,
+                Optional.of(new CustomerFlinkPartition<>()), partitionKeys);
         return this;
     }
 
