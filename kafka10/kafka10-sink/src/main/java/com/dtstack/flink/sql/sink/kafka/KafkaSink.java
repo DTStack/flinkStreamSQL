@@ -61,7 +61,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     protected int parallelism;
 
-    protected FlinkKafkaProducer010<Row> kafkaProducer010;
+    protected  KafkaSinkTableInfo kafka10SinkTableInfo;
 
     /** The schema of the table. */
     private TableSchema schema;
@@ -70,7 +70,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     @Override
     public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
-        KafkaSinkTableInfo kafka10SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
+        this.kafka10SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
         this.topic = kafka10SinkTableInfo.getTopic();
 
         properties = new Properties();
@@ -99,8 +99,6 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         if (parallelism != null) {
             this.parallelism = parallelism;
         }
-        this.kafkaProducer010 = (FlinkKafkaProducer010<Row>) new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties,
-                Optional.of(new CustomerFlinkPartition<>()), partitionKeys);
         return this;
     }
 
@@ -111,6 +109,10 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+
+        FlinkKafkaProducer010<Row> kafkaProducer010 = (FlinkKafkaProducer010<Row>) new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties,
+                Optional.of(new CustomerFlinkPartition<>()), partitionKeys);
+
         DataStream<Row> mapDataStream = dataStream.filter((Tuple2<Boolean, Row> record) -> record.f0)
                 .map((Tuple2<Boolean, Row> record) -> record.f1)
                 .returns(getOutputType().getTypeAt(1))
