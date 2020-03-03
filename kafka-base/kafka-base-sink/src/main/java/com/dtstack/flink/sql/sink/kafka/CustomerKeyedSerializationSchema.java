@@ -2,22 +2,14 @@ package com.dtstack.flink.sql.sink.kafka;
 
 
 import com.dtstack.flink.sql.format.SerializationMetricWrapper;
-import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.formats.json.JsonRowSchemaConverter;
 import org.apache.flink.formats.json.JsonRowSerializationSchema;
-import org.apache.flink.metrics.Counter;
-import org.apache.flink.metrics.Meter;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
 import org.apache.flink.types.Row;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CustomerKeyedSerializationSchema implements KeyedSerializationSchema<Row> {
-
-    private Logger log = LoggerFactory.getLogger(getClass());
 
     private static final long serialVersionUID = 1L;
     private final SerializationMetricWrapper serializationMetricWrapper;
@@ -61,7 +53,7 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
             }
             return sb.toString().getBytes();
         }catch (Exception e){
-            log.error("serializeJsonKey error", e);
+
         }
         return null;
 
