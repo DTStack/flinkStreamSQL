@@ -23,12 +23,12 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
     }
 
     public byte[] serializeKey(Row element) {
-        System.out.println("element = " + element+"|partitionKeys=" + partitionKeys);
         if(partitionKeys == null || partitionKeys.length <=0){
             return null;
-        }
+    }
         SerializationSchema<Row> serializationSchema = serializationMetricWrapper.getSerializationSchema();
         if(serializationSchema instanceof JsonRowSerializationSchema){
+            System.out.println("serial start, element = " + element);
             return serializeJsonKey((JsonRowSerializationSchema) serializationSchema, element);
         }
         return null;
@@ -46,13 +46,15 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
         try {
             byte[] data = jsonRowSerializationSchema.serialize(element);
             ObjectNode objectNode = mapper.readValue(data, ObjectNode.class);
+            System.out.println("objectNode = " + objectNode);
             StringBuilder sb = new StringBuilder();
             for(String key : partitionKeys){
                 if(objectNode.has(key)){
+                    System.out.println("key = " + key+ ", value = " + objectNode.get(key));
                     sb.append(objectNode.get(key));
                 }
             }
-            return null;
+            return sb.toString().getBytes();
         }catch (Exception e){
 
         }

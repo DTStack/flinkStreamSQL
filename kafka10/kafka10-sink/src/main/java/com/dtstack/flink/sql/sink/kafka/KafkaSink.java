@@ -102,7 +102,6 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         if (parallelism != null) {
             this.parallelism = parallelism;
         }
-
         this.kafkaProducer010 = (FlinkKafkaProducer010<Row>) new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
         return this;
     }
@@ -145,6 +144,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     }
 
     private FlinkKafkaPartitioner getFlinkPartitioner(KafkaSinkTableInfo kafkaSinkTableInfo){
+        System.out.println("enablePartition =" + kafkaSinkTableInfo.getEnableKeyPartition());
         if("true".equalsIgnoreCase(kafkaSinkTableInfo.getEnableKeyPartition())){
             return new CustomerFlinkPartition<>();
         }
@@ -152,6 +152,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     }
 
     private String[] getPartitionKeys(KafkaSinkTableInfo kafkaSinkTableInfo){
+        System.out.println("partitionKeys =" + kafkaSinkTableInfo.getPartitionKeys());
         if(StringUtils.isNotBlank(kafkaSinkTableInfo.getPartitionKeys())){
             return StringUtils.split(kafkaSinkTableInfo.getPartitionKeys(), ',');
         }
