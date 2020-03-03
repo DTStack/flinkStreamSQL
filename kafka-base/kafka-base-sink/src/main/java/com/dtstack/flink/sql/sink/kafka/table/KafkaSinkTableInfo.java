@@ -41,6 +41,10 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
 
     public static final String TYPE_KEY = "type";
 
+    public static final String ENABLE_KEY_PARTITION_KEY = "enableKeyPartition";
+
+    public static final String PARTITION_KEY = "partitionKeys";
+
     private String bootstrapServers;
 
     public Map<String, String> kafkaParam = new HashMap<String, String>();
@@ -50,6 +54,10 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
     private String schemaString;
 
     private String fieldDelimiter;
+
+    private String enableKeyPartition;
+
+    private String partitionKeys;
 
     public void addKafkaParam(String key, String value) {
         kafkaParam.put(key, value);
@@ -102,6 +110,22 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
         Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
         Preconditions.checkNotNull(topic, "kafka of topic is required");
         return false;
+    }
+
+    public String getEnableKeyPartition() {
+        return enableKeyPartition;
+    }
+
+    public void setEnableKeyPartition(String enableKeyPartition) {
+        this.enableKeyPartition = enableKeyPartition;
+    }
+
+    public String getPartitionKeys() {
+        return partitionKeys;
+    }
+
+    public void setPartitionKeys(String partitionKeys) {
+        this.partitionKeys = partitionKeys;
     }
 
 }

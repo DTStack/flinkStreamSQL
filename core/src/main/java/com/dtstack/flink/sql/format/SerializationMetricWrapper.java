@@ -77,4 +77,8 @@ public class SerializationMetricWrapper implements SerializationSchema<Row> {
         this.runtimeContext = runtimeContext;
     }
 
+    public SerializationSchema<Row> getSerializationSchema() {
+        return serializationSchema;
+    }
+
 }

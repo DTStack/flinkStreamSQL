@@ -39,8 +39,8 @@ public class KafkaProducer010 extends FlinkKafkaProducer010<Row> {
 
     private SerializationMetricWrapper serializationMetricWrapper;
 
-    public KafkaProducer010(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig, Optional<FlinkKafkaPartitioner<Row>> customPartitioner) {
-        super(topicId, serializationSchema, producerConfig, customPartitioner.orElse(null));
+    public KafkaProducer010(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig, Optional<FlinkKafkaPartitioner<Row>> customPartitioner, String[] partitionKeys) {
+        super(topicId, new CustomerKeyedSerializationSchema((SerializationMetricWrapper)serializationSchema, partitionKeys), producerConfig, customPartitioner.orElse(null));
         this.serializationMetricWrapper = (SerializationMetricWrapper) serializationSchema;
     }
 
