@@ -3,8 +3,6 @@ package com.dtstack.flink.sql.sink.kafka;
 
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
 
-import java.util.Arrays;
-import java.util.Random;
 import org.apache.flink.util.Preconditions;
 
 public class CustomerFlinkPartition<T> extends FlinkFixedPartitioner<T> {
