@@ -153,7 +153,7 @@ public class Main {
         SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
-            sideSqlExec.registerTmpTable(result, sideTableMap, tableEnv, registerTableCache);
+            sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, result);
         }
 
         for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
@@ -169,7 +169,7 @@ public class Main {
                     SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql, CalciteConfig.MYSQL_LEX_CONFIG).parseStmt();
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
                     tmp.setExecSql(tmpSql);
-                    sideSqlExec.registerTmpTable(tmp, sideTableMap, tableEnv, registerTableCache);
+                    sideSqlExec.exec(tmp.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, tmp);
                 } else {
                     for (String sourceTable : result.getSourceTableList()) {
                         if (sideTableMap.containsKey(sourceTable)) {
@@ -179,10 +179,14 @@ public class Main {
                     }
                     if (isSide) {
                         //sql-dimensional table contains the dimension table of execution
-                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig);
+                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, null);
                     }else{
+                        System.out.println("----------exec sql without dimension join-----------" );
+                        System.out.println("----------real sql exec is--------------------------");
+                        System.out.println(result.getExecSql());
                         FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql(), queryConfig);
                         if(LOG.isInfoEnabled()){
+                            System.out.println();
                             LOG.info("exec sql: " + result.getExecSql());
                         }
                     }
