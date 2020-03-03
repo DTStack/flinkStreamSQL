@@ -48,7 +48,7 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
             StringBuilder sb = new StringBuilder();
             for(String key : partitionKeys){
                 if(objectNode.has(key)){
-                    sb.append(objectNode.get(key));
+                    sb.append(objectNode.get(key.trim()));
                 }
             }
             return sb.toString().getBytes();

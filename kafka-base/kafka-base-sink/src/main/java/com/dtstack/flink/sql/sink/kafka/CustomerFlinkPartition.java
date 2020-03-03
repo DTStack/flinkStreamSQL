@@ -22,10 +22,11 @@ public class CustomerFlinkPartition<T> extends FlinkKafkaPartitioner<T> {
 
     public int partition(T record, byte[] key, byte[] value, String targetTopic, int[] partitions) {
         Preconditions.checkArgument(partitions != null && partitions.length > 0, "Partitions of the target topic is empty.");
+        System.out.println("partitionKey=" + new String(key));
         if(key == null){
             return partitions[this.parallelInstanceId % partitions.length];
         }
-        return partitions[key.hashCode() % partitions.length];
+        return partitions[new String(key).hashCode() % partitions.length];
     }
 
     public boolean equals(Object o) {
