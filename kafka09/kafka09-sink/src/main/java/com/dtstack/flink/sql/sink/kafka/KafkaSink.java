@@ -81,7 +81,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 			properties.setProperty(key, kafka09SinkTableInfo.getKafkaParam(key));
 		}
 
-		this.partitioner = Optional.of(getFlinkPartitioner(kafka09SinkTableInfo));
+		this.partitioner = Optional.of(new CustomerFlinkPartition<>());
 		this.partitionKeys = getPartitionKeys(kafka09SinkTableInfo);
 		this.fieldNames = kafka09SinkTableInfo.getFields();
 		TypeInformation[] types = new TypeInformation[kafka09SinkTableInfo.getFields().length];

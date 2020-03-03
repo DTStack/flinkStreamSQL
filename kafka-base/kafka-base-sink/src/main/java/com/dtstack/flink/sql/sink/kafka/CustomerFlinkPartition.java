@@ -11,9 +11,8 @@ public class CustomerFlinkPartition<T> extends FlinkFixedPartitioner<T> {
     @Override
     public int partition(T record, byte[] key, byte[] value, String targetTopic, int[] partitions) {
         Preconditions.checkArgument(partitions != null && partitions.length > 0, "Partitions of the target topic is empty.");
-        System.out.println("key = " + key+ ", value = " + value+ ", targetTopic = " + targetTopic + ", partitions = " + Arrays.toString(partitions));
         if(key == null){
-            super.partition(record, key, value, targetTopic, partitions);
+            return super.partition(record, key, value, targetTopic, partitions);
         }
         return partitions[key.hashCode() % partitions.length];
     }
