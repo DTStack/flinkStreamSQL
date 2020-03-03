@@ -23,6 +23,7 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
     }
 
     public byte[] serializeKey(Row element) {
+        System.out.println("element = " + element+"|partitionKeys=" + partitionKeys);
         if(partitionKeys == null || partitionKeys.length <=0){
             return null;
         }
