@@ -51,7 +51,7 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
                     sb.append(objectNode.get(key));
                 }
             }
-            return sb.toString().getBytes();
+            return null;
         }catch (Exception e){
 
         }
