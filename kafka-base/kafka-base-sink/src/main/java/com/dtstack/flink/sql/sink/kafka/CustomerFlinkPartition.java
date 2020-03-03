@@ -14,8 +14,6 @@ public class CustomerFlinkPartition<T> extends FlinkFixedPartitioner<T> {
         if(key == null){
             return super.partition(record, key, value, targetTopic, partitions);
         }
-        System.out.println("hashcode=" + key.hashCode());
-        Random random = new Random();
-        return partitions[random.nextInt() % partitions.length];
+        return partitions[key.hashCode() % partitions.length];
     }
 }
