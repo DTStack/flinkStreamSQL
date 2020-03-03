@@ -27,9 +27,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
+import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
@@ -110,8 +108,8 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
 
-        FlinkKafkaProducer010<Row> kafkaProducer010 = (FlinkKafkaProducer010<Row>) new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties,
-                Optional.of(new CustomerFlinkPartition<>()), partitionKeys);
+        RichSinkFunction<Row> kafkaProducer010 =  new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties,
+                Optional.of(new CustomerFlinkPartition<Row>()), partitionKeys);
 
         DataStream<Row> mapDataStream = dataStream.filter((Tuple2<Boolean, Row> record) -> record.f0)
                 .map((Tuple2<Boolean, Row> record) -> record.f1)
