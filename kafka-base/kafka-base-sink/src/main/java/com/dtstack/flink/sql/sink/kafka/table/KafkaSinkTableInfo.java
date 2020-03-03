@@ -41,7 +41,7 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
 
     public static final String TYPE_KEY = "type";
 
-    public static final String ENABLE_KEY_PARTITION_KEY = "enableKeyPartition";
+    public static final String ENABLE_KEY_PARTITION_KEY = "enableKeyPartitions";
 
     public static final String PARTITION_KEY = "partitionKeys";
 
