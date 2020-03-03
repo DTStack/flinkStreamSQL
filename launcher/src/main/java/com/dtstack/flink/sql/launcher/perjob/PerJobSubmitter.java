@@ -18,24 +18,22 @@
 
 package com.dtstack.flink.sql.launcher.perjob;
 
+import com.dtstack.flink.sql.launcher.utils.SubmitUtil;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.client.deployment.ClusterSpecification;
-import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.net.URLDecoder;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Properties;
+
 
 /**
  * per job mode submitter
@@ -50,11 +48,7 @@ public class PerJobSubmitter {
 
     public static String submit(Options launcherOptions, JobGraph jobGraph, Configuration flinkConfig) throws Exception {
 		if (!StringUtils.isBlank(launcherOptions.getAddjar())) {
-			String addjarPath = URLDecoder.decode(launcherOptions.getAddjar(), Charsets.UTF_8.toString());
-			List<String> paths = getJarPaths(addjarPath);
-			paths.forEach( path -> {
-				jobGraph.addJar(new Path("file://" + path));
-			});
+            SubmitUtil.fillUserJarForJobGraph(launcherOptions.getAddjar(),jobGraph);
 		}
 
 		String confProp = launcherOptions.getConfProp();
@@ -78,12 +72,6 @@ public class PerJobSubmitter {
         return applicationId;
     }
 
-	private static List<String> getJarPaths(String addjarPath) {
-		if (addjarPath.length() > 2) {
-			addjarPath = addjarPath.substring(1,addjarPath.length()-1).replace("\"","");
-		}
-		List<String> paths = Arrays.asList(addjarPath.split(","));
-		return paths;
-	}
+
 
 }

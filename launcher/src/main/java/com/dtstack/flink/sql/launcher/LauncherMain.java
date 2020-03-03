@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.launcher;
 
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
+import com.dtstack.flink.sql.launcher.utils.SubmitUtil;
 import com.google.common.collect.Lists;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
@@ -33,11 +34,18 @@ import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.flink.api.common.JobExecutionResult;
+import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.cache.DistributedCache;
+import org.apache.flink.client.ClientUtils;
+import org.apache.flink.client.deployment.ClusterClientJobClientAdapter;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.PackagedProgram;
 import org.apache.flink.client.program.PackagedProgramUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.flink.core.execution.DefaultExecutorServiceLoader;
+import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 
@@ -46,6 +54,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.util.LinkedList;
 import java.util.List;
@@ -106,17 +117,27 @@ public class LauncherMain {
                 .setSavepointRestoreSettings(savepointRestoreSettings)
                 .build();
 
-        if(mode.equals(ClusterMode.yarnPer.name())){
-            String flinkConfDir = launcherOptions.getFlinkconf();
-            Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
-            JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1,false);
+        String flinkConfDir = launcherOptions.getFlinkconf();
+        Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
+        JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1,false);
+        if (mode.equals(ClusterMode.yarnPer.name())) {
             PerJobSubmitter.submit(launcherOptions, jobGraph, config);
         } else {
-//            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
-//            clusterClient.run(program, 1);
-//            clusterClient.shutdown();
-        }
+            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
+            removeSqlPluginAndFillUdfJar(jobGraph,launcherOptions.getAddjar());
 
+            JobExecutionResult jobExecutionResult = ClientUtils.submitJob(clusterClient, jobGraph);
+            String jobID = jobExecutionResult.getJobID().toString();
+            System.out.println("jobID:" + jobID);
+        }
+    }
+
+    private static void removeSqlPluginAndFillUdfJar(JobGraph jobGraph, String udfJar) throws UnsupportedEncodingException {
+        jobGraph.getUserArtifacts().clear();
+        jobGraph.getUserJars().clear();
+        if (!StringUtils.isEmpty(udfJar)) {
+            SubmitUtil.fillUserJarForJobGraph(udfJar, jobGraph);
+        }
     }
 
     private static String[] parseJson(String[] args) {
