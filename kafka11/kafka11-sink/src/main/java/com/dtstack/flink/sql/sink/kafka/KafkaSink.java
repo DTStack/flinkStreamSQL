@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.sink.kafka;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -67,6 +68,7 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
 
     /** Partitioner to select Kafka partition for each item. */
     protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
+    private String[] partitionKeys;
 
 
     @Override
@@ -80,7 +82,8 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
         for (String key : kafka11SinkTableInfo.getKafkaParamKeys()) {
             properties.setProperty(key, kafka11SinkTableInfo.getKafkaParam(key));
         }
-        this.partitioner = Optional.of(new FlinkFixedPartitioner<>());
+        this.partitioner = Optional.of(new CustomerFlinkPartition<>());
+        this.partitionKeys = getPartitionKeys(kafka11SinkTableInfo);
         this.fieldNames = kafka11SinkTableInfo.getFields();
         TypeInformation[] types = new TypeInformation[kafka11SinkTableInfo.getFields().length];
         for (int i = 0; i < kafka11SinkTableInfo.getFieldClasses().length; i++) {
@@ -100,7 +103,7 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
         }
 
         this.kafkaProducer011 = (FlinkKafkaProducer011<Row>) new KafkaProducer011Factory()
-                .createKafkaProducer(kafka11SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner);
+                .createKafkaProducer(kafka11SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
         return this;
     }
 
@@ -140,4 +143,12 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
         this.fieldTypes = fieldTypes;
         return this;
     }
+
+    private String[] getPartitionKeys(KafkaSinkTableInfo kafkaSinkTableInfo){
+        if(StringUtils.isNotBlank(kafkaSinkTableInfo.getPartitionKeys())){
+            return StringUtils.split(kafkaSinkTableInfo.getPartitionKeys(), ',');
+        }
+        return null;
+    }
+
 }

@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Reason:
@@ -46,6 +47,8 @@ import java.util.Map;
 public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private final Logger logger = LoggerFactory.getLogger(CustomerSinkFunc.class);
+
+    private static final String ID_VALUE_SPLIT = "_";
 
     private String index;
 
@@ -93,15 +96,11 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
     }
 
     private IndexRequest createIndexRequest(Row element) {
-
-        List<String> idFieldList = new ArrayList<>();
-        for(int index : idFieldIndexList){
-            if(index >= element.getArity()){
-                continue;
-            }
-
-            idFieldList.add(element.getField(index).toString());
-        }
+        // index start at 1,
+        String idFieldStr = idFieldIndexList.stream()
+                .filter(index -> index > 0 && index <= element.getArity())
+                .map(index -> element.getField(index - 1).toString())
+                .collect(Collectors.joining(ID_VALUE_SPLIT));
 
         Map<String, Object> dataMap = EsUtil.rowToJsonMap(element,fieldNames,fieldTypes);
         int length = Math.min(element.getArity(), fieldNames.size());
@@ -109,11 +108,17 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
             dataMap.put(fieldNames.get(i), element.getField(i));
         }
 
-        String id = StringUtils.join(idFieldList, sp);
+        if (StringUtils.isEmpty(idFieldStr)) {
+            return Requests.indexRequest()
+                    .index(index)
+                    .type(type)
+                    .source(dataMap);
+        }
+
         return Requests.indexRequest()
                 .index(index)
                 .type(type)
-                .id(id)
+                .id(idFieldStr)
                 .source(dataMap);
     }
 }

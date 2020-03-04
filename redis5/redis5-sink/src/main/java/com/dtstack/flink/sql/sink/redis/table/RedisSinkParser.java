@@ -21,10 +21,11 @@ package com.dtstack.flink.sql.sink.redis.table;
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public class RedisSinkParser extends AbsTableParser {
@@ -46,13 +47,10 @@ public class RedisSinkParser extends AbsTableParser {
         redisTableInfo.setRedisType(MathUtil.getString(props.get(RedisTableInfo.REDIS_TYPE.toLowerCase())));
         redisTableInfo.setMasterName(MathUtil.getString(props.get(RedisTableInfo.MASTER_NAME.toLowerCase())));
 
-        String primaryKeysStr = MathUtil.getString(props.get("primarykeys"));
-        ArrayList<String> primaryKeysList = null;
+        String primaryKeysStr = MathUtil.getString(props.get(RedisTableInfo.PRIMARY_KEYS_NAME));
+        List<String> primaryKeysList = Lists.newArrayList();
         if (!StringUtils.isEmpty(primaryKeysStr)) {
-            String[] primaryKeysArray = primaryKeysStr.split(",");
-            primaryKeysList = new ArrayList<String>(Arrays.asList(primaryKeysArray));
-        } else {
-            primaryKeysList = new ArrayList<>();
+            primaryKeysList = Arrays.asList(StringUtils.split(primaryKeysStr, ","));
         }
         redisTableInfo.setPrimaryKeys(primaryKeysList);
 
