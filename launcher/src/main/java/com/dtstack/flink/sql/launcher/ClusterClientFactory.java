@@ -89,7 +89,7 @@ public class ClusterClientFactory {
 
         if (StringUtils.isNotBlank(yarnConfDir)) {
             try {
-                config.setString(ConfigConstants.PATH_HADOOP_CONFIG, yarnConfDir);
+                config.setString("fs.hdfs.hadoopconf", yarnConfDir);
                 FileSystem.initialize(config);
 
                 YarnConfiguration yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
@@ -166,7 +166,7 @@ public class ClusterClientFactory {
 
     private static ApplicationId toApplicationId(String appIdStr) {
         Iterator<String> it = StringHelper._split(appIdStr).iterator();
-        if (!(it.next()).equals("application")) {
+        if (!"application".equals(it.next())) {
             throw new IllegalArgumentException("Invalid ApplicationId prefix: " + appIdStr + ". The valid ApplicationId should start with prefix " + "application");
         } else {
             try {

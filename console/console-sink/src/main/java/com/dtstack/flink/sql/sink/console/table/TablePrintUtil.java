@@ -58,7 +58,9 @@ public class TablePrintUtil {
     public static <T> TablePrintUtil build(List<T> data) {
         TablePrintUtil self = new TablePrintUtil();
         self.data = new ArrayList<>();
-        if (data.size() <= 0) throw new RuntimeException("数据源至少得有一行吧");
+        if (data.size() <= 0) {
+            throw new RuntimeException("数据源至少得有一行吧");
+        }
         Object obj = data.get(0);
 
 
@@ -70,7 +72,9 @@ public class TablePrintUtil {
             int length = ((List) obj).size();
             for (Object item : data) {
                 List<String> col = (List<String>) item;
-                if (col.size() != length) throw new RuntimeException("数据源每列长度必须一致");
+                if (col.size() != length) {
+                    throw new RuntimeException("数据源每列长度必须一致");
+                }
                 self.data.add(col.toArray(new String[length]));
             }
         } else {
@@ -163,7 +167,9 @@ public class TablePrintUtil {
         if (equilong) {//如果等宽表格
             int max = 0;
             for (int len : result) {
-                if (len > max) max = len;
+                if (len > max) {
+                    max = len;
+                }
             }
             for (int i = 0; i < result.length; i++) {
                 result[i] = max;
