@@ -87,7 +87,7 @@ public abstract class AbsSideTableParser extends AbsTableParser {
             if(props.containsKey(SideTableInfo.CACHE_MODE_KEY.toLowerCase())){
                 String cachemode = MathUtil.getString(props.get(SideTableInfo.CACHE_MODE_KEY.toLowerCase()));
 
-                if(!cachemode.equalsIgnoreCase("ordered") && !cachemode.equalsIgnoreCase("unordered")){
+                if(!"ordered".equalsIgnoreCase(cachemode) && !"unordered".equalsIgnoreCase(cachemode)){
                     throw new RuntimeException("cachemode must ordered or unordered!");
                 }
                 sideTableInfo.setCacheMode(cachemode.toLowerCase());

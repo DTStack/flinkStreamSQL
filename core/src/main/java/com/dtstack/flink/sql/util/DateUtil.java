@@ -116,9 +116,9 @@ public class DateUtil {
      * @return
      */
     public static long getTodayStart(long day,String scope) {
-    	if(scope.equals("MS")){
+    	if("MS".equals(scope)){
     		return getTodayStart(day)*1000;
-    	}else if(scope.equals("S")){
+    	}else if("S".equals(scope)){
     		return getTodayStart(day);
     	}else{
     		return getTodayStart(day);
@@ -154,9 +154,9 @@ public class DateUtil {
      * @return
      */
     public static long getNextDayStart(long day,String scope) {
-    	if(scope.equals("MS")){
+    	if("MS".equals(scope)){
     		return getNextDayStart(day)*1000;
-    	}else if(scope.equals("S")){
+    	}else if("S".equals(scope)){
     		return getNextDayStart(day);
     	}else{
     		return getNextDayStart(day);
@@ -335,7 +335,7 @@ public class DateUtil {
      * @return String
      * @throws ParseException
      */
-    public static String getDateStrTOFormat(String day, String inFormat, String outFormat) throws ParseException {
+    public static String getDateStrToFormat(String day, String inFormat, String outFormat) throws ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat(inFormat);
         Date date = sdf.parse(day);
         Calendar calendar = Calendar.getInstance();
@@ -344,7 +344,7 @@ public class DateUtil {
         return dayBefore;
     }
     
-    public static long getDateMillTOFormat(String day, String inFormat) throws ParseException {
+    public static long getDateMillToFormat(String day, String inFormat) throws ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat(inFormat);
         Date date = sdf.parse(day);
         Calendar calendar = Calendar.getInstance();
@@ -470,11 +470,11 @@ public class DateUtil {
     	if(condition==null){
     		return getMillToDay(cal,dateT);
     	}
-        if(condition.equals("-")){
+        if("-".equals(condition)){
         	dateT = (cal.get(Calendar.DATE) - severalDays);
         	return getMillToDay(cal,dateT);
         }
-        if(condition.equals("+")){
+        if("+".equals(condition)){
         	dateT = (cal.get(Calendar.DATE) + severalDays);
         	return getMillToDay(cal,dateT);
         }
@@ -490,11 +490,11 @@ public class DateUtil {
     	if(condition==null){
     		return getStampToDay(cal,dateT);
     	}
-    	if(condition.equals("-")){
+    	if("-".equals(condition)){
     		dateT = (cal.get(Calendar.DATE) - severalDays);
     		return getStampToDay(cal,dateT);
     	}
-    	if(condition.equals("+")){
+    	if("+".equals(condition)){
     		dateT = (cal.get(Calendar.DATE) + severalDays);
     		return getStampToDay(cal,dateT);
     	}
@@ -575,8 +575,8 @@ public class DateUtil {
      */
     public static long stringToLong(String day, String format) throws ParseException {
     	SimpleDateFormat dateFormat = new SimpleDateFormat(format);
-        long Date = dateFormat.parse(day).getTime();
-    	return Date;
+        long date = dateFormat.parse(day).getTime();
+    	return date;
     }
     
     /**
@@ -588,8 +588,8 @@ public class DateUtil {
     public static Date stringToDate(String day, String format)  {
     	try {
 			SimpleDateFormat dateFormat = new SimpleDateFormat(format);
-			 Date Date = dateFormat.parse(day);
-			return Date;
+			 Date date = dateFormat.parse(day);
+			return date;
 		} catch (ParseException e) {
 			return new Date();
 		}
@@ -608,8 +608,8 @@ public class DateUtil {
             day=day*1000;
         }
     	SimpleDateFormat dateFormat = new SimpleDateFormat(format);
-	    String Date = dateFormat.format(day);
-    	return Date;
+	    String date = dateFormat.format(day);
+    	return date;
     }
 
     /**

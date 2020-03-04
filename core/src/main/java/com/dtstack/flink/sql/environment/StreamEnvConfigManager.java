@@ -258,6 +258,8 @@ public final class StreamEnvConfigManager {
                 checkpointDataUriEmptyCheck(checkpointDataUri, backendType);
                 stateBackend = new RocksDBStateBackend(checkpointDataUri, BooleanUtils.toBoolean(backendIncremental));
                 break;
+            default:
+                break;
         }
         return stateBackend == null ? Optional.empty() : Optional.of(stateBackend);
     }
@@ -317,14 +319,14 @@ public final class StreamEnvConfigManager {
      * @return
      */
     private static Long getTtlTime(Integer timeNumber, String timeUnit) {
-        if (timeUnit.equalsIgnoreCase("d")) {
-            return timeNumber * 1000l * 60 * 60 * 24;
-        } else if (timeUnit.equalsIgnoreCase("h")) {
-            return timeNumber * 1000l * 60 * 60;
-        } else if (timeUnit.equalsIgnoreCase("m")) {
-            return timeNumber * 1000l * 60;
-        } else if (timeUnit.equalsIgnoreCase("s")) {
-            return timeNumber * 1000l;
+        if ("d".equalsIgnoreCase(timeUnit)) {
+            return timeNumber * 1000L * 60 * 60 * 24;
+        } else if ("h".equalsIgnoreCase(timeUnit)) {
+            return timeNumber * 1000L * 60 * 60;
+        } else if ("m".equalsIgnoreCase(timeUnit)) {
+            return timeNumber * 1000L * 60;
+        } else if ("s".equalsIgnoreCase(timeUnit)) {
+            return timeNumber * 1000L;
         } else {
             throw new RuntimeException("not support " + timeNumber + timeUnit);
         }

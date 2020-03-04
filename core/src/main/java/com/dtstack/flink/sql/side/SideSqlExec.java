@@ -90,7 +90,7 @@ public class SideSqlExec {
 
     private String tmpFields = null;
 
-    private SideSQLParser sideSQLParser = new SideSQLParser();
+    private SideSQLParser sideSqlParser = new SideSQLParser();
     private SidePredicatesParser sidePredicatesParser = new SidePredicatesParser();
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
@@ -109,8 +109,8 @@ public class SideSqlExec {
             LOG.error("fill predicates for sideTable fail ", e);
         }
 
-        sideSQLParser.setLocalTableCache(localTableCache);
-        Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
+        sideSqlParser.setLocalTableCache(localTableCache);
+        Queue<Object> exeQueue = sideSqlParser.getExeQueue(sql, sideTableMap.keySet());
         Object pollObj = null;
 
         //need clean
@@ -140,7 +140,7 @@ public class SideSqlExec {
                         LOG.info("exec sql: " + pollSqlNode.toString());
                     }
                 }else if(pollSqlNode.getKind() == AS){
-                    AliasInfo aliasInfo = parseASNode(pollSqlNode);
+                    AliasInfo aliasInfo = parseAsNode(pollSqlNode);
                     Table table = tableEnv.sqlQuery(aliasInfo.getName());
                     tableEnv.registerTable(aliasInfo.getAlias(), table);
                     localTableCache.put(aliasInfo.getAlias(), table);
@@ -151,9 +151,9 @@ public class SideSqlExec {
                     }
                 } else if (pollSqlNode.getKind() == WITH_ITEM) {
                     SqlWithItem sqlWithItem = (SqlWithItem) pollSqlNode;
-                    String TableAlias = sqlWithItem.name.toString();
+                    String tableAlias = sqlWithItem.name.toString();
                     Table table = tableEnv.sqlQuery(sqlWithItem.query.toString());
-                    tableEnv.registerTable(TableAlias, table);
+                    tableEnv.registerTable(tableAlias, table);
                 }
 
             }else if (pollObj instanceof JoinInfo){
@@ -253,11 +253,13 @@ public class SideSqlExec {
                     }
                 }
                 break;
+            default:
+                break;
         }
     }
 
 
-    public AliasInfo parseASNode(SqlNode sqlNode) throws SqlParseException {
+    public AliasInfo parseAsNode(SqlNode sqlNode) throws SqlParseException {
         SqlKind sqlKind = sqlNode.getKind();
         if(sqlKind != AS){
             throw new RuntimeException(sqlNode + " is not 'as' operator");
@@ -487,6 +489,8 @@ public class SideSqlExec {
                 }else{
                     return null;
                 }
+            default:
+                break;
         }
 
         return null;
@@ -709,7 +713,7 @@ public class SideSqlExec {
         }
 
         localTableCache.putAll(tableCache);
-        Queue<Object> exeQueue = sideSQLParser.getExeQueue(result.getExecSql(), sideTableMap.keySet());
+        Queue<Object> exeQueue = sideSqlParser.getExeQueue(result.getExecSql(), sideTableMap.keySet());
         Object pollObj = null;
 
         //need clean
@@ -759,7 +763,7 @@ public class SideSqlExec {
     }
 
     protected void dealAsSourceTable(StreamTableEnvironment tableEnv, SqlNode pollSqlNode) throws SqlParseException {
-        AliasInfo aliasInfo = parseASNode(pollSqlNode);
+        AliasInfo aliasInfo = parseAsNode(pollSqlNode);
         if (localTableCache.containsKey(aliasInfo.getName())) {
             return;
         }

@@ -101,6 +101,8 @@ public class SidePredicatesParser {
                 parseSql(unionLeft, sideTableMap, tabMapping);
                 parseSql(unionRight, sideTableMap, tabMapping);
                 break;
+            default:
+                break;
         }
     }
 

@@ -114,7 +114,7 @@ public class OptionParser {
     }
 
     public static void main(String[] args) throws Exception {
-        OptionParser OptionParser = new OptionParser(args);
-        System.out.println(OptionParser.getOptions());
+        OptionParser optionParser = new OptionParser(args);
+        System.out.println(optionParser.getOptions());
     }
 }

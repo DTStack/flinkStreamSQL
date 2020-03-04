@@ -131,6 +131,8 @@ public class SideSQLParser {
                 checkAndReplaceMultiJoin(unionLeft, sideTableSet);
                 checkAndReplaceMultiJoin(unionRight, sideTableSet);
                 break;
+            default:
+                break;
         }
     }
 
@@ -204,6 +206,8 @@ public class SideSQLParser {
             case ORDER_BY:
                 SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
                 parseSql(sqlOrderBy.query, sideTableSet, queueInfo, parentWhere, parentSelectList);
+            default:
+                break;
         }
         return "";
     }
