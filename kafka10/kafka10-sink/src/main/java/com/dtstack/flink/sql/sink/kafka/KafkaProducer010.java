@@ -24,6 +24,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.types.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Properties;
@@ -37,6 +39,10 @@ import java.util.Properties;
  */
 public class KafkaProducer010 extends FlinkKafkaProducer010<Row> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaProducer010.class);
+
+    private static final long serialVersionUID = 1L;
+
     private SerializationMetricWrapper serializationMetricWrapper;
 
     public KafkaProducer010(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig, Optional<FlinkKafkaPartitioner<Row>> customPartitioner, String[] partitionKeys) {
@@ -46,6 +52,7 @@ public class KafkaProducer010 extends FlinkKafkaProducer010<Row> {
 
     @Override
     public void open(Configuration configuration) {
+        LOG.info("----open KafkaProducer010 --");
         RuntimeContext runtimeContext = getRuntimeContext();
         serializationMetricWrapper.setRuntimeContext(runtimeContext);
         serializationMetricWrapper.initMetric();

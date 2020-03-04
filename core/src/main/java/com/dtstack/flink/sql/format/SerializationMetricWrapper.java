@@ -36,6 +36,8 @@ import org.apache.flink.types.Row;
  */
 public class SerializationMetricWrapper implements SerializationSchema<Row> {
 
+    private static final long serialVersionUID = 1L;
+
     private SerializationSchema<Row> serializationSchema;
 
     private transient RuntimeContext runtimeContext;

@@ -11,9 +11,13 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class CustomerKeyedSerializationSchema implements KeyedSerializationSchema<Row> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerKeyedSerializationSchema.class);
+
+    private static final AtomicLong COUNTER = new AtomicLong(0L);
 
     private static final long serialVersionUID = 1L;
     private final SerializationMetricWrapper serializationMetricWrapper;
@@ -57,7 +61,9 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
             }
             return sb.toString().getBytes();
         } catch (Exception e){
-            LOG.error("serializeJsonKey error", e);
+            if(COUNTER.getAndIncrement() % 1000 == 0){
+                LOG.error("serializeJsonKey error", e);
+            }
         }
         return null;
     }

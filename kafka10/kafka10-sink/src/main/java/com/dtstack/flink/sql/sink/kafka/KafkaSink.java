@@ -108,8 +108,8 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
 
-        RichSinkFunction<Row> kafkaProducer010 =  new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties,
-                Optional.of(new CustomerFlinkPartition<Row>()), partitionKeys);
+        RichSinkFunction<Row> kafkaProducer010 = new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties,
+                Optional.of(new CustomerFlinkPartition<>()), partitionKeys);
 
         DataStream<Row> mapDataStream = dataStream.filter((Tuple2<Boolean, Row> record) -> record.f0)
                 .map((Tuple2<Boolean, Row> record) -> record.f1)
