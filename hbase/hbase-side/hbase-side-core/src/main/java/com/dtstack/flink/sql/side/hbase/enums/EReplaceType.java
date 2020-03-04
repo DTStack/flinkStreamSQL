@@ -29,5 +29,6 @@ package com.dtstack.flink.sql.side.hbase.enums;
  */
 public enum EReplaceType {
     PARAM,
+    FUNC,
     CONSTANT;
 }
