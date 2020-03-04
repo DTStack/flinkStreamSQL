@@ -181,6 +181,11 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 描述：yarn session 模式下指定的运行的一些参数，[可参考](https://ci.apache.org/projects/flink/flink-docs-release-1.8/ops/cli.html),目前只支持指定yid
 	* 必选：否
 	* 默认值：false	
+	
+* **logLevel**
+    	* 描述：设定日志级别
+    	* 必选：否
+    	* 默认值：info	
 
 ## 2 结构
 ### 2.1 源表插件
