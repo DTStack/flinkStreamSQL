@@ -17,7 +17,7 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerKeyedSerializationSchema.class);
 
-    private static final AtomicLong counter = new AtomicLong(0L);
+    private static final AtomicLong COUNTER = new AtomicLong(0L);
 
     private static final long serialVersionUID = 1L;
     private final SerializationMetricWrapper serializationMetricWrapper;
@@ -61,7 +61,7 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
             }
             return sb.toString().getBytes();
         } catch (Exception e){
-            if(counter.getAndIncrement() % 1000 == 0){
+            if(COUNTER.getAndIncrement() % 1000 == 0){
                 LOG.error("serializeJsonKey error", e);
             }
         }
