@@ -20,10 +20,9 @@ package com.dtstack.flink.sql.side.impala;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.RdbAllSideInfo;
-import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.util.List;
@@ -32,7 +31,7 @@ import java.util.stream.Collectors;
 
 public class ImpalaAllSideInfo extends RdbAllSideInfo {
 
-    public ImpalaAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public ImpalaAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
@@ -61,7 +60,7 @@ public class ImpalaAllSideInfo extends RdbAllSideInfo {
 
     private String getPartitionVaule(String fieldType, List values) {
         String partitionVaule = values.stream().map(val -> {
-            return (fieldType.toLowerCase().equals("string") || fieldType.toLowerCase().equals("varchar")) ? "'" + val + "'" : val.toString();
+            return ("string".equals(fieldType.toLowerCase()) || "varchar".equals(fieldType.toLowerCase())) ? "'" + val + "'" : val.toString();
         }).collect(Collectors.joining(" , ")).toString();
 
         return partitionVaule;

@@ -21,7 +21,7 @@
 package com.dtstack.flink.sql.source.kafka.table;
 
 import com.dtstack.flink.sql.format.FormatType;
-import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import com.google.common.base.Preconditions;
 
 import java.util.HashMap;
@@ -35,7 +35,7 @@ import java.util.Set;
  * @author sishu.yss
  */
 
-public class KafkaSourceTableInfo extends SourceTableInfo {
+public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
 	public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
 

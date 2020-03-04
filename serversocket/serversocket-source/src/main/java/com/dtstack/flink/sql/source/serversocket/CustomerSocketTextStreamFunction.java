@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.source.serversocket;
 import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.source.serversocket.table.ServersocketSourceTableInfo;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.types.Row;
@@ -67,7 +67,7 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 	ServersocketSourceTableInfo tableInfo;
 
 	public CustomerSocketTextStreamFunction(ServersocketSourceTableInfo tableInfo, TypeInformation<Row> typeInfo,
-											Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
+											Map<String, String> rowAndFieldMapping, List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos) {
 		this.tableInfo = tableInfo;
 		this.deserializationSchema = new DtNestRowDeserializationSchema(typeInfo, rowAndFieldMapping, fieldExtraInfos);
 		this.deserializationMetricWrapper = new DeserializationMetricWrapper(typeInfo, deserializationSchema);

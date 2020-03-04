@@ -37,13 +37,13 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public abstract class AllReqRow extends RichFlatMapFunction<CRow, CRow> implements ISideReqRow {
+public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> implements ISideReqRow {
 
-    protected SideInfo sideInfo;
+    protected BaseSideInfo sideInfo;
 
     private ScheduledExecutorService es;
 
-    public AllReqRow(SideInfo sideInfo){
+    public BaseAllReqRow(BaseSideInfo sideInfo){
         this.sideInfo = sideInfo;
 
     }
@@ -59,7 +59,7 @@ public abstract class AllReqRow extends RichFlatMapFunction<CRow, CRow> implemen
         System.out.println("----- all cacheRef init end-----");
 
         //start reload cache thread
-        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         es = Executors.newSingleThreadScheduledExecutor(new DTThreadFactory("cache-all-reload"));
         es.scheduleAtFixedRate(() -> reloadCache(), sideTableInfo.getCacheTimeout(), sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS);
     }

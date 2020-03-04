@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class KuduAsyncReqRow extends AsyncReqRow {
+public class KuduAsyncReqRow extends BaseAsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(KuduAsyncReqRow.class);
     /**
@@ -52,7 +52,7 @@ public class KuduAsyncReqRow extends AsyncReqRow {
 
     private AsyncKuduScanner.AsyncKuduScannerBuilder scannerBuilder;
 
-    public KuduAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public KuduAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new KuduAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

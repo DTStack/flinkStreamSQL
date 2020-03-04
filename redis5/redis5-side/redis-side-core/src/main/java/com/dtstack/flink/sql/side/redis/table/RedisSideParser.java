@@ -18,8 +18,8 @@
 
 package com.dtstack.flink.sql.side.redis.table;
 
-import com.dtstack.flink.sql.table.AbsSideTableParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractSideTableParser;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
@@ -27,10 +27,10 @@ import java.util.Map;
 /**
  * @author yanxi
  */
-public class RedisSideParser extends AbsSideTableParser {
+public class RedisSideParser extends AbstractSideTableParser {
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
 
         RedisSideTableInfo redisSideTableInfo = new RedisSideTableInfo();
         redisSideTableInfo.setName(tableName);

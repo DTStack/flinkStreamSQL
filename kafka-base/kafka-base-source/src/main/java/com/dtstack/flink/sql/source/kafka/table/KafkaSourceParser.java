@@ -19,8 +19,8 @@
 
 package com.dtstack.flink.sql.source.kafka.table;
 
-import com.dtstack.flink.sql.table.AbsSourceParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceParser;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
@@ -32,9 +32,9 @@ import java.util.Map;
  *
  * @author sishu.yss
  */
-public class KafkaSourceParser extends AbsSourceParser {
+public class KafkaSourceParser extends AbstractSourceParser {
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {
 
         KafkaSourceTableInfo kafkaSourceTableInfo = new KafkaSourceTableInfo();
         kafkaSourceTableInfo.setName(tableName);
@@ -43,7 +43,7 @@ public class KafkaSourceParser extends AbsSourceParser {
 
         kafkaSourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
         String bootstrapServer = MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase()));
-        if (bootstrapServer == null || bootstrapServer.trim().equals("")) {
+        if (bootstrapServer == null || "".equals(bootstrapServer.trim())) {
             throw new Exception("BootstrapServers can not be empty!");
         } else {
             kafkaSourceTableInfo.setBootstrapServers(bootstrapServer);

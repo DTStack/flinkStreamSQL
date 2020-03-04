@@ -18,10 +18,10 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
-import com.dtstack.flink.sql.side.AllReqRow;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.mongodb.BasicDBObject;
@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author xuqianjin
  */
-public class MongoAllReqRow extends AllReqRow {
+public class MongoAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = -675332795591842778L;
 
@@ -73,7 +73,7 @@ public class MongoAllReqRow extends AllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
-    public MongoAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public MongoAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new MongoAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

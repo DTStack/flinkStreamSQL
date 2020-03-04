@@ -18,8 +18,8 @@
 
 package com.dtstack.flink.sql.side.rdb.all;
 
-import com.dtstack.flink.sql.side.AllReqRow;
-import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
+import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import org.apache.calcite.sql.JoinType;
@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author maqi
  */
 
-public abstract class AbstractRdbAllReqRow extends AllReqRow {
+public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = 2098635140857937718L;
 
@@ -61,7 +61,7 @@ public abstract class AbstractRdbAllReqRow extends AllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
-    public AbstractRdbAllReqRow(SideInfo sideInfo) {
+    public AbstractRdbAllReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
     }
 

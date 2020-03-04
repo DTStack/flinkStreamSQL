@@ -28,10 +28,10 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
-import com.dtstack.flink.sql.side.AllReqRow;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
@@ -60,13 +60,11 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author xuqianjin
  */
-public class CassandraAllReqRow extends AllReqRow {
+public class CassandraAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = 54015343561288219L;
 
     private static final Logger LOG = LoggerFactory.getLogger(CassandraAllReqRow.class);
-
-    private static final String cassandra_DRIVER = "com.cassandra.jdbc.Driver";
 
     private static final int CONN_RETRY_NUM = 3;
 
@@ -77,7 +75,7 @@ public class CassandraAllReqRow extends AllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
-    public CassandraAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public CassandraAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new com.dtstack.flink.sql.side.cassandra.CassandraAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

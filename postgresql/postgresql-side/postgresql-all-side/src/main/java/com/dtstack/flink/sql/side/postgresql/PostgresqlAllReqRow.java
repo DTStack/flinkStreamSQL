@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.side.postgresql;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -49,7 +49,7 @@ public class PostgresqlAllReqRow extends AbstractRdbAllReqRow {
 
     private static final String POSTGRESQL_DRIVER = "org.postgresql.Driver";
 
-    public PostgresqlAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public PostgresqlAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new PostgresqlAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

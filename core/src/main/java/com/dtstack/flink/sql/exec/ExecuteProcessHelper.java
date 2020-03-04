@@ -36,12 +36,12 @@ import com.dtstack.flink.sql.parser.InsertSqlParser;
 import com.dtstack.flink.sql.parser.SqlParser;
 import com.dtstack.flink.sql.parser.SqlTree;
 import com.dtstack.flink.sql.side.SideSqlExec;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.sink.StreamSinkFactory;
 import com.dtstack.flink.sql.source.StreamSourceFactory;
-import com.dtstack.flink.sql.table.SourceTableInfo;
-import com.dtstack.flink.sql.table.TableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
@@ -159,7 +159,7 @@ public class ExecuteProcessHelper {
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
         SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql());
 
-        Map<String, SideTableInfo> sideTableMap = Maps.newHashMap();
+        Map<String, AbstractSideTableInfo> sideTableMap = Maps.newHashMap();
         Map<String, Table> registerTableCache = Maps.newHashMap();
 
         //register udf
@@ -193,7 +193,7 @@ public class ExecuteProcessHelper {
         return jarUrlList;
     }
 
-    public static void sqlTranslation(String localSqlPluginPath, StreamTableEnvironment tableEnv, SqlTree sqlTree, Map<String, SideTableInfo> sideTableMap, Map<String, Table> registerTableCache, StreamQueryConfig queryConfig) throws Exception {
+    public static void sqlTranslation(String localSqlPluginPath, StreamTableEnvironment tableEnv, SqlTree sqlTree, Map<String, AbstractSideTableInfo> sideTableMap, Map<String, Table> registerTableCache, StreamQueryConfig queryConfig) throws Exception {
         SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
@@ -264,14 +264,14 @@ public class ExecuteProcessHelper {
      * @throws Exception
      */
     public static Set<URL> registerTable(SqlTree sqlTree, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv, String localSqlPluginPath,
-                                         String remoteSqlPluginPath, String pluginLoadMode, Map<String, SideTableInfo> sideTableMap, Map<String, Table> registerTableCache) throws Exception {
+                                         String remoteSqlPluginPath, String pluginLoadMode, Map<String, AbstractSideTableInfo> sideTableMap, Map<String, Table> registerTableCache) throws Exception {
         Set<URL> pluginClassPatshSets = Sets.newHashSet();
         WaterMarkerAssigner waterMarkerAssigner = new WaterMarkerAssigner();
-        for (TableInfo tableInfo : sqlTree.getTableInfoMap().values()) {
+        for (AbstractTableInfo tableInfo : sqlTree.getTableInfoMap().values()) {
 
-            if (tableInfo instanceof SourceTableInfo) {
+            if (tableInfo instanceof AbstractSourceTableInfo) {
 
-                SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
+                AbstractSourceTableInfo sourceTableInfo = (AbstractSourceTableInfo) tableInfo;
                 Table table = StreamSourceFactory.getStreamSource(sourceTableInfo, env, tableEnv, localSqlPluginPath);
                 tableEnv.registerTable(sourceTableInfo.getAdaptName(), table);
                 //Note --- parameter conversion function can not be used inside a function of the type of polymerization
@@ -302,21 +302,21 @@ public class ExecuteProcessHelper {
                 }
                 registerTableCache.put(tableInfo.getName(), regTable);
 
-                URL sourceTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
+                URL sourceTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractSourceTableInfo.SOURCE_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
                 pluginClassPatshSets.add(sourceTablePathUrl);
-            } else if (tableInfo instanceof TargetTableInfo) {
+            } else if (tableInfo instanceof AbstractTargetTableInfo) {
 
-                TableSink tableSink = StreamSinkFactory.getTableSink((TargetTableInfo) tableInfo, localSqlPluginPath);
+                TableSink tableSink = StreamSinkFactory.getTableSink((AbstractTargetTableInfo) tableInfo, localSqlPluginPath);
                 TypeInformation[] flinkTypes = FunctionManager.transformTypes(tableInfo.getFieldClasses());
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
 
-                URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
+                URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractTargetTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
                 pluginClassPatshSets.add(sinkTablePathUrl);
-            } else if (tableInfo instanceof SideTableInfo) {
-                String sideOperator = ECacheType.ALL.name().equals(((SideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
-                sideTableMap.put(tableInfo.getName(), (SideTableInfo) tableInfo);
+            } else if (tableInfo instanceof AbstractSideTableInfo) {
+                String sideOperator = ECacheType.ALL.name().equals(((AbstractSideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
+                sideTableMap.put(tableInfo.getName(), (AbstractSideTableInfo) tableInfo);
 
-                URL sideTablePathUrl = PluginUtil.buildSidePathByLoadMode(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
+                URL sideTablePathUrl = PluginUtil.buildSidePathByLoadMode(tableInfo.getType(), sideOperator, AbstractSideTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
                 pluginClassPatshSets.add(sideTablePathUrl);
             } else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());

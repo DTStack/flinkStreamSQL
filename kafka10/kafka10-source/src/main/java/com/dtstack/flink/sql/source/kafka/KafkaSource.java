@@ -21,7 +21,7 @@ package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
-import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -60,7 +60,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 	 */
 	@SuppressWarnings("rawtypes")
 	@Override
-	public Table genStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
+	public Table genStreamSource(AbstractSourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
 
 		KafkaSourceTableInfo kafkaSourceTableInfo = (KafkaSourceTableInfo) sourceTableInfo;
 		String topicName = kafkaSourceTableInfo.getTopic();
@@ -94,7 +94,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 		} else if (DtStringUtil.isJosn(kafkaSourceTableInfo.getOffsetReset())) {// {"0":12312,"1":12321,"2":12312}
 			try {
 				Properties properties = PluginUtil.jsonStrToObject(kafkaSourceTableInfo.getOffsetReset(), Properties.class);
-				Map<String, Object> offsetMap = PluginUtil.ObjectToMap(properties);
+				Map<String, Object> offsetMap = PluginUtil.objectToMap(properties);
 				Map<KafkaTopicPartition, Long> specificStartupOffsets = new HashMap<>();
 				for (Map.Entry<String, Object> entry : offsetMap.entrySet()) {
 					specificStartupOffsets.put(new KafkaTopicPartition(topicName, Integer.valueOf(entry.getKey())), Long.valueOf(entry.getValue().toString()));

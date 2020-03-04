@@ -19,18 +19,16 @@
 
 package com.dtstack.flink.sql.side.cassandra.table;
 
-import com.dtstack.flink.sql.table.AbsSideTableParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractSideTableParser;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
-import java.math.BigDecimal;
-import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
 
 /**
  * Reason:
@@ -38,7 +36,7 @@ import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
  *
  * @author xuqianjin
  */
-public class CassandraSideParser extends AbsSideTableParser {
+public class CassandraSideParser extends AbstractSideTableParser {
 
     private final static String SIDE_SIGN_KEY = "sideSignKey";
 
@@ -73,7 +71,7 @@ public class CassandraSideParser extends AbsSideTableParser {
     }
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo cassandraSideTableInfo = new com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo();
         cassandraSideTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, cassandraSideTableInfo);
@@ -96,7 +94,7 @@ public class CassandraSideParser extends AbsSideTableParser {
         return cassandraSideTableInfo;
     }
 
-    private void dealSideSign(Matcher matcher, TableInfo tableInfo) {
+    private void dealSideSign(Matcher matcher, AbstractTableInfo tableInfo) {
     }
 
     @Override

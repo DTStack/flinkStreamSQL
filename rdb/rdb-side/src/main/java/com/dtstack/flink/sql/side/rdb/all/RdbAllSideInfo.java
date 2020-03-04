@@ -21,8 +21,8 @@ package com.dtstack.flink.sql.side.rdb.all;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.PredicateInfo;
-import com.dtstack.flink.sql.side.SideInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.BaseSideInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlNode;
@@ -43,17 +43,17 @@ import java.util.stream.Collectors;
  * @author maqi
  */
 
-public class RdbAllSideInfo extends SideInfo {
+public class RdbAllSideInfo extends BaseSideInfo {
 
     private static final long serialVersionUID = -5858335638589472159L;
 
 
-    public RdbAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public RdbAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
     @Override
-    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
+    public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
         sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(sideSelectFields.split(",")), sideTableInfo.getPredicateInfoes());
         System.out.println("--------dimension sql query-------\n" + sqlCondition);

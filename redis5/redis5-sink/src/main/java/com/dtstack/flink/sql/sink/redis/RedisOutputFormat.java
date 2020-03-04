@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.redis;
 
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -43,7 +43,7 @@ import java.util.Set;
 /**
  * @author yanxi
  */
-public class RedisOutputFormat extends DtRichOutputFormat<Tuple2> {
+public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
 
     private String url;

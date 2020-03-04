@@ -22,7 +22,7 @@ package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.metric.MetricConstant;
-import com.dtstack.flink.sql.side.cache.AbsSideCache;
+import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
 import org.apache.calcite.sql.JoinType;
@@ -47,14 +47,14 @@ import java.util.concurrent.TimeoutException;
  * @author xuchao
  */
 
-public abstract class AsyncReqRow extends RichAsyncFunction<CRow, CRow> implements ISideReqRow {
-    private static final Logger LOG = LoggerFactory.getLogger(AsyncReqRow.class);
+public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> implements ISideReqRow {
+    private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
 
-    protected SideInfo sideInfo;
+    protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
 
-    public AsyncReqRow(SideInfo sideInfo){
+    public BaseAsyncReqRow(BaseSideInfo sideInfo){
         this.sideInfo = sideInfo;
     }
 
@@ -66,12 +66,12 @@ public abstract class AsyncReqRow extends RichAsyncFunction<CRow, CRow> implemen
     }
 
     private void initCache(){
-        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         if(sideTableInfo.getCacheType() == null || ECacheType.NONE.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             return;
         }
 
-        AbsSideCache sideCache;
+        AbstractSideCache sideCache;
         if(ECacheType.LRU.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             sideCache = new LRUSideCache(sideTableInfo);
             sideInfo.setSideCache(sideCache);

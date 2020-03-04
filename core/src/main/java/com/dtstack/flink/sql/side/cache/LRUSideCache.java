@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.side.cache;
 
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -33,11 +33,11 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public class LRUSideCache extends AbsSideCache{
+public class LRUSideCache extends AbstractSideCache {
 
     protected transient Cache<String, CacheObj> cache;
 
-    public LRUSideCache(SideTableInfo sideTableInfo) {
+    public LRUSideCache(AbstractSideTableInfo sideTableInfo) {
         super(sideTableInfo);
     }
 

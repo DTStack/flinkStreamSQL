@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
  * @author xuchao
  */
 
-public abstract class AbsTableParser {
+public abstract class AbstractTableParser {
 
     private static final String PRIMARY_KEY = "primaryKey";
     private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
@@ -52,7 +52,7 @@ public abstract class AbsTableParser {
 
     private Map<String, ITableFieldDealHandler> handlerMap = Maps.newHashMap();
 
-    public AbsTableParser() {
+    public AbstractTableParser() {
         addParserHandler(PRIMARY_KEY, primaryKeyPattern, this::dealPrimaryKey);
         addParserHandler(NEST_JSON_FIELD_KEY, nestJsonFieldKeyPattern, this::dealNestField);
     }
@@ -61,9 +61,9 @@ public abstract class AbsTableParser {
         return true;
     }
 
-    public abstract TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception;
+    public abstract AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception;
 
-    public boolean dealKeyPattern(String fieldRow, TableInfo tableInfo){
+    public boolean dealKeyPattern(String fieldRow, AbstractTableInfo tableInfo){
         for(Map.Entry<String, Pattern> keyPattern : patternMap.entrySet()){
             Pattern pattern = keyPattern.getValue();
             String key = keyPattern.getKey();
@@ -82,7 +82,7 @@ public abstract class AbsTableParser {
         return false;
     }
 
-    public void parseFieldsInfo(String fieldsInfo, TableInfo tableInfo){
+    public void parseFieldsInfo(String fieldsInfo, AbstractTableInfo tableInfo){
 
         List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
         for(String fieldRow : fieldRows){
@@ -119,7 +119,7 @@ public abstract class AbsTableParser {
         tableInfo.finish();
     }
 
-    public void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
+    public void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo){
         String primaryFields = matcher.group(1).trim();
         String[] splitArry = primaryFields.split(",");
         List<String> primaryKes = Lists.newArrayList(splitArry);
@@ -131,7 +131,7 @@ public abstract class AbsTableParser {
      * @param matcher
      * @param tableInfo
      */
-    protected void dealNestField(Matcher matcher, TableInfo tableInfo) {
+    protected void dealNestField(Matcher matcher, AbstractTableInfo tableInfo) {
         String physicalField = matcher.group(1);
         Preconditions.checkArgument(!physicalFieldFunPattern.matcher(physicalField).find(),
                 "No need to add data types when using functions, The correct way is : strLen(name) as nameSize, ");
@@ -140,7 +140,7 @@ public abstract class AbsTableParser {
         String mappingField = matcher.group(4);
         Class fieldClass = dbTypeConvertToJavaType(fieldType);
         boolean notNull = matcher.group(5) != null;
-        TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
+        AbstractTableInfo.FieldExtraInfo fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
         fieldExtraInfo.setNotNull(notNull);
 
         tableInfo.addPhysicalMappings(mappingField, physicalField);

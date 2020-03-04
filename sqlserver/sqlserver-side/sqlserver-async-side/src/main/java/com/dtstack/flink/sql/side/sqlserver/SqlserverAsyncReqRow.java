@@ -44,7 +44,7 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
 
     private final static String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
 
-    public SqlserverAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public SqlserverAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new SqlserverAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

@@ -26,7 +26,13 @@ package com.dtstack.flink.sql.enums;
  */
 public enum EPluginLoadMode {
 
+    /**
+     * 0:classpath
+     */
     CLASSPATH(0),
+    /**
+     * 1:shipfile
+     */
     SHIPFILE(1);
 
     private int type;

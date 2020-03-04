@@ -38,7 +38,7 @@ import java.util.TimeZone;
  * @author xuchao
  */
 
-public abstract class AbsCustomerWaterMarker<T> extends BoundedOutOfOrdernessTimestampExtractor<T> implements RichFunction {
+public abstract class AbstractCustomerWaterMarker<T> extends BoundedOutOfOrdernessTimestampExtractor<T> implements RichFunction {
 
 
     private static final long serialVersionUID = 1L;
@@ -55,7 +55,7 @@ public abstract class AbsCustomerWaterMarker<T> extends BoundedOutOfOrdernessTim
 
     protected TimeZone timezone;
 
-    public AbsCustomerWaterMarker(Time maxOutOfOrderness) {
+    public AbstractCustomerWaterMarker(Time maxOutOfOrderness) {
         super(maxOutOfOrderness);
     }
 

@@ -46,7 +46,7 @@ import java.util.function.Consumer;
 /**
  * @author yanxi
  */
-public class RedisAsyncReqRow extends AsyncReqRow {
+public class RedisAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = -2079908694523987738L;
 
@@ -64,7 +64,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
 
     private RedisSideReqRow redisSideReqRow;
 
-    public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         redisSideReqRow = new RedisSideReqRow(super.sideInfo);
     }

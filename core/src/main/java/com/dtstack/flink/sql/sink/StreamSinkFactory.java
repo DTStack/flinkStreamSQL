@@ -21,8 +21,8 @@
 package com.dtstack.flink.sql.sink;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
-import com.dtstack.flink.sql.table.AbsTableParser;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTableParser;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.flink.table.sinks.TableSink;
@@ -40,21 +40,21 @@ public class StreamSinkFactory {
 
     private static final String DIR_NAME_FORMAT = "%ssink";
 
-    public static AbsTableParser getSqlParser(String pluginType, String sqlRootDir) throws Exception {
+    public static AbstractTableParser getSqlParser(String pluginType, String sqlRootDir) throws Exception {
         String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), sqlRootDir);
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
         String className = PluginUtil.getSqlParserClassName(typeNoVersion, CURR_TYPE);
 
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {
             Class<?> targetParser = cl.loadClass(className);
-            if(!AbsTableParser.class.isAssignableFrom(targetParser)){
+            if(!AbstractTableParser.class.isAssignableFrom(targetParser)){
                 throw new RuntimeException("class " + targetParser.getName() + " not subClass of AbsTableParser");
             }
-            return targetParser.asSubclass(AbsTableParser.class).newInstance();
+            return targetParser.asSubclass(AbstractTableParser.class).newInstance();
         });
     }
 
-    public static TableSink getTableSink(TargetTableInfo targetTableInfo, String localSqlRootDir) throws Exception {
+    public static TableSink getTableSink(AbstractTargetTableInfo targetTableInfo, String localSqlRootDir) throws Exception {
         String pluginType = targetTableInfo.getType();
         String pluginJarDirPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), localSqlRootDir);
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);

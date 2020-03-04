@@ -39,7 +39,6 @@ import java.util.SimpleTimeZone;
  */
 public class DateUtil {
 
-    static final String timeZone = "GMT+8";
     static final String datetimeFormat = "yyyy-MM-dd HH:mm:ss";
     static final String dateFormat = "yyyy-MM-dd";
     static final String timeFormat = "HH:mm:ss";

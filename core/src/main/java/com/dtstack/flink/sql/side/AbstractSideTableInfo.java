@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -35,7 +35,7 @@ import java.util.List;
  * @author xuchao
  */
 
-public abstract class SideTableInfo extends TableInfo implements Serializable {
+public abstract class AbstractSideTableInfo extends AbstractTableInfo implements Serializable {
 
     public static final String TARGET_SUFFIX = "Side";
 

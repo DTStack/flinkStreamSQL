@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.side.impala;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.JDBCUtils;
@@ -53,13 +53,13 @@ public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
 
     private ImpalaSideTableInfo impalaSideTableInfo;
 
-    public ImpalaAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public ImpalaAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new ImpalaAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         this.impalaSideTableInfo = (ImpalaSideTableInfo) sideTableInfo;
     }
 
     @Override
-    public Connection getConn(String dbURL, String userName, String password) {
+    public Connection getConn(String dbUrl, String userName, String password) {
         try {
             Connection connection ;
             String url = getUrl();

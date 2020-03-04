@@ -20,10 +20,10 @@
 package com.dtstack.flink.sql.side.operator;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
-import com.dtstack.flink.sql.side.AllReqRow;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -44,22 +44,22 @@ public class SideWithAllCacheOperator {
 
     private static final String OPERATOR_TYPE = "All";
 
-    private static AllReqRow loadFlatMap(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,
-                                         JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
-                                         SideTableInfo sideTableInfo) throws Exception {
+    private static BaseAllReqRow loadFlatMap(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,
+                                             JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
+                                             AbstractSideTableInfo sideTableInfo) throws Exception {
 
         String pathOfType = String.format(PATH_FORMAT, sideType);
         String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir);
         String className = PluginUtil.getSqlSideClassName(sideType, "side", OPERATOR_TYPE);
 
-        return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> cl.loadClass(className).asSubclass(AllReqRow.class)
-                .getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, SideTableInfo.class)
+        return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> cl.loadClass(className).asSubclass(BaseAllReqRow.class)
+                .getConstructor(RowTypeInfo.class, JoinInfo.class, List.class, AbstractSideTableInfo.class)
                 .newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     public static DataStream getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo, JoinInfo joinInfo,
-                                                   List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) throws Exception {
-        AllReqRow allReqRow = loadFlatMap(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+                                                   List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) throws Exception {
+        BaseAllReqRow allReqRow = loadFlatMap(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
         return inputStream.flatMap(allReqRow);
     }
 }

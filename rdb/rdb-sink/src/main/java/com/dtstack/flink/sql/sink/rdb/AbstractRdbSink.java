@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.sink.rdb;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -85,7 +85,7 @@ public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Se
     }
 
     @Override
-    public AbstractRdbSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public AbstractRdbSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         RdbTableInfo rdbTableInfo = (RdbTableInfo) targetTableInfo;
         this.batchNum = rdbTableInfo.getBatchSize() == null ? batchNum : rdbTableInfo.getBatchSize();
         this.batchWaitInterval = rdbTableInfo.getBatchWaitInterval() == null ?

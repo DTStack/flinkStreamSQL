@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.console;
 
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.dtstack.flink.sql.sink.console.table.TablePrintUtil;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -37,7 +37,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class ConsoleOutputFormat extends DtRichOutputFormat<Tuple2> {
+public class ConsoleOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsoleOutputFormat.class);
 

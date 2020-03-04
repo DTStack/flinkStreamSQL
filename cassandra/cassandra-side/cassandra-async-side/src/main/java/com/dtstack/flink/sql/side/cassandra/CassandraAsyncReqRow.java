@@ -30,11 +30,11 @@ import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.AsyncReqRow;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo;
 import com.google.common.base.Function;
@@ -56,7 +56,6 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -66,7 +65,7 @@ import java.util.Map;
  *
  * @author xuqianjin
  */
-public class CassandraAsyncReqRow extends AsyncReqRow {
+public class CassandraAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = 6631584128079864735L;
 
@@ -82,7 +81,7 @@ public class CassandraAsyncReqRow extends AsyncReqRow {
     private transient ListenableFuture session;
     private transient CassandraSideTableInfo cassandraSideTableInfo;
 
-    public CassandraAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public CassandraAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new com.dtstack.flink.sql.side.cassandra.CassandraAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

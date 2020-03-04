@@ -17,7 +17,7 @@
  */
 package com.dtstack.flink.sql.source.serversocket.table;
 
-import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import com.google.common.base.Preconditions;
 
 /**
@@ -27,7 +27,7 @@ import com.google.common.base.Preconditions;
  *
  * @author maqi
  */
-public class ServersocketSourceTableInfo extends SourceTableInfo {
+public class ServersocketSourceTableInfo extends AbstractSourceTableInfo {
 
 	private static final String CURR_TYPE = "serversocket";
 

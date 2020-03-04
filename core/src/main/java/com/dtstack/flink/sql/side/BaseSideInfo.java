@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.side.cache.AbsSideCache;
+import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -41,7 +41,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public abstract class SideInfo implements Serializable{
+public abstract class BaseSideInfo implements Serializable{
 
     protected RowTypeInfo rowTypeInfo;
 
@@ -66,12 +66,12 @@ public abstract class SideInfo implements Serializable{
     //key:Returns the value of the position, value:  the ref field name​in the side table
     protected Map<Integer, String> sideFieldNameIndex = Maps.newHashMap();
 
-    protected SideTableInfo sideTableInfo;
+    protected AbstractSideTableInfo sideTableInfo;
 
-    protected AbsSideCache sideCache;
+    protected AbstractSideCache sideCache;
 
-    public SideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
-                    SideTableInfo sideTableInfo){
+    public BaseSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
+                        AbstractSideTableInfo sideTableInfo){
         this.rowTypeInfo = rowTypeInfo;
         this.outFieldInfoList = outFieldInfoList;
         this.joinType = joinInfo.getJoinType();
@@ -158,7 +158,7 @@ public abstract class SideInfo implements Serializable{
         }
     }
 
-    public abstract void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo);
+    public abstract void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo);
 
     public RowTypeInfo getRowTypeInfo() {
         return rowTypeInfo;
@@ -232,19 +232,19 @@ public abstract class SideInfo implements Serializable{
         this.sideFieldIndex = sideFieldIndex;
     }
 
-    public SideTableInfo getSideTableInfo() {
+    public AbstractSideTableInfo getSideTableInfo() {
         return sideTableInfo;
     }
 
-    public void setSideTableInfo(SideTableInfo sideTableInfo) {
+    public void setSideTableInfo(AbstractSideTableInfo sideTableInfo) {
         this.sideTableInfo = sideTableInfo;
     }
 
-    public AbsSideCache getSideCache() {
+    public AbstractSideCache getSideCache() {
         return sideCache;
     }
 
-    public void setSideCache(AbsSideCache sideCache) {
+    public void setSideCache(AbstractSideCache sideCache) {
         this.sideCache = sideCache;
     }
 

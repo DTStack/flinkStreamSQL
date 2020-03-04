@@ -18,29 +18,40 @@
 
  
 
-package com.dtstack.flink.sql.side.cache;
+package com.dtstack.flink.sql.side.hbase;
 
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.hbase.enums.EReplaceOpType;
+
+import java.util.Map;
 
 /**
  * Reason:
- * Date: 2018/9/10
+ * Date: 2018/8/23
  * Company: www.dtstack.com
- *
  * @author xuchao
  */
 
-public abstract class AbsSideCache {
+public abstract class AbstractReplaceOperator {
 
-    protected SideTableInfo sideTableInfo;
+    private EReplaceOpType opType;
 
-    public AbsSideCache(SideTableInfo sideTableInfo){
-        this.sideTableInfo = sideTableInfo;
+    public AbstractReplaceOperator(EReplaceOpType opType){
+        this.opType = opType;
     }
 
-    public abstract void initCache();
+    public String doOperator(Map<String, Object> refData){
+        String replaceStr = replaceStr(refData);
+        return doFunc(replaceStr);
+    }
 
-    public abstract CacheObj getFromCache(String key);
+    public String replaceStr(Map<String, Object> refData){
+        return "";
+    }
 
-    public abstract void putCache(String key, CacheObj value);
+    /**
+     * The processing function to provide custom
+     * @param replaceStr
+     * @return
+     */
+    abstract String doFunc(String replaceStr);
 }

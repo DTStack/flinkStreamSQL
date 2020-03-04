@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.console.table;
 
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 
 /**
  * Reason:
@@ -26,7 +26,7 @@ import com.dtstack.flink.sql.table.TargetTableInfo;
  *
  * @author xuqianjin
  */
-public class ConsoleTableInfo extends TargetTableInfo {
+public class ConsoleTableInfo extends AbstractTargetTableInfo {
 
     private static final String CURR_TYPE = "console";
 

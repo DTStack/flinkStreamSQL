@@ -18,8 +18,7 @@
 
 package com.dtstack.flink.sql.sink.kafka.table;
 
-import com.dtstack.flink.sql.format.FormatType;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 
 import java.util.HashMap;
@@ -33,7 +32,7 @@ import java.util.Set;
  * @author DocLi
  * @modifyer maqi
  */
-public class KafkaSinkTableInfo extends TargetTableInfo {
+public class KafkaSinkTableInfo extends AbstractTargetTableInfo {
 
     public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
 

@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.sink.mongo;
 
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
@@ -41,7 +41,7 @@ import java.io.IOException;
  *
  * @author xuqianjin
  */
-public class MongoOutputFormat extends DtRichOutputFormat<Tuple2> {
+public class MongoOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(MongoOutputFormat.class);
 
     private String address;

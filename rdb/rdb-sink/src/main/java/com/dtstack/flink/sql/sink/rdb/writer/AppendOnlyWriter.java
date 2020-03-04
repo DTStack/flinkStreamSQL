@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.rdb.writer;
 
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -48,9 +48,9 @@ public class AppendOnlyWriter implements JDBCWriter {
     private transient PreparedStatement statement;
     private transient List<Row> rows;
     // only use metric
-    private transient DtRichOutputFormat metricOutputFormat;
+    private transient AbstractDtRichOutputFormat metricOutputFormat;
 
-    public AppendOnlyWriter(String insertSql, int[] fieldTypes, DtRichOutputFormat metricOutputFormat) {
+    public AppendOnlyWriter(String insertSql, int[] fieldTypes, AbstractDtRichOutputFormat metricOutputFormat) {
         this.insertSql = insertSql;
         this.fieldTypes = fieldTypes;
         this.metricOutputFormat = metricOutputFormat;

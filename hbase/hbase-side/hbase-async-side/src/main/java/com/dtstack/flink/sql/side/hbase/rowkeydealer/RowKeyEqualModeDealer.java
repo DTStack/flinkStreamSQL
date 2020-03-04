@@ -23,7 +23,7 @@ package com.dtstack.flink.sql.side.hbase.rowkeydealer;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.cache.AbsSideCache;
+import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.google.common.collect.Maps;
@@ -49,7 +49,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
+public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
 
     private static final Logger LOG = LoggerFactory.getLogger(RowKeyEqualModeDealer.class);
 
@@ -62,7 +62,7 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
 
     @Override
     public void asyncGetData(String tableName, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture,
-                             AbsSideCache sideCache){
+                             AbstractSideCache sideCache){
         //TODO 是否有查询多个col family 和多个col的方法
         GetRequest getRequest = new GetRequest(tableName, rowKeyStr);
         hBaseClient.get(getRequest).addCallbacks(arg -> {

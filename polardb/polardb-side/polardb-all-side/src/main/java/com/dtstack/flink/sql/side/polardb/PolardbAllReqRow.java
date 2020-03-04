@@ -19,7 +19,7 @@ package com.dtstack.flink.sql.side.polardb;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.collect.Maps;
@@ -45,7 +45,7 @@ public class PolardbAllReqRow extends AbstractRdbAllReqRow {
 
     private static final String POLARDB_DRIVER = "com.mysql.cj.jdbc.Driver";
 
-    public PolardbAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public PolardbAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new PolardbAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

@@ -20,27 +20,22 @@
 package com.dtstack.flink.sql.side.mongo;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.AsyncReqRow;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.ConnectionString;
-import com.mongodb.MongoCredential;
-import com.mongodb.ServerAddress;
 import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
-import com.mongodb.connection.ClusterSettings;
-import com.mongodb.connection.ConnectionPoolSettings;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import org.apache.flink.configuration.Configuration;
@@ -53,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -66,7 +60,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author xuqianjin
  */
-public class MongoAsyncReqRow extends AsyncReqRow {
+public class MongoAsyncReqRow extends BaseAsyncReqRow {
     private static final long serialVersionUID = -1183158242862673706L;
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoAsyncReqRow.class);
@@ -77,7 +71,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     private MongoSideTableInfo mongoSideTableInfo;
 
-    public MongoAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public MongoAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new MongoAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

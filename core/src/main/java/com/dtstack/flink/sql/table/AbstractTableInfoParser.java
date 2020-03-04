@@ -22,7 +22,7 @@ package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.enums.ETableType;
 import com.dtstack.flink.sql.parser.CreateTableParser;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.StreamSideFactory;
 import com.dtstack.flink.sql.sink.StreamSinkFactory;
 import com.dtstack.flink.sql.source.StreamSourceFactory;
@@ -41,7 +41,7 @@ import java.util.regex.Pattern;
  * @author xuchao
  */
 
-public class TableInfoParser {
+public class AbstractTableInfoParser {
 
     private final static String TYPE_KEY = "type";
 
@@ -49,16 +49,16 @@ public class TableInfoParser {
 
     private final static Pattern SIDE_PATTERN = Pattern.compile(SIDE_TABLE_SIGN);
 
-    private  Map<String, AbsTableParser> sourceTableInfoMap = Maps.newConcurrentMap();
+    private  Map<String, AbstractTableParser> sourceTableInfoMap = Maps.newConcurrentMap();
 
-    private  Map<String, AbsTableParser> targetTableInfoMap = Maps.newConcurrentMap();
+    private  Map<String, AbstractTableParser> targetTableInfoMap = Maps.newConcurrentMap();
 
-    private  Map<String, AbsTableParser> sideTableInfoMap = Maps.newConcurrentMap();
+    private  Map<String, AbstractTableParser> sideTableInfoMap = Maps.newConcurrentMap();
 
     //Parsing loaded plugin
-    public TableInfo parseWithTableType(int tableType, CreateTableParser.SqlParserResult parserResult,
-                                               String localPluginRoot) throws Exception {
-        AbsTableParser absTableParser = null;
+    public AbstractTableInfo parseWithTableType(int tableType, CreateTableParser.SqlParserResult parserResult,
+                                                String localPluginRoot) throws Exception {
+        AbstractTableParser absTableParser = null;
         Map<String, Object> props = parserResult.getPropMap();
         String type = MathUtil.getString(props.get(TYPE_KEY));
 
@@ -78,7 +78,7 @@ public class TableInfoParser {
             }else{
                 absTableParser = sideTableInfoMap.get(type);
                 if(absTableParser == null){
-                    String cacheType = MathUtil.getString(props.get(SideTableInfo.CACHE_KEY));
+                    String cacheType = MathUtil.getString(props.get(AbstractSideTableInfo.CACHE_KEY));
                     absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType);
                     sideTableInfoMap.put(type, absTableParser);
                 }

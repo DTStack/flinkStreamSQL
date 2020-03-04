@@ -102,9 +102,9 @@ public final class StreamEnvConfigManager {
         });
 
         streamEnv.setRestartStrategy(RestartStrategies.failureRateRestart(
-                ConfigConstrant.failureRate,
-                Time.of(ConfigConstrant.failureInterval, TimeUnit.MINUTES),
-                Time.of(ConfigConstrant.delayInterval, TimeUnit.SECONDS)
+                ConfigConstrant.FAILUEE_RATE,
+                Time.of(ConfigConstrant.FAILUEE_INTERVAL, TimeUnit.MINUTES),
+                Time.of(ConfigConstrant.DELAY_INTERVAL, TimeUnit.SECONDS)
         ));
 
         // checkpoint config

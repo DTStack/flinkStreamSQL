@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.sink.kafka;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -69,7 +69,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
 
     @Override
-    public KafkaSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public KafkaSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         KafkaSinkTableInfo kafka10SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
         this.topic = kafka10SinkTableInfo.getTopic();
 

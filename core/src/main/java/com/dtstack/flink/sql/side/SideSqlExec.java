@@ -96,7 +96,7 @@ public class SideSqlExec {
     private Map<String, Table> localTableCache = Maps.newHashMap();
     private StreamTableEnvironment tableEnv ;
 
-    public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
+    public void exec(String sql, Map<String, AbstractSideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
                      Map<String, Table> tableCache, StreamQueryConfig queryConfig) throws Exception {
         if(localSqlPluginPath == null){
             throw new RuntimeException("need to set localSqlPluginPath");
@@ -657,7 +657,7 @@ public class SideSqlExec {
      *
      * @return
      */
-    private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias, SideTableInfo sideTableInfo) {
+    private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias, AbstractSideTableInfo sideTableInfo) {
         List<String> conditionFields = getConditionFields(conditionNode, sideTableAlias, sideTableInfo);
         if(CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo))){
             return true;
@@ -665,7 +665,7 @@ public class SideSqlExec {
         return false;
     }
 
-    private List<String> convertPrimaryAlias(SideTableInfo sideTableInfo) {
+    private List<String> convertPrimaryAlias(AbstractSideTableInfo sideTableInfo) {
         List<String> res = Lists.newArrayList();
         sideTableInfo.getPrimaryKeys().forEach(field -> {
             res.add(sideTableInfo.getPhysicalFields().getOrDefault(field, field));
@@ -673,7 +673,7 @@ public class SideSqlExec {
         return res;
     }
 
-    public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName, SideTableInfo sideTableInfo){
+    public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName, AbstractSideTableInfo sideTableInfo){
         List<SqlNode> sqlNodeList = Lists.newArrayList();
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
         List<String> conditionFields = Lists.newArrayList();
@@ -704,7 +704,7 @@ public class SideSqlExec {
     }
 
     public void registerTmpTable(CreateTmpTableParser.SqlParserResult result,
-                                 Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
+                                 Map<String, AbstractSideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
                                  Map<String, Table> tableCache)
             throws Exception {
 
@@ -778,7 +778,7 @@ public class SideSqlExec {
     }
 
     private void joinFun(Object pollObj, Map<String, Table> localTableCache,
-                         Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
+                         Map<String, AbstractSideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
                          List<FieldReplaceInfo> replaceInfoList) throws Exception{
         JoinInfo joinInfo = (JoinInfo) pollObj;
 
@@ -799,7 +799,7 @@ public class SideSqlExec {
         JoinScope.ScopeChild rightScopeChild = new JoinScope.ScopeChild();
         rightScopeChild.setAlias(joinInfo.getRightTableAlias());
         rightScopeChild.setTableName(joinInfo.getRightTableName());
-        SideTableInfo sideTableInfo = sideTableMap.get(joinInfo.getRightTableName());
+        AbstractSideTableInfo sideTableInfo = sideTableMap.get(joinInfo.getRightTableName());
         if(sideTableInfo == null){
             sideTableInfo = sideTableMap.get(joinInfo.getRightTableAlias());
         }

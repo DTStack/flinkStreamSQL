@@ -23,7 +23,7 @@ import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -121,7 +121,7 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
     }
 
     @Override
-    public AbstractRdbSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public AbstractRdbSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         super.genStreamSink(targetTableInfo);
         this.impalaTableInfo = (ImpalaTableInfo) targetTableInfo;
         return this;

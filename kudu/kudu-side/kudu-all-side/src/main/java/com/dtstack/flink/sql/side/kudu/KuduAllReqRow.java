@@ -1,10 +1,10 @@
 package com.dtstack.flink.sql.side.kudu;
 
-import com.dtstack.flink.sql.side.AllReqRow;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.PredicateInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
 import org.apache.calcite.sql.JoinType;
@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class KuduAllReqRow extends AllReqRow {
+public class KuduAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = 6051774809356082219L;
 
@@ -60,7 +60,7 @@ public class KuduAllReqRow extends AllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
-    public KuduAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public KuduAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new KuduAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

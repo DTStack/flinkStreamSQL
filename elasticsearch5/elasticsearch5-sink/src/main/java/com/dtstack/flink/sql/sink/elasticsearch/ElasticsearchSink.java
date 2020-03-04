@@ -22,7 +22,7 @@ package com.dtstack.flink.sql.sink.elasticsearch;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -162,7 +162,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     }
 
     @Override
-    public ElasticsearchSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public ElasticsearchSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         ElasticsearchTableInfo elasticsearchTableInfo = (ElasticsearchTableInfo) targetTableInfo;
         esTableInfo = elasticsearchTableInfo;
         clusterName = elasticsearchTableInfo.getClusterName();

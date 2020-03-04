@@ -34,7 +34,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public abstract class TableInfo implements Serializable {
+public abstract class AbstractTableInfo implements Serializable {
 
     public static final String PARALLELISM_KEY = "parallelism";
 

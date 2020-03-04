@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.rdb.writer;
 
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
@@ -59,7 +59,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
             String[] partitionFields,
             boolean objectReuse,
             boolean allReplace,
-            DtRichOutputFormat metricOutputFormat) {
+            AbstractDtRichOutputFormat metricOutputFormat) {
 
         checkNotNull(keyFields);
 
@@ -97,9 +97,9 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
     private transient Map<Row, Tuple2<Boolean, Row>> keyToRows;
     private transient PreparedStatement deleteStatement;
     // only use metric
-    private transient DtRichOutputFormat metricOutputFormat;
+    private transient AbstractDtRichOutputFormat metricOutputFormat;
 
-    private AbstractUpsertWriter(int[] fieldTypes, int[] pkFields, int[] pkTypes, String deleteSql, boolean objectReuse, DtRichOutputFormat metricOutputFormat) {
+    private AbstractUpsertWriter(int[] fieldTypes, int[] pkFields, int[] pkTypes, String deleteSql, boolean objectReuse, AbstractDtRichOutputFormat metricOutputFormat) {
         this.fieldTypes = fieldTypes;
         this.pkFields = pkFields;
         this.pkTypes = pkTypes;
@@ -217,7 +217,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                 boolean objectReuse,
                 String deleteSql,
                 String upsertSql,
-                DtRichOutputFormat metricOutputFormat) {
+                AbstractDtRichOutputFormat metricOutputFormat) {
             super(fieldTypes, pkFields, pkTypes, deleteSql, objectReuse, metricOutputFormat);
             this.upsertSql = upsertSql;
         }
@@ -275,7 +275,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                 String existSql,
                 String insertSql,
                 String updateSql,
-                DtRichOutputFormat metricOutputFormat) {
+                AbstractDtRichOutputFormat metricOutputFormat) {
             super(fieldTypes, pkFields, pkTypes, deleteSql, objectReuse, metricOutputFormat);
             this.existSql = existSql;
             this.insertSql = insertSql;

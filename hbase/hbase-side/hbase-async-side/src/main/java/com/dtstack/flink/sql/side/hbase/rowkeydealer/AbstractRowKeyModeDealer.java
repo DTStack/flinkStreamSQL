@@ -21,7 +21,7 @@
 package com.dtstack.flink.sql.side.hbase.rowkeydealer;
 
 import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.cache.AbsSideCache;
+import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import org.apache.calcite.sql.JoinType;
 import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -41,7 +41,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public abstract class AbsRowKeyModeDealer {
+public abstract class AbstractRowKeyModeDealer {
 
     protected Map<String, String> colRefType;
 
@@ -60,9 +60,9 @@ public abstract class AbsRowKeyModeDealer {
 
     protected Map<Integer, Integer> sideFieldIndex = Maps.newHashMap();
 
-    public AbsRowKeyModeDealer(Map<String, String> colRefType, String[] colNames, HBaseClient hBaseClient,
-                               boolean openCache, JoinType joinType, List<FieldInfo> outFieldInfoList,
-                               Map<Integer, Integer> inFieldIndex, Map<Integer, Integer> sideFieldIndex){
+    public AbstractRowKeyModeDealer(Map<String, String> colRefType, String[] colNames, HBaseClient hBaseClient,
+                                    boolean openCache, JoinType joinType, List<FieldInfo> outFieldInfoList,
+                                    Map<Integer, Integer> inFieldIndex, Map<Integer, Integer> sideFieldIndex){
         this.colRefType = colRefType;
         this.colNames = colNames;
         this.hBaseClient = hBaseClient;
@@ -111,5 +111,5 @@ public abstract class AbsRowKeyModeDealer {
     }
 
     public abstract void asyncGetData(String tableName, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture,
-                                      AbsSideCache sideCache);
+                                      AbstractSideCache sideCache);
 }

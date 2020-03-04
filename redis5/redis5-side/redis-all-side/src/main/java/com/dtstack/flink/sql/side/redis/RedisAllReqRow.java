@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 /**
  * @author yanxi
  */
-public class RedisAllReqRow extends AllReqRow{
+public class RedisAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = 7578879189085344807L;
 
@@ -60,7 +60,7 @@ public class RedisAllReqRow extends AllReqRow{
 
     private RedisSideReqRow redisSideReqRow;
 
-    public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         this.redisSideReqRow = new RedisSideReqRow(super.sideInfo);
     }

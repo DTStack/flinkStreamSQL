@@ -21,7 +21,7 @@
 package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -34,24 +34,24 @@ import java.util.regex.Pattern;
  * @author xuchao
  */
 
-public abstract class AbsSideTableParser extends AbsTableParser {
+public abstract class AbstractSideTableParser extends AbstractTableParser {
 
     private final static String SIDE_SIGN_KEY = "sideSignKey";
 
     private final static Pattern SIDE_TABLE_SIGN = Pattern.compile("(?i)^PERIOD\\s+FOR\\s+SYSTEM_TIME$");
 
-    public AbsSideTableParser() {
+    public AbstractSideTableParser() {
         addParserHandler(SIDE_SIGN_KEY, SIDE_TABLE_SIGN, this::dealSideSign);
     }
 
-    private void dealSideSign(Matcher matcher, TableInfo tableInfo){
+    private void dealSideSign(Matcher matcher, AbstractTableInfo tableInfo){
         //FIXME SIDE_TABLE_SIGN current just used as a sign for side table; and do nothing
     }
 
     //Analytical create table attributes ==> Get information cache
-    protected void parseCacheProp(SideTableInfo sideTableInfo, Map<String, Object> props){
-        if(props.containsKey(SideTableInfo.CACHE_KEY.toLowerCase())){
-            String cacheType = MathUtil.getString(props.get(SideTableInfo.CACHE_KEY.toLowerCase()));
+    protected void parseCacheProp(AbstractSideTableInfo sideTableInfo, Map<String, Object> props){
+        if(props.containsKey(AbstractSideTableInfo.CACHE_KEY.toLowerCase())){
+            String cacheType = MathUtil.getString(props.get(AbstractSideTableInfo.CACHE_KEY.toLowerCase()));
             if(cacheType == null){
                 return;
             }
@@ -61,31 +61,31 @@ public abstract class AbsSideTableParser extends AbsTableParser {
             }
 
             sideTableInfo.setCacheType(cacheType);
-            if(props.containsKey(SideTableInfo.CACHE_SIZE_KEY.toLowerCase())){
-                Integer cacheSize = MathUtil.getIntegerVal(props.get(SideTableInfo.CACHE_SIZE_KEY.toLowerCase()));
+            if(props.containsKey(AbstractSideTableInfo.CACHE_SIZE_KEY.toLowerCase())){
+                Integer cacheSize = MathUtil.getIntegerVal(props.get(AbstractSideTableInfo.CACHE_SIZE_KEY.toLowerCase()));
                 if(cacheSize < 0){
                     throw new RuntimeException("cache size need > 0.");
                 }
                 sideTableInfo.setCacheSize(cacheSize);
             }
 
-            if(props.containsKey(SideTableInfo.CACHE_TTLMS_KEY.toLowerCase())){
-                Long cacheTTLMS = MathUtil.getLongVal(props.get(SideTableInfo.CACHE_TTLMS_KEY.toLowerCase()));
+            if(props.containsKey(AbstractSideTableInfo.CACHE_TTLMS_KEY.toLowerCase())){
+                Long cacheTTLMS = MathUtil.getLongVal(props.get(AbstractSideTableInfo.CACHE_TTLMS_KEY.toLowerCase()));
                 if(cacheTTLMS < 1000){
                     throw new RuntimeException("cache time out need > 1000 ms.");
                 }
                 sideTableInfo.setCacheTimeout(cacheTTLMS);
             }
 
-            if(props.containsKey(SideTableInfo.PARTITIONED_JOIN_KEY.toLowerCase())){
-                Boolean partitionedJoinKey = MathUtil.getBoolean(props.get(SideTableInfo.PARTITIONED_JOIN_KEY.toLowerCase()));
+            if(props.containsKey(AbstractSideTableInfo.PARTITIONED_JOIN_KEY.toLowerCase())){
+                Boolean partitionedJoinKey = MathUtil.getBoolean(props.get(AbstractSideTableInfo.PARTITIONED_JOIN_KEY.toLowerCase()));
                 if(partitionedJoinKey){
                     sideTableInfo.setPartitionedJoin(true);
                 }
             }
 
-            if(props.containsKey(SideTableInfo.CACHE_MODE_KEY.toLowerCase())){
-                String cachemode = MathUtil.getString(props.get(SideTableInfo.CACHE_MODE_KEY.toLowerCase()));
+            if(props.containsKey(AbstractSideTableInfo.CACHE_MODE_KEY.toLowerCase())){
+                String cachemode = MathUtil.getString(props.get(AbstractSideTableInfo.CACHE_MODE_KEY.toLowerCase()));
 
                 if(!"ordered".equalsIgnoreCase(cachemode) && !"unordered".equalsIgnoreCase(cachemode)){
                     throw new RuntimeException("cachemode must ordered or unordered!");
@@ -93,16 +93,16 @@ public abstract class AbsSideTableParser extends AbsTableParser {
                 sideTableInfo.setCacheMode(cachemode.toLowerCase());
             }
 
-            if(props.containsKey(SideTableInfo.ASYNC_CAP_KEY.toLowerCase())){
-                Integer asyncCap = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_CAP_KEY.toLowerCase()));
+            if(props.containsKey(AbstractSideTableInfo.ASYNC_CAP_KEY.toLowerCase())){
+                Integer asyncCap = MathUtil.getIntegerVal(props.get(AbstractSideTableInfo.ASYNC_CAP_KEY.toLowerCase()));
                 if(asyncCap < 0){
                     throw new RuntimeException("asyncCapacity size need > 0.");
                 }
                 sideTableInfo.setAsyncCapacity(asyncCap);
             }
 
-            if(props.containsKey(SideTableInfo.ASYNC_TIMEOUT_KEY.toLowerCase())){
-                Integer asyncTimeout = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_TIMEOUT_KEY.toLowerCase()));
+            if(props.containsKey(AbstractSideTableInfo.ASYNC_TIMEOUT_KEY.toLowerCase())){
+                Integer asyncTimeout = MathUtil.getIntegerVal(props.get(AbstractSideTableInfo.ASYNC_TIMEOUT_KEY.toLowerCase()));
                 if (asyncTimeout<0){
                     throw new RuntimeException("asyncTimeout size need > 0.");
                 }

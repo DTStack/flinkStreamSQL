@@ -19,7 +19,7 @@ package com.dtstack.flink.sql.side.polardb;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import io.vertx.core.Vertx;
@@ -44,7 +44,7 @@ public class PolardbAsyncReqRow extends RdbAsyncReqRow {
 
     private final static String POLARDB_DRIVER = "com.mysql.cj.jdbc.Driver";
 
-    public PolardbAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public PolardbAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new PolardbAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

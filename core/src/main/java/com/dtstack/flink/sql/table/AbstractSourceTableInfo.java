@@ -36,7 +36,7 @@ import java.util.TimeZone;
  * @author xuchao
  */
 
-public abstract class SourceTableInfo extends TableInfo {
+public abstract class AbstractSourceTableInfo extends AbstractTableInfo {
 
     public static final String SOURCE_SUFFIX = "Source";
 

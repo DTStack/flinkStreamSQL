@@ -21,7 +21,7 @@ package com.dtstack.flink.sql.side.postgresql;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import io.vertx.core.Vertx;
@@ -48,7 +48,7 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
 
     private final static String POSTGRESQL_DRIVER = "org.postgresql.Driver";
 
-    public PostgresqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public PostgresqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new PostgresqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 

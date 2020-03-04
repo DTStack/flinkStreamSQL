@@ -34,7 +34,6 @@ import org.apache.calcite.sql.parser.SqlParser;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -46,7 +45,7 @@ import static org.apache.calcite.sql.SqlKind.*;
  * @author maqi
  */
 public class SidePredicatesParser {
-    public void fillPredicatesForSideTable(String exeSql, Map<String, SideTableInfo> sideTableMap) throws SqlParseException {
+    public void fillPredicatesForSideTable(String exeSql, Map<String, AbstractSideTableInfo> sideTableMap) throws SqlParseException {
         SqlParser sqlParser = SqlParser.create(exeSql, CalciteConfig.MYSQL_LEX_CONFIG);
         SqlNode sqlNode = sqlParser.parseStmt();
         parseSql(sqlNode, sideTableMap, Maps.newHashMap());
@@ -58,7 +57,7 @@ public class SidePredicatesParser {
      * @param sideTableMap
      * @param tabMapping  谓词属性中别名对应的真实维表名称
      */
-    private void parseSql(SqlNode sqlNode, Map<String, SideTableInfo> sideTableMap, Map<String, String> tabMapping) {
+    private void parseSql(SqlNode sqlNode, Map<String, AbstractSideTableInfo> sideTableMap, Map<String, String> tabMapping) {
         SqlKind sqlKind = sqlNode.getKind();
         switch (sqlKind) {
             case INSERT:
@@ -106,7 +105,7 @@ public class SidePredicatesParser {
         }
     }
 
-    private void fillToSideTableInfo(Map<String, SideTableInfo> sideTableMap, Map<String, String> tabMapping, List<PredicateInfo> predicateInfoList) {
+    private void fillToSideTableInfo(Map<String, AbstractSideTableInfo> sideTableMap, Map<String, String> tabMapping, List<PredicateInfo> predicateInfoList) {
         predicateInfoList.stream().filter(info -> sideTableMap.containsKey(tabMapping.getOrDefault(info.getOwnerTable(), info.getOwnerTable())))
                 .map(info -> sideTableMap.get(tabMapping.getOrDefault(info.getOwnerTable(), info.getOwnerTable())).getPredicateInfoes().add(info))
                 .count();

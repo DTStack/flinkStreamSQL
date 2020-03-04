@@ -18,40 +18,30 @@
 
  
 
-package com.dtstack.flink.sql.side.hbase;
+package com.dtstack.flink.sql.table;
 
-import com.dtstack.flink.sql.side.hbase.enums.EReplaceOpType;
-
-import java.util.Map;
+import com.dtstack.flink.sql.format.FormatType;
 
 /**
  * Reason:
- * Date: 2018/8/23
+ * Date: 2018/6/25
  * Company: www.dtstack.com
  * @author xuchao
  */
 
-public abstract class ReplaceOperator {
+public abstract class AbstractTargetTableInfo extends AbstractTableInfo {
 
-    private EReplaceOpType opType;
+    public static final String TARGET_SUFFIX = "Sink";
 
-    public ReplaceOperator(EReplaceOpType opType){
-        this.opType = opType;
+    public static final String SINK_DATA_TYPE = "sinkdatatype";
+
+    private String sinkDataType = FormatType.JSON.name();
+
+    public String getSinkDataType() {
+        return sinkDataType;
     }
 
-    public String doOperator(Map<String, Object> refData){
-        String replaceStr = replaceStr(refData);
-        return doFunc(replaceStr);
+    public void setSinkDataType(String sinkDataType) {
+        this.sinkDataType = sinkDataType;
     }
-
-    public String replaceStr(Map<String, Object> refData){
-        return "";
-    }
-
-    /**
-     * The processing function to provide custom
-     * @param replaceStr
-     * @return
-     */
-    abstract String doFunc(String replaceStr);
 }

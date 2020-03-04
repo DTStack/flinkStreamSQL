@@ -18,30 +18,29 @@
 
  
 
-package com.dtstack.flink.sql.table;
+package com.dtstack.flink.sql.side.cache;
 
-import com.dtstack.flink.sql.format.FormatType;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 
 /**
  * Reason:
- * Date: 2018/6/25
+ * Date: 2018/9/10
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public abstract class TargetTableInfo extends TableInfo {
+public abstract class AbstractSideCache {
 
-    public static final String TARGET_SUFFIX = "Sink";
+    protected AbstractSideTableInfo sideTableInfo;
 
-    public static final String SINK_DATA_TYPE = "sinkdatatype";
-
-    private String sinkDataType = FormatType.JSON.name();
-
-    public String getSinkDataType() {
-        return sinkDataType;
+    public AbstractSideCache(AbstractSideTableInfo sideTableInfo){
+        this.sideTableInfo = sideTableInfo;
     }
 
-    public void setSinkDataType(String sinkDataType) {
-        this.sinkDataType = sinkDataType;
-    }
+    public abstract void initCache();
+
+    public abstract CacheObj getFromCache(String key);
+
+    public abstract void putCache(String key, CacheObj value);
 }

@@ -20,9 +20,9 @@
 package com.dtstack.flink.sql.side.rdb.async;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.AsyncReqRow;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.CacheMissVal;
-import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import io.vertx.core.json.JsonArray;
@@ -47,7 +47,7 @@ import java.util.Map;
  * @author maqi
  */
 
-public class RdbAsyncReqRow extends AsyncReqRow {
+public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = 2098635244857937720L;
 
@@ -69,7 +69,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     private transient SQLClient rdbSqlClient;
 
-    public RdbAsyncReqRow(SideInfo sideInfo) {
+    public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
     }
 

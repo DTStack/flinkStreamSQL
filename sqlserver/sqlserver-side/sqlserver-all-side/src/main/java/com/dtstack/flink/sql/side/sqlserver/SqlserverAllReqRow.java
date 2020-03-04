@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.side.sqlserver;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -46,7 +46,7 @@ public class SqlserverAllReqRow extends AbstractRdbAllReqRow {
 
     private static final String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
 
-    public SqlserverAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public SqlserverAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new SqlserverAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
