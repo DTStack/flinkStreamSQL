@@ -128,12 +128,13 @@ public class ElasticsearchTableInfo extends TargetTableInfo {
         Preconditions.checkNotNull(address, "elasticsearch6 type of address is required");
         Preconditions.checkNotNull(index, "elasticsearch6 type of index is required");
         Preconditions.checkNotNull(esType, "elasticsearch6 type of type is required");
-        Preconditions.checkNotNull(id, "elasticsearch6 type of id is required");
         Preconditions.checkNotNull(clusterName, "elasticsearch6 type of clusterName is required");
 
-        Arrays.stream(StringUtils.split(id, ",")).forEach(number ->{
-            Preconditions.checkArgument(NumberUtils.isNumber(number),"id must be a numeric type");
-        });
+        if (!StringUtils.isEmpty(id)) {
+            Arrays.stream(StringUtils.split(id, ",")).forEach(number -> {
+                Preconditions.checkArgument(NumberUtils.isNumber(number), "id must be a numeric type");
+            });
+        }
 
         if (isAuthMesh()) {
             Preconditions.checkNotNull(userName, "elasticsearch6 type of userName is required");

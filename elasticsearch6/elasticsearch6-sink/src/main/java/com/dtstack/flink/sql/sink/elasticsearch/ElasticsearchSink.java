@@ -127,14 +127,6 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         }
     }
 
-    public void setParallelism(int parallelism) {
-        this.parallelism = parallelism;
-    }
-
-    public void setBulkFlushMaxActions(int bulkFlushMaxActions) {
-        this.bulkFlushMaxActions = bulkFlushMaxActions;
-    }
-
     @Override
     public ElasticsearchSink genStreamSink(TargetTableInfo targetTableInfo) {
         esTableInfo = (ElasticsearchTableInfo) targetTableInfo;
@@ -143,8 +135,8 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         type = esTableInfo.getEsType();
         columnTypes = esTableInfo.getFieldTypes();
         esAddressList = Arrays.asList(esTableInfo.getAddress().split(","));
-
         String id = esTableInfo.getId();
+
         if (!StringUtils.isEmpty(id)) {
             idIndexList = Arrays.stream(StringUtils.split(id, ",")).map(Integer::valueOf).collect(Collectors.toList());
         }
