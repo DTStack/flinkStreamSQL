@@ -8,8 +8,12 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMap
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
 import org.apache.flink.types.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CustomerKeyedSerializationSchema implements KeyedSerializationSchema<Row> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CustomerKeyedSerializationSchema.class);
 
     private static final long serialVersionUID = 1L;
     private final SerializationMetricWrapper serializationMetricWrapper;
@@ -52,10 +56,9 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
                 }
             }
             return sb.toString().getBytes();
-        }catch (Exception e){
-
+        } catch (Exception e){
+            LOG.error("serializeJsonKey error", e);
         }
         return null;
-
     }
 }
