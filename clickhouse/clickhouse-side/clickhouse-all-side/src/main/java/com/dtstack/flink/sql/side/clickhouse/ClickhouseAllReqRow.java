@@ -42,15 +42,15 @@ public class ClickhouseAllReqRow extends AbstractRdbAllReqRow {
     }
 
     @Override
-    public Connection getConn(String dbURL, String userName, String passWord) {
+    public Connection getConn(String dbUrl, String userName, String passWord) {
         try {
             Connection connection ;
             JDBCUtils.forName(CLICKHOUSE_DRIVER, getClass().getClassLoader());
             // ClickHouseProperties contains all properties
             if (userName == null) {
-                connection = DriverManager.getConnection(dbURL);
+                connection = DriverManager.getConnection(dbUrl);
             } else {
-                connection = DriverManager.getConnection(dbURL, userName, passWord);
+                connection = DriverManager.getConnection(dbUrl, userName, passWord);
             }
             return connection;
         } catch (Exception e) {

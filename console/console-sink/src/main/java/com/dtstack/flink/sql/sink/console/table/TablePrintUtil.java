@@ -119,7 +119,7 @@ public class TablePrintUtil {
         Method[] methods = obj.getClass().getMethods();
         for (Method m : methods) {
             StringBuilder getMethodName = new StringBuilder(m.getName());
-            if (getMethodName.substring(0, 3).equals("get") && !m.getName().equals("getClass")) {
+            if ("get".equals(getMethodName.substring(0, 3)) && !"getClass".equals(m.getName())) {
                 Col col = new Col();
                 col.getMethodName = getMethodName.toString();
                 char first = Character.toLowerCase(getMethodName.delete(0, 3).charAt(0));
