@@ -223,8 +223,11 @@ public class ExecuteProcessHelper {
                     }
                     if (isSide) {
                         //sql-dimensional table contains the dimension table of execution
-                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig);
+                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, null);
                     } else {
+                        System.out.println("----------exec sql without dimension join-----------");
+                        System.out.println("----------real sql exec is--------------------------");
+                        System.out.println(result.getExecSql());
                         FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql(), queryConfig);
                         if (LOG.isInfoEnabled()) {
                             LOG.info("exec sql: " + result.getExecSql());
