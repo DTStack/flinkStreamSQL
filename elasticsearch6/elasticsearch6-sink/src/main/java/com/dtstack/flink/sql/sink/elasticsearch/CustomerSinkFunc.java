@@ -31,9 +31,9 @@ import org.elasticsearch.client.Requests;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author yinxi
@@ -42,6 +42,8 @@ import java.util.Map;
 public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private final Logger logger = LoggerFactory.getLogger(CustomerSinkFunc.class);
+    /** 用作ID的属性值连接符号 */
+    private static final String ID_VALUE_SPLIT = "_";
 
     private String index;
 
@@ -57,10 +59,7 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private transient Counter outDirtyRecords;
 
-    /** 默认分隔符为'_' */
-    private char sp = '_';
-
-    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<Integer> idFieldIndexes){
+    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<Integer> idFieldIndexes) {
         this.index = index;
         this.type = type;
         this.fieldNames = fieldNames;
@@ -96,31 +95,30 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
     }
 
     private IndexRequest createIndexRequest(Row element) {
+        // index start at 1,
+        String idFieldStr = idFieldIndexList.stream()
+                .filter(index -> index > 0 && index <= element.getArity())
+                .map(index -> element.getField(index - 1).toString())
+                .collect(Collectors.joining(ID_VALUE_SPLIT));
 
-        List<String> idFieldList = new ArrayList<>();
-        for(int index : idFieldIndexList){
-            if(index >= element.getArity()){
-                continue;
-            }
-
-            idFieldList.add(element.getField(index).toString());
-        }
-
-        Map<String, Object> dataMap = Es6Util.rowToJsonMap(element,fieldNames,fieldTypes);
+        Map<String, Object> dataMap = Es6Util.rowToJsonMap(element, fieldNames, fieldTypes);
         int length = Math.min(element.getArity(), fieldNames.size());
-        for(int i=0; i<length; i++){
+        for (int i = 0; i < length; i++) {
             dataMap.put(fieldNames.get(i), element.getField(i));
         }
 
-        if (idFieldList.size() == 0) {
-            return Requests.indexRequest().index(index).type(type).source(dataMap);
+
+        if (StringUtils.isEmpty(idFieldStr)) {
+            return Requests.indexRequest()
+                    .index(index)
+                    .type(type)
+                    .source(dataMap);
         }
 
-        String id = StringUtils.join(idFieldList, sp);
         return Requests.indexRequest()
                 .index(index)
                 .type(type)
-                .id(id)
+                .id(idFieldStr)
                 .source(dataMap);
     }
 }
