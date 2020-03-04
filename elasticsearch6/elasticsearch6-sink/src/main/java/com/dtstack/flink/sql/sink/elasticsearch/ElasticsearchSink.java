@@ -35,13 +35,10 @@ import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHost;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author yinxi
@@ -49,7 +46,8 @@ import java.util.Map;
  */
 public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSinkGener<ElasticsearchSink> {
 
-    private final Logger logger = LoggerFactory.getLogger(ElasticsearchSink.class);
+    private final int ES_DEFAULT_PORT = 9200;
+    private final String ES_DEFAULT_SCHEMA = "http";
 
     private String clusterName;
 
@@ -103,32 +101,20 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
 
     private RichSinkFunction createEsSinkFunction() {
-
-
         Map<String, String> userConfig = Maps.newHashMap();
         userConfig.put("cluster.name", clusterName);
         // This instructs the sink to emit after every element, otherwise they would be buffered
         userConfig.put(org.apache.flink.streaming.connectors.elasticsearch6.ElasticsearchSink.CONFIG_KEY_BULK_FLUSH_MAX_ACTIONS, "" + bulkFlushMaxActions);
-        List<HttpHost> transports = new ArrayList<>();
 
-        for (String address : esAddressList) {
-            String[] infoArray = address.split(":");
-            int port = 9200;
-            String host = infoArray[0];
-            if (infoArray.length > 1) {
-                port = Integer.valueOf(infoArray[1].trim());
-            }
-
-            try {
-                transports.add(new HttpHost(host.trim(), port, "http"));
-            } catch (Exception e) {
-                logger.error("", e);
-                throw new RuntimeException(e);
-            }
-        }
+        List<HttpHost> transports = esAddressList.stream()
+                .map(address -> address.split(":"))
+                .map(addressArray -> {
+                    String host = addressArray[0].trim();
+                    int port = addressArray.length > 1 ? Integer.valueOf(addressArray[1].trim()) : ES_DEFAULT_PORT;
+                    return new HttpHost(host.trim(), port, ES_DEFAULT_SCHEMA);
+                }).collect(Collectors.toList());
 
         CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), idIndexList);
-
         return new MetricElasticsearch6Sink(userConfig, transports, customerSinkFunc, esTableInfo);
     }
 
@@ -141,33 +127,19 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         }
     }
 
-    public void setParallelism(int parallelism) {
-        this.parallelism = parallelism;
-    }
-
-    public void setBulkFlushMaxActions(int bulkFlushMaxActions) {
-        this.bulkFlushMaxActions = bulkFlushMaxActions;
-    }
-
     @Override
     public ElasticsearchSink genStreamSink(TargetTableInfo targetTableInfo) {
-        ElasticsearchTableInfo elasticsearchTableInfo = (ElasticsearchTableInfo) targetTableInfo;
-        esTableInfo = elasticsearchTableInfo;
-        clusterName = elasticsearchTableInfo.getClusterName();
-        String address = elasticsearchTableInfo.getAddress();
-        String[] addr = address.split(",");
-        esAddressList = Arrays.asList(addr);
-        index = elasticsearchTableInfo.getIndex();
-        type = elasticsearchTableInfo.getEsType();
-        String id = elasticsearchTableInfo.getId();
-        String[] idField = StringUtils.split(id, ",");
-        idIndexList = new ArrayList<>();
+        esTableInfo = (ElasticsearchTableInfo) targetTableInfo;
+        clusterName = esTableInfo.getClusterName();
+        index = esTableInfo.getIndex();
+        type = esTableInfo.getEsType();
+        columnTypes = esTableInfo.getFieldTypes();
+        esAddressList = Arrays.asList(esTableInfo.getAddress().split(","));
+        String id = esTableInfo.getId();
 
-        for (int i = 0; i < idField.length; ++i) {
-            idIndexList.add(Integer.valueOf(idField[i]));
+        if (!StringUtils.isEmpty(id)) {
+            idIndexList = Arrays.stream(StringUtils.split(id, ",")).map(Integer::valueOf).collect(Collectors.toList());
         }
-
-        columnTypes = elasticsearchTableInfo.getFieldTypes();
         return this;
     }
 }
