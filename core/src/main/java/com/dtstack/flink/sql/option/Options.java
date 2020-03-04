@@ -48,7 +48,7 @@ public class Options {
     @OptionRequired(required = true,description = "Sql local plugin root")
     private  String localSqlPluginPath;
 
-    @OptionRequired(required = true,description = "Sql remote plugin root")
+    @OptionRequired(required = false,description = "Sql remote plugin root")
     private  String remoteSqlPluginPath ;
 
     @OptionRequired(description = "sql ext jar,eg udf jar")
@@ -172,4 +172,5 @@ public class Options {
     public void setPluginLoadMode(String pluginLoadMode) {
         this.pluginLoadMode = pluginLoadMode;
     }
+
 }

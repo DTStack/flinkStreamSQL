@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.sink.impala.table;
 
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
 import com.google.common.base.Preconditions;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Date: 2019/11/13
@@ -51,6 +52,8 @@ public class ImpalaTableInfo extends RdbTableInfo {
 
     private static final String CURR_TYPE = "impala";
 
+    private static final String PARTITION_FIELD_SPLIT_REGEX = ",";
+
     private Integer authMech;
 
     private String krb5FilePath;
@@ -67,7 +70,7 @@ public class ImpalaTableInfo extends RdbTableInfo {
 
     private boolean enablePartition;
 
-    private String partitionFields;
+    private String[] partitionFields;
 
     public ImpalaTableInfo() {
         setType(CURR_TYPE);
@@ -137,12 +140,12 @@ public class ImpalaTableInfo extends RdbTableInfo {
         this.enablePartition = enablePartition;
     }
 
-    public String getPartitionFields() {
+    public String[] getPartitionFields() {
         return partitionFields;
     }
 
     public void setPartitionFields(String partitionFields) {
-        this.partitionFields = partitionFields;
+        this.partitionFields = StringUtils.split(partitionFields, PARTITION_FIELD_SPLIT_REGEX);
     }
 
     @Override
@@ -166,7 +169,7 @@ public class ImpalaTableInfo extends RdbTableInfo {
         }
 
         if (isEnablePartition()) {
-            Preconditions.checkNotNull(this.getPartitionFields(), "impala field of partitionFields is required");
+            Preconditions.checkArgument(this.getPartitionFields().length > 0, "impala field of partitionFields is required");
         }
 
         return true;

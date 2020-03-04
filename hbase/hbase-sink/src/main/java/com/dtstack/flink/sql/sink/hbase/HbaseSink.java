@@ -51,6 +51,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String port;
     protected String parent;
     protected String tableName;
+    protected String updateMode;
     protected String[] rowkey;
 
     public HbaseSink() {
@@ -66,17 +67,20 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.tableName = hbaseTableInfo.getTableName();
         this.rowkey = hbaseTableInfo.getRowkey();
         this.columnNameFamily = hbaseTableInfo.getColumnNameFamily();
+        this.updateMode = hbaseTableInfo.getUpdateMode();
         return this;
     }
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         HbaseOutputFormat.HbaseOutputFormatBuilder builder = HbaseOutputFormat.buildHbaseOutputFormat();
-        builder.setHost(this.zookeeperQuorum).setZkParent(this.parent).setTable(this.tableName);
-        
-        builder.setRowkey(rowkey);
-        builder.setColumnNames(fieldNames);
-        builder.setColumnNameFamily(columnNameFamily);
+        builder.setHost(this.zookeeperQuorum)
+                .setZkParent(this.parent)
+                .setTable(this.tableName)
+                .setRowkey(rowkey)
+                .setUpdateMode(updateMode)
+                .setColumnNames(fieldNames)
+                .setColumnNameFamily(columnNameFamily);
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
