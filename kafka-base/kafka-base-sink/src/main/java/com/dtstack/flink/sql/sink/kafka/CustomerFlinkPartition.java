@@ -1,8 +1,6 @@
 package com.dtstack.flink.sql.sink.kafka;
 
 
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
-
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.util.Preconditions;
 
