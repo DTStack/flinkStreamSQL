@@ -34,6 +34,7 @@ import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -79,13 +80,13 @@ public class RdbAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = Row.copy(input);
+    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow copyCrow = new CRow(input.row(), input.change());
         JsonArray inputParams = new JsonArray();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = inputRow.getField(conValIndex);
+            Object equalObj = copyCrow.row().getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(inputRow, resultFuture);
+                dealMissKey(copyCrow, resultFuture);
                 return;
             }
             inputParams.add(equalObj);
@@ -96,14 +97,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(key);
             if (val != null) {
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(copyCrow, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        List<Row> rowList = getRows(inputRow, null, (List) val.getContent());
+                        List<CRow> rowList = getRows(copyCrow, null, (List) val.getContent());
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, copyCrow);
                     }
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
@@ -131,14 +132,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 List<JsonArray> results = rs.result().getResults();
                 if (results.size() > 0) {
                     try {
-                        List<Row> rowList = getRows(inputRow, cacheContent, results);
+                        List<CRow> rowList = getRows(copyCrow, cacheContent, results);
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                         resultFuture.complete(rowList);
                     } catch (Exception e){
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, copyCrow);
                     }
                 } else {
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(copyCrow, resultFuture);
                     dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
 
@@ -152,14 +153,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         });
     }
 
-    protected List<Row> getRows(Row inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
-        List<Row> rowList = Lists.newArrayList();
+    protected List<CRow> getRows(CRow inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
+        List<CRow> rowList = Lists.newArrayList();
         for (JsonArray line : results) {
-            Row row = fillData(inputRow, line);
+            Row row = fillData(inputRow.row(), line);
             if (null != cacheContent && openCache()) {
                 cacheContent.add(line);
             }
-            rowList.add(row);
+            rowList.add(new CRow(row, inputRow.change()));
         }
         return rowList;
     }

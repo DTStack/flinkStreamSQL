@@ -18,20 +18,31 @@
 
 package com.dtstack.flink.sql.sink.redis;
 
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
+
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.*;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisSentinelPool;
+
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
-public class RedisOutputFormat extends DtRichOutputFormat {
+public class RedisOutputFormat extends DtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
 
     private String url;
@@ -97,22 +108,22 @@ public class RedisOutputFormat extends DtRichOutputFormat {
 
     private void establishConnection() {
         poolConfig = setPoolConfig(maxTotal, maxIdle, minIdle);
-        String[] nodes = url.split(",");
-        String[] firstIpPort = nodes[0].split(":");
+        String[] nodes = StringUtils.split(url, ",");
+        String[] firstIpPort = StringUtils.split(nodes[0], ":");
         String firstIp = firstIpPort[0];
         String firstPort = firstIpPort[1];
         Set<HostAndPort> addresses = new HashSet<>();
         Set<String> ipPorts = new HashSet<>();
         for (String ipPort : nodes) {
             ipPorts.add(ipPort);
-            String[] ipPortPair = ipPort.split(":");
+            String[] ipPortPair = StringUtils.split(ipPort, ":");
             addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
         }
         if (timeout == 0){
             timeout = 10000;
         }
-
-        if (database == null) {
+        if (database == null)
+        {
             database = "0";
         }
 
@@ -140,7 +151,6 @@ public class RedisOutputFormat extends DtRichOutputFormat {
         if (!retract) {
             return;
         }
-
         Row row = tupleTrans.getField(1);
         if (row.getArity() != fieldNames.length) {
             return;
@@ -173,14 +183,12 @@ public class RedisOutputFormat extends DtRichOutputFormat {
             if (field != null) {
                 value = field.toString();
             }
-
             jedis.set(key.toString(), value);
         }
 
         if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
         }
-
         outRecords.inc();
     }
 
@@ -189,11 +197,9 @@ public class RedisOutputFormat extends DtRichOutputFormat {
         if (jedisSentinelPool != null) {
             jedisSentinelPool.close();
         }
-
         if (pool != null) {
             pool.close();
         }
-
         if (jedis != null){
             if (jedis instanceof Closeable){
                 ((Closeable) jedis).close();

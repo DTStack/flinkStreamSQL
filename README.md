@@ -149,6 +149,9 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
         * taskmanager.slots：per_job模式下指定每个taskmanager对应的slot数量(默认1)
         * savePointPath：任务恢复点的路径（默认无）
         * allowNonRestoredState：指示保存点是否允许非还原状态的标志（默认false）
+        * restore.enable：是否失败重启（默认是true）
+        * failure.interval：衡量失败率的时间段，单位分钟（默认6m）
+        * delay.interval：连续两次重启尝试间的间隔，单位是秒（默认10s）
         * [prometheus 相关参数](docs/prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	

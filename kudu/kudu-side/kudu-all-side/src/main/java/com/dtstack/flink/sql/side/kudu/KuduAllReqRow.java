@@ -1,5 +1,12 @@
 package com.dtstack.flink.sql.side.kudu;
 
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+import org.apache.flink.util.Collector;
+import org.apache.flink.util.Preconditions;
+
 import com.dtstack.flink.sql.side.AllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
@@ -7,15 +14,11 @@ import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
-import org.apache.calcite.sql.JoinType;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
-import org.apache.flink.util.Preconditions;
+import org.apache.calcite.sql.JoinType;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.KuduClient;
@@ -110,10 +113,10 @@ public class KuduAllReqRow extends AllReqRow {
 
 
     @Override
-    public void flatMap(Row value, Collector<Row> out) throws Exception {
+    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = value.getField(conValIndex);
+            Object equalObj = input.row().getField(conValIndex);
             if (equalObj == null) {
                 out.collect(null);
             }
@@ -124,14 +127,14 @@ public class KuduAllReqRow extends AllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(value, null);
-                out.collect(row);
+                Row row = fillData(input.row(), null);
+                out.collect(new CRow(row, input.change()));
             }
             return;
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(fillData(value, one));
+            out.collect(new CRow(fillData(input.row(), one), input.change()));
         }
     }
 
@@ -158,7 +161,7 @@ public class KuduAllReqRow extends AllReqRow {
             }
             //load data from table
             assert scanner != null;
-            String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
+            String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
 
 
             while (scanner.hasMoreRows()) {
@@ -261,7 +264,7 @@ public class KuduAllReqRow extends AllReqRow {
         Long limitNum = tableInfo.getLimitNum();
         Boolean isFaultTolerant = tableInfo.getFaultTolerant();
         //查询需要的字段
-        String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
+        String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
         //主键过滤条件 主键最小值
         String lowerBoundPrimaryKey = tableInfo.getLowerBoundPrimaryKey();
         //主键过滤条件 主键最大值
@@ -315,7 +318,7 @@ public class KuduAllReqRow extends AllReqRow {
     }
 
     private String[] splitString(String data) {
-        return data.split(",");
+        return StringUtils.split(data, ",");
     }
 
     @Override

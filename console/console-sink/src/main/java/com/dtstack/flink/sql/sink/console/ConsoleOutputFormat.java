@@ -37,7 +37,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class ConsoleOutputFormat extends DtRichOutputFormat {
+public class ConsoleOutputFormat extends DtRichOutputFormat<Tuple2> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsoleOutputFormat.class);
 
@@ -56,6 +56,7 @@ public class ConsoleOutputFormat extends DtRichOutputFormat {
 
     @Override
     public void writeRecord(Tuple2 tuple2) throws IOException {
+        System.out.println("received oriainal data:" + tuple2);
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
         if (!retract) {

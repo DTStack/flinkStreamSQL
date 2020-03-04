@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.side.cache.AbsSideCache;
 import org.apache.calcite.sql.JoinType;
 import com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.hbase.async.HBaseClient;
 
@@ -72,12 +73,12 @@ public abstract class AbsRowKeyModeDealer {
         this.sideFieldIndex = sideFieldIndex;
     }
 
-    protected void dealMissKey(Row input, ResultFuture<Row> resultFuture){
+    protected void dealMissKey(CRow input, ResultFuture<CRow> resultFuture){
         if(joinType == JoinType.LEFT){
             try {
                 //保留left 表数据
-                Row row = fillData(input, null);
-                resultFuture.complete(Collections.singleton(row));
+                Row row = fillData(input.row(), null);
+                resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
             } catch (Exception e) {
                 resultFuture.completeExceptionally(e);
             }
@@ -109,6 +110,6 @@ public abstract class AbsRowKeyModeDealer {
         return row;
     }
 
-    public abstract void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<Row> resultFuture,
-                             AbsSideCache sideCache);
+    public abstract void asyncGetData(String tableName, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture,
+                                      AbsSideCache sideCache);
 }
