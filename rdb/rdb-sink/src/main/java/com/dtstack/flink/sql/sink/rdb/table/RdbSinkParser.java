@@ -17,6 +17,7 @@
  */
 package com.dtstack.flink.sql.sink.rdb.table;
 
+import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
@@ -47,7 +48,8 @@ public class RdbSinkParser extends AbsTableParser {
         rdbTableInfo.setBufferSize(MathUtil.getString(props.get(RdbTableInfo.BUFFER_SIZE_KEY.toLowerCase())));
         rdbTableInfo.setFlushIntervalMs(MathUtil.getString(props.get(RdbTableInfo.FLUSH_INTERVALMS_KEY.toLowerCase())));
         rdbTableInfo.setSchema(MathUtil.getString(props.get(RdbTableInfo.SCHEMA_KEY.toLowerCase())));
-
+        rdbTableInfo.setUpdateMode(MathUtil.getString(props.get(RdbTableInfo.UPDATE_KEY.toLowerCase())));
+        rdbTableInfo.setAllReplace(MathUtil.getBoolean(props.get(RdbTableInfo.ALLREPLACE_KEY.toLowerCase()), false));
 
         rdbTableInfo.check();
         return rdbTableInfo;

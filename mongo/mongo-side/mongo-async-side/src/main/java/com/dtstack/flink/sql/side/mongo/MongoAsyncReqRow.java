@@ -19,6 +19,13 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.AsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
@@ -27,6 +34,7 @@ import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
+import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.MongoCredential;
@@ -40,12 +48,6 @@ import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.connection.ClusterSettings;
 import com.mongodb.connection.ConnectionPoolSettings;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,13 +92,13 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     public void connMongoDB() throws Exception {
         MongoCredential mongoCredential;
-        String[] servers = MongoSideTableInfo.getAddress().split(",");
+        String[] servers = StringUtils.split(MongoSideTableInfo.getAddress(), ",");
         String host;
         Integer port;
         String[] hostAndPort;
         List<ServerAddress> lists = new ArrayList<>();
         for (String server : servers) {
-            hostAndPort = server.split(":");
+            hostAndPort = StringUtils.split(server, ":");
             host = hostAndPort[0];
             port = Integer.parseInt(hostAndPort[1]);
             lists.add(new ServerAddress(host, port));
@@ -123,14 +125,14 @@ public class MongoAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = Row.copy(input);
+    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow inputCopy = new CRow(input.row(), input.change());
         BasicDBObject basicDBObject = new BasicDBObject();
         for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputRow.getField(conValIndex);
+            Object equalObj = inputCopy.row().getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(inputRow, resultFuture);
+                dealMissKey(inputCopy, resultFuture);
                 return;
             }
             basicDBObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
@@ -154,13 +156,13 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             if (val != null) {
 
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<Row> rowList = Lists.newArrayList();
+                    List<CRow> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(inputRow, jsonArray);
-                        rowList.add(row);
+                        Row row = fillData(inputCopy.row(), jsonArray);
+                        rowList.add(new CRow(row, inputCopy.change()));
                     }
                     resultFuture.complete(rowList);
                 } else {
@@ -176,11 +178,11 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             @Override
             public void apply(final Document document) {
                 atomicInteger.incrementAndGet();
-                Row row = fillData(inputRow, document);
+                Row row = fillData(inputCopy.row(), document);
                 if (openCache()) {
                     cacheContent.add(document);
                 }
-                resultFuture.complete(Collections.singleton(row));
+                resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
             }
         };
         SingleResultCallback<Void> callbackWhenFinished = new SingleResultCallback<Void>() {
