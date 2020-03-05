@@ -789,9 +789,9 @@ public class SideSqlExec {
             throw new RuntimeException("can't not find side table:" + joinInfo.getRightTableName());
         }
 
-        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo)){
-            throw new RuntimeException("ON condition must contain all equal fields!!!");
-        }
+//        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo)){
+//            throw new RuntimeException("ON condition must contain all equal fields!!!");
+//        }
 
         rightScopeChild.setRowTypeInfo(sideTableInfo.getRowTypeInfo());
 
