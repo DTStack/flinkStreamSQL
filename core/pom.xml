@@ -20,6 +20,7 @@
         <calcite.server.version>1.16.0</calcite.server.version>
         <jackson.version>2.7.9</jackson.version>
         <guava.version>19.0</guava.version>
+        <logger.tool.version>1.0.0-SNAPSHOT</logger.tool.version>
     </properties>
 
     <dependencies>
@@ -121,7 +122,11 @@
             <artifactId>junit</artifactId>
             <version>4.12</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.aiweiergou</groupId>
+            <artifactId>tools-logger</artifactId>
+            <version>${logger.tool.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

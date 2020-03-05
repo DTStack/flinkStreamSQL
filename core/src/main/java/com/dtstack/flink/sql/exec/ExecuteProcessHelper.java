@@ -18,8 +18,10 @@
 
 package com.dtstack.flink.sql.exec;
 
+import com.aiweiergou.tool.logger.api.ChangeLogLevelProcess;
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.config.CalciteConfig;
+import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
@@ -353,5 +355,12 @@ public class ExecuteProcessHelper {
         return env;
     }
 
-
+    public static void setLogLevel(ParamsInfo paramsInfo){
+        String logLevel = paramsInfo.getConfProp().getProperty(ConfigConstrant.LOG_LEVEL_KEY);
+        if(org.apache.commons.lang3.StringUtils.isBlank(logLevel)){
+            return;
+        }
+        ChangeLogLevelProcess logLevelProcess = new ChangeLogLevelProcess();
+        logLevelProcess.process(logLevel);
+    }
 }

@@ -65,7 +65,7 @@ public class ConfigConstrant {
 
     public static final String RESTOREENABLE = "restore.enable";
 
-        public static final String LOG_LEVEL_KEY = "logLevel";
+    public static final String LOG_LEVEL_KEY = "logLevel";
 
 
     // restart plocy
@@ -74,5 +74,6 @@ public class ConfigConstrant {
     public static final String FAILUREINTERVAL = "failure.interval"; //min
 
     public static final String  DELAYINTERVAL= "delay.interval"; //sec
+
 
 }
