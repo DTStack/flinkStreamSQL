@@ -95,11 +95,14 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
     }
 
     private IndexRequest createIndexRequest(Row element) {
-        // index start at 1,
-        String idFieldStr = idFieldIndexList.stream()
-                .filter(index -> index > 0 && index <= element.getArity())
-                .map(index -> element.getField(index - 1).toString())
-                .collect(Collectors.joining(ID_VALUE_SPLIT));
+        String idFieldStr = "";
+        if (null != idFieldIndexList) {
+            // index start at 1,
+            idFieldStr = idFieldIndexList.stream()
+                    .filter(index -> index > 0 && index <= element.getArity())
+                    .map(index -> element.getField(index - 1).toString())
+                    .collect(Collectors.joining(ID_VALUE_SPLIT));
+        }
 
         Map<String, Object> dataMap = Es6Util.rowToJsonMap(element, fieldNames, fieldTypes);
         int length = Math.min(element.getArity(), fieldNames.size());
