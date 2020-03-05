@@ -84,7 +84,7 @@ public class LauncherMain {
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
-        setLogLevel(launcherOptions.getLogLevel());
+        setLogLevel(confProperties.getProperty(ConfigConstrant.LOG_LEVEL_KEY));
 
         if(mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[argList.size()]);

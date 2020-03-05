@@ -65,6 +65,8 @@ public class ConfigConstrant {
 
     public static final String RESTOREENABLE = "restore.enable";
 
+        public static final String LOG_LEVEL_KEY = "logLevel";
+
 
     // restart plocy
     public static final int failureRate = 3;

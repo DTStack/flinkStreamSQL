@@ -152,6 +152,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
         * restore.enable：是否失败重启（默认是true）
         * failure.interval：衡量失败率的时间段，单位分钟（默认6m）
         * delay.interval：连续两次重启尝试间的间隔，单位是秒（默认10s）
+    	* logLevel: 日志级别动态配置（默认info）
         * [prometheus 相关参数](docs/prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	
@@ -185,10 +186,6 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 必选：否
 	* 默认值：false	
 	
-* **logLevel**
-    	* 描述：设定日志级别
-    	* 必选：否
-    	* 默认值：info	
 
 ## 2 结构
 ### 2.1 源表插件
