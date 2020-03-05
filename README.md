@@ -149,6 +149,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
         * taskmanager.slots：per_job模式下指定每个taskmanager对应的slot数量(默认1)
         * savePointPath：任务恢复点的路径（默认无）
         * allowNonRestoredState：指示保存点是否允许非还原状态的标志（默认false）
+        * logLevel: 日志级别动态配置（默认info）
         * [prometheus 相关参数](docs/prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	
@@ -182,10 +183,6 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 必选：否
 	* 默认值：false	
 	
-* **logLevel**
-    	* 描述：设定日志级别
-    	* 必选：否
-    	* 默认值：info	
 
 ## 2 结构
 ### 2.1 源表插件
