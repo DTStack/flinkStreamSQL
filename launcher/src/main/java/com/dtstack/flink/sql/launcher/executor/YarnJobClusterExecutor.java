@@ -27,6 +27,8 @@ import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.MemorySize;
+import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.flink.yarn.configuration.YarnConfigOptions;
@@ -53,9 +55,9 @@ import java.util.Optional;
 public class YarnJobClusterExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(YarnJobClusterExecutor.class);
 
-    public static final String CONFIG_FILE_LOGBACK_NAME = "logback.xml";
-    public static final String CONFIG_FILE_LOG4J_NAME = "log4j.properties";
-
+    private static final String CONFIG_FILE_LOGBACK_NAME = "logback.xml";
+    private static final String CONFIG_FILE_LOG4J_NAME = "log4j.properties";
+    private static final String DEFAULT_TOTAL_PROCESS_MEMORY = "1024m";
 
     YarnClusterClientFactory yarnClusterClientFactory;
     JobParamsInfo jobParamsInfo;
@@ -78,7 +80,7 @@ public class YarnJobClusterExecutor {
         List<File> shipFiles = getShipFiles(jobParamsInfo.getFlinkJarPath(), jobParamsInfo.getPluginLoadMode(), jobGraph, clusterDescriptor);
         clusterDescriptor.addShipFiles(shipFiles);
 
-        ClusterSpecification clusterSpecification = yarnClusterClientFactory.getClusterSpecification(jobParamsInfo.getConfProperties());
+        ClusterSpecification clusterSpecification = yarnClusterClientFactory.getClusterSpecification(flinkConfiguration);
         ClusterClientProvider<ApplicationId> applicationIdClusterClientProvider = clusterDescriptor.deployJobCluster(clusterSpecification, jobGraph, true);
 
         String applicationId = applicationIdClusterClientProvider.getClusterClient().getClusterId().toString();
@@ -100,8 +102,10 @@ public class YarnJobClusterExecutor {
             discoverLogConfigFile(jobParamsInfo.getFlinkConfDir()).ifPresent(file ->
                     flinkConfig.setString(YarnConfigOptionsInternal.APPLICATION_LOG_CONFIG_FILE, file.getPath()));
         }
-        //TODO 参数设置
-        flinkConfig.setString("taskmanager.memory.flink.size","1024m");
+
+        if (!flinkConfig.contains(TaskManagerOptions.TOTAL_PROCESS_MEMORY)) {
+            flinkConfig.setString(TaskManagerOptions.TOTAL_PROCESS_MEMORY.key(), DEFAULT_TOTAL_PROCESS_MEMORY);
+        }
     }
 
     protected List<File> getShipFiles(String flinkJarPath, String pluginLoadMode, JobGraph jobGraph, YarnClusterDescriptor clusterDescriptor)
