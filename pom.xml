@@ -41,7 +41,6 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <flink.version>1.8.1</flink.version>
-    <logger.tool.version>1.0.0-SNAPSHOT</logger.tool.version>
   </properties>
 
     <build>

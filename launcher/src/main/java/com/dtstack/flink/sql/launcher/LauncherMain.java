@@ -149,12 +149,4 @@ public class LauncherMain {
         String[] array = list.toArray(new String[list.size()]);
         return array;
     }
-
-    private static void setLogLevel(String logLevel){
-        if(org.apache.commons.lang3.StringUtils.isBlank(logLevel)){
-            return;
-        }
-        ChangeLogLevelProcess logLevelProcess = new ChangeLogLevelProcess();
-        logLevelProcess.process(logLevel);
-    }
 }
