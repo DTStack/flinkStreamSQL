@@ -22,6 +22,7 @@ public class TablePrintUtil {
     public static final int ALIGN_LEFT = 1;//左对齐
     public static final int ALIGN_RIGHT = 2;//右对齐
     public static final int ALIGN_CENTER = 3;//居中对齐
+    private static final Pattern PATTERN = Pattern.compile("[\u4e00-\u9fa5]");
 
     private int align = ALIGN_CENTER;//默认居中对齐
     private boolean equilong = false;//默认不等宽
@@ -138,8 +139,8 @@ public class TablePrintUtil {
      * @return
      */
     private int getStringCharLength(String str) {
-        Pattern p = Pattern.compile("[\u4e00-\u9fa5]");//利用正则找到中文
-        Matcher m = p.matcher(str);
+        //利用正则找到中文
+        Matcher m = PATTERN.matcher(str);
         int count = 0;
         while (m.find()) {
             count++;
@@ -218,6 +219,8 @@ public class TablePrintUtil {
                         for (int i = 0; i < left + padding; i++) {sb.append(s);}
                         sb.append(cell);
                         for (int i = 0; i < right + padding; i++) {sb.append(s);}
+                        break;
+                    default:
                         break;
                 }
                 sb.append(v);
