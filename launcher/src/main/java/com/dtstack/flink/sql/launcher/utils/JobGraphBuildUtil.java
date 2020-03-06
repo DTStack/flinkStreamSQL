@@ -88,8 +88,7 @@ public class JobGraphBuildUtil {
     }
 
     public static Configuration getFlinkConfiguration(String flinkConfDir, Properties confProperties) {
-        Configuration flinkConfig = StringUtils.isEmpty(flinkConfDir) ? new Configuration() :
-                GlobalConfiguration.loadConfiguration();
+        Configuration flinkConfig = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
 
         confProperties.forEach((key, val) -> flinkConfig.setString(key.toString(), val.toString()));
         return flinkConfig;

@@ -41,7 +41,7 @@ public abstract class AbstractClusterClientFactory {
         final int jobManagerMemoryMB = ConfigurationUtils
                 .getJobManagerHeapMemory(configuration)
                 .getMebiBytes();
-        // taskmanager.memory.process.size
+
         final int taskManagerMemoryMB = TaskExecutorProcessUtils
                 .processSpecFromConfig(TaskExecutorProcessUtils.getConfigurationMapLegacyTaskManagerHeapSizeToConfigOption(
                         configuration, TaskManagerOptions.TOTAL_PROCESS_MEMORY))
