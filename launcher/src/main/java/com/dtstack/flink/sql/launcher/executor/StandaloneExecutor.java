@@ -18,61 +18,54 @@
 
 package com.dtstack.flink.sql.launcher.executor;
 
-
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
 import com.dtstack.flink.sql.launcher.entity.JobParamsInfo;
-import com.dtstack.flink.sql.launcher.factory.YarnClusterClientFactory;
+import com.dtstack.flink.sql.launcher.factory.StandaloneClientFactory;
 import com.dtstack.flink.sql.launcher.utils.JobGraphBuildUtil;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.client.ClientUtils;
 import org.apache.flink.client.deployment.ClusterDescriptor;
+import org.apache.flink.client.deployment.StandaloneClusterId;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.util.ConverterUtils;
-
-import java.io.UnsupportedEncodingException;
+import org.apache.flink.util.Preconditions;
 
 /**
- * Date: 2020/3/4
+ * Date: 2020/3/6
  * Company: www.dtstack.com
  * @author maqi
  */
-public class YarnSessionClusterExecutor {
-    YarnClusterClientFactory yarnClusterClientFactory;
+public class StandaloneExecutor {
+
+    StandaloneClientFactory standaloneClientFactory;
     JobParamsInfo jobParamsInfo;
 
-    public YarnSessionClusterExecutor(JobParamsInfo jobParamsInfo) {
+    public StandaloneExecutor(JobParamsInfo jobParamsInfo) {
         this.jobParamsInfo = jobParamsInfo;
-        yarnClusterClientFactory = new YarnClusterClientFactory();
+        standaloneClientFactory = new StandaloneClientFactory();
     }
 
     public void exec() throws Exception {
+
+        Preconditions.checkArgument(!StringUtils.equalsIgnoreCase(jobParamsInfo.getPluginLoadMode(), EPluginLoadMode.CLASSPATH.name()),
+                "standalone only supports classpath mode");
+
         JobGraph jobGraph = JobGraphBuildUtil.buildJobGraph(jobParamsInfo);
         Configuration flinkConfiguration = JobGraphBuildUtil.getFlinkConfiguration(jobParamsInfo.getFlinkConfDir(), jobParamsInfo.getConfProperties());
-        ClusterDescriptor clusterDescriptor = yarnClusterClientFactory.createClusterDescriptor(jobParamsInfo.getYarnConfDir(), flinkConfiguration);
 
-        Object yid = jobParamsInfo.getYarnSessionConfProperties().get("yid");
-        if (null == yid) {
-            throw new RuntimeException("yarnSessionMode yid is required");
-        }
-
-        ApplicationId applicationId = ConverterUtils.toApplicationId(yid.toString());
-        ClusterClientProvider<ApplicationId> retrieve = clusterDescriptor.retrieve(applicationId);
-        ClusterClient<ApplicationId> clusterClient = retrieve.getClusterClient();
-
-        if (StringUtils.equalsIgnoreCase(jobParamsInfo.getPluginLoadMode(), EPluginLoadMode.SHIPFILE.name())) {
-            jobGraph.getUserArtifacts().clear();
-        } else {
-            JobGraphBuildUtil.fillJobGraphClassPath(jobGraph);
-        }
-
-        if (!StringUtils.isEmpty(jobParamsInfo.getUdfJar())) {
+        if (!StringUtils.isBlank(jobParamsInfo.getUdfJar())) {
             JobGraphBuildUtil.fillUserJarForJobGraph(jobParamsInfo.getUdfJar(), jobGraph);
         }
+
+        JobGraphBuildUtil.fillJobGraphClassPath(jobGraph);
+
+        ClusterDescriptor clusterDescriptor = standaloneClientFactory.createClusterDescriptor("", flinkConfiguration);
+        ClusterClientProvider clusterClientProvider = clusterDescriptor.retrieve(StandaloneClusterId.getInstance());
+        ClusterClient clusterClient = clusterClientProvider.getClusterClient();
+
 
         JobExecutionResult jobExecutionResult = ClientUtils.submitJob(clusterClient, jobGraph);
         String jobID = jobExecutionResult.getJobID().toString();

@@ -48,14 +48,11 @@ public class YarnClusterClientFactory extends AbstractClusterClientFactory {
             try {
                 flinkConfig.setString(ConfigConstants.PATH_HADOOP_CONFIG, yarnConfDir);
                 FileSystem.initialize(flinkConfig, null);
-                SecurityUtils.install(new SecurityConfiguration(flinkConfig));
-
 
                 YarnConfiguration yarnConf = getYarnConf(yarnConfDir);
                 YarnClient yarnClient = YarnClient.createYarnClient();
                 yarnClient.init(yarnConf);
                 yarnClient.start();
-
 
                 YarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(
                         flinkConfig,

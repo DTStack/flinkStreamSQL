@@ -20,6 +20,7 @@
 package com.dtstack.flink.sql.launcher;
 
 import com.dtstack.flink.sql.launcher.entity.JobParamsInfo;
+import com.dtstack.flink.sql.launcher.executor.StandaloneExecutor;
 import com.dtstack.flink.sql.launcher.executor.YarnJobClusterExecutor;
 import com.dtstack.flink.sql.launcher.executor.YarnSessionClusterExecutor;
 import com.alibaba.fastjson.JSON;
@@ -143,6 +144,8 @@ public class LauncherMain {
                 new YarnJobClusterExecutor(jobParamsInfo).exec();
                 break;
             case standalone:
+                new StandaloneExecutor(jobParamsInfo).exec();
+                break;
             default:
                 throw new RuntimeException("Unsupported operating mode, please use local,yarn,yarnPer");
         }

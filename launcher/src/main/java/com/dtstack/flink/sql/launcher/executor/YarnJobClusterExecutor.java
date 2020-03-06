@@ -27,7 +27,6 @@ import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.yarn.YarnClusterDescriptor;
@@ -72,6 +71,7 @@ public class YarnJobClusterExecutor {
         if (!StringUtils.isBlank(jobParamsInfo.getUdfJar())) {
             JobGraphBuildUtil.fillUserJarForJobGraph(jobParamsInfo.getUdfJar(), jobGraph);
         }
+
         Configuration flinkConfiguration = JobGraphBuildUtil.getFlinkConfiguration(jobParamsInfo.getFlinkConfDir(), jobParamsInfo.getConfProperties());
         appendApplicationConfig(flinkConfiguration, jobParamsInfo);
 
@@ -134,34 +134,14 @@ public class YarnJobClusterExecutor {
     private void dealUserJarByPluginLoadMode(String pluginLoadMode, JobGraph jobGraph, List<File> shipFiles) throws MalformedURLException {
         // classpath , all node need contain plugin jar
         if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
-            fillJobGraphClassPath(jobGraph);
+            JobGraphBuildUtil.fillJobGraphClassPath(jobGraph);
         } else if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.SHIPFILE.name())) {
-            List<File> pluginPaths = getPluginPathToShipFiles(jobGraph);
+            List<File> pluginPaths = JobGraphBuildUtil.getPluginPathToShipFiles(jobGraph);
             shipFiles.addAll(pluginPaths);
         } else {
             throw new IllegalArgumentException("Unsupported plugin loading mode " + pluginLoadMode
                     + " Currently only classpath and shipfile are supported.");
         }
-    }
-
-    private static void fillJobGraphClassPath(JobGraph jobGraph) throws MalformedURLException {
-        Map<String, DistributedCache.DistributedCacheEntry> jobCacheFileConfig = jobGraph.getUserArtifacts();
-        for (Map.Entry<String, DistributedCache.DistributedCacheEntry> tmp : jobCacheFileConfig.entrySet()) {
-            if (tmp.getKey().startsWith("class_path")) {
-                jobGraph.getClasspaths().add(new URL("file:" + tmp.getValue().filePath));
-            }
-        }
-    }
-
-    private List<File> getPluginPathToShipFiles(JobGraph jobGraph) {
-        List<File> shipFiles = new ArrayList<>();
-        Map<String, DistributedCache.DistributedCacheEntry> jobCacheFileConfig = jobGraph.getUserArtifacts();
-        for (Map.Entry<String, DistributedCache.DistributedCacheEntry> tmp : jobCacheFileConfig.entrySet()) {
-            if (tmp.getKey().startsWith("class_path")) {
-                shipFiles.add(new File(tmp.getValue().filePath));
-            }
-        }
-        return shipFiles;
     }
 
 
