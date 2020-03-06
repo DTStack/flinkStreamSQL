@@ -68,8 +68,8 @@ public class StandaloneExecutor {
 
 
         JobExecutionResult jobExecutionResult = ClientUtils.submitJob(clusterClient, jobGraph);
-        String jobID = jobExecutionResult.getJobID().toString();
-        System.out.println("jobID:" + jobID);
+        String jobId = jobExecutionResult.getJobID().toString();
+        System.out.println("jobID:" + jobId);
 
     }
 

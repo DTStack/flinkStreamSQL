@@ -38,11 +38,11 @@ public abstract class AbstractClusterClientFactory {
     public ClusterSpecification getClusterSpecification(Configuration configuration) {
         checkNotNull(configuration);
 
-        final int jobManagerMemoryMB = ConfigurationUtils
+        final int jobManagerMemoryMb = ConfigurationUtils
                 .getJobManagerHeapMemory(configuration)
                 .getMebiBytes();
 
-        final int taskManagerMemoryMB = TaskExecutorProcessUtils
+        final int taskManagerMemoryMb = TaskExecutorProcessUtils
                 .processSpecFromConfig(TaskExecutorProcessUtils.getConfigurationMapLegacyTaskManagerHeapSizeToConfigOption(
                         configuration, TaskManagerOptions.TOTAL_PROCESS_MEMORY))
                 .getTotalProcessMemorySize()
@@ -51,12 +51,18 @@ public abstract class AbstractClusterClientFactory {
         int slotsPerTaskManager = configuration.getInteger(TaskManagerOptions.NUM_TASK_SLOTS);
 
         return new ClusterSpecification.ClusterSpecificationBuilder()
-                .setMasterMemoryMB(jobManagerMemoryMB)
-                .setTaskManagerMemoryMB(taskManagerMemoryMB)
+                .setMasterMemoryMB(jobManagerMemoryMb)
+                .setTaskManagerMemoryMB(taskManagerMemoryMb)
                 .setSlotsPerTaskManager(slotsPerTaskManager)
                 .createClusterSpecification();
     }
 
-    abstract ClusterDescriptor createClusterDescriptor(String clusterConfPath,Configuration flinkConfig);
+    /**
+     *  create ClusterDescriptor
+     * @param clusterConfPath  cluster configuration path , E.g. yarn conf dir
+     * @param flinkConfig
+     * @return
+     */
+    abstract ClusterDescriptor createClusterDescriptor(String clusterConfPath, Configuration flinkConfig);
 
 }
