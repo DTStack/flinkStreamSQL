@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.launcher;
 
+import com.aiweiergou.tool.logger.api.ChangeLogLevelProcess;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.google.common.collect.Lists;
 import com.alibaba.fastjson.JSON;
@@ -83,6 +84,8 @@ public class LauncherMain {
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
+        setLogLevel(confProperties.getProperty(ConfigConstrant.LOG_LEVEL_KEY));
+
         if(mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[argList.size()]);
             Main.main(localArgs);
@@ -145,5 +148,13 @@ public class LauncherMain {
         }
         String[] array = list.toArray(new String[list.size()]);
         return array;
+    }
+
+    private static void setLogLevel(String logLevel){
+        if(org.apache.commons.lang3.StringUtils.isBlank(logLevel)){
+            return;
+        }
+        ChangeLogLevelProcess logLevelProcess = new ChangeLogLevelProcess();
+        logLevelProcess.process(logLevel);
     }
 }

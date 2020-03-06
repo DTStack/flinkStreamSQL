@@ -33,6 +33,7 @@
         <module>impala</module>
         <module>db2</module>
         <module>polardb</module>
+        <module>elasticsearch6</module>
 
     </modules>
 
@@ -40,6 +41,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <flink.version>1.8.1</flink.version>
+    <logger.tool.version>1.0.0-SNAPSHOT</logger.tool.version>
   </properties>
 
     <build>

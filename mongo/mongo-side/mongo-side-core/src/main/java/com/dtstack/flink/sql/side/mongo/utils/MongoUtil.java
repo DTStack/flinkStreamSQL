@@ -20,9 +20,9 @@ package com.dtstack.flink.sql.side.mongo.utils;
 
 import com.dtstack.flink.sql.side.PredicateInfo;
 import com.mongodb.BasicDBObject;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -46,11 +46,11 @@ public class MongoUtil {
             case "<>":
                 return new BasicDBObject("$ne", info.getCondition());
             case "IN":
-                Object[] values = Arrays.stream(info.getCondition().split(",")).map(String::trim)
+                Object[] values = Arrays.stream(StringUtils.split(info.getCondition(), ",")).map(String::trim)
                         .collect(Collectors.toList()).toArray();
                 return new BasicDBObject("$in", values);
             case "NOT IN":
-                return new BasicDBObject("$nin", info.getCondition().split(","));
+                return new BasicDBObject("$nin", StringUtils.split(info.getCondition(), ","));
             case "IS NOT NULL":
                 return new BasicDBObject("$exists", true);
             case "IS NULL":

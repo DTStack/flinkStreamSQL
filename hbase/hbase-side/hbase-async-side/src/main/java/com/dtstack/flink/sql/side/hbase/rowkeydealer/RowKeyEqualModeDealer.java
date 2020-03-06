@@ -30,6 +30,7 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.hbase.async.GetRequest;
 import org.hbase.async.HBaseClient;
@@ -60,7 +61,7 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
 
 
     @Override
-    public void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<Row> resultFuture,
+    public void asyncGetData(String tableName, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture,
                              AbsSideCache sideCache){
         //TODO 是否有查询多个col family 和多个col的方法
         GetRequest getRequest = new GetRequest(tableName, rowKeyStr);
@@ -92,11 +93,11 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
                             sideVal.add(val);
                         }
 
-                        Row row = fillData(input, sideVal);
+                        Row row = fillData(input.row(), sideVal);
                         if(openCache){
                             sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
                         }
-                        resultFuture.complete(Collections.singleton(row));
+                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                     } catch (Exception e) {
                         resultFuture.completeExceptionally(e);
                     }

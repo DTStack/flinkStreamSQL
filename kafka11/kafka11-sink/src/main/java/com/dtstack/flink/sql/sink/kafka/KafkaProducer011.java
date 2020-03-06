@@ -25,6 +25,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer011;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.types.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Properties;
@@ -38,15 +40,20 @@ import java.util.Properties;
  */
 public class KafkaProducer011 extends FlinkKafkaProducer011<Row> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaProducer011.class);
+
+    private static final long serialVersionUID = 1L;
+
     private SerializationMetricWrapper serializationMetricWrapper;
 
-    public KafkaProducer011(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig, Optional<FlinkKafkaPartitioner<Row>> customPartitioner) {
-        super(topicId, serializationSchema, producerConfig, customPartitioner);
+    public KafkaProducer011(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig, Optional<FlinkKafkaPartitioner<Row>> customPartitioner, String[] partitionKeys) {
+        super(topicId, new CustomerKeyedSerializationSchema((SerializationMetricWrapper)serializationSchema, partitionKeys), producerConfig, customPartitioner);
         this.serializationMetricWrapper = (SerializationMetricWrapper) serializationSchema;
     }
 
     @Override
     public void open(Configuration configuration) throws Exception {
+        LOG.info("--KafkaProducer011 open--");
         RuntimeContext runtimeContext = getRuntimeContext();
         serializationMetricWrapper.setRuntimeContext(runtimeContext);
         serializationMetricWrapper.initMetric();

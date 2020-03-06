@@ -26,6 +26,7 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -114,41 +115,39 @@ public class HbaseAllReqRow extends AllReqRow {
     }
 
     @Override
-    public void flatMap(Row value, Collector<Row> out) throws Exception {
+    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = value.getField(conValIndex);
-            if(equalObj == null){
-                if(sideInfo.getJoinType() == JoinType.LEFT){
-                    Row data = fillData(value, null);
-                    out.collect(data);
+            Object equalObj = input.row().getField(conValIndex);
+            if (equalObj == null) {
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
+                    Row data = fillData(input.row(), null);
+                    out.collect(new CRow(data, input.change()));
                 }
                 return;
             }
             refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
 
-        String rowKeyStr = ((HbaseAllSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
+        String rowKeyStr = ((HbaseAllSideInfo) sideInfo).getRowKeyBuilder().getRowKey(refData);
 
         Map<String, Object> cacheList = null;
 
         SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        if (hbaseSideTableInfo.isPreRowKey())
-        {
-            for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()){
-                if (entry.getKey().startsWith(rowKeyStr))
-                {
+        if (hbaseSideTableInfo.isPreRowKey()) {
+            for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()) {
+                if (entry.getKey().startsWith(rowKeyStr)) {
                     cacheList = cacheRef.get().get(entry.getKey());
-                    Row row = fillData(value, cacheList);
-                    out.collect(row);
+                    Row row = fillData(input.row(), cacheList);
+                    out.collect(new CRow(row, input.change()));
                 }
             }
         } else {
             cacheList = cacheRef.get().get(rowKeyStr);
-            Row row = fillData(value, cacheList);
-            out.collect(row);
+            Row row = fillData(input.row(), cacheList);
+            out.collect(new CRow(row, input.change()));
         }
 
     }
