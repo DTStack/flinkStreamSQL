@@ -23,6 +23,12 @@ package com.dtstack.flink.sql.util;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -39,12 +45,9 @@ import java.util.SimpleTimeZone;
  */
 public class DateUtil {
 
-    static final String datetimeFormat = "yyyy-MM-dd HH:mm:ss";
-    static final String dateFormat = "yyyy-MM-dd";
-    static final String timeFormat = "HH:mm:ss";
-    static final SimpleDateFormat datetimeFormatter = new SimpleDateFormat(datetimeFormat);
-    static final SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
-    static final SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
+    static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     public static java.sql.Date columnToDate(Object column) {
         if(column instanceof String) {
@@ -69,21 +72,30 @@ public class DateUtil {
             return null;
         }
         try {
-            return datetimeFormatter.parse(strDate);
-        } catch (ParseException ignored) {
+            ;
+            return localDateTimetoDate(LocalDateTime.parse(strDate, DATE_TIME_FORMATTER));
+        } catch (DateTimeParseException ignored) {
         }
 
         try {
-            return dateFormatter.parse(strDate);
-        } catch (ParseException ignored) {
+            return localDateTimetoDate(LocalDate.parse(strDate, DATE_FORMATTER).atStartOfDay());
+        } catch (DateTimeParseException ignored) {
         }
 
         try {
-            return timeFormatter.parse(strDate);
-        } catch (ParseException ignored) {
+            return localDateTimetoDate(LocalDateTime.of(LocalDate.now(), LocalTime.parse(strDate, TIME_FORMATTER)));
+        } catch (DateTimeParseException ignored) {
         }
 
         throw new RuntimeException("can't parse date");
+    }
+
+    public static Date localDateTimetoDate(LocalDateTime localDateTime){
+        return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    public static LocalDateTime dateToLocalDateTime(Date date){
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 
     /**
@@ -762,11 +774,12 @@ public class DateUtil {
     }
 
     public static String dateToString(Date date) {
-        return dateFormatter.format(date);
+        LocalDateTime localDateTime = dateToLocalDateTime(date);
+        return localDateTime.format(DATE_FORMATTER);
     }
 
     public static String timestampToString(Date date) {
-        return datetimeFormatter.format(date);
+        LocalDateTime localDateTime = dateToLocalDateTime(date);
+        return localDateTime.format(DATE_TIME_FORMATTER);
     }
-
 }
