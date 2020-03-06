@@ -117,7 +117,7 @@ public class ExecuteProcessHelper {
         String confProp = URLDecoder.decode(options.getConfProp(), Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
-        List<URL> jarURList = getExternalJarUrls(options.getAddjar());
+        List<URL> jarUrlList = getExternalJarUrls(options.getAddjar());
 
         return ParamsInfo.builder()
                 .setSql(sql)
@@ -127,7 +127,7 @@ public class ExecuteProcessHelper {
                 .setPluginLoadMode(pluginLoadMode)
                 .setDeployMode(deployMode)
                 .setConfProp(confProperties)
-                .setJarUrlList(jarURList)
+                .setJarUrlList(jarUrlList)
                 .setLogLevel(logLevel)
                 .build();
 

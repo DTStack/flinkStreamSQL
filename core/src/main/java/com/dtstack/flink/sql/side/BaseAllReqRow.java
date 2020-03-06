@@ -26,8 +26,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.runtime.types.CRow;
 
 import java.sql.SQLException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -60,7 +60,7 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> impl
 
         //start reload cache thread
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
-        es = Executors.newSingleThreadScheduledExecutor(new DTThreadFactory("cache-all-reload"));
+        es = new ScheduledThreadPoolExecutor(1,new DTThreadFactory("cache-all-reload"));
         es.scheduleAtFixedRate(() -> reloadCache(), sideTableInfo.getCacheTimeout(), sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS);
     }
 
