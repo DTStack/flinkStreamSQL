@@ -22,11 +22,9 @@ import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.launcher.entity.JobParamsInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
-import com.google.common.collect.Lists;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.client.program.PackagedProgram;
 import org.apache.flink.client.program.PackagedProgramUtils;
@@ -35,18 +33,15 @@ import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
+import org.apache.flink.util.function.FunctionUtils;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -117,26 +112,21 @@ public class JobGraphBuildUtil {
         Map<String, DistributedCache.DistributedCacheEntry> jobCacheFileConfig = jobGraph.getUserArtifacts();
         List<URL> classPath = jobCacheFileConfig.entrySet().stream()
                 .filter(tmp -> tmp.getKey().startsWith("class_path"))
-                .map(tmp -> {
-                    try {
-                        return new URL("file:" + tmp.getValue().filePath);
-                    } catch (MalformedURLException e) {
-                        throw new RuntimeException(ExceptionUtils.getFullStackTrace(e));
-                    }
-                })
+                .map(FunctionUtils.uncheckedFunction(tmp -> new URL("file:" + tmp.getValue().filePath)))
                 .collect(Collectors.toList());
+
         jobGraph.getUserArtifacts().clear();
         jobGraph.setClasspaths(classPath);
     }
 
     public static List<File> getPluginPathToShipFiles(JobGraph jobGraph) {
-        List<File> shipFiles = new ArrayList<>();
-        Map<String, DistributedCache.DistributedCacheEntry> jobCacheFileConfig = jobGraph.getUserArtifacts();
-        for (Map.Entry<String, DistributedCache.DistributedCacheEntry> tmp : jobCacheFileConfig.entrySet()) {
-            if (tmp.getKey().startsWith("class_path")) {
-                shipFiles.add(new File(tmp.getValue().filePath));
-            }
-        }
+       List<File> shipFiles = jobGraph.getUserArtifacts()
+                .entrySet()
+                .stream()
+                .filter(tmp -> tmp.getKey().startsWith("class_path"))
+                .map(tmp -> new File(tmp.getValue().filePath))
+                .collect(Collectors.toList());
+
         jobGraph.getUserArtifacts().clear();
         return shipFiles;
     }

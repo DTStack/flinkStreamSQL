@@ -23,14 +23,15 @@ import org.apache.flink.client.deployment.ClusterDescriptor;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
-import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.util.FileUtils;
+import org.apache.flink.util.function.FunctionUtils;
 import org.apache.flink.yarn.YarnClientYarnClusterInformationRetriever;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -41,6 +42,7 @@ import java.util.Map;
  * @author maqi
  */
 public class YarnClusterClientFactory extends AbstractClusterClientFactory {
+    private static final String XML_FILE_EXTENSION = "xml";
     @Override
     public ClusterDescriptor createClusterDescriptor(String yarnConfDir, Configuration flinkConfig) {
 
@@ -70,27 +72,12 @@ public class YarnClusterClientFactory extends AbstractClusterClientFactory {
         }
     }
 
-    private YarnConfiguration getYarnConf(String yarnConfDir) {
+    private YarnConfiguration getYarnConf(String yarnConfDir) throws IOException {
         YarnConfiguration yarnConf = new YarnConfiguration();
-        try {
-            File dir = new File(yarnConfDir);
-            if (dir.exists() && dir.isDirectory()) {
-                File[] xmlFileList = new File(yarnConfDir).listFiles((dir1, name) -> {
-                    if (name.endsWith(".xml")) {
-                        return true;
-                    }
-                    return false;
-                });
-                if (xmlFileList != null) {
-                    for (File xmlFile : xmlFileList) {
-                        yarnConf.addResource(xmlFile.toURI().toURL());
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        FileUtils.listFilesInDirectory(new File(yarnConfDir).toPath(), this::isXmlFile)
+                .stream()
+                .map(FunctionUtils.uncheckedFunction(FileUtils::toURL))
+                .forEach(yarnConf::addResource);
 
         haYarnConf(yarnConf);
         return yarnConf;
@@ -101,8 +88,7 @@ public class YarnClusterClientFactory extends AbstractClusterClientFactory {
      */
     private org.apache.hadoop.conf.Configuration haYarnConf(org.apache.hadoop.conf.Configuration yarnConf) {
         Iterator<Map.Entry<String, String>> iterator = yarnConf.iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, String> entry = iterator.next();
+        iterator.forEachRemaining((Map.Entry<String, String> entry) -> {
             String key = entry.getKey();
             String value = entry.getValue();
             if (key.startsWith("yarn.resourcemanager.hostname.")) {
@@ -112,7 +98,12 @@ public class YarnClusterClientFactory extends AbstractClusterClientFactory {
                     yarnConf.set(addressKey, value + ":" + YarnConfiguration.DEFAULT_RM_PORT);
                 }
             }
-        }
+        });
+
         return yarnConf;
+    }
+
+    private boolean isXmlFile(java.nio.file.Path file) {
+        return XML_FILE_EXTENSION.equals(org.apache.flink.shaded.guava18.com.google.common.io.Files.getFileExtension(file.toString()));
     }
 }
