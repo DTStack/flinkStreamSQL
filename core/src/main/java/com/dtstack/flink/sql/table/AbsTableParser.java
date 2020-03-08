@@ -25,10 +25,12 @@ import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Reason:
@@ -112,9 +114,13 @@ public abstract class AbsTableParser {
 
     public static void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
         String primaryFields = matcher.group(1).trim();
-        String[] splitArry = primaryFields.split(",");
-        List<String> primaryKes = Lists.newArrayList(splitArry);
-        tableInfo.setPrimaryKeys(primaryKes);
+        if (primaryFields != null) {
+            String[] splitArry = primaryFields.split(",");
+            List<String> primaryKes = Arrays.stream(splitArry).map(x -> x.trim()).collect(Collectors.toList());
+            tableInfo.setPrimaryKeys(primaryKes);
+            return;
+        }
+        tableInfo.setPrimaryKeys(Lists.newArrayList());
     }
 
     public Class dbTypeConvertToJavaType(String fieldType) {
