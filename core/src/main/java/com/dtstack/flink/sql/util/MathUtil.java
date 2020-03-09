@@ -146,7 +146,7 @@ public class MathUtil {
         }
 
         if(obj instanceof String){
-            return (String) obj;
+            return ((String) obj).trim();
         }else {
             return obj.toString();
         }
