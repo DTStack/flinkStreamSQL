@@ -39,7 +39,9 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +89,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 dealMissKey(inputRow, resultFuture);
                 return;
             }
-            inputParams.add(convertDateType(equalObj));
+            inputParams.add(convertDataType(equalObj));
         }
 
         String key = buildCacheKey(inputParams);
@@ -151,14 +153,42 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         });
     }
 
-    private Object convertDateType(Object val) {
-        if (val instanceof Timestamp) {
+
+    private Object convertDataType(Object val) {
+        if (val == null) {
+            // OK
+        } else if (val instanceof Number && !(val instanceof BigDecimal)) {
+            // OK
+        } else if (val instanceof Boolean) {
+            // OK
+        } else if (val instanceof String) {
+            // OK
+        } else if (val instanceof Character) {
+            // OK
+        } else if (val instanceof CharSequence) {
+
+        } else if (val instanceof JsonObject) {
+
+        } else if (val instanceof JsonArray) {
+
+        } else if (val instanceof Map) {
+
+        } else if (val instanceof List) {
+
+        } else if (val instanceof byte[]) {
+
+        } else if (val instanceof Instant) {
+
+        } else if (val instanceof Timestamp) {
             val = DateUtil.getStringFromTimestamp((Timestamp) val);
-        } else if (val instanceof Date) {
+        } else if (val instanceof java.util.Date) {
             val = DateUtil.getStringFromDate((java.sql.Date) val);
+        } else {
+            val = val.toString();
         }
         return val;
     }
+
 
     protected List<Row> getRows(Row inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
         List<Row> rowList = Lists.newArrayList();
