@@ -14,6 +14,14 @@
     <name>kafka10-source</name>
     <url>http://maven.apache.org</url>
 
+    <dependencies>
+        <dependency>
+            <artifactId>sql.source.kafka-base</artifactId>
+            <groupId>com.dtstack.flink</groupId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -27,6 +35,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <artifactSet>
                                 <excludes>
                                     <exclude>org.slf4j</exclude>

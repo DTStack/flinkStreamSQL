@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.side.redis;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
+import com.esotericsoftware.minlog.Log;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -150,7 +151,7 @@ public class RedisAllReqRow extends AllReqRow{
                         LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + jedisInfo);
                         Thread.sleep(5 * 1000);
                     } catch (InterruptedException e1) {
-                        e1.printStackTrace();
+                        LOG.error("", e1);
                     }
                 }
             }
@@ -207,7 +208,7 @@ public class RedisAllReqRow extends AllReqRow{
                 try {
                     ((Closeable) jedis).close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Log.error("", e);
                 }
             }
             if (jedisSentinelPool != null) {

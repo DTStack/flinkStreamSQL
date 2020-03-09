@@ -180,14 +180,14 @@ public class HbaseAllReqRow extends AllReqRow {
                 tmpCache.put(new String(r.getRow()), kv);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("", e);
         } finally {
             try {
                 conn.close();
                 table.close();
                 resultScanner.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                LOG.error("", e);
             }
         }
     }

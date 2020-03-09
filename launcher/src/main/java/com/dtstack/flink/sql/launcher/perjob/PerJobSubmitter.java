@@ -24,6 +24,7 @@ import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
@@ -46,7 +47,7 @@ public class PerJobSubmitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(PerJobSubmitter.class);
 
-    public static String submit(Options launcherOptions, JobGraph jobGraph) throws Exception {
+    public static String submit(Options launcherOptions, JobGraph jobGraph, Configuration flinkConfig) throws Exception {
 		if (!StringUtils.isBlank(launcherOptions.getAddjar())) {
 			String addjarPath = URLDecoder.decode(launcherOptions.getAddjar(), Charsets.UTF_8.toString());
 			List<String> paths = getJarPaths(addjarPath);
@@ -61,11 +62,10 @@ public class PerJobSubmitter {
         ClusterSpecification clusterSpecification = FLinkPerJobResourceUtil.createClusterSpecification(confProperties);
 
         PerJobClusterClientBuilder perJobClusterClientBuilder = new PerJobClusterClientBuilder();
-        perJobClusterClientBuilder.init(launcherOptions.getYarnconf());
+        perJobClusterClientBuilder.init(launcherOptions.getYarnconf(), flinkConfig, confProperties);
 
         String flinkJarPath = launcherOptions.getFlinkJarPath();
-
-        AbstractYarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(confProperties, flinkJarPath, launcherOptions, jobGraph);
+        AbstractYarnClusterDescriptor yarnClusterDescriptor = perJobClusterClientBuilder.createPerJobClusterDescriptor(flinkJarPath, launcherOptions, jobGraph);
         ClusterClient<ApplicationId> clusterClient = yarnClusterDescriptor.deployJobCluster(clusterSpecification, jobGraph,true);
 
         String applicationId = clusterClient.getClusterId().toString();

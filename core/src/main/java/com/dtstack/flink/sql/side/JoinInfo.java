@@ -41,8 +41,8 @@ public class JoinInfo implements Serializable {
 
     //左表是否是维表
     private boolean leftIsSideTable;
-    //左表是 转换后的中间表
-    private boolean leftIsMidTable;
+
+    private boolean leftIsTmpTable = false;
 
     //右表是否是维表
     private boolean rightIsSideTable;
@@ -66,8 +66,6 @@ public class JoinInfo implements Serializable {
     private SqlNode selectNode;
 
     private JoinType joinType;
-    // 左边是中间转换表，做表映射关系，给替换属性名称使用
-    private Map<String, String> leftTabMapping;
 
     public String getSideTableName(){
         if(leftIsSideTable){
@@ -92,21 +90,6 @@ public class JoinInfo implements Serializable {
         return leftStr + "_" + rightTableName;
     }
 
-    public boolean isLeftIsMidTable() {
-        return leftIsMidTable;
-    }
-
-    public void setLeftIsMidTable(boolean leftIsMidTable) {
-        this.leftIsMidTable = leftIsMidTable;
-    }
-
-    public Map<String, String> getLeftTabMapping() {
-        return leftTabMapping;
-    }
-
-    public void setLeftTabMapping(Map<String, String> leftTabMapping) {
-        this.leftTabMapping = leftTabMapping;
-    }
 
     public String getNewTableAlias(){
         return leftTableAlias + "_" + rightTableAlias;
@@ -210,5 +193,30 @@ public class JoinInfo implements Serializable {
 
     public void setJoinType(JoinType joinType) {
         this.joinType = joinType;
+    }
+
+    public boolean isLeftIsTmpTable() {
+        return leftIsTmpTable;
+    }
+
+    public void setLeftIsTmpTable(boolean leftIsTmpTable) {
+        this.leftIsTmpTable = leftIsTmpTable;
+    }
+
+    @Override
+    public String toString() {
+        return "JoinInfo{" +
+                "leftIsSideTable=" + leftIsSideTable +
+                ", leftIsTmpTable=" + leftIsTmpTable +
+                ", rightIsSideTable=" + rightIsSideTable +
+                ", leftTableName='" + leftTableName + '\'' +
+                ", leftTableAlias='" + leftTableAlias + '\'' +
+                ", rightTableName='" + rightTableName + '\'' +
+                ", rightTableAlias='" + rightTableAlias + '\'' +
+                ", condition=" + condition +
+                ", selectFields=" + selectFields +
+                ", selectNode=" + selectNode +
+                ", joinType=" + joinType +
+                '}';
     }
 }

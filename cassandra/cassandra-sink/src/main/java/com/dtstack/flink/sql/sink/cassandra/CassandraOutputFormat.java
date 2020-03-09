@@ -48,7 +48,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -69,7 +69,7 @@ import java.util.ArrayList;
  * @see Tuple
  * @see DriverManager
  */
-public class CassandraOutputFormat extends MetricOutputFormat {
+public class CassandraOutputFormat extends DtRichOutputFormat {
     private static final long serialVersionUID = -7994311331389155692L;
 
     private static final Logger LOG = LoggerFactory.getLogger(CassandraOutputFormat.class);
@@ -193,7 +193,6 @@ public class CassandraOutputFormat extends MetricOutputFormat {
         try {
             if (retract) {
                 insertWrite(row);
-                outRecords.inc();
             } else {
                 //do nothing
             }
@@ -204,14 +203,24 @@ public class CassandraOutputFormat extends MetricOutputFormat {
 
     private void insertWrite(Row row) {
         try {
+
+            if(outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
+                LOG.info("Receive data : {}", row);
+            }
+
             String cql = buildSql(row);
             if (cql != null) {
                 ResultSet resultSet = session.execute(cql);
                 resultSet.wasApplied();
+                outRecords.inc();
             }
         } catch (Exception e) {
+            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
+                LOG.error("record insert failed, total dirty num:{}, current record:{}", outDirtyRecords.getCount(), row.toString());
+                LOG.error("", e);
+            }
+
             outDirtyRecords.inc();
-            LOG.error("[upsert] is error:" + e.getMessage());
         }
     }
 

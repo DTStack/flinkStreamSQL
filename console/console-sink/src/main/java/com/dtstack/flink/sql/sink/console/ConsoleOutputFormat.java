@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.console;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import com.dtstack.flink.sql.sink.console.table.TablePrintUtil;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -37,7 +37,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class ConsoleOutputFormat extends MetricOutputFormat {
+public class ConsoleOutputFormat extends DtRichOutputFormat {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsoleOutputFormat.class);
 
@@ -69,7 +69,11 @@ public class ConsoleOutputFormat extends MetricOutputFormat {
 
         List<String[]> data = new ArrayList<>();
         data.add(fieldNames);
-        data.add(record.toString().split(","));
+        String[] recordStr = new String[record.getArity()];
+        for (int i=0; i < record.getArity(); i++) {
+            recordStr[i] = (String.valueOf(record.getField(i)));
+        }
+        data.add(recordStr);
         TablePrintUtil.build(data).print();
 
         outRecords.inc();

@@ -4,6 +4,7 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
+import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import io.vertx.core.json.JsonArray;
@@ -17,7 +18,6 @@ import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
-import org.apache.kudu.Type;
 import org.apache.kudu.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,17 +127,30 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         connKuDu();
         JsonArray inputParams = new JsonArray();
         Schema schema = table.getSchema();
-
-        for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = input.getField(conValIndex);
+        //  @wenbaoup fix bug
+        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
+            Object equalObj = inputRow.getField(sideInfo.getEqualValIndex().get(i));
             if (equalObj == null) {
-                resultFuture.complete(null);
+                dealMissKey(inputRow, resultFuture);
                 return;
             }
             //增加过滤条件
-            scannerBuilder.addPredicate(KuduPredicate.newInListPredicate(schema.getColumn(sideInfo.getEqualFieldList().get(conValIndex)), Collections.singletonList(equalObj)));
+            scannerBuilder.addPredicate(KuduPredicate.newInListPredicate(schema.getColumn(sideInfo.getEqualFieldList().get(i)), Collections.singletonList(equalObj)));
             inputParams.add(equalObj);
         }
+
+        //  填充谓词信息
+        List<PredicateInfo> predicateInfoes = sideInfo.getSideTableInfo().getPredicateInfoes();
+        if (predicateInfoes.size() > 0) {
+            predicateInfoes.stream().map(info -> {
+                KuduPredicate kuduPredicate = KuduUtil.buildKuduPredicate(schema, info);
+                if (null != kuduPredicate) {
+                    scannerBuilder.addPredicate(kuduPredicate);
+                }
+                return info;
+            }).count();
+        }
+
 
         String key = buildCacheKey(inputParams);
 
@@ -229,43 +242,6 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         }
     }
 
-    private void setMapValue(Type type, Map<String, Object> oneRow, String sideFieldName, RowResult result) {
-        switch (type) {
-            case STRING:
-                oneRow.put(sideFieldName, result.getString(sideFieldName));
-                break;
-            case FLOAT:
-                oneRow.put(sideFieldName, result.getFloat(sideFieldName));
-                break;
-            case INT8:
-                oneRow.put(sideFieldName, result.getFloat(sideFieldName));
-                break;
-            case INT16:
-                oneRow.put(sideFieldName, result.getShort(sideFieldName));
-                break;
-            case INT32:
-                oneRow.put(sideFieldName, result.getInt(sideFieldName));
-                break;
-            case INT64:
-                oneRow.put(sideFieldName, result.getLong(sideFieldName));
-                break;
-            case DOUBLE:
-                oneRow.put(sideFieldName, result.getDouble(sideFieldName));
-                break;
-            case BOOL:
-                oneRow.put(sideFieldName, result.getBoolean(sideFieldName));
-                break;
-            case UNIXTIME_MICROS:
-                oneRow.put(sideFieldName, result.getTimestamp(sideFieldName));
-                break;
-            case BINARY:
-                oneRow.put(sideFieldName, result.getBinary(sideFieldName));
-                break;
-            default:
-                throw new IllegalArgumentException("Illegal var type: " + type);
-        }
-    }
-
     class GetListRowCB implements Callback<Deferred<List<Row>>, RowResultIterator> {
         private Row input;
         private List<Map<String, Object>> cacheContent;
@@ -295,7 +271,7 @@ public class KuduAsyncReqRow extends AsyncReqRow {
                     String sideFieldName = sideFieldName1.trim();
                     ColumnSchema columnSchema = table.getSchema().getColumn(sideFieldName);
                     if (null != columnSchema) {
-                        setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
+                        KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
                     }
                 }
                 Row row = fillData(input, oneRow);

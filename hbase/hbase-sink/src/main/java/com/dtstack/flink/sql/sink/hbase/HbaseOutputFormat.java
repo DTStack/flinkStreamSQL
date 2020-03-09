@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -45,7 +45,7 @@ import java.util.Set;
  * author: jingzhen@dtstack.com
  * date: 2017-6-29
  */
-public class HbaseOutputFormat extends MetricOutputFormat {
+public class HbaseOutputFormat extends DtRichOutputFormat {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseOutputFormat.class);
 
@@ -65,10 +65,6 @@ public class HbaseOutputFormat extends MetricOutputFormat {
     private transient Table table;
 
     public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
-
-    private static int rowLenth = 1000;
-    private static int dirtyDataPrintFrequency = 1000;
-
 
     @Override
     public void configure(Configuration parameters) {
@@ -126,14 +122,16 @@ public class HbaseOutputFormat extends MetricOutputFormat {
         try {
             table.put(put);
         } catch (IOException e) {
-            outDirtyRecords.inc();
-            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0 || LOG.isDebugEnabled()) {
-                LOG.error("record insert failed ..", record.toString());
+
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                LOG.error("record insert failed,dirty record num:{}, current row:{}", outDirtyRecords.getCount(), record.toString());
                 LOG.error("", e);
             }
+
+            outDirtyRecords.inc();
         }
 
-        if (outRecords.getCount() % rowLenth == 0) {
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
             LOG.info(record.toString());
         }
         outRecords.inc();

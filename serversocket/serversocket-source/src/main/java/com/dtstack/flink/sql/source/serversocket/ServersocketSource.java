@@ -25,10 +25,8 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.SocketTextStreamFunction;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
-import org.apache.flink.types.Row;
 
 /**
  * Reason:
@@ -41,19 +39,17 @@ public class ServersocketSource implements IStreamSourceGener<Table> {
 	@Override
 	public Table genStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
 		ServersocketSourceTableInfo serversocketSourceTableInfo = (ServersocketSourceTableInfo) sourceTableInfo;
-
 		String tableName = serversocketSourceTableInfo.getName();
 
 		TypeInformation[] types = new TypeInformation[serversocketSourceTableInfo.getFields().length];
 		for (int i = 0; i < serversocketSourceTableInfo.getFieldClasses().length; i++) {
 			types[i] = TypeInformation.of(serversocketSourceTableInfo.getFieldClasses()[i]);
 		}
-
 		TypeInformation typeInformation = new RowTypeInfo(types, serversocketSourceTableInfo.getFields());
-
 		String fields = StringUtils.join(serversocketSourceTableInfo.getFields(), ",");
 
-		CustomerSocketTextStreamFunction customerSocketTextStreamFunction = new CustomerSocketTextStreamFunction(serversocketSourceTableInfo, typeInformation);
+		CustomerSocketTextStreamFunction customerSocketTextStreamFunction = new CustomerSocketTextStreamFunction(serversocketSourceTableInfo, typeInformation,
+				serversocketSourceTableInfo.getPhysicalFields(), serversocketSourceTableInfo.getFieldExtraInfoList());
 
 		DataStreamSource serversocketSource = env.addSource(customerSocketTextStreamFunction, tableName, typeInformation);
 

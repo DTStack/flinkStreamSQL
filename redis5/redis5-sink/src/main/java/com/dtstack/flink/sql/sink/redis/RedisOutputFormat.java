@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.redis;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -31,7 +31,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 
-public class RedisOutputFormat extends MetricOutputFormat {
+public class RedisOutputFormat extends DtRichOutputFormat {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
 
     private String url;
@@ -67,8 +67,6 @@ public class RedisOutputFormat extends MetricOutputFormat {
     private JedisSentinelPool jedisSentinelPool;
 
     private GenericObjectPoolConfig poolConfig;
-
-    private static int rowLenth = 1000;
 
     private RedisOutputFormat(){
     }
@@ -113,8 +111,8 @@ public class RedisOutputFormat extends MetricOutputFormat {
         if (timeout == 0){
             timeout = 10000;
         }
-        if (database == null)
-        {
+
+        if (database == null) {
             database = "0";
         }
 
@@ -142,13 +140,13 @@ public class RedisOutputFormat extends MetricOutputFormat {
         if (!retract) {
             return;
         }
+
         Row row = tupleTrans.getField(1);
         if (row.getArity() != fieldNames.length) {
             return;
         }
 
         HashMap<String, Integer> map = new HashMap<>();
-
         for (String primaryKey : primaryKeys){
             for (int i=0; i<fieldNames.length; i++){
                 if (fieldNames[i].equals(primaryKey)){
@@ -166,8 +164,6 @@ public class RedisOutputFormat extends MetricOutputFormat {
         }
 
         String perKey = String.join(":", kvList);
-
-
         for (int i = 0; i < fieldNames.length; i++) {
             StringBuilder key = new StringBuilder();
             key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
@@ -177,12 +173,14 @@ public class RedisOutputFormat extends MetricOutputFormat {
             if (field != null) {
                 value = field.toString();
             }
+
             jedis.set(key.toString(), value);
         }
 
-        if (outRecords.getCount()%rowLenth == 0){
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
         }
+
         outRecords.inc();
     }
 
@@ -191,9 +189,11 @@ public class RedisOutputFormat extends MetricOutputFormat {
         if (jedisSentinelPool != null) {
             jedisSentinelPool.close();
         }
+
         if (pool != null) {
             pool.close();
         }
+
         if (jedis != null){
             if (jedis instanceof Closeable){
                 ((Closeable) jedis).close();

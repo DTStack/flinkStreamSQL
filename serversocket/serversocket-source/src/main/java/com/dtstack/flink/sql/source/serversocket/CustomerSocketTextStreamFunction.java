@@ -17,11 +17,11 @@
  */
 package com.dtstack.flink.sql.source.serversocket;
 
+import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
+import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.source.serversocket.table.ServersocketSourceTableInfo;
+import com.dtstack.flink.sql.table.TableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.IOUtils;
@@ -29,11 +29,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -46,6 +46,10 @@ import java.util.Iterator;
 public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 	private static final Logger LOG = LoggerFactory.getLogger(CustomerSocketTextStreamFunction.class);
 
+	protected DtNestRowDeserializationSchema deserializationSchema;
+
+	protected DeserializationMetricWrapper deserializationMetricWrapper;
+
 	/**
 	 * Default delay between successive connection attempts.
 	 */
@@ -54,24 +58,7 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 	/**
 	 * Default connection timeout when connecting to the server socket (infinite).
 	 */
-	private static final int CONNECTION_TIMEOUT_TIME = 0;
-
-	private final ObjectMapper objectMapper = new ObjectMapper();
-
-	/**
-	 * Type information describing the result type.
-	 */
-	private final TypeInformation<Row> typeInfo;
-
-	/**
-	 * Field names to parse. Indices match fieldTypes indices.
-	 */
-	private final String[] fieldNames;
-
-	/**
-	 * Types to parse fields as. Indices match fieldNames indices.
-	 */
-	private final TypeInformation<?>[] fieldTypes;
+	private static final int CONNECTION_TIMEOUT_TIME = 30000;
 
 	private volatile boolean isRunning = true;
 
@@ -79,14 +66,11 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 
 	ServersocketSourceTableInfo tableInfo;
 
-	public CustomerSocketTextStreamFunction(ServersocketSourceTableInfo tableInfo, TypeInformation<Row> typeInfo) {
-		this.typeInfo = typeInfo;
-
-		this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
-
-		this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
-
+	public CustomerSocketTextStreamFunction(ServersocketSourceTableInfo tableInfo, TypeInformation<Row> typeInfo,
+											Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
 		this.tableInfo = tableInfo;
+		this.deserializationSchema = new DtNestRowDeserializationSchema(typeInfo, rowAndFieldMapping, fieldExtraInfos);
+		this.deserializationMetricWrapper = new DeserializationMetricWrapper(typeInfo, deserializationSchema);
 	}
 
 	@Override
@@ -95,32 +79,36 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 		long attempt = 0;
 
 		while (isRunning) {
-			try {
-				Socket socket = new Socket();
+			try (Socket socket = new Socket()) {
 				currentSocket = socket;
+				LOG.info("Connecting to server socket " + tableInfo.getHostname() + ':' + tableInfo.getPort());
 				socket.connect(new InetSocketAddress(tableInfo.getHostname(), tableInfo.getPort()), CONNECTION_TIMEOUT_TIME);
 
-				BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				char[] cbuf = new char[8192];
-				int bytesRead;
-				while (isRunning && (bytesRead = reader.read(cbuf)) != -1) {
-					buffer.append(cbuf, 0, bytesRead);
-					int delimPos;
-					String delimiter = tableInfo.getDelimiter();
-					while (buffer.length() >= delimiter.length() && (delimPos = buffer.indexOf(delimiter)) != -1) {
-						String record = buffer.substring(0, delimPos);
-						// truncate trailing carriage return
-						if (delimiter.equals("\n") && record.endsWith("\r")) {
-							record = record.substring(0, record.length() - 1);
+				try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+					char[] cbuf = new char[8192];
+					int bytesRead;
+					while (isRunning && (bytesRead = reader.read(cbuf)) != -1) {
+						buffer.append(cbuf, 0, bytesRead);
+						int delimPos;
+						String delimiter = tableInfo.getDelimiter();
+						while (buffer.length() >= delimiter.length() && (delimPos = buffer.indexOf(delimiter)) != -1) {
+							String record = buffer.substring(0, delimPos);
+							// truncate trailing carriage return
+							if (delimiter.equals("\n") && record.endsWith("\r")) {
+								record = record.substring(0, record.length() - 1);
+							}
+							try {
+								Row row = deserializationMetricWrapper.deserialize(record.getBytes());
+								ctx.collect(row);
+							} catch (Exception e) {
+								LOG.error("parseData error ", e);
+							} finally {
+								buffer.delete(0, delimPos + delimiter.length());
+							}
 						}
-						ctx.collect(convertToRow(record));
-						buffer.delete(0, delimPos + delimiter.length());
 					}
 				}
-			} catch (Exception e) {
-				LOG.info("Connection server failed, Please check configuration  !!!!!!!!!!!!!!!!");
 			}
-
 
 			// if we dropped out of this loop due to an EOF, sleep and retry
 			if (isRunning) {
@@ -137,26 +125,14 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 
 		// collect trailing data
 		if (buffer.length() > 0) {
-			ctx.collect(convertToRow(buffer.toString()));
-		}
-	}
-
-	public Row convertToRow(String record) throws IOException {
-		JsonNode root = objectMapper.readTree(record);
-		Row row = new Row(fieldNames.length);
-		for (int i = 0; i < fieldNames.length; i++) {
-			JsonNode node = getIgnoreCase(root, fieldNames[i]);
-			if (node == null) {
-				row.setField(i, null);
-			} else {
-				// Read the value as specified type
-				Object value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
-				row.setField(i, value);
+			try {
+				Row row = deserializationMetricWrapper.deserialize(buffer.toString().getBytes());
+				ctx.collect(row);
+			} catch (Exception e) {
+				LOG.error("parseData error ", e);
 			}
 		}
-		return row;
 	}
-
 
 	@Override
 	public void cancel() {
@@ -170,14 +146,4 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 		}
 	}
 
-	public JsonNode getIgnoreCase(JsonNode jsonNode, String key) {
-		Iterator<String> iter = jsonNode.fieldNames();
-		while (iter.hasNext()) {
-			String key1 = iter.next();
-			if (key1.equalsIgnoreCase(key)) {
-				return jsonNode.get(key1);
-			}
-		}
-		return null;
-	}
 }

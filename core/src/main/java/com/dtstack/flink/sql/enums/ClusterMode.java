@@ -24,7 +24,14 @@ package com.dtstack.flink.sql.enums;
  */
 public enum ClusterMode {
 
-    local(0),standalone(1),yarn(2),yarnPer(3);
+    //run in local
+    local(0),
+    //submit job to standalone cluster
+    standalone(1),
+    //submit job to flink-session which is already run on yarn
+    yarn(2),
+    //submit job to yarn cluster as an application
+    yarnPer(3);
 
     private int type;
 

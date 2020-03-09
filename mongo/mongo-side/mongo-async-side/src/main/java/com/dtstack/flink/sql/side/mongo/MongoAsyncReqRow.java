@@ -26,6 +26,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
+import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.MongoCredential;
@@ -123,29 +124,42 @@ public class MongoAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-
+        Row inputRow = Row.copy(input);
         BasicDBObject basicDBObject = new BasicDBObject();
         for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = inputRow.getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(input, resultFuture);
+                dealMissKey(inputRow, resultFuture);
                 return;
             }
             basicDBObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
+        try {
+            // 填充谓词
+            sideInfo.getSideTableInfo().getPredicateInfoes().stream().map(info -> {
+                BasicDBObject filterCondition = MongoUtil.buildFilterObject(info);
+                if (null != filterCondition) {
+                    basicDBObject.append(info.getFieldName(), filterCondition);
+                }
+                return info;
+            }).count();
+        } catch (Exception e) {
+            LOG.info("add predicate infoes error ", e);
+        }
+
         String key = buildCacheKey(basicDBObject.values());
         if (openCache()) {
             CacheObj val = getFromCache(key);
             if (val != null) {
 
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(inputRow, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     List<Row> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(input, jsonArray);
+                        Row row = fillData(inputRow, jsonArray);
                         rowList.add(row);
                     }
                     resultFuture.complete(rowList);
@@ -162,7 +176,7 @@ public class MongoAsyncReqRow extends AsyncReqRow {
             @Override
             public void apply(final Document document) {
                 atomicInteger.incrementAndGet();
-                Row row = fillData(input, document);
+                Row row = fillData(inputRow, document);
                 if (openCache()) {
                     cacheContent.add(document);
                 }

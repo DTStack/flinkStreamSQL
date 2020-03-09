@@ -39,24 +39,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
-import sun.rmi.runtime.Log;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 
 /**
  * OutputFormat to write tuples into a database.
  * The OutputFormat has to be configured using the supplied OutputFormatBuilder.
  *
  */
-public class RetractJDBCOutputFormat extends MetricOutputFormat {
+public class RetractJDBCOutputFormat extends DtRichOutputFormat {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(RetractJDBCOutputFormat.class);
-
-    private static int dirtyDataPrintFrequency = 1000;
-
-    private static int receiveDataPrintFrequency = 1000;
 
     private String username;
     private String password;
@@ -173,10 +167,12 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         }
 
         if (retract) {
-            outRecords.inc();
-            if (outRecords.getCount() % receiveDataPrintFrequency == 0) {
+
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
                 LOG.info("Receive data : {}", row);
             }
+
+            outRecords.inc();
             insertWrite(row);
         } else {
             //do nothing
@@ -198,7 +194,15 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                 }
             }
         } catch (SQLException e) {
-            LOG.error("", e);
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                outDirtyRecords.inc(batchNum == 1 ? batchNum : rows.size());
+                LOG.error("record insert failed,dirty record num:{}, current row:{}", outDirtyRecords.getCount(), row.toString());
+                LOG.error("", e);
+            } else {
+                outDirtyRecords.inc(batchNum == 1 ? batchNum : rows.size());
+            }
+
+
         }
 
     }
@@ -209,11 +213,13 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             upload.executeUpdate();
             dbConn.commit();
         } catch (SQLException e) {
-            outDirtyRecords.inc();
-            if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0 || LOG.isDebugEnabled()) {
-                LOG.error("record insert failed ..", row.toString());
+
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                LOG.error("record insert failed,dirty record num:{}, current row:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
             }
+
+            outDirtyRecords.inc();
         }
     }
 
