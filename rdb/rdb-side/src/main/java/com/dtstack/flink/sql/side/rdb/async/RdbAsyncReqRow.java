@@ -23,6 +23,8 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
+import com.dtstack.flink.sql.util.DateUtil;
+import com.dtstack.flink.sql.util.MathUtil;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonArray;
@@ -38,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -84,7 +87,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 dealMissKey(inputRow, resultFuture);
                 return;
             }
-            inputParams.add(equalObj);
+            inputParams.add(convertDateType(equalObj));
         }
 
         String key = buildCacheKey(inputParams);
@@ -146,6 +149,15 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 });
             });
         });
+    }
+
+    private Object convertDateType(Object val) {
+        if (val instanceof Timestamp) {
+            val = DateUtil.getStringFromTimestamp((Timestamp) val);
+        } else if (val instanceof Date) {
+            val = DateUtil.getStringFromDate((java.sql.Date) val);
+        }
+        return val;
     }
 
     protected List<Row> getRows(Row inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {

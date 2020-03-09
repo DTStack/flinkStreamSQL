@@ -44,14 +44,6 @@ import static java.time.format.DateTimeFormatter.ISO_INSTANT;
  */
 
 public class MathUtil {
-
-    private static final Pattern DATETIME = Pattern.compile("^\\d{4}-(?:0[0-9]|1[0-2])-[0-9]{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3,9})?Z$");
-    private static final Pattern DATE = Pattern.compile("^\\d{4}-(?:0[0-9]|1[0-2])-[0-9]{2}$");
-    private static final SimpleDateFormat TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-
-    private static final int MILLIS_PER_SECOND = 1000;
-
     public static Long getLongVal(Object obj) {
         if (obj == null) {
             return null;
@@ -245,7 +237,7 @@ public class MathUtil {
             return null;
         }
         if (obj instanceof String) {
-            return getDateFromStr((String) obj);
+            return DateUtil.getDateFromStr((String) obj);
         } else if (obj instanceof Timestamp) {
             return new Date(((Timestamp) obj).getTime());
         } else if (obj instanceof Date) {
@@ -255,28 +247,6 @@ public class MathUtil {
     }
 
 
-    public static Date getDateFromStr(String dateStr) {
-        // 2020-01-01 format
-        if (DATE.matcher(dateStr).matches()) {
-            // convert from local date to instant
-            Instant instant = LocalDate.parse(dateStr).atTime(LocalTime.of(0, 0, 0, 0)).toInstant(ZoneOffset.UTC);
-            // calculate the timezone offset in millis
-            int offset = TimeZone.getDefault().getOffset(instant.toEpochMilli());
-            // need to remove the offset since time has no TZ component
-            return new Date(instant.toEpochMilli() - offset);
-        } else if (DATETIME.matcher(dateStr).matches()) {
-            // 2020-01-01T12:12:12Z format
-            Instant instant = Instant.from(ISO_INSTANT.parse(dateStr));
-            return new Date(instant.toEpochMilli());
-        } else {
-            try {
-                // 2020-01-01 12:12:12.0 format
-                return new Date(TIMESTAMP_FORMAT.parse(dateStr).getTime());
-            } catch (ParseException e) {
-                throw new RuntimeException("String convert to Date fail.");
-            }
-        }
-    }
 
     public static Timestamp getTimestamp(Object obj) {
         if (obj == null) {
@@ -287,32 +257,9 @@ public class MathUtil {
         } else if (obj instanceof Date) {
             return new Timestamp(((Date) obj).getTime());
         } else if (obj instanceof String) {
-            return getTimestampFromStr(obj.toString());
+            return DateUtil.getTimestampFromStr(obj.toString());
         }
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
-    }
-
-    public static Timestamp getTimestampFromStr(String timeStr) {
-        if (DATETIME.matcher(timeStr).matches()) {
-            Instant instant = Instant.from(ISO_INSTANT.parse(timeStr));
-            return new Timestamp(instant.getEpochSecond() * MILLIS_PER_SECOND);
-        } else {
-            Date date = null;
-            try {
-                date = new Date(TIMESTAMP_FORMAT.parse(timeStr).getTime());
-            } catch (ParseException e) {
-                throw new RuntimeException("getTimestampFromStr error data is " + timeStr);
-            }
-            return new Timestamp(date.getTime());
-        }
-    }
-
-    public static String getStringFromTimestamp(Timestamp timestamp) {
-        return TIMESTAMP_FORMAT.format(timestamp);
-    }
-
-    public static String getStringFromDate(Date date) {
-        return DATE_FORMAT.format(date);
     }
 
 }
