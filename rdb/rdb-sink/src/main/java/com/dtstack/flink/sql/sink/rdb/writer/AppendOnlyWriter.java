@@ -64,7 +64,7 @@ public class AppendOnlyWriter implements JDBCWriter {
 
     @Override
     public void prepareStatement(Connection connection) throws SQLException {
-        this.statement = connection.prepareStatement(insertSQL);
+        this.statement = connection.prepareStatement(insertSql);
     }
 
     /**

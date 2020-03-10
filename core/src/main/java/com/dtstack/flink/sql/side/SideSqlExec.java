@@ -99,7 +99,7 @@ public class SideSqlExec {
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
-    public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
+    public void exec(String sql, Map<String, AbstractSideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
                      Map<String, Table> tableCache, StreamQueryConfig queryConfig, CreateTmpTableParser.SqlParserResult createView) throws Exception {
         if(localSqlPluginPath == null){
             throw new RuntimeException("need to set localSqlPluginPath");
@@ -732,7 +732,7 @@ public class SideSqlExec {
                                      Map<String, Table> tableCache,
                                      List<FieldReplaceInfo> replaceInfoList) throws SqlParseException {
 
-        AliasInfo aliasInfo = parseASNode(pollSqlNode);
+        AliasInfo aliasInfo = parseAsNode(pollSqlNode);
         if (localTableCache.containsKey(aliasInfo.getName())) {
             return;
         }

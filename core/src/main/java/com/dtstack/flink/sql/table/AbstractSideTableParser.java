@@ -108,8 +108,8 @@ public abstract class AbstractSideTableParser extends AbstractTableParser {
                 }
                 sideTableInfo.setAsyncTimeout(asyncTimeout);
             }
-            if(props.containsKey(SideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase())){
-                Integer asyncTimeoutNum = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase()));
+            if(props.containsKey(AbstractSideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase())){
+                Integer asyncTimeoutNum = MathUtil.getIntegerVal(props.get(AbstractSideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase()));
                 if (asyncTimeoutNum > 0){
                     sideTableInfo.setAsyncTimeoutNumLimit(asyncTimeoutNum);
                 }

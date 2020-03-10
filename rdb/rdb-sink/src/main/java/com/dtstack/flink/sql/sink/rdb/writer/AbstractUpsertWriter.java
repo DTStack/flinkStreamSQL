@@ -116,7 +116,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
 
     @Override
     public void prepareStatement(Connection connection) throws SQLException {
-        this.deleteStatement = connection.prepareStatement(deleteSQL);
+        this.deleteStatement = connection.prepareStatement(deleteSql);
     }
 
     @Override
@@ -235,7 +235,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
         @Override
         public void prepareStatement(Connection connection) throws SQLException {
             super.prepareStatement(connection);
-            upsertStatement = connection.prepareStatement(upsertSQL);
+            upsertStatement = connection.prepareStatement(upsertSql);
         }
 
         @Override
@@ -300,9 +300,9 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
         @Override
         public void prepareStatement(Connection connection) throws SQLException {
             super.prepareStatement(connection);
-            existStatement = connection.prepareStatement(existSQL);
-            insertStatement = connection.prepareStatement(insertSQL);
-            updateStatement = connection.prepareStatement(updateSQL);
+            existStatement = connection.prepareStatement(existSql);
+            insertStatement = connection.prepareStatement(insertSql);
+            updateStatement = connection.prepareStatement(updateSql);
         }
 
         @Override

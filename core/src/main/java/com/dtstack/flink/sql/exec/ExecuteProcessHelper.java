@@ -127,7 +127,7 @@ public class ExecuteProcessHelper {
                 .setPluginLoadMode(pluginLoadMode)
                 .setDeployMode(deployMode)
                 .setConfProp(confProperties)
-                .setJarUrlList(jarURList)
+                .setJarUrlList(jarUrlList)
                 .build();
 
     }

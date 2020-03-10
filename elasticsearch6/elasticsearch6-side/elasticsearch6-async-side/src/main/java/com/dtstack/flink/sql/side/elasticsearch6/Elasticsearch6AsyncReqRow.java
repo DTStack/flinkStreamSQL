@@ -57,14 +57,14 @@ import java.util.Map;
  * @author yinxi
  * @date 2020/2/13 - 13:10
  */
-public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializable {
+public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch6AsyncReqRow.class);
     private transient RestHighLevelClient rhlClient;
     private SearchRequest searchRequest;
     private List<String> sqlJoinCompareOperate = Lists.newArrayList();
 
-    public Elasticsearch6AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public Elasticsearch6AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new Elasticsearch6AsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         SqlNode conditionNode = joinInfo.getCondition();
         ParseUtils.parseJoinCompareOperate(conditionNode, sqlJoinCompareOperate);

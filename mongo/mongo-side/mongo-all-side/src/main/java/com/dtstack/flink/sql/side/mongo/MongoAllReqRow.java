@@ -35,6 +35,7 @@ import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -215,7 +216,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
             String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
             BasicDBObject basicDBObject = new BasicDBObject();
             for (String selectField : sideFieldNames) {
-                basicDbObject.append(selectField, 1);
+                basicDBObject.append(selectField, 1);
             }
             BasicDBObject filterObject = new BasicDBObject();
             try {
@@ -232,7 +233,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
             }
 
 
-            FindIterable<Document> findIterable = dbCollection.find(filterObject).projection(basicDbObject).limit(FETCH_SIZE);
+            FindIterable<Document> findIterable = dbCollection.find(filterObject).projection(basicDBObject).limit(FETCH_SIZE);
             MongoCursor<Document> mongoCursor = findIterable.iterator();
             while (mongoCursor.hasNext()) {
                 Document doc = mongoCursor.next();
