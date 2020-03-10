@@ -33,6 +33,10 @@ public enum EReplaceType {
      */
     PARAM,
     /**
+     * 函数
+     */
+    FUNC,
+    /**
      * 常量
      */
     CONSTANT;

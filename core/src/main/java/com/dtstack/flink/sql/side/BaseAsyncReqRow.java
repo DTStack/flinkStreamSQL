@@ -51,6 +51,9 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
 
+    private static int TIMEOUT_LOG_FLUSH_NUM = 10;
+    private int timeOutNum = 0;
+
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
 
@@ -119,13 +122,16 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
 
     @Override
     public void timeout(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        StreamRecordQueueEntry<CRow> future = (StreamRecordQueueEntry<CRow>)resultFuture;
-        try {
-            if (null == future.get()) {
-                resultFuture.completeExceptionally(new TimeoutException("Async function call has timed out."));
-            }
-        } catch (Exception e) {
-            resultFuture.completeExceptionally(new Exception(e));
+
+        if(timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0){
+            LOG.info("Async function call has timed out. input:{}, timeOutNum:{}",input.toString(), timeOutNum);
+        }
+
+        timeOutNum ++;
+        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncTimeoutNumLimit()){
+            resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
+        } else {
+            resultFuture.complete(null);
         }
     }
 

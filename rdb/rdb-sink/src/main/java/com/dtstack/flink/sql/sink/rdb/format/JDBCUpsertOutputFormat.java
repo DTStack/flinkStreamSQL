@@ -171,6 +171,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             if (connection.isClosed()) {
                 LOG.info("db connection reconnect..");
                 establishConnection();
+                jdbcWriter.prepareStatement(connection);
             }
         } catch (SQLException e) {
             LOG.error("check connection open failed..", e);

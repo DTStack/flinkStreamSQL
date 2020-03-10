@@ -20,6 +20,20 @@
 
 package com.dtstack.flink.sql.side;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.table.api.StreamQueryConfig;
+import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.runtime.CRowKeySelector;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.runtime.types.CRowTypeInfo;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
@@ -28,9 +42,11 @@ import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.TableUtils;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -49,19 +65,7 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.table.api.StreamQueryConfig;
-import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.TableSchema;
-import org.apache.flink.table.api.java.StreamTableEnvironment;
-import org.apache.flink.table.runtime.CRowKeySelector;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.runtime.types.CRowTypeInfo;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +76,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -90,14 +95,12 @@ public class SideSqlExec {
 
     private String tmpFields = null;
 
-    private SideSQLParser sideSqlParser = new SideSQLParser();
     private SidePredicatesParser sidePredicatesParser = new SidePredicatesParser();
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
-    private StreamTableEnvironment tableEnv ;
 
-    public void exec(String sql, Map<String, AbstractSideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
-                     Map<String, Table> tableCache, StreamQueryConfig queryConfig) throws Exception {
+    public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
+                     Map<String, Table> tableCache, StreamQueryConfig queryConfig, CreateTmpTableParser.SqlParserResult createView) throws Exception {
         if(localSqlPluginPath == null){
             throw new RuntimeException("need to set localSqlPluginPath");
         }
@@ -109,8 +112,15 @@ public class SideSqlExec {
             LOG.error("fill predicates for sideTable fail ", e);
         }
 
-        sideSqlParser.setLocalTableCache(localTableCache);
-        Queue<Object> exeQueue = sideSqlParser.getExeQueue(sql, sideTableMap.keySet());
+        if(createView != null){
+            LOG.warn("create view info\n");
+            LOG.warn(createView.getExecSql());
+            LOG.warn("-----------------");
+        }
+
+        SideSQLParser sideSQLParser = new SideSQLParser();
+        sideSQLParser.setLocalTableCache(localTableCache);
+        Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
         Object pollObj = null;
 
         //need clean
@@ -139,30 +149,44 @@ public class SideSqlExec {
                     if(LOG.isInfoEnabled()){
                         LOG.info("exec sql: " + pollSqlNode.toString());
                     }
-                }else if(pollSqlNode.getKind() == AS){
-                    AliasInfo aliasInfo = parseAsNode(pollSqlNode);
-                    Table table = tableEnv.sqlQuery(aliasInfo.getName());
-                    tableEnv.registerTable(aliasInfo.getAlias(), table);
-                    localTableCache.put(aliasInfo.getAlias(), table);
 
-                    FieldReplaceInfo fieldReplaceInfo = parseAsQuery((SqlBasicCall) pollSqlNode, tableCache);
-                    if(fieldReplaceInfo != null){
-                        replaceInfoList.add(fieldReplaceInfo);
-                    }
+                }else if(pollSqlNode.getKind() == AS){
+                    dealAsSourceTable(tableEnv, pollSqlNode, tableCache, replaceInfoList);
+
                 } else if (pollSqlNode.getKind() == WITH_ITEM) {
                     SqlWithItem sqlWithItem = (SqlWithItem) pollSqlNode;
-                    String tableAlias = sqlWithItem.name.toString();
+                    String TableAlias = sqlWithItem.name.toString();
                     Table table = tableEnv.sqlQuery(sqlWithItem.query.toString());
-                    tableEnv.registerTable(tableAlias, table);
+                    tableEnv.registerTable(TableAlias, table);
+
+                } else if (pollSqlNode.getKind() == SELECT){
+                    Preconditions.checkState(createView != null, "select sql must included by create view");
+                    Table table = tableEnv.sqlQuery(pollObj.toString());
+
+                    if (createView.getFieldsInfoStr() == null){
+                        tableEnv.registerTable(createView.getTableName(), table);
+                    } else {
+                        if (checkFieldsInfo(createView, table)){
+                            table = table.as(tmpFields);
+                            tableEnv.registerTable(createView.getTableName(), table);
+                        } else {
+                            throw new RuntimeException("Fields mismatch");
+                        }
+                    }
+
+                    localTableCache.put(createView.getTableName(), table);
                 }
 
             }else if (pollObj instanceof JoinInfo){
+                System.out.println("----------exec join info----------");
+                System.out.println(pollObj.toString());
                 preIsSideJoin = true;
                 joinFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
             }
         }
 
     }
+
 
     /**
      * 解析出as查询的表和字段的关系
@@ -703,78 +727,39 @@ public class SideSqlExec {
         return conditionFields;
     }
 
-    public void registerTmpTable(CreateTmpTableParser.SqlParserResult result,
-                                 Map<String, AbstractSideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
-                                 Map<String, Table> tableCache)
-            throws Exception {
+    protected void dealAsSourceTable(StreamTableEnvironment tableEnv,
+                                     SqlNode pollSqlNode,
+                                     Map<String, Table> tableCache,
+                                     List<FieldReplaceInfo> replaceInfoList) throws SqlParseException {
 
-        if(localSqlPluginPath == null){
-            throw new RuntimeException("need to set localSqlPluginPath");
-        }
-
-        localTableCache.putAll(tableCache);
-        Queue<Object> exeQueue = sideSqlParser.getExeQueue(result.getExecSql(), sideTableMap.keySet());
-        Object pollObj = null;
-
-        //need clean
-        boolean preIsSideJoin = false;
-        List<FieldReplaceInfo> replaceInfoList = Lists.newArrayList();
-
-        while((pollObj = exeQueue.poll()) != null){
-
-            if(pollObj instanceof SqlNode){
-                SqlNode pollSqlNode = (SqlNode) pollObj;
-
-                if(preIsSideJoin){
-                    preIsSideJoin = false;
-                    List<String> fieldNames = null;
-                    for (FieldReplaceInfo replaceInfo : replaceInfoList) {
-                        fieldNames = Lists.newArrayList();
-                        replaceFieldName(pollSqlNode, replaceInfo);
-                        addAliasForFieldNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
-                    }
-                }
-
-                if(pollSqlNode.getKind() == INSERT){
-                    tableEnv.sqlUpdate(pollSqlNode.toString());
-                }else if(pollSqlNode.getKind() == AS){
-                    dealAsSourceTable(tableEnv, pollSqlNode);
-                } else if (pollSqlNode.getKind() == SELECT){
-                    Table table = tableEnv.sqlQuery(pollObj.toString());
-                    if (result.getFieldsInfoStr() == null){
-                        tableEnv.registerTable(result.getTableName(), table);
-                    } else {
-                        if (checkFieldsInfo(result, table)){
-                            table = table.as(tmpFields);
-                            tableEnv.registerTable(result.getTableName(), table);
-                        } else {
-                            throw new RuntimeException("Fields mismatch");
-                        }
-                    }
-                    localTableCache.put(result.getTableName(), table);
-
-                }
-
-            }else if (pollObj instanceof JoinInfo){
-                preIsSideJoin = true;
-                joinFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
-            }
-        }
-    }
-
-    protected void dealAsSourceTable(StreamTableEnvironment tableEnv, SqlNode pollSqlNode) throws SqlParseException {
-        AliasInfo aliasInfo = parseAsNode(pollSqlNode);
+        AliasInfo aliasInfo = parseASNode(pollSqlNode);
         if (localTableCache.containsKey(aliasInfo.getName())) {
             return;
         }
 
         Table table = tableEnv.sqlQuery(aliasInfo.getName());
         tableEnv.registerTable(aliasInfo.getAlias(), table);
-        if (LOG.isInfoEnabled()) {
-            LOG.info("Register Table {} by {}", aliasInfo.getAlias(), aliasInfo.getName());
+        localTableCache.put(aliasInfo.getAlias(), table);
+
+        LOG.info("Register Table {} by {}", aliasInfo.getAlias(), aliasInfo.getName());
+
+        FieldReplaceInfo fieldReplaceInfo = parseAsQuery((SqlBasicCall) pollSqlNode, tableCache);
+        if(fieldReplaceInfo == null){
+           return;
         }
 
-        localTableCache.put(aliasInfo.getAlias(), table);
+        //as 的源表
+        Set<String> fromTableNameSet = Sets.newHashSet();
+        SqlNode fromNode = ((SqlBasicCall)pollSqlNode).getOperands()[0];
+        TableUtils.getFromTableInfo(fromNode, fromTableNameSet);
+        for(FieldReplaceInfo tmp : replaceInfoList){
+            if(fromTableNameSet.contains(tmp.getTargetTableName())
+                    || fromTableNameSet.contains(tmp.getTargetTableAlias())){
+                fieldReplaceInfo.setPreNode(tmp);
+                break;
+            }
+        }
+        replaceInfoList.add(fieldReplaceInfo);
     }
 
     private void joinFun(Object pollObj, Map<String, Table> localTableCache,
@@ -789,7 +774,7 @@ public class SideSqlExec {
 
         SqlKind sqlKind = joinInfo.getLeftNode().getKind();
         if(sqlKind == AS){
-            dealAsSourceTable(tableEnv, joinInfo.getLeftNode());
+            dealAsSourceTable(tableEnv, joinInfo.getLeftNode(), localTableCache, replaceInfoList);
         }
 
         Table leftTable = getTableFromCache(localTableCache, joinInfo.getLeftTableAlias(), joinInfo.getLeftTableName());
@@ -895,7 +880,7 @@ public class SideSqlExec {
     private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table) {
         List<String> fieldNames = new LinkedList<>();
         String fieldsInfo = result.getFieldsInfoStr();
-        String[] fields = fieldsInfo.split(",");
+        String[] fields = StringUtils.split(fieldsInfo, ",");
         for (int i = 0; i < fields.length; i++) {
             String[] filed = fields[i].split("\\s");
             if (filed.length < 2 || fields.length != table.getSchema().getColumnNames().length){

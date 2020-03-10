@@ -24,6 +24,8 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -210,8 +212,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
             }
 
             //load data from table
-            String[] sideFieldNames = sideInfo.getSideSelectFields().split(",");
-            BasicDBObject basicDbObject = new BasicDBObject();
+            String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
+            BasicDBObject basicDBObject = new BasicDBObject();
             for (String selectField : sideFieldNames) {
                 basicDbObject.append(selectField, 1);
             }

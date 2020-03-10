@@ -21,7 +21,9 @@
 package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
+import com.dtstack.flink.sql.util.MD5Utils;
 import com.google.common.collect.Lists;
+import org.apache.commons.collections.CollectionUtils;
 
 import java.io.Serializable;
 import java.util.List;
@@ -42,31 +44,10 @@ public class RowKeyBuilder implements Serializable{
 
     private static Pattern Md5Operator = Pattern.compile("(?i)^md5\\(\\s*(.*)\\s*\\)$");
 
-    private List<List<ReplaceInfo>> operatorChain = Lists.newArrayList();
+    private List<ReplaceInfo> operatorChain = Lists.newArrayList();
 
     public void init(String rowKeyTempl){
-
-        String[] strArr = splitIgnoreQuotaBrackets(rowKeyTempl, "\\+");
-
-        for(String infoAlias : strArr){
-            infoAlias = infoAlias.trim();
-            Matcher matcher = Md5Operator.matcher(infoAlias);
-            String fieldCols = null;
-            if(matcher.find()){
-                fieldCols = matcher.group(1);
-            }else{
-                fieldCols = infoAlias;
-            }
-
-            String[] fieldArr = fieldCols.split("\\+");
-            List<ReplaceInfo> fieldList = Lists.newArrayList();
-            for(String oneField : fieldArr){
-                ReplaceInfo replaceInfo =  getReplaceInfo(oneField);
-                fieldList.add(replaceInfo);
-            }
-
-            operatorChain.add(fieldList);
-        }
+    	operatorChain.addAll(makeFormula(rowKeyTempl));
     }
 
     /**
@@ -75,18 +56,15 @@ public class RowKeyBuilder implements Serializable{
      * @return
      */
     public String getRowKey(Map<String, Object> refData){
-
-        StringBuilder sb = new StringBuilder("");
-        for(List<ReplaceInfo> fieldList : operatorChain){
-            sb.append(buildStr(fieldList, refData));
-        }
-
-        return sb.toString();
+    	return buildStr(operatorChain, refData);
     }
 
 
 
     private String buildStr(List<ReplaceInfo> fieldList, Map<String, Object> refData){
+        if(CollectionUtils.isEmpty(fieldList)){
+            return "";
+        }
         StringBuffer sb = new StringBuffer("");
         for(ReplaceInfo replaceInfo : fieldList){
 
@@ -95,6 +73,10 @@ public class RowKeyBuilder implements Serializable{
                 continue;
             }
 
+            if(replaceInfo.getType() == EReplaceType.FUNC){
+                sb.append(MD5Utils.getMD5String(buildStr(replaceInfo.getSubReplaceInfos(), refData)));
+                continue;
+            }
             String replaceName = replaceInfo.getParam();
             if(!refData.containsKey(replaceName)){
                 throw new RuntimeException(String.format("build rowKey with field %s which value not found.", replaceName));
@@ -137,4 +119,21 @@ public class RowKeyBuilder implements Serializable{
         return replaceInfo;
     }
 
+    private List<ReplaceInfo> makeFormula(String formula){
+        if(formula == null || formula.length() <= 0){
+            Lists.newArrayList();
+        }
+        List<ReplaceInfo> result = Lists.newArrayList();
+        for(String meta: splitIgnoreQuotaBrackets(formula, "\\+")){
+            Matcher matcher = Md5Operator.matcher(meta.trim());
+            if(matcher.find()){
+                ReplaceInfo replaceInfo = new ReplaceInfo(EReplaceType.FUNC);
+                replaceInfo.setSubReplaceInfos(makeFormula(matcher.group(1)));
+                result.add(replaceInfo);
+            } else {
+                result.add(getReplaceInfo(meta));
+            }
+        }
+        return result;
+    }
 }

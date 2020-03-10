@@ -63,6 +63,8 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 	/** Partitioner to select Kafka partition for each item. */
 	protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
 
+	private String[] partitionKeys;
+
 	protected int parallelism;
 
 
@@ -78,7 +80,8 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 			properties.setProperty(key, kafka09SinkTableInfo.getKafkaParam(key));
 		}
 
-		this.partitioner = Optional.of(new FlinkFixedPartitioner<>());
+		this.partitioner = Optional.of(new CustomerFlinkPartition<>());
+		this.partitionKeys = getPartitionKeys(kafka09SinkTableInfo);
 		this.fieldNames = kafka09SinkTableInfo.getFields();
 		TypeInformation[] types = new TypeInformation[kafka09SinkTableInfo.getFields().length];
 		for (int i = 0; i < kafka09SinkTableInfo.getFieldClasses().length; i++) {
@@ -98,7 +101,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 		}
 
 		this.kafkaProducer09 = (FlinkKafkaProducer09<Row>) new KafkaProducer09Factory()
-                .createKafkaProducer(kafka09SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner);
+                .createKafkaProducer(kafka09SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
 		return this;
 	}
 
@@ -138,6 +141,13 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 		this.fieldNames = fieldNames;
 		this.fieldTypes = fieldTypes;
 		return this;
+	}
+
+	private String[] getPartitionKeys(KafkaSinkTableInfo kafkaSinkTableInfo){
+		if(StringUtils.isNotBlank(kafkaSinkTableInfo.getPartitionKeys())){
+			return StringUtils.split(kafkaSinkTableInfo.getPartitionKeys(), ',');
+		}
+		return null;
 	}
 
 }

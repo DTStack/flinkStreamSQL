@@ -18,11 +18,23 @@
 
 package com.dtstack.flink.sql.side.redis;
 
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.types.Row;
+
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.AsyncReqRow;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.lettuce.core.KeyValue;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisFuture;
@@ -31,13 +43,7 @@ import io.lettuce.core.api.async.RedisKeyAsyncCommands;
 import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.types.Row;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -170,7 +176,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                 public void accept(List<KeyValue<String, String>> keyValues) {
                     if (keyValues.size() != 0) {
                         for (int i = 0; i < keyValues.size(); i++) {
-                            String[] splitKeys = keyValues.get(i).getKey().split(":");
+                            String[] splitKeys = StringUtils.split(keyValues.get(i).getKey(), ":");
                             keyValue.put(splitKeys[1], splitKeys[2]);
                             keyValue.put(splitKeys[3], keyValues.get(i).getValue());
                         }
