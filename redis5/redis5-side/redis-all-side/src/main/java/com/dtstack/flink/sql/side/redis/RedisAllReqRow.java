@@ -18,15 +18,10 @@
 
 package com.dtstack.flink.sql.side.redis;
 
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
-
-import com.dtstack.flink.sql.side.AllReqRow;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
 import com.esotericsoftware.minlog.Log;
@@ -34,6 +29,10 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.types.Row;
+import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.HostAndPort;
