@@ -179,10 +179,10 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         StringBuilder keyBuilder = new StringBuilder(redisSideTableInfo.getTableName());
         List<String> primaryKeys = redisSideTableInfo.getPrimaryKeys();
         for(String primaryKey : primaryKeys){
-            if(refData.containsKey(primaryKey)){
-                keyBuilder.append("_").append(refData.get(primaryKey));
+            if(!refData.containsKey(primaryKey)){
+                return null;
             }
-            return null;
+            keyBuilder.append("_").append(refData.get(primaryKey));
         }
         return keyBuilder.toString();
     }
