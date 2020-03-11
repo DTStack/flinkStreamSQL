@@ -89,7 +89,7 @@ public class RedisAllReqRow extends AllReqRow{
         }
 
         cacheRef.set(newCache);
-        LOG.info("----- Redis all cacheRef reload end:{}", Calendar.getInstance());
+        LOG.info("----- Redis all cacheRef reload end:{}", newCache.size());
     }
 
     @Override
@@ -142,16 +142,18 @@ public class RedisAllReqRow extends AllReqRow{
     private void loadData(Map<String, Map<String, String>> tmpCache) throws SQLException {
         JedisCommands jedis = null;
         try {
-            String keyPattern = tableInfo.getTableName() + "*";
+            StringBuilder keyPattern = new StringBuilder(tableInfo.getTableName());
+            for(String key : tableInfo.getPrimaryKeys()){
+                keyPattern.append("_").append("*");
+            };
             jedis = getJedisWithRetry(CONN_RETRY_NUM);
-            Set<String> keys = getRedisKeys(RedisType.parse(tableInfo.getRedisType()), jedis, keyPattern);
+            Set<String> keys = getRedisKeys(RedisType.parse(tableInfo.getRedisType()), jedis, keyPattern.toString());
             if(CollectionUtils.isEmpty(keys)){
                 return;
             }
-            JedisCommands redis = jedis;
-            keys.forEach(k ->{
-                tmpCache.put(k, redis.hgetAll(k));
-            });
+            for(String key : keys){
+                tmpCache.put(key, jedis.hgetAll(key));
+            }
         } catch (Exception e){
             LOG.error("", e);
         } finally {
@@ -174,7 +176,7 @@ public class RedisAllReqRow extends AllReqRow{
     private JedisCommands getJedis(RedisSideTableInfo tableInfo) {
         String url = tableInfo.getUrl();
         String password = tableInfo.getPassword();
-        String database = tableInfo.getDatabase();
+        String database = tableInfo.getDatabase() == null ? "0" : tableInfo.getDatabase();
         int timeout = tableInfo.getTimeout();
         if (timeout == 0){
             timeout = 1000;
