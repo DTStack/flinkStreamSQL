@@ -19,10 +19,14 @@
 package com.dtstack.flink.sql.side.redis;
 
 import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.redis.enums.RedisType;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
 import com.esotericsoftware.minlog.Log;
 import org.apache.calcite.sql.JoinType;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
@@ -103,104 +107,51 @@ public class RedisAllReqRow extends AllReqRow{
             String columnName = sideInfo.getEqualFieldList().get(conValIndex);
             inputParams.put(columnName, equalObj.toString());
         }
-        String key = buildKey(inputParams);
-
-        Map<String, String> cacheMap = cacheRef.get().get(key);
-
-        if (cacheMap == null){
-            if(sideInfo.getJoinType() == JoinType.LEFT){
-                Row data = fillData(row, null);
-                out.collect(data);
-            }else{
-                return;
-            }
-
+        String key = buildCacheKey(inputParams);
+        if(StringUtils.isBlank(key)){
             return;
         }
 
+        Map<String, String> cacheMap = cacheRef.get().get(key);
+        if(MapUtils.isEmpty(cacheMap)){
+            if(sideInfo.getJoinType() != JoinType.LEFT){
+                return;
+            }
+            Row data = fillData(row, null);
+            out.collect(data);
+            return;
+
+        }
         Row newRow = fillData(row, cacheMap);
         out.collect(newRow);
     }
 
-    private String buildKey(Map<String, String> inputParams) {
-        String tableName = tableInfo.getTableName();
-        StringBuilder key = new StringBuilder();
-        for (int i=0; i<inputParams.size(); i++){
-            key.append(tableName).append(":").append(inputParams.keySet().toArray()[i]).append(":")
-                    .append(inputParams.get(inputParams.keySet().toArray()[i]));
+    private String buildCacheKey(Map<String, String> refData) {
+        StringBuilder keyBuilder = new StringBuilder(tableInfo.getTableName());
+        List<String> primaryKeys = tableInfo.getPrimaryKeys();
+        for(String primaryKey : primaryKeys){
+            if(!refData.containsKey(primaryKey)){
+                return null;
+            }
+            keyBuilder.append("_").append(refData.get(primaryKey));
         }
-        return key.toString();
+        return keyBuilder.toString();
     }
+
 
     private void loadData(Map<String, Map<String, String>> tmpCache) throws SQLException {
         JedisCommands jedis = null;
-
         try {
-            for(int i=0; i<CONN_RETRY_NUM; i++){
-
-                try{
-                    jedis = getJedis(tableInfo);
-                    break;
-                }catch (Exception e){
-                    if(i == CONN_RETRY_NUM - 1){
-                        throw new RuntimeException("", e);
-                    }
-
-                    try {
-                        String jedisInfo = "url:" + tableInfo.getUrl() + ",pwd:" + tableInfo.getPassword() + ",database:" + tableInfo.getDatabase();
-                        LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + jedisInfo);
-                        Thread.sleep(5 * 1000);
-                    } catch (InterruptedException e1) {
-                        LOG.error("", e1);
-                    }
-                }
+            String keyPattern = tableInfo.getTableName() + "*";
+            jedis = getJedisWithRetry(CONN_RETRY_NUM);
+            Set<String> keys = getRedisKeys(RedisType.parse(tableInfo.getRedisType()), jedis, keyPattern);
+            if(CollectionUtils.isEmpty(keys)){
+                return;
             }
-
-            if (tableInfo.getRedisType() != 3){
-                String perKey = tableInfo.getTableName() + "*";
-                Set<String> keys = ((Jedis) jedis).keys(perKey);
-                List<String> newPerKeys = new LinkedList<>();
-                for (String key : keys){
-                    String[] splitKey = key.split(":");
-                    String newKey = splitKey[0] + ":" + splitKey[1] + ":" + splitKey[2];
-                    newPerKeys.add(newKey);
-                }
-                List<String> list = newPerKeys.stream().distinct().collect(Collectors.toList());
-                for(String key : list){
-                    Map<String, String> kv = Maps.newHashMap();
-                    String[] primaryKv = key.split(":");
-                    kv.put(primaryKv[1], primaryKv[2]);
-                    String pattern = key + "*";
-                    Set<String> realKeys = ((Jedis) jedis).keys(pattern);
-                    for (String realKey : realKeys){
-                        kv.put(realKey.split(":")[3], jedis.get(realKey));
-                    }
-                    tmpCache.put(key, kv);
-                }
-            } else {
-                String perKey = tableInfo.getTableName() + "*";
-                Set<String> keys = keys((JedisCluster) jedis, perKey);
-                List<String> newPerKeys = new LinkedList<>();
-                for (String key : keys){
-                    String[] splitKey = key.split(":");
-                    String newKey = splitKey[0] + ":" + splitKey[1] + ":" + splitKey[2];
-                    newPerKeys.add(newKey);
-                }
-                List<String> list = newPerKeys.stream().distinct().collect(Collectors.toList());
-                for(String key : list){
-                    Map<String, String> kv = Maps.newHashMap();
-                    String[] primaryKv = key.split(":");
-                    kv.put(primaryKv[1], primaryKv[2]);
-                    String pattern = key + "*";
-                    Set<String> realKeys = keys((JedisCluster) jedis, pattern);
-                    for (String realKey : realKeys){
-                        kv.put(realKey.split(":")[3], jedis.get(realKey));
-                    }
-                    tmpCache.put(key, kv);
-                }
-            }
-
-
+            JedisCommands redis = jedis;
+            keys.forEach(k ->{
+                tmpCache.put(k, redis.hgetAll(k));
+            });
         } catch (Exception e){
             LOG.error("", e);
         } finally {
@@ -245,33 +196,58 @@ public class RedisAllReqRow extends AllReqRow{
         }
         JedisCommands jedis = null;
         GenericObjectPoolConfig poolConfig = setPoolConfig(tableInfo.getMaxTotal(), tableInfo.getMaxIdle(), tableInfo.getMinIdle());
-        switch (tableInfo.getRedisType()){
+        switch (RedisType.parse(tableInfo.getRedisType())){
             //单机
-            case 1:
+            case STANDALONE:
                 pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
                 jedis = pool.getResource();
                 break;
             //哨兵
-            case 2:
+            case SENTINEL:
                 jedisSentinelPool = new JedisSentinelPool(tableInfo.getMasterName(), ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
                 jedis = jedisSentinelPool.getResource();
                 break;
             //集群
-            case 3:
+            case CLUSTER:
                 jedis = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
+            default:
+                break;
         }
 
         return jedis;
     }
 
-    private Set<String> keys(JedisCluster jedisCluster, String pattern){
+    private JedisCommands getJedisWithRetry(int retryNum) {
+        while (retryNum-- > 0){
+            try {
+                return getJedis(tableInfo);
+            } catch (Exception e) {
+                if(retryNum <= 0){
+                    throw new RuntimeException("getJedisWithRetry error", e);
+                }
+                try {
+                    String jedisInfo = "url:" + tableInfo.getUrl() + ",pwd:" + tableInfo.getPassword() + ",database:" + tableInfo.getDatabase();
+                    LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + jedisInfo);
+                    Thread.sleep(5 * 1000);
+                } catch (InterruptedException e1) {
+                    LOG.error("", e1);
+                }
+            }
+        }
+        return null;
+    }
+
+    private Set<String> getRedisKeys(RedisType redisType, JedisCommands jedis, String keyPattern){
+        if(!redisType.equals(RedisType.CLUSTER)){
+            return ((Jedis) jedis).keys(keyPattern);
+        }
         Set<String> keys = new TreeSet<>();
-        Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
+        Map<String, JedisPool> clusterNodes = ((JedisCluster)jedis).getClusterNodes();
         for(String k : clusterNodes.keySet()){
             JedisPool jp = clusterNodes.get(k);
             Jedis connection = jp.getResource();
             try {
-                keys.addAll(connection.keys(pattern));
+                keys.addAll(connection.keys(keyPattern));
             } catch (Exception e){
                 LOG.error("Getting keys error: {}", e);
             } finally {

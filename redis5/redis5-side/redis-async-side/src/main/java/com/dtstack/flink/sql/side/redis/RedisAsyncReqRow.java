@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.side.redis;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.redis.enums.RedisType;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
 import io.lettuce.core.RedisClient;
@@ -86,15 +87,15 @@ public class RedisAsyncReqRow extends AsyncReqRow {
         if (database == null){
             database = "0";
         }
-        switch (tableInfo.getRedisType()){
-            case 1:
+        switch (RedisType.parse(tableInfo.getRedisType())){
+            case STANDALONE:
                 StringBuilder redisUri = new StringBuilder();
                 redisUri.append("redis://").append(password).append(url).append("/").append(database);
                 redisClient = RedisClient.create(redisUri.toString());
                 connection = redisClient.connect();
                 async = connection.async();
                 break;
-            case 2:
+            case SENTINEL:
                 StringBuilder sentinelUri = new StringBuilder();
                 sentinelUri.append("redis-sentinel://").append(password)
                         .append(url).append("/").append(database).append("#").append(redisSideTableInfo.getMasterName());
@@ -102,12 +103,14 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                 connection = redisClient.connect();
                 async = connection.async();
                 break;
-            case 3:
+            case CLUSTER:
                 StringBuilder clusterUri = new StringBuilder();
                 clusterUri.append("redis://").append(password).append(url);
                 clusterClient = RedisClusterClient.create(clusterUri.toString());
                 clusterConnection = clusterClient.connect();
                 async = clusterConnection.async();
+            default:
+                break;
         }
     }
 
