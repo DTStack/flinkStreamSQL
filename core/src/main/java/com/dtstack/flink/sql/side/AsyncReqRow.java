@@ -30,17 +30,16 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
-import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.concurrent.TimeoutException;
 
 /**
  * All interfaces inherit naming rules: type + "AsyncReqRow" such as == "MysqlAsyncReqRow
@@ -105,6 +104,10 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
         if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
             obj = Timestamp.valueOf(((LocalDateTime) obj));
+        } else if (obj instanceof LocalDateTime) {
+            obj = Timestamp.valueOf(((LocalDateTime) obj));
+        } else if (obj instanceof LocalDate) {
+            obj = Date.valueOf((LocalDate) obj);
         }
         return obj;
     }
