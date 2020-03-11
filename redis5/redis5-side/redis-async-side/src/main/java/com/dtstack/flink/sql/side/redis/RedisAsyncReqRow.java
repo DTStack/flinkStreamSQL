@@ -23,16 +23,17 @@ import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
-import io.lettuce.core.KeyValue;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.async.RedisHashAsyncCommands;
 import io.lettuce.core.api.async.RedisKeyAsyncCommands;
 import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -118,7 +119,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
     @Override
     public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
         Row inputRow = Row.copy(input);
-        List<String> keyData = Lists.newLinkedList();
+        Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = inputRow.getField(conValIndex);
@@ -126,13 +127,13 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                 dealMissKey(inputRow, resultFuture);
                 return;
             }
-            String value = equalObj.toString();
-            keyData.add(sideInfo.getEqualFieldList().get(i));
-            keyData.add(value);
+            refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
 
-        String key = buildCacheKey(keyData);
-
+        String key = buildCacheKey(refData);
+        if(StringUtils.isBlank(key)){
+            return;
+        }
         if(openCache()){
             CacheObj val = getFromCache(key);
             if(val != null){
@@ -154,44 +155,36 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             }
         }
 
-        Map<String, String> keyValue = Maps.newHashMap();
-        List<String> value = async.keys(key + ":*").get();
-        String[] values = value.toArray(new String[value.size()]);
-        if (values.length == 0){
-            dealMissKey(inputRow, resultFuture);
-        } else {
-            RedisFuture<List<KeyValue<String, String>>> future = ((RedisStringAsyncCommands) async).mget(values);
-            future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
-                @Override
-                public void accept(List<KeyValue<String, String>> keyValues) {
-                    if (keyValues.size() != 0) {
-                        for (int i = 0; i < keyValues.size(); i++) {
-                            String[] splitKeys = keyValues.get(i).getKey().split(":");
-                            keyValue.put(splitKeys[1], splitKeys[2]);
-                            keyValue.put(splitKeys[3], keyValues.get(i).getValue());
-                        }
-                        try {
-                            Row row = fillData(inputRow, keyValue);
-                            dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
-                            resultFuture.complete(Collections.singleton(row));
-                        } catch (Exception e) {
-                            dealFillDataError(resultFuture, e, inputRow);
-                        }
-                    } else {
-                        dealMissKey(inputRow, resultFuture);
-                        dealCacheData(key,CacheMissVal.getMissKeyObj());
+        RedisFuture<Map<String, String>> future = ((RedisHashAsyncCommands) async).hgetall(key);
+        future.thenAccept(new Consumer<Map<String, String>>() {
+            @Override
+            public void accept(Map<String, String> values) {
+                if (MapUtils.isNotEmpty(values)) {
+                    try {
+                        Row row = fillData(inputRow, values);
+                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
+                        resultFuture.complete(Collections.singleton(row));
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, inputRow);
                     }
+                } else {
+                    dealMissKey(inputRow, resultFuture);
+                    dealCacheData(key,CacheMissVal.getMissKeyObj());
                 }
-            });
-        }
+            }
+        });
     }
 
-    private String buildCacheKey(List<String> keyData) {
-        String kv = String.join(":", keyData);
-        String tableName = redisSideTableInfo.getTableName();
-        StringBuilder preKey =  new StringBuilder();
-        preKey.append(tableName).append(":").append(kv);
-        return preKey.toString();
+    private String buildCacheKey(Map<String, Object> refData) {
+        StringBuilder keyBuilder = new StringBuilder(redisSideTableInfo.getTableName());
+        List<String> primaryKeys = redisSideTableInfo.getPrimaryKeys();
+        for(String primaryKey : primaryKeys){
+            if(refData.containsKey(primaryKey)){
+                keyBuilder.append("_").append(refData.get(primaryKey));
+            }
+            return null;
+        }
+        return keyBuilder.toString();
     }
 
     @Override
