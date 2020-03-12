@@ -16,30 +16,23 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.launcher.utils;
+package com.dtstack.flink.sql.launcher.factory;
 
-import org.apache.commons.io.Charsets;
-import org.apache.flink.core.fs.Path;
-import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.client.deployment.ClusterDescriptor;
+import org.apache.flink.client.deployment.StandaloneClusterDescriptor;
+import org.apache.flink.configuration.Configuration;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.Arrays;
-import java.util.List;
+import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * Date: 2020/3/3
+ * Date: 2020/3/6
  * Company: www.dtstack.com
  * @author maqi
  */
-public class SubmitUtil {
-
-    public static void fillUserJarForJobGraph(String jarPath, JobGraph jobGraph) throws UnsupportedEncodingException {
-        String addjarPath = URLDecoder.decode(jarPath, Charsets.UTF_8.toString());
-        if (addjarPath.length() > 2) {
-            addjarPath = addjarPath.substring(1, addjarPath.length() - 1).replace("\"", "");
-        }
-        List<String> paths = Arrays.asList(addjarPath.split(","));
-        paths.forEach(path -> jobGraph.addJar(new Path("file://" + path)));
+public class StandaloneClientFactory extends AbstractClusterClientFactory {
+    @Override
+    public ClusterDescriptor createClusterDescriptor(String clusterConfPath, Configuration flinkConfig) {
+        checkNotNull(flinkConfig);
+        return new StandaloneClusterDescriptor(flinkConfig);
     }
 }

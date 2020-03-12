@@ -16,47 +16,26 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.launcher;
 
-import com.dtstack.flink.sql.constrant.ConfigConstrant;
-import com.dtstack.flink.sql.launcher.utils.SubmitUtil;
-import com.google.common.collect.Lists;
+import com.dtstack.flink.sql.launcher.entity.JobParamsInfo;
+import com.dtstack.flink.sql.launcher.executor.StandaloneExecutor;
+import com.dtstack.flink.sql.launcher.executor.YarnJobClusterExecutor;
+import com.dtstack.flink.sql.launcher.executor.YarnSessionClusterExecutor;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.Main;
-import com.dtstack.flink.sql.launcher.perjob.PerJobSubmitter;
 import com.dtstack.flink.sql.option.OptionParser;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.io.Charsets;
-import org.apache.commons.lang.BooleanUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.flink.api.common.JobExecutionResult;
-import org.apache.flink.api.common.JobID;
-import org.apache.flink.api.common.cache.DistributedCache;
-import org.apache.flink.client.ClientUtils;
-import org.apache.flink.client.deployment.ClusterClientJobClientAdapter;
-import org.apache.flink.client.program.ClusterClient;
-import org.apache.flink.client.program.PackagedProgram;
-import org.apache.flink.client.program.PackagedProgramUtils;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.GlobalConfiguration;
-import org.apache.flink.core.execution.DefaultExecutorServiceLoader;
-import org.apache.flink.core.execution.JobClient;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.util.LinkedList;
 import java.util.List;
@@ -70,92 +49,66 @@ import java.util.Properties;
  */
 
 public class LauncherMain {
-    private static final String CORE_JAR = "core";
-
-    private static String SP = File.separator;
 
 
-    private static String getLocalCoreJarPath(String localSqlRootJar) throws Exception {
-        String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR);
-        String corePath = localSqlRootJar + SP + jarPath;
-        return corePath;
-    }
 
-    public static void main(String[] args) throws Exception {
-        if (args.length == 1 && args[0].endsWith(".json")){
+    public static JobParamsInfo parseArgs(String[] args) throws Exception {
+        if (args.length == 1 && args[0].endsWith(".json")) {
             args = parseJson(args);
         }
         OptionParser optionParser = new OptionParser(args);
         Options launcherOptions = optionParser.getOptions();
-        String mode = launcherOptions.getMode();
-        List<String> argList = optionParser.getProgramExeArgList();
+        List<String> programExeArgList = optionParser.getProgramExeArgList();
+        String[] execArgs = programExeArgList.toArray(new String[programExeArgList.size()]);
 
-        String confProp = launcherOptions.getConfProp();
-        confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
+        String name = launcherOptions.getName();
+        String mode = launcherOptions.getMode();
+        String localPluginRoot = launcherOptions.getLocalSqlPluginPath();
+        String flinkConfDir = launcherOptions.getFlinkconf();
+        String flinkJarPath = launcherOptions.getFlinkJarPath();
+        String yarnConfDir = launcherOptions.getYarnconf();
+        String udfJar = launcherOptions.getAddjar();
+        String queue = launcherOptions.getQueue();
+        String pluginLoadMode = launcherOptions.getPluginLoadMode();
+
+        String yarnSessionConf = URLDecoder.decode(launcherOptions.getYarnSessionConf(), Charsets.UTF_8.toString());
+        Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
+
+        String confProp = URLDecoder.decode(launcherOptions.getConfProp(), Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
-        if(mode.equals(ClusterMode.local.name())) {
-            String[] localArgs = argList.toArray(new String[argList.size()]);
-            Main.main(localArgs);
-            return;
-        }
-
-        String pluginRoot = launcherOptions.getLocalSqlPluginPath();
-        File jarFile = new File(getLocalCoreJarPath(pluginRoot));
-        String[] remoteArgs = argList.toArray(new String[argList.size()]);
-
-        SavepointRestoreSettings savepointRestoreSettings = SavepointRestoreSettings.none();
-        String savePointPath = confProperties.getProperty(ConfigConstrant.SAVE_POINT_PATH_KEY);
-        if (StringUtils.isNotBlank(savePointPath)) {
-            String allowNonRestoredState = confProperties.getOrDefault(ConfigConstrant.ALLOW_NON_RESTORED_STATE_KEY, "false").toString();
-            savepointRestoreSettings = SavepointRestoreSettings.forPath(savePointPath, BooleanUtils.toBoolean(allowNonRestoredState));
-        }
-
-        PackagedProgram program = PackagedProgram.newBuilder()
-                .setJarFile(jarFile)
-                .setArguments(remoteArgs)
-                .setSavepointRestoreSettings(savepointRestoreSettings)
+        return JobParamsInfo.builder()
+                .setExecArgs(execArgs)
+                .setName(name)
+                .setMode(mode)
+                .setUdfJar(udfJar)
+                .setLocalPluginRoot(localPluginRoot)
+                .setFlinkConfDir(flinkConfDir)
+                .setYarnConfDir(yarnConfDir)
+                .setConfProperties(confProperties)
+                .setYarnSessionConfProperties(yarnSessionConfProperties)
+                .setFlinkJarPath(flinkJarPath)
+                .setPluginLoadMode(pluginLoadMode)
+                .setQueue(queue)
                 .build();
-
-        String flinkConfDir = launcherOptions.getFlinkconf();
-        Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
-        JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1,false);
-        if (mode.equals(ClusterMode.yarnPer.name())) {
-            PerJobSubmitter.submit(launcherOptions, jobGraph, config);
-        } else {
-            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
-            removeSqlPluginAndFillUdfJar(jobGraph,launcherOptions.getAddjar());
-
-            JobExecutionResult jobExecutionResult = ClientUtils.submitJob(clusterClient, jobGraph);
-            String jobID = jobExecutionResult.getJobID().toString();
-            System.out.println("jobID:" + jobID);
-        }
-    }
-
-    private static void removeSqlPluginAndFillUdfJar(JobGraph jobGraph, String udfJar) throws UnsupportedEncodingException {
-        jobGraph.getUserArtifacts().clear();
-        jobGraph.getUserJars().clear();
-        if (!StringUtils.isEmpty(udfJar)) {
-            SubmitUtil.fillUserJarForJobGraph(udfJar, jobGraph);
-        }
     }
 
     private static String[] parseJson(String[] args) {
         BufferedReader reader = null;
         String lastStr = "";
-        try{
+        try {
             FileInputStream fileInputStream = new FileInputStream(args[0]);
             InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
             reader = new BufferedReader(inputStreamReader);
             String tempString = null;
-            while((tempString = reader.readLine()) != null){
+            while ((tempString = reader.readLine()) != null) {
                 lastStr += tempString;
             }
             reader.close();
-        }catch(IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
-        }finally{
-            if(reader != null){
+        } finally {
+            if (reader != null) {
                 try {
                     reader.close();
                 } catch (IOException e) {
@@ -163,7 +116,8 @@ public class LauncherMain {
                 }
             }
         }
-        Map<String, Object> map = JSON.parseObject(lastStr, new TypeReference<Map<String, Object>>(){} );
+        Map<String, Object> map = JSON.parseObject(lastStr, new TypeReference<Map<String, Object>>() {
+        });
         List<String> list = new LinkedList<>();
 
         for (Map.Entry<String, Object> entry : map.entrySet()) {
@@ -172,5 +126,28 @@ public class LauncherMain {
         }
         String[] array = list.toArray(new String[list.size()]);
         return array;
+    }
+
+
+    public static void main(String[] args) throws Exception {
+        JobParamsInfo jobParamsInfo = parseArgs(args);
+        ClusterMode execMode = ClusterMode.valueOf(jobParamsInfo.getMode());
+
+        switch (execMode) {
+            case local:
+                Main.main(jobParamsInfo.getExecArgs());
+                break;
+            case yarn:
+                new YarnSessionClusterExecutor(jobParamsInfo).exec();
+                break;
+            case yarnPer:
+                new YarnJobClusterExecutor(jobParamsInfo).exec();
+                break;
+            case standalone:
+                new StandaloneExecutor(jobParamsInfo).exec();
+                break;
+            default:
+                throw new RuntimeException("Unsupported operating mode, please use local,yarn,yarnPer");
+        }
     }
 }
