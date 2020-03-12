@@ -18,12 +18,6 @@
 
 package com.dtstack.flink.sql.environment;
 
-import com.dtstack.flink.sql.constrant.ConfigConstrant;
-import com.dtstack.flink.sql.enums.EStateBackend;
-import com.dtstack.flink.sql.util.MathUtil;
-import com.dtstack.flink.sql.util.PropertiesUtils;
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.time.Time;
