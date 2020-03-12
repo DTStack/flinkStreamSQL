@@ -95,7 +95,8 @@ public class RedisAllReqRow extends AllReqRow{
     @Override
     public void flatMap(Row row, Collector<Row> out) throws Exception {
         Map<String, String> inputParams = Maps.newHashMap();
-        for(Integer conValIndex : sideInfo.getEqualValIndex()){
+        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
+            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = row.getField(conValIndex);
             if(equalObj == null){
                 if(sideInfo.getJoinType() == JoinType.LEFT){
@@ -104,8 +105,7 @@ public class RedisAllReqRow extends AllReqRow{
                 }
                 return;
             }
-            String columnName = sideInfo.getEqualFieldList().get(conValIndex);
-            inputParams.put(columnName, equalObj.toString());
+            inputParams.put(sideInfo.getEqualFieldList().get(i), equalObj.toString());
         }
         String key = buildCacheKey(inputParams);
         if(StringUtils.isBlank(key)){
