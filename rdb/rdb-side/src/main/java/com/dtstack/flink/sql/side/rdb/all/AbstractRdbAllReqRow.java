@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.side.rdb.all;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -72,6 +73,18 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     public AbstractRdbAllReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
     }
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        LOG.info("jdbc url: {} ", tableInfo.getUrl());
+        LOG.info("query table name: {}", tableInfo.getTableName());
+        LOG.info("all cache type: {}", tableInfo.getCacheType());
+        LOG.info("all cache size: {}", tableInfo.getCacheSize());
+        LOG.info("all cache timeout: {}", tableInfo.getCacheTimeout());
+    }
+
 
     @Override
     protected void initCache() throws SQLException {

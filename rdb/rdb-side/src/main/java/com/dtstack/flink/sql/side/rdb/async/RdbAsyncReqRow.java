@@ -24,11 +24,13 @@ import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -57,7 +59,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public final static int DEFAULT_VERTX_WORKER_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
-    public final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
+    public final static int DEFAULT_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
+
+    public final static int MAX_DB_CONN_POOL_SIZE_LIMIT = 20;
 
     public final static int DEFAULT_IDLE_CONNECTION_TEST_PEROID = 60;
 
@@ -71,6 +75,27 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
+        init(sideInfo);
+    }
+
+    protected void init(BaseSideInfo sideInfo) {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        int defaultAsyncPoolSize = Math.min(MAX_DB_CONN_POOL_SIZE_LIMIT, DEFAULT_DB_CONN_POOL_SIZE);
+        int rdbPoolSize = rdbSideTableInfo.getAsyncPoolSize() > 0 ? rdbSideTableInfo.getAsyncPoolSize() : defaultAsyncPoolSize;
+        rdbSideTableInfo.setAsyncPoolSize(rdbPoolSize);
+    }
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        LOG.info("use rdb pool size: {}", rdbSideTableInfo.getAsyncPoolSize());
+        LOG.info("jdbc url: {} ", rdbSideTableInfo.getUrl());
+        LOG.info("query table name: {}", rdbSideTableInfo.getTableName());
+        LOG.info("async cache type: {}", rdbSideTableInfo.getCacheType());
+        LOG.info("async cache mode: {}", rdbSideTableInfo.getCacheMode());
+        LOG.info("async cache capacity: {}", rdbSideTableInfo.getAsyncCapacity());
+        LOG.info("async cache timeout: {}", rdbSideTableInfo.getAsyncTimeout());
     }
 
     @Override
