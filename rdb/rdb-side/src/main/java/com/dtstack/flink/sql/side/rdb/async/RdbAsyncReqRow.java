@@ -89,13 +89,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
-        LOG.info("use rdb pool size: {}", rdbSideTableInfo.getAsyncPoolSize());
-        LOG.info("jdbc url: {} ", rdbSideTableInfo.getUrl());
-        LOG.info("query table name: {}", rdbSideTableInfo.getTableName());
-        LOG.info("async cache type: {}", rdbSideTableInfo.getCacheType());
-        LOG.info("async cache mode: {}", rdbSideTableInfo.getCacheMode());
-        LOG.info("async cache capacity: {}", rdbSideTableInfo.getAsyncCapacity());
-        LOG.info("async cache timeout: {}", rdbSideTableInfo.getAsyncTimeout());
+        LOG.info("rdb dim table config info: {} ", rdbSideTableInfo.toString());
     }
 
     @Override

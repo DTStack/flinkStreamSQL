@@ -78,11 +78,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
-        LOG.info("jdbc url: {} ", tableInfo.getUrl());
-        LOG.info("query table name: {}", tableInfo.getTableName());
-        LOG.info("all cache type: {}", tableInfo.getCacheType());
-        LOG.info("all cache size: {}", tableInfo.getCacheSize());
-        LOG.info("all cache timeout: {}", tableInfo.getCacheTimeout());
+        LOG.info("rdb dim table config info: {} ", tableInfo.toString());
     }
 
 

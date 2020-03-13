@@ -170,4 +170,19 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
     public void setAsyncPoolSize(int asyncPoolSize) {
         this.asyncPoolSize = asyncPoolSize;
     }
+
+    @Override
+    public String toString() {
+        return "Cache Info{" +
+                "cacheType='" + cacheType + '\'' +
+                ", cacheSize=" + cacheSize +
+                ", cacheTimeout=" + cacheTimeout +
+                ", asyncCapacity=" + asyncCapacity +
+                ", asyncTimeout=" + asyncTimeout +
+                ", asyncPoolSize=" + asyncPoolSize +
+                ", asyncTimeoutNumLimit=" + asyncTimeoutNumLimit +
+                ", partitionedJoin=" + partitionedJoin +
+                ", cacheMode='" + cacheMode + '\'' +
+                '}';
+    }
 }
