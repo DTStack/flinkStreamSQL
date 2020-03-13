@@ -20,12 +20,10 @@
 package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.FieldReplaceInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -40,7 +38,6 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.table.api.Table;
 
 import java.util.List;
@@ -72,31 +69,48 @@ public class TableUtils {
         List<FieldInfo> fieldInfoList = Lists.newArrayList();
         String fromNode = sqlSelect.getFrom().toString();
 
-        for(SqlNode fieldNode : sqlNodeList.getList()){
-            SqlIdentifier identifier = (SqlIdentifier)fieldNode;
-            if(!identifier.isStar()) {
+        for (SqlNode fieldNode : sqlNodeList.getList()) {
+            extractSelectFieldToFieldInfo(fieldNode,fromNode,fieldInfoList,localTableCache);
+        }
+
+        return fieldInfoList;
+    }
+
+    /**
+     *  解析select Node 提取FieldInfo
+     * @param fieldNode
+     * @param fromNode
+     * @param fieldInfoList
+     * @param localTableCache
+     */
+    public static void extractSelectFieldToFieldInfo(SqlNode fieldNode, String fromNode, List<FieldInfo> fieldInfoList, Map<String, Table> localTableCache) {
+        if (fieldNode.getKind() == IDENTIFIER) {
+            SqlIdentifier identifier = (SqlIdentifier) fieldNode;
+            if (!identifier.isStar()) {
                 String tableName = identifier.names.size() == 1 ? fromNode : identifier.getComponent(0).getSimple();
                 String fieldName = identifier.names.size() == 1 ? identifier.getComponent(0).getSimple() : identifier.getComponent(1).getSimple();
                 FieldInfo fieldInfo = new FieldInfo();
                 fieldInfo.setTable(tableName);
                 fieldInfo.setFieldName(fieldName);
-                fieldInfoList.add(fieldInfo);
+
+                if (!fieldInfoList.contains(fieldInfo)) {
+                    fieldInfoList.add(fieldInfo);
+                }
             } else {
                 //处理
                 int identifierSize = identifier.names.size();
-
-                switch(identifierSize) {
+                switch (identifierSize) {
                     case 1:
                         throw new RuntimeException("not support to parse * without scope of table");
                     default:
                         SqlIdentifier tableIdentify = identifier.skipLast(1);
                         Table registerTable = localTableCache.get(tableIdentify.getSimple());
-                        if(registerTable == null){
+                        if (registerTable == null) {
                             throw new RuntimeException("can't find table alias " + tableIdentify.getSimple());
                         }
 
                         String[] fieldNames = registerTable.getSchema().getFieldNames();
-                        for(String fieldName : fieldNames){
+                        for (String fieldName : fieldNames) {
                             FieldInfo fieldInfo = new FieldInfo();
                             fieldInfo.setTable(tableIdentify.getSimple());
                             fieldInfo.setFieldName(fieldName);
@@ -104,9 +118,70 @@ public class TableUtils {
                         }
                 }
             }
-        }
+        } else if (AGGREGATE.contains(fieldNode.getKind())
+                || AVG_AGG_FUNCTIONS.contains(fieldNode.getKind())
+                || COMPARISON.contains(fieldNode.getKind())
+                || fieldNode.getKind() == OTHER_FUNCTION
+                || fieldNode.getKind() == DIVIDE
+                || fieldNode.getKind() == CAST
+                || fieldNode.getKind() == TRIM
+                || fieldNode.getKind() == TIMES
+                || fieldNode.getKind() == PLUS
+                || fieldNode.getKind() == NOT_IN
+                || fieldNode.getKind() == OR
+                || fieldNode.getKind() == AND
+                || fieldNode.getKind() == MINUS
+                || fieldNode.getKind() == TUMBLE
+                || fieldNode.getKind() == TUMBLE_START
+                || fieldNode.getKind() == TUMBLE_END
+                || fieldNode.getKind() == SESSION
+                || fieldNode.getKind() == SESSION_START
+                || fieldNode.getKind() == SESSION_END
+                || fieldNode.getKind() == HOP
+                || fieldNode.getKind() == HOP_START
+                || fieldNode.getKind() == HOP_END
+                || fieldNode.getKind() == BETWEEN
+                || fieldNode.getKind() == IS_NULL
+                || fieldNode.getKind() == IS_NOT_NULL
+                || fieldNode.getKind() == CONTAINS
+                || fieldNode.getKind() == TIMESTAMP_ADD
+                || fieldNode.getKind() == TIMESTAMP_DIFF
+                || fieldNode.getKind() == LIKE
+                ) {
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) fieldNode;
+            for (int i = 0; i < sqlBasicCall.getOperands().length; i++) {
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if (sqlNode instanceof SqlLiteral) {
+                    continue;
+                }
 
-        return fieldInfoList;
+                if (sqlNode instanceof SqlDataTypeSpec) {
+                    continue;
+                }
+                extractSelectFieldToFieldInfo(sqlNode, fromNode, fieldInfoList, localTableCache);
+            }
+        } else if (fieldNode.getKind() == AS) {
+            SqlNode leftNode = ((SqlBasicCall) fieldNode).getOperands()[0];
+            extractSelectFieldToFieldInfo(leftNode, fromNode,fieldInfoList, localTableCache);
+        } else if (fieldNode.getKind() == CASE) {
+            SqlCase sqlCase = (SqlCase) fieldNode;
+            SqlNodeList whenOperands = sqlCase.getWhenOperands();
+            SqlNodeList thenOperands = sqlCase.getThenOperands();
+            SqlNode elseNode = sqlCase.getElseOperand();
+
+            for (int i = 0; i < whenOperands.size(); i++) {
+                SqlNode oneOperand = whenOperands.get(i);
+                extractSelectFieldToFieldInfo(oneOperand, fromNode, fieldInfoList, localTableCache);
+            }
+
+            for (int i = 0; i < thenOperands.size(); i++) {
+                SqlNode oneOperand = thenOperands.get(i);
+                extractSelectFieldToFieldInfo(oneOperand, fromNode, fieldInfoList, localTableCache);
+
+            }
+
+            extractSelectFieldToFieldInfo(elseNode, fromNode, fieldInfoList, localTableCache);
+        }
     }
 
     public static String buildInternalTableName(String left, char split, String right) {
