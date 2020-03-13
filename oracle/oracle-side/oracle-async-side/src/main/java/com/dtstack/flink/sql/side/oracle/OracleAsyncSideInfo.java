@@ -23,9 +23,12 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
+import com.mchange.lang.CharUtils;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 
@@ -34,6 +37,13 @@ import java.util.List;
 
 
 public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
+
+    private final static String SQL_DEFAULT_PLACEHOLDER = " ? ";
+    private final static String DEAL_CHAR_KEY = "char";
+
+    private static String rpadFormat = "rpad(?, %d, ' ')";
+
+
 
     public OracleAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
@@ -49,4 +59,18 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
         return "\"" + identifier + "\"";
     }
 
+    @Override
+    public String wrapperPlaceholder(String fieldName) {
+        int pos = sideTableInfo.getFieldList().indexOf(fieldName);
+        String type = sideTableInfo.getFieldTypeList().get(pos);
+
+        if (StringUtils.contains(type.toLowerCase(), DEAL_CHAR_KEY)) {
+            TableInfo.FieldExtraInfo fieldExtraInfo = sideTableInfo.getFieldExtraInfoList().get(pos);
+            int charLength = fieldExtraInfo.getLength();
+            if (fieldExtraInfo.getLength() > 0) {
+                return String.format(rpadFormat, charLength);
+            }
+        }
+        return SQL_DEFAULT_PLACEHOLDER;
+    }
 }
