@@ -23,10 +23,18 @@ package com.dtstack.flink.sql.util;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.SimpleTimeZone;
+import java.util.TimeZone;
+import java.util.regex.Pattern;
+
+import static java.time.format.DateTimeFormatter.ISO_INSTANT;
 
 
 /**
@@ -46,6 +54,12 @@ public class DateUtil {
     static final SimpleDateFormat datetimeFormatter = new SimpleDateFormat(datetimeFormat);
     static final SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
     static final SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
+
+    private static final Pattern DATETIME = Pattern.compile("^\\d{4}-(?:0[0-9]|1[0-2])-[0-9]{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3,9})?Z$");
+    private static final Pattern DATE = Pattern.compile("^\\d{4}-(?:0[0-9]|1[0-2])-[0-9]{2}$");
+
+    private static final int MILLIS_PER_SECOND = 1000;
+
 
     public static java.sql.Date columnToDate(Object column) {
         if(column instanceof String) {
@@ -768,6 +782,54 @@ public class DateUtil {
 
     public static String timestampToString(Date date) {
         return datetimeFormatter.format(date);
+    }
+
+
+    public static Timestamp getTimestampFromStr(String timeStr) {
+        if (DATETIME.matcher(timeStr).matches()) {
+            Instant instant = Instant.from(ISO_INSTANT.parse(timeStr));
+            return new Timestamp(instant.getEpochSecond() * MILLIS_PER_SECOND);
+        } else {
+            java.sql.Date date = null;
+            try {
+                date = new java.sql.Date(datetimeFormatter.parse(timeStr).getTime());
+            } catch (ParseException e) {
+                throw new RuntimeException("getTimestampFromStr error data is " + timeStr);
+            }
+            return new Timestamp(date.getTime());
+        }
+    }
+
+    public static java.sql.Date getDateFromStr(String dateStr) {
+        // 2020-01-01 format
+        if (DATE.matcher(dateStr).matches()) {
+            // convert from local date to instant
+            Instant instant = LocalDate.parse(dateStr).atTime(LocalTime.of(0, 0, 0, 0)).toInstant(ZoneOffset.UTC);
+            // calculate the timezone offset in millis
+            int offset = TimeZone.getDefault().getOffset(instant.toEpochMilli());
+            // need to remove the offset since time has no TZ component
+            return new java.sql.Date(instant.toEpochMilli() - offset);
+        } else if (DATETIME.matcher(dateStr).matches()) {
+            // 2020-01-01T12:12:12Z format
+            Instant instant = Instant.from(ISO_INSTANT.parse(dateStr));
+            return new java.sql.Date(instant.toEpochMilli());
+        } else {
+            try {
+                // 2020-01-01 12:12:12.0 format
+                return new java.sql.Date(datetimeFormatter.parse(dateStr).getTime());
+            } catch (ParseException e) {
+                throw new RuntimeException("String convert to Date fail.");
+            }
+        }
+    }
+
+
+    public static String getStringFromTimestamp(Timestamp timestamp) {
+        return datetimeFormatter.format(timestamp);
+    }
+
+    public static String getStringFromDate(java.sql.Date date) {
+        return dateFormatter.format(date);
     }
 
 }

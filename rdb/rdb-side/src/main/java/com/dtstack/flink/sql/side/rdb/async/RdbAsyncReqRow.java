@@ -23,13 +23,9 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
+import com.dtstack.flink.sql.util.DateUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
@@ -40,9 +36,9 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.Collection;
-import java.util.Collections;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -89,7 +85,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 dealMissKey(copyCrow, resultFuture);
                 return;
             }
-            inputParams.add(equalObj);
+            inputParams.add(convertDataType(equalObj));
         }
 
         String key = buildCacheKey(inputParams);
@@ -151,6 +147,42 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 });
             });
         });
+    }
+
+
+    private Object convertDataType(Object val) {
+        if (val == null) {
+            // OK
+        } else if (val instanceof Number && !(val instanceof BigDecimal)) {
+            // OK
+        } else if (val instanceof Boolean) {
+            // OK
+        } else if (val instanceof String) {
+            // OK
+        } else if (val instanceof Character) {
+            // OK
+        } else if (val instanceof CharSequence) {
+
+        } else if (val instanceof JsonObject) {
+
+        } else if (val instanceof JsonArray) {
+
+        } else if (val instanceof Map) {
+
+        } else if (val instanceof List) {
+
+        } else if (val instanceof byte[]) {
+
+        } else if (val instanceof Instant) {
+
+        } else if (val instanceof Timestamp) {
+            val = DateUtil.getStringFromTimestamp((Timestamp) val);
+        } else if (val instanceof java.util.Date) {
+            val = DateUtil.getStringFromDate((java.sql.Date) val);
+        } else {
+            val = val.toString();
+        }
+        return val;
     }
 
     protected List<CRow> getRows(CRow inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
