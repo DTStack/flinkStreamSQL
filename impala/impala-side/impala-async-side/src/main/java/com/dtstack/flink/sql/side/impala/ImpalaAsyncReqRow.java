@@ -77,7 +77,10 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
                 .put("provider_class", DT_PROVIDER_CLASS)
                 .put("idle_connection_test_period", 300)
                 .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN)
-                .put("max_idle_time", 600);
+                .put("max_idle_time", 600)
+                .put("preferred_test_query", PREFERRED_TEST_QUERY_SQL)
+                .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
+                .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
 
         return impalaClientConfig;
     }
