@@ -190,11 +190,7 @@ public class JoinNodeDealer {
         tableInfo.setJoinType(joinType);
         tableInfo.setCondition(joinNode.getCondition());
 
-        if(!needBuildTemp){
-            return tableInfo;
-        }
-
-        if(tableInfo.getLeftNode().getKind() != AS){
+        if(tableInfo.getLeftNode().getKind() != AS && needBuildTemp){
             extractTemporaryQuery(tableInfo.getLeftNode(), tableInfo.getLeftTableAlias(), (SqlBasicCall) parentWhere,
                     parentSelectList, queueInfo, joinFieldSet, tableRef);
         }else {
