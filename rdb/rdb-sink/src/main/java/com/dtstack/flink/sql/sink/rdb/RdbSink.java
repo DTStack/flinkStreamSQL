@@ -83,6 +83,8 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     private String schema;
 
+    protected RdbTableInfo rdbTableInfo;
+
     public RichSinkFunction createJdbcSinkFunc() {
         if (driverName == null || dbURL == null || userName == null
                 || password == null || sqlTypes == null || tableName == null) {
@@ -111,8 +113,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     @Override
     public RdbSink genStreamSink(TargetTableInfo targetTableInfo) {
-        RdbTableInfo rdbTableInfo = (RdbTableInfo) targetTableInfo;
-
+        this.rdbTableInfo = (RdbTableInfo) targetTableInfo;
         String tmpDbURL = rdbTableInfo.getUrl();
         String tmpUserName = rdbTableInfo.getUserName();
         String tmpPassword = rdbTableInfo.getPassword();
@@ -263,7 +264,6 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
     /**
      * sqlserver and oracle maybe implement
      *
-     * @param tableName
      * @param fieldNames
      * @param realIndexes
      * @return

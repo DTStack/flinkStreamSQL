@@ -38,11 +38,9 @@ import java.util.List;
 
 public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
 
-    private final static String SQL_DEFAULT_PLACEHOLDER = " ? ";
-    private final static String DEAL_CHAR_KEY = "char";
-
-    private static String rpadFormat = "rpad(?, %d, ' ')";
-
+    private final String SQL_DEFAULT_PLACEHOLDER = " ? ";
+    private final String DEAL_CHAR_KEY = "char";
+    private String RPAD_FORMAT = "rpad(?, %d, ' ')";
 
 
     public OracleAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
@@ -66,9 +64,9 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
 
         if (StringUtils.contains(type.toLowerCase(), DEAL_CHAR_KEY)) {
             TableInfo.FieldExtraInfo fieldExtraInfo = sideTableInfo.getFieldExtraInfoList().get(pos);
-            int charLength = fieldExtraInfo.getLength();
-            if (fieldExtraInfo.getLength() > 0) {
-                return String.format(rpadFormat, charLength);
+            int charLength = fieldExtraInfo == null ? 0 : fieldExtraInfo.getLength();
+            if (charLength > 0) {
+                return String.format(RPAD_FORMAT, charLength);
             }
         }
         return SQL_DEFAULT_PLACEHOLDER;

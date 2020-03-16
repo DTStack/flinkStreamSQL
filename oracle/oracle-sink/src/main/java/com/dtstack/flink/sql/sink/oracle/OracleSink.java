@@ -21,14 +21,17 @@ import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.ExtendOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Reason:
@@ -39,6 +42,10 @@ import java.util.Map;
  */
 public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     private static final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
+
+    private final String SQL_DEFAULT_PLACEHOLDER = " ? ";
+    private final String DEAL_CHAR_KEY = "char";
+    private String RPAD_FORMAT = " rpad(?, %d, ' ') ";
 
     @Override
     public String getDriverName() {
@@ -193,15 +200,34 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
      */
     public String makeValues(List<String> column) {
         StringBuilder sb = new StringBuilder("SELECT ");
-        for (int i = 0; i < column.size(); ++i) {
-            if (i != 0) {
-                sb.append(",");
-            }
-            sb.append("? " + DtStringUtil.addQuoteForStr(column.get(i)));
-        }
-        sb.append(" FROM DUAL");
+        String collect = column.stream()
+                .map(col -> wrapperPlaceholder(col) + DtStringUtil.addQuoteForStr(col))
+                .collect(Collectors.joining(", "));
+
+        sb.append(collect).append(" FROM DUAL");
         return sb.toString();
     }
+
+    /**
+     *  char type is wrapped with rpad
+     * @param fieldName
+     * @return
+     */
+    public String wrapperPlaceholder(String fieldName) {
+        int pos = rdbTableInfo.getFieldList().indexOf(fieldName);
+        String type = rdbTableInfo.getFieldTypeList().get(pos);
+
+        if (StringUtils.contains(type.toLowerCase(), DEAL_CHAR_KEY)) {
+            TableInfo.FieldExtraInfo fieldExtraInfo = rdbTableInfo.getFieldExtraInfoList().get(pos);
+            int charLength = fieldExtraInfo == null ? 0 : fieldExtraInfo.getLength();
+            if (charLength > 0) {
+                return String.format(RPAD_FORMAT, charLength);
+            }
+        }
+        return SQL_DEFAULT_PLACEHOLDER;
+    }
+
+
 
     public boolean containsIgnoreCase(List<String> l, String s) {
         Iterator<String> it = l.iterator();
