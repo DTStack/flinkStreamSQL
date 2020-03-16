@@ -178,9 +178,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         } else if (val instanceof Instant) {
 
         } else if (val instanceof Timestamp) {
-            val = DateUtil.getStringFromTimestamp((Timestamp) val);
+            val = DateUtil.timestampToString((Timestamp) val);
         } else if (val instanceof java.util.Date) {
-            val = DateUtil.getStringFromDate((java.sql.Date) val);
+            val = DateUtil.dateToString((java.util.Date)val);
         } else {
             val = val.toString();
         }
