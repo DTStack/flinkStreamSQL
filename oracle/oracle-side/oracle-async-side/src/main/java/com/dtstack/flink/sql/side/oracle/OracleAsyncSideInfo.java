@@ -60,7 +60,7 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
         sqlCondition = "select ${selectField} from ${tableName} where ";
         for (int i = 0; i < equalFieldList.size(); i++) {
             String equalField = sideTableInfo.getPhysicalFields().getOrDefault(equalFieldList.get(i), equalFieldList.get(i));
-            sqlCondition += dealLowerFiledTrim(equalField) + " " + sqlJoinCompareOperate.get(i) + " " + " ?";
+            sqlCondition += dealLowerFiled(equalField) + " " + sqlJoinCompareOperate.get(i) + " " + " ?";
             if (i != equalFieldList.size() - 1) {
                 sqlCondition += " and ";
             }
@@ -72,8 +72,8 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
 
 
 
-    private String dealLowerFiledTrim(String field) {
-        return "trim(\"" + field + "\")";
+    private String dealLowerFiled(String field) {
+        return   "\"" + field + "\"";
     }
 
     private String dealLowerSelectFiled(String fieldsStr) {
