@@ -13,4 +13,9 @@ public class PolardbAsyncSideInfo extends RdbAsyncSideInfo {
     public PolardbAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
+
+    @Override
+    public String quoteIdentifier(String identifier) {
+        return "`" + identifier + "`";
+    }
 }

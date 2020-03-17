@@ -23,25 +23,22 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
+import com.dtstack.flink.sql.util.DateUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.Collection;
-import java.util.Collections;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -79,16 +76,16 @@ public class RdbAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = Row.copy(input);
+    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow copyCrow = new CRow(input.row(), input.change());
         JsonArray inputParams = new JsonArray();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = inputRow.getField(conValIndex);
+            Object equalObj = copyCrow.row().getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(inputRow, resultFuture);
+                dealMissKey(copyCrow, resultFuture);
                 return;
             }
-            inputParams.add(equalObj);
+            inputParams.add(convertDataType(equalObj));
         }
 
         String key = buildCacheKey(inputParams);
@@ -96,14 +93,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(key);
             if (val != null) {
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(copyCrow, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        List<Row> rowList = getRows(inputRow, null, (List) val.getContent());
+                        List<CRow> rowList = getRows(copyCrow, null, (List) val.getContent());
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, copyCrow);
                     }
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
@@ -131,14 +128,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 List<JsonArray> results = rs.result().getResults();
                 if (results.size() > 0) {
                     try {
-                        List<Row> rowList = getRows(inputRow, cacheContent, results);
+                        List<CRow> rowList = getRows(copyCrow, cacheContent, results);
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                         resultFuture.complete(rowList);
                     } catch (Exception e){
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, copyCrow);
                     }
                 } else {
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(copyCrow, resultFuture);
                     dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
 
@@ -152,14 +149,50 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         });
     }
 
-    protected List<Row> getRows(Row inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
-        List<Row> rowList = Lists.newArrayList();
+
+    private Object convertDataType(Object val) {
+        if (val == null) {
+            // OK
+        } else if (val instanceof Number && !(val instanceof BigDecimal)) {
+            // OK
+        } else if (val instanceof Boolean) {
+            // OK
+        } else if (val instanceof String) {
+            // OK
+        } else if (val instanceof Character) {
+            // OK
+        } else if (val instanceof CharSequence) {
+
+        } else if (val instanceof JsonObject) {
+
+        } else if (val instanceof JsonArray) {
+
+        } else if (val instanceof Map) {
+
+        } else if (val instanceof List) {
+
+        } else if (val instanceof byte[]) {
+
+        } else if (val instanceof Instant) {
+
+        } else if (val instanceof Timestamp) {
+            val = DateUtil.getStringFromTimestamp((Timestamp) val);
+        } else if (val instanceof java.util.Date) {
+            val = DateUtil.getStringFromDate((java.sql.Date) val);
+        } else {
+            val = val.toString();
+        }
+        return val;
+    }
+
+    protected List<CRow> getRows(CRow inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
+        List<CRow> rowList = Lists.newArrayList();
         for (JsonArray line : results) {
-            Row row = fillData(inputRow, line);
+            Row row = fillData(inputRow.row(), line);
             if (null != cacheContent && openCache()) {
                 cacheContent.add(line);
             }
-            rowList.add(row);
+            rowList.add(new CRow(row, inputRow.change()));
         }
         return rowList;
     }

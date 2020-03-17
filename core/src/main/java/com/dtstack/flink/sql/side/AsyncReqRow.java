@@ -31,11 +31,11 @@ import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.TimeoutException;
 
@@ -47,7 +47,7 @@ import java.util.concurrent.TimeoutException;
  * @author xuchao
  */
 
-public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements ISideReqRow {
+public abstract class AsyncReqRow extends RichAsyncFunction<CRow, CRow> implements ISideReqRow {
     private static final Logger LOG = LoggerFactory.getLogger(AsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
 
@@ -100,12 +100,12 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
         return sideInfo.getSideCache() != null;
     }
 
-    protected void dealMissKey(Row input, ResultFuture<Row> resultFuture){
+    protected void dealMissKey(CRow input, ResultFuture<CRow> resultFuture){
         if(sideInfo.getJoinType() == JoinType.LEFT){
             //Reserved left table data
             try {
-                Row row = fillData(input, null);
-                resultFuture.complete(Collections.singleton(row));
+                Row row = fillData(input.row(), null);
+                resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
             } catch (Exception e) {
                 dealFillDataError(resultFuture, e, input);
             }
@@ -121,19 +121,22 @@ public abstract class AsyncReqRow extends RichAsyncFunction<Row, Row> implements
     }
 
     @Override
-    public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
+    public void timeout(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
 
         //TODO 需要添加数据指标
         if(timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0){
-            LOG.info("Async function call has timed out. input:" + input.toString());
+            LOG.info("Async function call has timed out. input:{}, timeOutNum:{}",input.toString(), timeOutNum);
         }
-
-        timeOutNum++;
-        resultFuture.complete(null);
+        timeOutNum ++;
+        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncTimeoutNumLimit()){
+            resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
+        } else {
+            resultFuture.complete(null);
+        }
     }
 
 
-    protected void dealFillDataError(ResultFuture<Row> resultFuture, Exception e, Object sourceData) {
+    protected void dealFillDataError(ResultFuture<CRow> resultFuture, Exception e, Object sourceData) {
         LOG.debug("source data {} join side table error ", sourceData);
         LOG.debug("async buid row error..{}", e);
         parseErrorRecords.inc();

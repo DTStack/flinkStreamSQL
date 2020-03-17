@@ -18,7 +18,6 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
-import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
@@ -30,6 +29,9 @@ import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
+
+import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -48,7 +50,7 @@ public class KafkaConsumer extends FlinkKafkaConsumer<Row> {
     private DeserializationMetricWrapper deserializationMetricWrapper;
 
     public KafkaConsumer(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
-        super(Arrays.asList(topic.split(",")), deserializationMetricWrapper, props);
+        super(Arrays.asList(StringUtils.split(topic, ",")), deserializationMetricWrapper, props);
         this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 

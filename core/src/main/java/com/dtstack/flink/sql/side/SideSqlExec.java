@@ -20,6 +20,20 @@
 
 package com.dtstack.flink.sql.side;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.table.api.StreamQueryConfig;
+import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.runtime.CRowKeySelector;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.runtime.types.CRowTypeInfo;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.exec.FlinkSQLExec;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
@@ -51,19 +65,12 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.table.api.StreamQueryConfig;
-import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.java.StreamTableEnvironment;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -782,9 +789,9 @@ public class SideSqlExec {
             throw new RuntimeException("can't not find side table:" + joinInfo.getRightTableName());
         }
 
-        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo)){
-            throw new RuntimeException("ON condition must contain all equal fields!!!");
-        }
+//        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo)){
+//            throw new RuntimeException("ON condition must contain all equal fields!!!");
+//        }
 
         rightScopeChild.setRowTypeInfo(sideTableInfo.getRowTypeInfo());
 
@@ -802,22 +809,21 @@ public class SideSqlExec {
 
         RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getTypes(), targetTable.getSchema().getColumnNames());
 
-        DataStream adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
-                .filter((Tuple2<Boolean, Row> f0) -> f0.f0)
-                .map((Tuple2<Boolean, Row> f0) -> f0.f1)
-                .returns(Row.class);
+        DataStream<CRow> adaptStream = tableEnv.toRetractStream(targetTable, org.apache.flink.types.Row.class)
+                .map((Tuple2<Boolean, Row> tp2) -> {
+                    return new CRow(tp2.f1, tp2.f0);
+                }).returns(CRow.class);
 
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
-        if(sideTableInfo.isPartitionedJoin()){
-            RowTypeInfo leftTableOutType = buildLeftTableOutType(leftTypeInfo);
-            adaptStream.getTransformation().setOutputType(leftTableOutType);
+        if (sideTableInfo.isPartitionedJoin()) {
             List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias(), sideTableInfo);
-            String[] leftJoinColArr = leftJoinColList.toArray(new String[leftJoinColList.size()]);
-            adaptStream = adaptStream.keyBy(leftJoinColArr);
+            List<String> fieldNames = Arrays.asList(targetTable.getSchema().getFieldNames());
+            int[] keyIndex = leftJoinColList.stream().mapToInt(fieldNames::indexOf).toArray();
+            adaptStream = adaptStream.keyBy(new CRowKeySelector(keyIndex, projectedTypeInfo(keyIndex, targetTable.getSchema())));
         }
 
-        DataStream dsOut;
+        DataStream<CRow> dsOut = null;
         if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
         }else{
@@ -828,7 +834,9 @@ public class SideSqlExec {
         HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
         RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
 
-        dsOut.getTransformation().setOutputType(sideOutTypeInfo);
+        CRowTypeInfo cRowTypeInfo = new CRowTypeInfo(sideOutTypeInfo);
+        dsOut.getTransformation().setOutputType(cRowTypeInfo);
+
         String targetTableName = joinInfo.getNewTableName();
         String targetTableAlias = joinInfo.getNewTableAlias();
 
@@ -855,10 +863,20 @@ public class SideSqlExec {
         }
     }
 
+    private TypeInformation<Row> projectedTypeInfo(int[] fields, TableSchema schema) {
+        String[] fieldNames = schema.getFieldNames();
+        TypeInformation<?>[] fieldTypes = schema.getFieldTypes();
+
+        String[] projectedNames = Arrays.stream(fields).mapToObj(i -> fieldNames[i]).toArray(String[]::new);
+        TypeInformation[] projectedTypes = Arrays.stream(fields).mapToObj(i -> fieldTypes[i]).toArray(TypeInformation[]::new);
+        return new RowTypeInfo(projectedTypes, projectedNames);
+    }
+
+
     private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table) {
         List<String> fieldNames = new LinkedList<>();
         String fieldsInfo = result.getFieldsInfoStr();
-        String[] fields = fieldsInfo.split(",");
+        String[] fields = StringUtils.split(fieldsInfo, ",");
         for (int i = 0; i < fields.length; i++) {
             String[] filed = fields[i].split("\\s");
             if (filed.length < 2 || fields.length != table.getSchema().getColumnNames().length){
