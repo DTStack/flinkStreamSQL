@@ -38,6 +38,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 
 import java.util.Collections;
@@ -120,14 +121,14 @@ public class RedisAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = Row.copy(input);
+    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow inputCopy = new CRow(input.row(), input.change());
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputRow.getField(conValIndex);
+            Object equalObj = input.row().getField(conValIndex);
             if(equalObj == null){
-                dealMissKey(inputRow, resultFuture);
+                dealMissKey(inputCopy, resultFuture);
                 return;
             }
             refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
@@ -141,14 +142,14 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(key);
             if(val != null){
                 if(ECacheContentType.MissVal == val.getType()){
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){
                     try {
-                        Row row = fillData(inputRow, val.getContent());
-                        resultFuture.complete(Collections.singleton(row));
+                        Row row = fillData(input.row(), val.getContent());
+                        resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 }else{
                     RuntimeException exception = new RuntimeException("not support cache obj type " + val.getType());
@@ -164,14 +165,14 @@ public class RedisAsyncReqRow extends AsyncReqRow {
             public void accept(Map<String, String> values) {
                 if (MapUtils.isNotEmpty(values)) {
                     try {
-                        Row row = fillData(inputRow, values);
+                        Row row = fillData(input.row(), values);
                         dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
-                        resultFuture.complete(Collections.singleton(row));
+                        resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 } else {
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     dealCacheData(key,CacheMissVal.getMissKeyObj());
                 }
             }
