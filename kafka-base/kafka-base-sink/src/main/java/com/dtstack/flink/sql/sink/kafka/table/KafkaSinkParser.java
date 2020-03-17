@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.kafka.table;
 
+import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.format.FormatType;
 import com.dtstack.flink.sql.table.AbstractTableParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
@@ -51,6 +52,7 @@ public class KafkaSinkParser extends AbstractTableParser {
 
         kafkaSinkTableInfo.setEnableKeyPartition(MathUtil.getString(props.get(KafkaSinkTableInfo.ENABLE_KEY_PARTITION_KEY.toLowerCase())));
         kafkaSinkTableInfo.setPartitionKeys(MathUtil.getString(props.get(KafkaSinkTableInfo.PARTITION_KEY.toLowerCase())));
+        kafkaSinkTableInfo.setUpdateMode(MathUtil.getString(props.getOrDefault(KafkaSinkTableInfo.UPDATE_KEY.toLowerCase(), EUpdateMode.APPEND.name())));
 
         Integer parallelism = MathUtil.getIntegerVal(props.get(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase()));
         kafkaSinkTableInfo.setParallelism(parallelism);

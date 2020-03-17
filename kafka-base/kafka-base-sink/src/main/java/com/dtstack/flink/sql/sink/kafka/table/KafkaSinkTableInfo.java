@@ -44,6 +44,8 @@ public class KafkaSinkTableInfo extends AbstractTargetTableInfo {
 
     public static final String PARTITION_KEY = "partitionKeys";
 
+    public static final String UPDATE_KEY = "updateMode";
+
     private String bootstrapServers;
 
     public Map<String, String> kafkaParam = new HashMap<String, String>();
@@ -58,6 +60,8 @@ public class KafkaSinkTableInfo extends AbstractTargetTableInfo {
 
     private String partitionKeys;
 
+    private String updateMode;
+
     public void addKafkaParam(String key, String value) {
         kafkaParam.put(key, value);
     }
@@ -69,7 +73,6 @@ public class KafkaSinkTableInfo extends AbstractTargetTableInfo {
     public Set<String> getKafkaParamKeys() {
         return kafkaParam.keySet();
     }
-
 
     public String getBootstrapServers() {
         return bootstrapServers;
@@ -101,6 +104,14 @@ public class KafkaSinkTableInfo extends AbstractTargetTableInfo {
 
     public void setFieldDelimiter(String fieldDelimiter) {
         this.fieldDelimiter = fieldDelimiter;
+    }
+
+    public String getUpdateMode() {
+        return updateMode;
+    }
+
+    public void setUpdateMode(String updateMode) {
+        this.updateMode = updateMode;
     }
 
     @Override
