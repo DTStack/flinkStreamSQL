@@ -55,6 +55,8 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     public static final String ASYNC_TIMEOUT_NUM_KEY = "asyncTimeoutNum";
 
+    public static final String ASYNC_REQ_POOL_KEY = "asyncPoolSize";
+
     private String cacheType = "none";//None or LRU or ALL
 
     private int cacheSize = 10000;
@@ -64,6 +66,11 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
     private int  asyncCapacity=100;
 
     private int  asyncTimeout=10000;
+
+    /**
+     *  async operator req outside conn pool size, egg rdb conn pool size
+     */
+    private int asyncPoolSize = 0;
 
     private int asyncTimeoutNumLimit = Integer.MAX_VALUE;
 
@@ -156,4 +163,26 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         this.asyncTimeoutNumLimit = asyncTimeoutNumLimit;
     }
 
+    public int getAsyncPoolSize() {
+        return asyncPoolSize;
+    }
+
+    public void setAsyncPoolSize(int asyncPoolSize) {
+        this.asyncPoolSize = asyncPoolSize;
+    }
+
+    @Override
+    public String toString() {
+        return "Cache Info{" +
+                "cacheType='" + cacheType + '\'' +
+                ", cacheSize=" + cacheSize +
+                ", cacheTimeout=" + cacheTimeout +
+                ", asyncCapacity=" + asyncCapacity +
+                ", asyncTimeout=" + asyncTimeout +
+                ", asyncPoolSize=" + asyncPoolSize +
+                ", asyncTimeoutNumLimit=" + asyncTimeoutNumLimit +
+                ", partitionedJoin=" + partitionedJoin +
+                ", cacheMode='" + cacheMode + '\'' +
+                '}';
+    }
 }
