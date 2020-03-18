@@ -126,49 +126,13 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(),input.change());
-        List<String> keyData = Lists.newLinkedList();
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.row().getField(conValIndex);
-            if(equalObj == null){
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            String value = equalObj.toString();
-            keyData.add(sideInfo.getEqualFieldList().get(i));
-            keyData.add(value);
-        }
-
-        String key = buildCacheKey(keyData);
-
-        if(openCache()){
-            CacheObj val = getFromCache(key);
-            if(val != null){
-                if(ECacheContentType.MissVal == val.getType()){
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                }else if(ECacheContentType.MultiLine == val.getType()){
-                    try {
-                        Row row = fillData(inputCopy.row(), val.getContent());
-                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                }else{
-                    RuntimeException exception = new RuntimeException("not support cache obj type " + val.getType());
-                    resultFuture.completeExceptionally(exception);
-                }
-                return;
-            }
-        }
-
+    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        String key = buildCacheKey(inputParams);
         Map<String, String> keyValue = Maps.newHashMap();
         List<String> value = async.keys(key + ":*").get();
         String[] values = value.toArray(new String[value.size()]);
         if (values.length == 0) {
-            dealMissKey(inputCopy, resultFuture);
+            dealMissKey(input, resultFuture);
         } else {
             RedisFuture<List<KeyValue<String, String>>> future = ((RedisStringAsyncCommands) async).mget(values);
             future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
@@ -181,14 +145,14 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                             keyValue.put(splitKeys[3], keyValues.get(i).getValue());
                         }
                         try {
-                            Row row = fillData(inputCopy.row(), keyValue);
+                            Row row = fillData(input.row(), keyValue);
                             dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
-                            resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
+                            resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                         } catch (Exception e) {
-                            dealFillDataError(resultFuture, e, inputCopy);
+                            dealFillDataError(resultFuture, e, input);
                         }
                     } else {
-                        dealMissKey(inputCopy, resultFuture);
+                        dealMissKey(input, resultFuture);
                         dealCacheData(key, CacheMissVal.getMissKeyObj());
                     }
                 }
@@ -196,8 +160,9 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
         }
     }
 
-    private String buildCacheKey(List<String> keyData) {
-        String kv = String.join(":", keyData);
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        String kv = StringUtils.join(inputParams.values(), ":");
         String tableName = redisSideTableInfo.getTableName();
         StringBuilder preKey =  new StringBuilder();
         preKey.append(tableName).append(":").append(kv);

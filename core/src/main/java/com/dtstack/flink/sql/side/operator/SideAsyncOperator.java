@@ -66,10 +66,10 @@ public class SideAsyncOperator {
 
         //TODO How much should be set for the degree of parallelism? Timeout? capacity settings?
         if (ORDERED.equals(sideTableInfo.getCacheMode())){
-            return AsyncDataStream.orderedWait(inputStream, asyncDbReq, sideTableInfo.getAsyncTimeout(), TimeUnit.MILLISECONDS, sideTableInfo.getAsyncCapacity())
+            return AsyncDataStream.orderedWait(inputStream, asyncDbReq, -1, TimeUnit.MILLISECONDS, sideTableInfo.getAsyncCapacity())
                     .setParallelism(sideTableInfo.getParallelism());
         }else {
-            return AsyncDataStream.unorderedWait(inputStream, asyncDbReq, sideTableInfo.getAsyncTimeout(), TimeUnit.MILLISECONDS, sideTableInfo.getAsyncCapacity())
+            return AsyncDataStream.unorderedWait(inputStream, asyncDbReq, -1, TimeUnit.MILLISECONDS, sideTableInfo.getAsyncCapacity())
                     .setParallelism(sideTableInfo.getParallelism());
         }
 
