@@ -36,8 +36,6 @@ import org.apache.avro.specific.SpecificRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.formats.avro.AvroRowDeserializationSchema;
-import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
@@ -55,17 +53,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 /**
  * Serialization schema that serializes CROW into Avro bytes.
  *
  * <p>Serializes objects that are represented in (nested) Flink rows. It support types that
  * are compatible with Flink's Table & SQL API.
- *
- * <p>Note: Changes in this class need to be kept in sync with the corresponding runtime
- * class {@link AvroRowDeserializationSchema} and schema converter {@link AvroSchemaConverter}.
- *
+ **
  * @author  maqi
  */
 public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
@@ -107,14 +104,14 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 
 	private String updateMode;
 
-	private final String retractKey = "retract";
+	private String retractKey = "retract";
 
 	/**
 	 * Creates an Avro serialization schema for the given specific record class.
 	 *
 	 * @param recordClazz Avro record class used to serialize Flink's row to Avro's record
 	 */
-	public AvroCRowSerializationSchema(Class<? extends SpecificRecord> recordClazz) {
+	public AvroCRowSerializationSchema(Class<? extends SpecificRecord> recordClazz, String updateMode) {
 		Preconditions.checkNotNull(recordClazz, "Avro record class must not be null.");
 		this.recordClazz = recordClazz;
 		this.schema = SpecificData.get().getSchema(recordClazz);
@@ -122,6 +119,7 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 		this.datumWriter = new SpecificDatumWriter<>(schema);
 		this.arrayOutputStream = new ByteArrayOutputStream();
 		this.encoder = EncoderFactory.get().binaryEncoder(arrayOutputStream, null);
+		this.updateMode = updateMode;
 	}
 
 	/**
@@ -152,16 +150,28 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 
 			// convert to record
 			final GenericRecord record = convertRowToAvroRecord(schema, row);
+
+			dealRetractField(change, record);
+
 			arrayOutputStream.reset();
-			if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
-				record.put(retractKey, change);
-			}
 			datumWriter.write(record, encoder);
 			encoder.flush();
 			return arrayOutputStream.toByteArray();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to serialize row.", e);
 		}
+	}
+
+	protected void dealRetractField(boolean change, GenericRecord record) {
+		schema.getFields()
+				.stream()
+				.filter(field -> StringUtils.equalsIgnoreCase(field.name(), retractKey))
+				.findFirst()
+				.ifPresent(field -> {
+					if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
+						record.put(retractKey, convertFlinkType(field.schema(), change));
+					}
+				});
 	}
 
 	@Override
@@ -184,7 +194,12 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 	// --------------------------------------------------------------------------------------------
 
 	private GenericRecord convertRowToAvroRecord(Schema schema, Row row) {
-		final List<Schema.Field> fields = schema.getFields();
+
+		final List<Schema.Field> fields = schema.getFields()
+				.stream()
+				.filter(field -> !StringUtils.equalsIgnoreCase(field.name(), retractKey))
+				.collect(Collectors.toList());
+
 		final int length = fields.size();
 		final GenericRecord record = new GenericData.Record(schema);
 		for (int i = 0; i < length; i++) {
@@ -328,6 +343,8 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 	private void writeObject(ObjectOutputStream outputStream) throws IOException {
 		outputStream.writeObject(recordClazz);
 		outputStream.writeObject(schemaString); // support for null
+		outputStream.writeObject(retractKey);
+		outputStream.writeObject(updateMode);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -339,6 +356,9 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 		} else {
 			schema = new Schema.Parser().parse(schemaString);
 		}
+		retractKey = (String) inputStream.readObject();
+		updateMode = (String) inputStream.readObject();
+
 		datumWriter = new SpecificDatumWriter<>(schema);
 		arrayOutputStream = new ByteArrayOutputStream();
 		encoder = EncoderFactory.get().binaryEncoder(arrayOutputStream, null);

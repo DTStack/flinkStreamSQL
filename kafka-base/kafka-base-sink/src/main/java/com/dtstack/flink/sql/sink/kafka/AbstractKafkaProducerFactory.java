@@ -75,15 +75,16 @@ public abstract class AbstractKafkaProducerFactory {
             if (StringUtils.isBlank(kafkaSinkTableInfo.getFieldDelimiter())) {
                 throw new IllegalArgumentException("sinkDataType:" + FormatType.CSV.name() + " must set fieldDelimiter");
             }
-
             final CsvCRowSerializationSchema.Builder serSchemaBuilder = new CsvCRowSerializationSchema.Builder(typeInformation);
             serSchemaBuilder.setFieldDelimiter(kafkaSinkTableInfo.getFieldDelimiter().toCharArray()[0]);
+            serSchemaBuilder.setUpdateMode(kafkaSinkTableInfo.getUpdateMode());
+
             serializationSchema = serSchemaBuilder.build();
         } else if (FormatType.AVRO.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
             if (StringUtils.isBlank(kafkaSinkTableInfo.getSchemaString())) {
                 throw new IllegalArgumentException("sinkDataType:" + FormatType.AVRO.name() + " must set schemaString");
             }
-            serializationSchema = new AvroCRowSerializationSchema(kafkaSinkTableInfo.getSchemaString(),kafkaSinkTableInfo.getUpdateMode());
+            serializationSchema = new AvroCRowSerializationSchema(kafkaSinkTableInfo.getSchemaString(), kafkaSinkTableInfo.getUpdateMode());
         }
 
         if (null == serializationSchema) {

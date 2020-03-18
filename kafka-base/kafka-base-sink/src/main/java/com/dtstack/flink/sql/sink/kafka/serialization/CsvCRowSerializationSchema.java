@@ -47,7 +47,10 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Objects;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Serialization schema that serializes an object of Flink types into a CSV bytes.
@@ -72,25 +75,27 @@ public final class CsvCRowSerializationSchema implements SerializationSchema<CRo
 	private final CsvMapper csvMapper;
 
 	/** Schema describing the input CSV data. */
-	private final CsvSchema csvSchema;
+	private CsvSchema csvSchema;
 
 	/** Object writer used to write rows. It is configured by {@link CsvSchema}. */
-	private final ObjectWriter objectWriter;
+	private ObjectWriter objectWriter;
 
 	/** Reusable object node. */
 	private transient ObjectNode root;
 
 	private String updateMode;
 
-	private final String retractKey = "retract";
+	private String retractKey = "retract";
 
 	private CsvCRowSerializationSchema(
 			RowTypeInfo typeInfo,
-			CsvSchema csvSchema) {
+			CsvSchema csvSchema,
+			String updateMode) {
 		this.typeInfo = typeInfo;
 		this.runtimeConverter = createRowRuntimeConverter(typeInfo, true);
 		this.csvMapper = new CsvMapper();
 		this.csvSchema = csvSchema;
+		this.updateMode = updateMode;
 		this.objectWriter = csvMapper.writer(csvSchema);
 	}
 
@@ -102,6 +107,7 @@ public final class CsvCRowSerializationSchema implements SerializationSchema<CRo
 
 		private final RowTypeInfo typeInfo;
 		private CsvSchema csvSchema;
+		private String updateMode;
 
 		/**
 		 * Creates a {@link CsvRowSerializationSchema} expecting the given {@link TypeInformation}.
@@ -155,10 +161,16 @@ public final class CsvCRowSerializationSchema implements SerializationSchema<CRo
 			return this;
 		}
 
+		public Builder setUpdateMode(String updateMode) {
+			this.updateMode = updateMode;
+			return this;
+		}
+
 		public CsvCRowSerializationSchema build() {
 			return new CsvCRowSerializationSchema(
-				typeInfo,
-				csvSchema);
+					typeInfo,
+					csvSchema,
+					updateMode);
 		}
 	}
 
@@ -172,12 +184,25 @@ public final class CsvCRowSerializationSchema implements SerializationSchema<CRo
 		try {
 			runtimeConverter.convert(csvMapper, root, row);
 			if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
-				root.put(retractKey, change);
+				fillRetractField(row, change);
 			}
+
 			return objectWriter.writeValueAsBytes(root);
 		} catch (Throwable t) {
 			throw new RuntimeException("Could not serialize row '" + row + "'.", t);
 		}
+	}
+
+	protected void fillRetractField(Row row, boolean change) {
+		root.put(retractKey, change);
+		CsvSchema.Builder newBuilder = new CsvSchema.Builder(csvSchema);
+
+		CsvSchema.Column retractColumn = new CsvSchema.Column(row.getArity(), retractKey, CsvSchema.ColumnType.BOOLEAN);
+		newBuilder.addColumn(retractColumn);
+		csvSchema = newBuilder.build();
+
+		this.objectWriter = csvMapper.writer(csvSchema);
+
 	}
 
 	@Override
