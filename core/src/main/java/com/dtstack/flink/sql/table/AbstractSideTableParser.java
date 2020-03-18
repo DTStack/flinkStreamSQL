@@ -114,6 +114,13 @@ public abstract class AbstractSideTableParser extends AbstractTableParser {
                     sideTableInfo.setAsyncTimeoutNumLimit(asyncTimeoutNum);
                 }
             }
+
+            if(props.containsKey(AbstractSideTableInfo.ASYNC_FAIL_MAX_NUM_KEY.toLowerCase())){
+                Integer asyncFailNum = MathUtil.getIntegerVal(props.get(AbstractSideTableInfo.ASYNC_FAIL_MAX_NUM_KEY.toLowerCase()));
+                if (asyncFailNum > 0){
+                    sideTableInfo.setAsyncFailMaxNum(asyncFailNum);
+                }
+            }
         }
     }
 }

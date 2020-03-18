@@ -27,6 +27,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Reason:
@@ -55,6 +56,8 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     public static final String ASYNC_TIMEOUT_NUM_KEY = "asyncTimeoutNum";
 
+    public static final String ASYNC_FAIL_MAX_NUM_KEY = "asyncFailMaxNum";
+
     private String cacheType = "none";//None or LRU or ALL
 
     private int cacheSize = 10000;
@@ -70,6 +73,8 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
     private boolean partitionedJoin = false;
 
     private String cacheMode="ordered";
+
+    private Integer asyncFailMaxNum;
 
     private List<PredicateInfo>  predicateInfoes = Lists.newArrayList();
 
@@ -154,6 +159,14 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     public void setAsyncTimeoutNumLimit(int asyncTimeoutNumLimit) {
         this.asyncTimeoutNumLimit = asyncTimeoutNumLimit;
+    }
+
+    public Integer getAsyncFailMaxNum(Integer defaultValue) {
+        return Objects.isNull(asyncFailMaxNum) ? defaultValue : asyncFailMaxNum;
+    }
+
+    public void setAsyncFailMaxNum(Integer asyncFailMaxNum) {
+        this.asyncFailMaxNum = asyncFailMaxNum;
     }
 
 }
