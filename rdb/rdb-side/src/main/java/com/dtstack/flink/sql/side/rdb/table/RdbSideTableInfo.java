@@ -99,4 +99,15 @@ public class RdbSideTableInfo extends AbstractSideTableInfo {
     public void setPassword(String password) {
         this.password = password;
     }
+
+    @Override
+    public String toString() {
+        String cacheInfo = super.toString();
+        String connectionInfo = "Rdb Side Connection Info{" +
+                "url='" + url + '\'' +
+                ", tableName='" + tableName + '\'' +
+                ", schema='" + schema + '\'' +
+                '}';
+        return cacheInfo + " , " + connectionInfo;
+    }
 }
