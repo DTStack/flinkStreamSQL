@@ -58,17 +58,22 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
     private final String[] fieldNames;
     private final TypeInformation<?>[] fieldTypes;
     private List<TableInfo.FieldExtraInfo> fieldExtraInfos;
+    private String charsetName;
 
-    public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
+    public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping,
+                                          List<TableInfo.FieldExtraInfo> fieldExtraInfos,
+                                          String charsetName) {
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
         this.rowAndFieldMapping = rowAndFieldMapping;
         this.fieldExtraInfos = fieldExtraInfos;
+        this.charsetName = charsetName;
     }
 
     @Override
     public Row deserialize(byte[] message) throws IOException {
-        JsonNode root = objectMapper.readTree(message);
+        String decoderStr = new String(message, charsetName);
+        JsonNode root = objectMapper.readTree(decoderStr);
         this.parseTree(root, null);
         Row row = new Row(fieldNames.length);
 

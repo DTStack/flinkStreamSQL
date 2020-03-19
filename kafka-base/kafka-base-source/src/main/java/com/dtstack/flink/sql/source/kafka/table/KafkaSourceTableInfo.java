@@ -49,6 +49,8 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
 	public static final String TOPICISPATTERN_KEY = "topicIsPattern";
 
+	public static final String CHARSET_NAME_KEY = "charsetName";
+
 	private String bootstrapServers;
 
 	private String topic;
@@ -67,6 +69,8 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 	private String schemaString;
 
 	private String fieldDelimiter;
+
+	private String charsetName;
 
 	public String getBootstrapServers() {
 		return bootstrapServers;
@@ -158,6 +162,14 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
 	public void setFieldDelimiter(String fieldDelimiter) {
 		this.fieldDelimiter = fieldDelimiter;
+	}
+
+	public String getCharsetName() {
+		return charsetName;
+	}
+
+	public void setCharsetName(String charsetName) {
+		this.charsetName = charsetName;
 	}
 
 	@Override
