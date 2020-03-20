@@ -30,6 +30,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.MapUtils;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -62,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> implements ISideReqRow {
     private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
+    private RuntimeContext runtimeContext;
 
     private static int TIMEOUT_LOG_FLUSH_NUM = 10;
     private int timeOutNum = 0;
@@ -72,7 +74,11 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     public BaseAsyncReqRow(BaseSideInfo sideInfo){
         this.sideInfo = sideInfo;
     }
-
+    @Override
+    public void setRuntimeContext(RuntimeContext runtimeContext) {
+        super.setRuntimeContext(runtimeContext);
+        this.runtimeContext = runtimeContext;
+    }
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
@@ -221,7 +227,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     public abstract String buildCacheKey(Map<String, Object> inputParams);
 
     private ProcessingTimeService getProcessingTimeService(){
-        return ((StreamingRuntimeContext)this.getRuntimeContext()).getProcessingTimeService();
+        return ((StreamingRuntimeContext)this.runtimeContext).getProcessingTimeService();
     }
 
     protected ScheduledFuture<?> registerTimer(CRow input, ResultFuture<CRow> resultFuture){

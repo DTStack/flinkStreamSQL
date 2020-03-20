@@ -89,25 +89,28 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        AtomicBoolean connectFinish = new AtomicBoolean(false);
-        AtomicInteger counter = new AtomicInteger(0);
-        while(!connectFinish.get()){
+        AtomicInteger failCounter = new AtomicInteger(0);
+        while(true){
+            AtomicBoolean connectFinish = new AtomicBoolean(false);
             rdbSqlClient.getConnection(conn -> {
+                connectFinish.set(true);
                 if(conn.failed()){
-                    if(counter.get() % 1000 == 0){
+                    if(failCounter.getAndIncrement() % 1000 == 0){
                         logger.error("getConnection error", conn.cause());
                     }
-                    if(counter.incrementAndGet() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3)){
-                        resultFuture.completeExceptionally(conn.cause());
-                        connectFinish.set(true);
-                        return;
-                    }
+                    conn.result().close();
                 }
-                connectFinish.set(true);
                 ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
                 cancelTimerWhenComplete(resultFuture, timerFuture);
                 handleQuery(conn.result(), inputParams, input, resultFuture);
             });
+            while(!connectFinish.get()){
+                Thread.sleep(50);
+            }
+            if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3)){
+                resultFuture.completeExceptionally(new RuntimeException("connection fail"));
+                return;
+            }
         }
     }
 
