@@ -64,12 +64,16 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 
 	private transient Socket currentSocket;
 
+	private String CHARSET_NAME = "UTF-8";
+
 	ServersocketSourceTableInfo tableInfo;
+
+
 
 	public CustomerSocketTextStreamFunction(ServersocketSourceTableInfo tableInfo, TypeInformation<Row> typeInfo,
 											Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
 		this.tableInfo = tableInfo;
-		this.deserializationSchema = new DtNestRowDeserializationSchema(typeInfo, rowAndFieldMapping, fieldExtraInfos);
+		this.deserializationSchema = new DtNestRowDeserializationSchema(typeInfo, rowAndFieldMapping, fieldExtraInfos, CHARSET_NAME);
 		this.deserializationMetricWrapper = new DeserializationMetricWrapper(typeInfo, deserializationSchema);
 	}
 
