@@ -48,6 +48,12 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     public static final String TOPICISPATTERN_KEY = "topicIsPattern";
 
+    public static final String SCHEMA_STRING_KEY = "schemaInfo";
+
+    public static final String CSV_FIELD_DELIMITER_KEY = "fieldDelimiter";
+
+    public static final String SOURCE_DATA_TYPE_KEY = "sourceDataType";
+
     private String bootstrapServers;
 
     private String topic;
@@ -58,7 +64,7 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     private Boolean topicIsPattern = false;
 
-    private String sourceDataType = FormatType.DT_NEST.name();
+    private String sourceDataType;
 
     private String schemaString;
 
