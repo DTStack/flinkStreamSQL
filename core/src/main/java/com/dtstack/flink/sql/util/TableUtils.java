@@ -297,6 +297,8 @@ public class TableUtils {
 
     /**
      * 替换select 中的字段信息
+     * 如果mappingTable 非空则从该参数获取字段的映射
+     * 如果mappingTable 为空则根据是否存在新生成字段
      * @param selectNode
      * @param oldTbName
      * @param newTbName

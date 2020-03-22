@@ -21,7 +21,6 @@
 package com.dtstack.flink.sql.side;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlNode;
@@ -34,7 +33,6 @@ import java.util.Map;
  * Join信息
  * Date: 2018/7/24
  * Company: www.dtstack.com
- *
  * @author xuchao
  */
 
@@ -44,8 +42,6 @@ public class JoinInfo implements Serializable {
 
     //左表是否是维表
     private boolean leftIsSideTable;
-
-    private boolean leftIsTmpTable = false;
 
     //右表是否是维表
     private boolean rightIsSideTable;
@@ -69,8 +65,6 @@ public class JoinInfo implements Serializable {
     private SqlNode selectNode;
 
     private JoinType joinType;
-
-    private HashBiMap<String, String> fieldRefInfo = HashBiMap.create();
 
     /**
      * 左表需要查询的字段信息和output的时候对应的列名称
@@ -210,22 +204,6 @@ public class JoinInfo implements Serializable {
         this.joinType = joinType;
     }
 
-    public boolean isLeftIsTmpTable() {
-        return leftIsTmpTable;
-    }
-
-    public void setLeftIsTmpTable(boolean leftIsTmpTable) {
-        this.leftIsTmpTable = leftIsTmpTable;
-    }
-
-    public HashBiMap<String, String> getFieldRefInfo() {
-        return fieldRefInfo;
-    }
-
-    public void setFieldRefInfo(HashBiMap<String, String> fieldRefInfo) {
-        this.fieldRefInfo = fieldRefInfo;
-    }
-
     public Map<String, String> getLeftSelectFieldInfo() {
         return leftSelectFieldInfo;
     }
@@ -259,7 +237,6 @@ public class JoinInfo implements Serializable {
     public String toString() {
         return "JoinInfo{" +
                 "leftIsSideTable=" + leftIsSideTable +
-                ", leftIsTmpTable=" + leftIsTmpTable +
                 ", rightIsSideTable=" + rightIsSideTable +
                 ", leftTableName='" + leftTableName + '\'' +
                 ", leftTableAlias='" + leftTableAlias + '\'' +
