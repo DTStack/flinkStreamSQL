@@ -20,6 +20,9 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlNode;
 import com.google.common.base.Strings;
@@ -66,6 +69,18 @@ public class JoinInfo implements Serializable {
     private SqlNode selectNode;
 
     private JoinType joinType;
+
+    private HashBiMap<String, String> fieldRefInfo = HashBiMap.create();
+
+    /**
+     * 左表需要查询的字段信息和output的时候对应的列名称
+     */
+    private Map<String, String> leftSelectFieldInfo = Maps.newHashMap();
+
+    /**
+     * 右表需要查询的字段信息和output的时候对应的列名称
+     */
+    private Map<String, String> rightSelectFieldInfo = Maps.newHashMap();
 
     public String getSideTableName(){
         if(leftIsSideTable){
@@ -201,6 +216,43 @@ public class JoinInfo implements Serializable {
 
     public void setLeftIsTmpTable(boolean leftIsTmpTable) {
         this.leftIsTmpTable = leftIsTmpTable;
+    }
+
+    public HashBiMap<String, String> getFieldRefInfo() {
+        return fieldRefInfo;
+    }
+
+    public void setFieldRefInfo(HashBiMap<String, String> fieldRefInfo) {
+        this.fieldRefInfo = fieldRefInfo;
+    }
+
+    public Map<String, String> getLeftSelectFieldInfo() {
+        return leftSelectFieldInfo;
+    }
+
+    public void setLeftSelectFieldInfo(Map<String, String> leftSelectFieldInfo) {
+        this.leftSelectFieldInfo = leftSelectFieldInfo;
+    }
+
+    public Map<String, String> getRightSelectFieldInfo() {
+        return rightSelectFieldInfo;
+    }
+
+    public void setRightSelectFieldInfo(Map<String, String> rightSelectFieldInfo) {
+        this.rightSelectFieldInfo = rightSelectFieldInfo;
+    }
+
+    public HashBasedTable<String, String, String> getTableFieldRef(){
+        HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
+        getLeftSelectFieldInfo().forEach((key, value) -> {
+            mappingTable.put(getLeftTableAlias(), key, value);
+        });
+
+        getRightSelectFieldInfo().forEach((key, value) -> {
+            mappingTable.put(getRightTableAlias(), key, value);
+        });
+
+        return mappingTable;
     }
 
     @Override

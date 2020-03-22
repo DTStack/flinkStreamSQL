@@ -23,7 +23,10 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
+import com.typesafe.config.ConfigException;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -246,6 +249,20 @@ public class TableUtils {
     public static void replaceFromNodeForJoin(JoinInfo joinInfo, SqlSelect sqlNode) {
         //Update from node
         SqlBasicCall sqlBasicCall = buildAsNodeByJoinInfo(joinInfo, null, null);
+        String newAliasName = sqlBasicCall.operand(1).toString();
+
+        //替换select 中的属性为新的表名称和字段
+        HashBasedTable<String, String, String> fieldMapping = joinInfo.getTableFieldRef();
+        Map<String, String> leftFieldMapping = fieldMapping.row(joinInfo.getLeftTableAlias());
+        Map<String, String> rightFieldMapping = fieldMapping.row(joinInfo.getRightTableAlias());
+
+        for(SqlNode oneSelectNode : sqlNode.getSelectList()){
+            replaceSelectFieldTable(oneSelectNode, joinInfo.getLeftTableAlias(), newAliasName, null ,leftFieldMapping);
+            replaceSelectFieldTable(oneSelectNode, joinInfo.getRightTableAlias(), newAliasName, null , rightFieldMapping);
+        }
+
+        //where中的条件属性为新的表名称和字段
+        replaceWhereCondition();
         sqlNode.setFrom(sqlBasicCall);
     }
 
@@ -277,10 +294,24 @@ public class TableUtils {
         }
     }
 
-    public static void replaceSelectFieldTable(SqlNode selectNode, String oldTbName, String newTbName) {
+    /**
+     * 替换select 中的字段信息
+     * 如果mappingTable 非空则从该参数获取字段的映射
+     * 如果mappingTable 为空则根据是否存在新生成字段
+     * @param selectNode
+     * @param oldTbName
+     * @param newTbName
+     * @param fieldReplaceRef
+     * @param mappingTable
+     */
+    public static void replaceSelectFieldTable(SqlNode selectNode,
+                                               String oldTbName,
+                                               String newTbName,
+                                               HashBiMap<String, String> fieldReplaceRef,
+                                               Map<String, String> mappingTable) {
         if (selectNode.getKind() == AS) {
             SqlNode leftNode = ((SqlBasicCall) selectNode).getOperands()[0];
-            replaceSelectFieldTable(leftNode, oldTbName, newTbName);
+            replaceSelectFieldTable(leftNode, oldTbName, newTbName, fieldReplaceRef, mappingTable);
 
         }else if(selectNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
@@ -289,9 +320,9 @@ public class TableUtils {
                 return ;
             }
 
-            if(oldTbName.equalsIgnoreCase(((SqlIdentifier)selectNode).names.get(0))){
-                SqlIdentifier newField = ((SqlIdentifier)selectNode).setName(0, newTbName);
-                ((SqlIdentifier)selectNode).assignNamesFrom(newField);
+            String fieldTableName = sqlIdentifier.names.get(0);
+            if(oldTbName.equalsIgnoreCase(fieldTableName)){
+                replaceOneSelectField(sqlIdentifier, newTbName, oldTbName, fieldReplaceRef, mappingTable);
             }
 
         }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
@@ -338,7 +369,7 @@ public class TableUtils {
                     continue;
                 }
 
-                replaceSelectFieldTable(sqlNode, oldTbName, newTbName);
+                replaceSelectFieldTable(sqlNode, oldTbName, newTbName, fieldReplaceRef, mappingTable);
             }
 
         }else if(selectNode.getKind() == CASE){
@@ -349,16 +380,16 @@ public class TableUtils {
 
             for(int i=0; i<whenOperands.size(); i++){
                 SqlNode oneOperand = whenOperands.get(i);
-                replaceSelectFieldTable(oneOperand, oldTbName, newTbName);
+                replaceSelectFieldTable(oneOperand, oldTbName, newTbName, fieldReplaceRef, mappingTable);
             }
 
             for(int i=0; i<thenOperands.size(); i++){
                 SqlNode oneOperand = thenOperands.get(i);
-                replaceSelectFieldTable(oneOperand, oldTbName, newTbName);
+                replaceSelectFieldTable(oneOperand, oldTbName, newTbName, fieldReplaceRef, mappingTable);
 
             }
 
-            replaceSelectFieldTable(elseNode, oldTbName, newTbName);
+            replaceSelectFieldTable(elseNode, oldTbName, newTbName, fieldReplaceRef, mappingTable);
         }else if(selectNode.getKind() == OTHER){
             //不处理
             return;
@@ -367,23 +398,59 @@ public class TableUtils {
         }
     }
 
+    private static void replaceOneSelectField(SqlIdentifier sqlIdentifier,
+                                              String newTbName,
+                                              String oldTbName,
+                                              HashBiMap<String, String> fieldReplaceRef,
+                                              Map<String, String> mappingTable){
+        SqlIdentifier newField = sqlIdentifier.setName(0, newTbName);
+        String fieldName = sqlIdentifier.names.get(1);
+        String fieldKey = oldTbName + "_" + fieldName;
+
+        if(mappingTable != null){
+            String mappingFieldName = mappingTable.get(fieldName);
+            Preconditions.checkNotNull(mappingFieldName, "can't get any field from mappingTable with oldFieldName " + fieldName);
+            newField = newField.setName(1, mappingFieldName);
+            sqlIdentifier.assignNamesFrom(newField);
+            return;
+        }
+
+        if(!fieldReplaceRef.containsKey(fieldKey)){
+            if(fieldReplaceRef.inverse().get(fieldName) != null){
+                //换一个名字
+                String mappingFieldName = ParseUtils.dealDuplicateFieldName(fieldReplaceRef, fieldName);
+                newField = newField.setName(1, mappingFieldName);
+                fieldReplaceRef.put(fieldKey, mappingFieldName);
+            } else {
+                fieldReplaceRef.put(fieldKey, fieldName);
+            }
+        }else {
+            newField = newField.setName(1, fieldReplaceRef.get(fieldKey));
+        }
+
+        sqlIdentifier.assignNamesFrom(newField);
+    }
+
     /**
      * 替换另外join 表的指定表名为新关联处理的表名称
      * @param condition
-     * @param tableRef
+     * @param oldTabFieldRefNew
      */
-    public static void replaceJoinFieldRefTableName(SqlNode condition, Map<String, String> tableRef){
+    public static void replaceJoinFieldRefTableName(SqlNode condition, Map<String, String> oldTabFieldRefNew){
         SqlKind joinKind = condition.getKind();
         if( joinKind == AND || joinKind == EQUALS ){
-            replaceJoinFieldRefTableName(((SqlBasicCall)condition).operands[0], tableRef);
-            replaceJoinFieldRefTableName(((SqlBasicCall)condition).operands[1], tableRef);
+            replaceJoinFieldRefTableName(((SqlBasicCall)condition).operands[0], oldTabFieldRefNew);
+            replaceJoinFieldRefTableName(((SqlBasicCall)condition).operands[1], oldTabFieldRefNew);
         }else{
             Preconditions.checkState(((SqlIdentifier)condition).names.size() == 2, "join condition must be format table.field");
             String fieldRefTable = ((SqlIdentifier)condition).names.get(0);
 
-            String targetTableName = TableUtils.getTargetRefTable(tableRef, fieldRefTable);
-            if(StringUtils.isNotBlank(targetTableName) && !fieldRefTable.equalsIgnoreCase(targetTableName)){
-                SqlIdentifier newField = ((SqlIdentifier)condition).setName(0, targetTableName);
+            String targetFieldName = TableUtils.getTargetRefField(oldTabFieldRefNew, condition.toString());
+
+            if(StringUtils.isNotBlank(targetFieldName)){
+                String[] fieldSplits = StringUtils.split(targetFieldName, ".");
+                SqlIdentifier newField = ((SqlIdentifier)condition).setName(0, fieldSplits[0]);
+                newField = newField.setName(1, fieldSplits[1]);
                 ((SqlIdentifier)condition).assignNamesFrom(newField);
             }
         }
@@ -399,6 +466,18 @@ public class TableUtils {
         } while (targetTableName != null);
 
         return preTableName;
+    }
+
+    public static String getTargetRefField(Map<String, String> refFieldMap, String currFieldName){
+        String targetFieldName = null;
+        String preFieldName;
+
+        do {
+            preFieldName = targetFieldName == null ? currFieldName : targetFieldName;
+            targetFieldName = refFieldMap.get(preFieldName);
+        } while (targetFieldName != null);
+
+        return preFieldName;
     }
 
     public static void replaceWhereCondition(SqlNode parentWhere, String oldTbName, String newTbName){
@@ -490,18 +569,13 @@ public class TableUtils {
     /**
      * 获取条件中关联的表信息
      * @param selectNode
-     * @param tableNameSet
+     * @param fieldInfos
      */
-    public static void getConditionRefTable(SqlNode selectNode, Set<String> tableNameSet) {
+    public static void getConditionRefTable(SqlNode selectNode, Set<String> fieldInfos) {
         if(selectNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
-            if(sqlIdentifier.names.size() == 1){
-                return;
-            }
-
-            String tableName = sqlIdentifier.names.asList().get(0);
-            tableNameSet.add(tableName);
+            fieldInfos.add(sqlIdentifier.toString());
             return;
         }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
             return;
@@ -547,7 +621,7 @@ public class TableUtils {
                     continue;
                 }
 
-                getConditionRefTable(sqlNode, tableNameSet);
+                getConditionRefTable(sqlNode, fieldInfos);
             }
 
             return;
@@ -558,4 +632,10 @@ public class TableUtils {
             throw new RuntimeException(String.format("not support node kind of %s to replace name now.", selectNode.getKind()));
         }
     }
+
+    public static String buildTableField(String tableName, String fieldName){
+        return String.format("%s.%s", tableName, fieldName);
+    }
+
+
 }

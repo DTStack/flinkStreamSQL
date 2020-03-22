@@ -29,10 +29,7 @@ import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -64,12 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -130,8 +122,9 @@ public class SideSqlExec {
                     List<String> fieldNames = null;
                     for(FieldReplaceInfo replaceInfo : replaceInfoList){
                         fieldNames = Lists.newArrayList();
-                        replaceFieldName(pollSqlNode, replaceInfo);
-                        addAliasForFieldNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
+                        //replaceFieldName(pollSqlNode, replaceInfo);
+                        //TODO
+                        //addAliasForFieldNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
                     }
                 }
 
@@ -290,15 +283,17 @@ public class SideSqlExec {
         return aliasInfo;
     }
 
-    public RowTypeInfo buildOutRowTypeInfo(List<FieldInfo> sideJoinFieldInfo, HashBasedTable<String, String, String> mappingTable) {
+    public RowTypeInfo buildOutRowTypeInfo(List<FieldInfo> sideJoinFieldInfo,
+                                           HashBasedTable<String, String, String> mappingTable) {
         TypeInformation[] sideOutTypes = new TypeInformation[sideJoinFieldInfo.size()];
         String[] sideOutNames = new String[sideJoinFieldInfo.size()];
         for (int i = 0; i < sideJoinFieldInfo.size(); i++) {
             FieldInfo fieldInfo = sideJoinFieldInfo.get(i);
             String tableName = fieldInfo.getTable();
             String fieldName = fieldInfo.getFieldName();
-            String mappingFieldName = ParseUtils.dealDuplicateFieldName(mappingTable, fieldName);
-            mappingTable.put(tableName, fieldName, mappingFieldName);
+
+            String mappingFieldName = mappingTable.get(tableName, fieldName);
+            Preconditions.checkNotNull(mappingFieldName, fieldInfo + " not mapping any field! it may be frame bug");
 
             sideOutTypes[i] = fieldInfo.getTypeInformation();
             sideOutNames[i] = mappingFieldName;
@@ -330,184 +325,9 @@ public class SideSqlExec {
         return typeInformation;
     }
 
-    //需要考虑更多的情况
-    private void replaceFieldName(SqlNode sqlNode, FieldReplaceInfo replaceInfo) {
-        SqlKind sqlKind = sqlNode.getKind();
-        switch (sqlKind) {
-            case INSERT:
-                SqlNode sqlSource = ((SqlInsert) sqlNode).getSource();
-                replaceFieldName(sqlSource, replaceInfo);
-                break;
-            case AS:
-                SqlNode asNode = ((SqlBasicCall) sqlNode).getOperands()[0];
-                replaceFieldName(asNode, replaceInfo);
-                break;
-            case SELECT:
-                SqlSelect sqlSelect = (SqlSelect) filterNodeWithTargetName(sqlNode, replaceInfo.getTargetTableName());
-                if(sqlSelect == null){
-                    return;
-                }
 
-                SqlNode sqlSource1 = sqlSelect.getFrom();
-                if(sqlSource1.getKind() == AS){
-                    String tableName = ((SqlBasicCall)sqlSource1).getOperands()[0].toString();
-                    if(tableName.equalsIgnoreCase(replaceInfo.getTargetTableName())){
-                        SqlNodeList sqlSelectList = sqlSelect.getSelectList();
-                        SqlNode whereNode = sqlSelect.getWhere();
-                        SqlNodeList sqlGroup = sqlSelect.getGroup();
 
-                        //TODO 暂时不处理having
-                        SqlNode sqlHaving = sqlSelect.getHaving();
 
-                        List<SqlNode> newSelectNodeList = Lists.newArrayList();
-                        for( int i=0; i<sqlSelectList.getList().size(); i++){
-                            SqlNode selectNode = sqlSelectList.getList().get(i);
-                            //特殊处理 isStar的标识
-                            if(selectNode.getKind() == IDENTIFIER && ((SqlIdentifier) selectNode).isStar()){
-                                List<SqlNode> replaceNodeList = replaceSelectStarFieldName(selectNode, replaceInfo);
-                                newSelectNodeList.addAll(replaceNodeList);
-                                continue;
-                            }
-
-                            SqlNode replaceNode = replaceSelectFieldName(selectNode, replaceInfo);
-                            if(replaceNode == null){
-                                continue;
-                            }
-
-                            //sqlSelectList.set(i, replaceNode);
-                            newSelectNodeList.add(replaceNode);
-                        }
-
-                        SqlNodeList newSelectList = new SqlNodeList(newSelectNodeList, sqlSelectList.getParserPosition());
-                        sqlSelect.setSelectList(newSelectList);
-
-                        //where
-                        if(whereNode != null){
-                            SqlNode[] sqlNodeList = ((SqlBasicCall)whereNode).getOperands();
-                            for(int i =0; i<sqlNodeList.length; i++) {
-                                SqlNode whereSqlNode = sqlNodeList[i];
-                                SqlNode replaceNode = replaceNodeInfo(whereSqlNode, replaceInfo);
-                                sqlNodeList[i] = replaceNode;
-                            }
-                        }
-                        if(sqlGroup != null && CollectionUtils.isNotEmpty(sqlGroup.getList())){
-                            for( int i=0; i<sqlGroup.getList().size(); i++){
-                                SqlNode selectNode = sqlGroup.getList().get(i);
-                                SqlNode replaceNode = replaceNodeInfo(selectNode, replaceInfo);
-                                sqlGroup.set(i, replaceNode);
-                            }
-                        }
-                    }
-                }else{
-                    //TODO
-                    System.out.println(sqlNode);
-                    throw new RuntimeException("---not deal type:" + sqlNode);
-                }
-
-                break;
-            case UNION:
-                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
-                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
-                replaceFieldName(unionLeft, replaceInfo);
-                replaceFieldName(unionRight, replaceInfo);
-
-                break;
-            case ORDER_BY:
-                SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
-                replaceFieldName(sqlOrderBy.query, replaceInfo);
-                SqlNodeList orderFiledList = sqlOrderBy.orderList;
-                for (int i=0 ;i<orderFiledList.size();i++) {
-                    SqlNode replaceNode = replaceOrderByTableName(orderFiledList.get(i), replaceInfo.getTargetTableAlias());
-                    orderFiledList.set(i, replaceNode);
-                }
-
-            default:
-                break;
-        }
-    }
-
-    private SqlNode replaceOrderByTableName(SqlNode orderNode, String tableAlias) {
-        if(orderNode.getKind() == IDENTIFIER){
-            SqlIdentifier sqlIdentifier = (SqlIdentifier) orderNode;
-            if (sqlIdentifier.names.size() == 1) {
-                return orderNode;
-            }
-            return sqlIdentifier.setName(0, tableAlias);
-        } else if (orderNode instanceof  SqlBasicCall) {
-            SqlBasicCall sqlBasicCall = (SqlBasicCall) orderNode;
-            for(int i=0; i<sqlBasicCall.getOperandList().size(); i++){
-                SqlNode sqlNode = sqlBasicCall.getOperandList().get(i);
-                sqlBasicCall.getOperands()[i] = replaceOrderByTableName(sqlNode , tableAlias);
-            }
-            return sqlBasicCall;
-        } else {
-            return orderNode;
-        }
-    }
-
-    private SqlNode replaceNodeInfo(SqlNode groupNode, FieldReplaceInfo replaceInfo){
-        if(groupNode.getKind() == IDENTIFIER){
-            SqlIdentifier sqlIdentifier = (SqlIdentifier) groupNode;
-            if(sqlIdentifier.names.size() == 1){
-                return sqlIdentifier;
-            }
-
-            String mappingFieldName = replaceInfo.getTargetFieldName(sqlIdentifier.getComponent(0).getSimple(), sqlIdentifier.getComponent(1).getSimple());
-            if(mappingFieldName == null){
-                throw new RuntimeException("can't find mapping fieldName:" + sqlIdentifier.toString() );
-            }
-
-            sqlIdentifier = sqlIdentifier.setName(0, replaceInfo.getTargetTableAlias());
-            return sqlIdentifier.setName(1, mappingFieldName);
-        }else if(groupNode instanceof  SqlBasicCall){
-            SqlBasicCall sqlBasicCall = (SqlBasicCall) groupNode;
-            for(int i=0; i<sqlBasicCall.getOperandList().size(); i++){
-                SqlNode sqlNode = sqlBasicCall.getOperandList().get(i);
-                SqlNode replaceNode = replaceSelectFieldName(sqlNode, replaceInfo);
-                sqlBasicCall.getOperands()[i] = replaceNode;
-            }
-
-            return sqlBasicCall;
-        }else{
-            return groupNode;
-        }
-    }
-
-    public SqlNode filterNodeWithTargetName(SqlNode sqlNode, String targetTableName) {
-
-        SqlKind sqlKind = sqlNode.getKind();
-        switch (sqlKind){
-            case SELECT:
-                SqlNode fromNode = ((SqlSelect)sqlNode).getFrom();
-                if(fromNode.getKind() == AS && ((SqlBasicCall)fromNode).getOperands()[0].getKind() == IDENTIFIER){
-                    if(((SqlBasicCall)fromNode).getOperands()[0].toString().equalsIgnoreCase(targetTableName)){
-                        return sqlNode;
-                    }else{
-                        return null;
-                    }
-                }else{
-                    return filterNodeWithTargetName(fromNode, targetTableName);
-                }
-            case AS:
-                SqlNode childNode = ((SqlBasicCall)sqlNode).getOperands()[0];
-                return filterNodeWithTargetName(childNode, targetTableName);
-            case JOIN:
-                SqlNode leftNode = ((SqlJoin)sqlNode).getLeft();
-                SqlNode rightNode =  ((SqlJoin)sqlNode).getRight();
-                SqlNode leftReturnNode = filterNodeWithTargetName(leftNode, targetTableName);
-                SqlNode rightReturnNode = filterNodeWithTargetName(rightNode, targetTableName);
-
-                if(leftReturnNode != null) {
-                    return leftReturnNode;
-                }else if(rightReturnNode != null){
-                    return rightReturnNode;
-                }else{
-                    return null;
-                }
-        }
-
-        return null;
-    }
 
 
     public void setLocalSqlPluginPath(String localSqlPluginPath) {
@@ -521,149 +341,12 @@ public class SideSqlExec {
         }
 
         if(table == null){
-            throw new RuntimeException("not register table " + tableName);
+            throw new RuntimeException("not register table " + tableAlias);
         }
 
         return table;
     }
 
-    private List<SqlNode> replaceSelectStarFieldName(SqlNode selectNode, FieldReplaceInfo replaceInfo){
-        SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
-        List<SqlNode> sqlNodes = Lists.newArrayList();
-        if(sqlIdentifier.isStar()){//处理 [* or table.*]
-            int identifierSize = sqlIdentifier.names.size();
-            Collection<String> columns = null;
-            if(identifierSize == 1){
-                columns = replaceInfo.getMappingTable().values();
-            }else{
-                columns = replaceInfo.getMappingTable().row(sqlIdentifier.names.get(0)).values();
-            }
-
-            for(String colAlias : columns){
-                SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
-                List<String> columnInfo = Lists.newArrayList();
-                columnInfo.add(replaceInfo.getTargetTableAlias());
-                columnInfo.add(colAlias);
-                SqlIdentifier sqlIdentifierAlias = new SqlIdentifier(columnInfo, sqlParserPos);
-                sqlNodes.add(sqlIdentifierAlias);
-            }
-
-            return sqlNodes;
-        }else{
-            throw new RuntimeException("is not a star select field." + selectNode);
-        }
-    }
-
-    private SqlNode replaceSelectFieldName(SqlNode selectNode, FieldReplaceInfo replaceInfo) {
-        if (selectNode.getKind() == AS) {
-            SqlNode leftNode = ((SqlBasicCall) selectNode).getOperands()[0];
-            SqlNode replaceNode = replaceSelectFieldName(leftNode, replaceInfo);
-            if (replaceNode != null) {
-                ((SqlBasicCall) selectNode).getOperands()[0] = replaceNode;
-            }
-
-            return selectNode;
-        }else if(selectNode.getKind() == IDENTIFIER){
-            SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
-
-            if(sqlIdentifier.names.size() == 1){
-                return selectNode;
-            }
-
-            //Same level mappingTable
-            String mappingFieldName = replaceInfo.getTargetFieldName(sqlIdentifier.getComponent(0).getSimple(), sqlIdentifier.getComponent(1).getSimple());
-            if (mappingFieldName == null) {
-                throw new RuntimeException("can't find mapping fieldName:" + selectNode.toString() );
-            }
-
-            sqlIdentifier = sqlIdentifier.setName(0, replaceInfo.getTargetTableAlias());
-            sqlIdentifier = sqlIdentifier.setName(1, mappingFieldName);
-            return sqlIdentifier;
-        }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
-            return selectNode;
-        }else if(  AGGREGATE.contains(selectNode.getKind())
-                || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
-                || COMPARISON.contains(selectNode.getKind())
-                || selectNode.getKind() == OTHER_FUNCTION
-                || selectNode.getKind() == DIVIDE
-                || selectNode.getKind() == CAST
-                || selectNode.getKind() == TRIM
-                || selectNode.getKind() == TIMES
-                || selectNode.getKind() == PLUS
-                || selectNode.getKind() == NOT_IN
-                || selectNode.getKind() == OR
-                || selectNode.getKind() == AND
-                || selectNode.getKind() == MINUS
-                || selectNode.getKind() == TUMBLE
-                || selectNode.getKind() == TUMBLE_START
-                || selectNode.getKind() == TUMBLE_END
-                || selectNode.getKind() == SESSION
-                || selectNode.getKind() == SESSION_START
-                || selectNode.getKind() == SESSION_END
-                || selectNode.getKind() == HOP
-                || selectNode.getKind() == HOP_START
-                || selectNode.getKind() == HOP_END
-                || selectNode.getKind() == BETWEEN
-                || selectNode.getKind() == IS_NULL
-                || selectNode.getKind() == IS_NOT_NULL
-                || selectNode.getKind() == CONTAINS
-                || selectNode.getKind() == TIMESTAMP_ADD
-                || selectNode.getKind() == TIMESTAMP_DIFF
-                || selectNode.getKind() == LIKE
-
-                ){
-            SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
-            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
-                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
-                if(sqlNode instanceof SqlLiteral){
-                    continue;
-                }
-
-                if(sqlNode instanceof SqlDataTypeSpec){
-                    continue;
-                }
-
-                SqlNode replaceNode = replaceSelectFieldName(sqlNode, replaceInfo);
-                if(replaceNode == null){
-                    continue;
-                }
-
-                sqlBasicCall.getOperands()[i] = replaceNode;
-            }
-
-            return selectNode;
-        }else if(selectNode.getKind() == CASE){
-            System.out.println("selectNode");
-            SqlCase sqlCase = (SqlCase) selectNode;
-            SqlNodeList whenOperands = sqlCase.getWhenOperands();
-            SqlNodeList thenOperands = sqlCase.getThenOperands();
-            SqlNode elseNode = sqlCase.getElseOperand();
-
-            for(int i=0; i<whenOperands.size(); i++){
-                SqlNode oneOperand = whenOperands.get(i);
-                SqlNode replaceNode = replaceSelectFieldName(oneOperand, replaceInfo);
-                if (replaceNode != null) {
-                    whenOperands.set(i, replaceNode);
-                }
-            }
-
-            for(int i=0; i<thenOperands.size(); i++){
-                SqlNode oneOperand = thenOperands.get(i);
-                SqlNode replaceNode = replaceSelectFieldName(oneOperand, replaceInfo);
-                if (replaceNode != null) {
-                    thenOperands.set(i, replaceNode);
-                }
-            }
-
-            ((SqlCase) selectNode).setOperand(3, replaceSelectFieldName(elseNode, replaceInfo));
-            return selectNode;
-        }else if(selectNode.getKind() == OTHER){
-            //不处理
-            return selectNode;
-        }else{
-            throw new RuntimeException(String.format("not support node kind of %s to replace name now.", selectNode.getKind()));
-        }
-    }
 
     /**
      * Analyzing conditions are very join the dimension tables include all equivalent conditions (i.e., dimension table is the primary key definition
@@ -761,11 +444,6 @@ public class SideSqlExec {
         leftScopeChild.setAlias(joinInfo.getLeftTableAlias());
         leftScopeChild.setTableName(joinInfo.getLeftTableName());
 
-        SqlKind sqlKind = joinInfo.getLeftNode().getKind();
-        if(sqlKind == AS){
-            dealAsSourceTable(tableEnv, joinInfo.getLeftNode(), localTableCache, replaceInfoList);
-        }
-
         Table leftTable = getTableFromCache(localTableCache, joinInfo.getLeftTableAlias(), joinInfo.getLeftTableName());
         RowTypeInfo leftTypeInfo = new RowTypeInfo(leftTable.getSchema().getTypes(), leftTable.getSchema().getColumnNames());
         leftScopeChild.setRowTypeInfo(leftTypeInfo);
@@ -791,8 +469,13 @@ public class SideSqlExec {
         joinScope.addScope(leftScopeChild);
         joinScope.addScope(rightScopeChild);
 
+        HashBasedTable<String, String, String> mappingTable = ((JoinInfo) pollObj).getTableFieldRef();
+
         //获取两个表的所有字段
+        //TODO 抽取
         List<FieldInfo> sideJoinFieldInfo = ParserJoinField.getRowTypeInfo(joinInfo.getSelectNode(), joinScope, true);
+        //通过join的查询字段信息过滤出需要的字段信息
+        sideJoinFieldInfo.removeIf(tmpFieldInfo -> mappingTable.get(tmpFieldInfo.getTable(), tmpFieldInfo.getFieldName()) == null);
 
         String leftTableAlias = joinInfo.getLeftTableAlias();
         Table targetTable = localTableCache.get(leftTableAlias);
@@ -824,8 +507,6 @@ public class SideSqlExec {
             dsOut = SideAsyncOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
         }
 
-        // TODO  将嵌套表中的字段传递过去, 去除冗余的ROWtime
-        HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
         RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
 
         dsOut.getTransformation().setOutputType(sideOutTypeInfo);
