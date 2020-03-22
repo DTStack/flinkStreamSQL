@@ -277,7 +277,7 @@ public class JoinNodeDealer {
             for(SqlNode sqlNode : parentSelectList.getList()){
                 for(String tbTmp : fromTableNameSet) {
                     //TODO
-                    TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef, null);
+                    TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);
                 }
             }
 
@@ -330,7 +330,7 @@ public class JoinNodeDealer {
         //TODO
         for(SqlNode sqlNode : parentSelectList.getList()){
             for(String tbTmp : fromTableNameSet) {
-                TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef, null);
+                TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);
             }
         }
 
@@ -393,7 +393,7 @@ public class JoinNodeDealer {
             HashBiMap<String, String> fieldReplaceRef = HashBiMap.create();
             for(SqlNode tmpSelect : parentSelectList.getList()){
                 for(String tbTmp : fromTableNameSet) {
-                    TableUtils.replaceSelectFieldTable(tmpSelect, tbTmp, tableAlias, fieldReplaceRef, null);
+                    TableUtils.replaceSelectFieldTable(tmpSelect, tbTmp, tableAlias, fieldReplaceRef);
                 }
             }
 

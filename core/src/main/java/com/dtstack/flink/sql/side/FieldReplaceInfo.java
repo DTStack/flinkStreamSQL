@@ -20,13 +20,9 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.util.ReflectionUtils;
 import com.google.common.collect.HashBasedTable;
 import org.apache.commons.lang3.StringUtils;
 
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 用于记录转换之后的表和原来表直接字段的关联关系
@@ -88,26 +84,6 @@ public class FieldReplaceInfo {
         if(StringUtils.isNotBlank(targetFieldName)){
             return targetFieldName;
         }
-
-
-       /* Field field  = ReflectionUtils.getDeclaredField(mappingTable, "backingMap");
-        field.setAccessible(true);
-        HashMap<String, Map<String, String>> map = null;
-        try {
-            map = (HashMap) field.get(mappingTable);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-
-        if(map.size() == 1 && tableName.equalsIgnoreCase(targetTableAlias)){
-            for(Map<String, String> tmp : map.values()){
-                targetFieldName = tmp.get(fieldName);
-                if(targetFieldName != null){
-                    return targetFieldName;
-                }
-            }
-        }*/
-
 
         if(preNode == null){
             return null;

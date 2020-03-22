@@ -256,13 +256,14 @@ public class TableUtils {
         Map<String, String> leftFieldMapping = fieldMapping.row(joinInfo.getLeftTableAlias());
         Map<String, String> rightFieldMapping = fieldMapping.row(joinInfo.getRightTableAlias());
 
-        for(SqlNode oneSelectNode : sqlNode.getSelectList()){
+       /* for(SqlNode oneSelectNode : sqlNode.getSelectList()){
             replaceSelectFieldTable(oneSelectNode, joinInfo.getLeftTableAlias(), newAliasName, null ,leftFieldMapping);
             replaceSelectFieldTable(oneSelectNode, joinInfo.getRightTableAlias(), newAliasName, null , rightFieldMapping);
-        }
+        }*/
 
         //where中的条件属性为新的表名称和字段
-        replaceWhereCondition();
+        FieldReplaceUtil.replaceFieldName(sqlNode, joinInfo.getLeftTableAlias(), newAliasName, leftFieldMapping);
+        FieldReplaceUtil.replaceFieldName(sqlNode, joinInfo.getRightTableAlias(), newAliasName, rightFieldMapping);
         sqlNode.setFrom(sqlBasicCall);
     }
 
@@ -296,22 +297,18 @@ public class TableUtils {
 
     /**
      * 替换select 中的字段信息
-     * 如果mappingTable 非空则从该参数获取字段的映射
-     * 如果mappingTable 为空则根据是否存在新生成字段
      * @param selectNode
      * @param oldTbName
      * @param newTbName
      * @param fieldReplaceRef
-     * @param mappingTable
      */
     public static void replaceSelectFieldTable(SqlNode selectNode,
                                                String oldTbName,
                                                String newTbName,
-                                               HashBiMap<String, String> fieldReplaceRef,
-                                               Map<String, String> mappingTable) {
+                                               HashBiMap<String, String> fieldReplaceRef) {
         if (selectNode.getKind() == AS) {
             SqlNode leftNode = ((SqlBasicCall) selectNode).getOperands()[0];
-            replaceSelectFieldTable(leftNode, oldTbName, newTbName, fieldReplaceRef, mappingTable);
+            replaceSelectFieldTable(leftNode, oldTbName, newTbName, fieldReplaceRef);
 
         }else if(selectNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
@@ -322,7 +319,7 @@ public class TableUtils {
 
             String fieldTableName = sqlIdentifier.names.get(0);
             if(oldTbName.equalsIgnoreCase(fieldTableName)){
-                replaceOneSelectField(sqlIdentifier, newTbName, oldTbName, fieldReplaceRef, mappingTable);
+                replaceOneSelectField(sqlIdentifier, newTbName, oldTbName, fieldReplaceRef);
             }
 
         }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
@@ -369,7 +366,7 @@ public class TableUtils {
                     continue;
                 }
 
-                replaceSelectFieldTable(sqlNode, oldTbName, newTbName, fieldReplaceRef, mappingTable);
+                replaceSelectFieldTable(sqlNode, oldTbName, newTbName, fieldReplaceRef);
             }
 
         }else if(selectNode.getKind() == CASE){
@@ -380,16 +377,16 @@ public class TableUtils {
 
             for(int i=0; i<whenOperands.size(); i++){
                 SqlNode oneOperand = whenOperands.get(i);
-                replaceSelectFieldTable(oneOperand, oldTbName, newTbName, fieldReplaceRef, mappingTable);
+                replaceSelectFieldTable(oneOperand, oldTbName, newTbName, fieldReplaceRef);
             }
 
             for(int i=0; i<thenOperands.size(); i++){
                 SqlNode oneOperand = thenOperands.get(i);
-                replaceSelectFieldTable(oneOperand, oldTbName, newTbName, fieldReplaceRef, mappingTable);
+                replaceSelectFieldTable(oneOperand, oldTbName, newTbName, fieldReplaceRef);
 
             }
 
-            replaceSelectFieldTable(elseNode, oldTbName, newTbName, fieldReplaceRef, mappingTable);
+            replaceSelectFieldTable(elseNode, oldTbName, newTbName, fieldReplaceRef);
         }else if(selectNode.getKind() == OTHER){
             //不处理
             return;
@@ -401,19 +398,10 @@ public class TableUtils {
     private static void replaceOneSelectField(SqlIdentifier sqlIdentifier,
                                               String newTbName,
                                               String oldTbName,
-                                              HashBiMap<String, String> fieldReplaceRef,
-                                              Map<String, String> mappingTable){
+                                              HashBiMap<String, String> fieldReplaceRef){
         SqlIdentifier newField = sqlIdentifier.setName(0, newTbName);
         String fieldName = sqlIdentifier.names.get(1);
         String fieldKey = oldTbName + "_" + fieldName;
-
-        if(mappingTable != null){
-            String mappingFieldName = mappingTable.get(fieldName);
-            Preconditions.checkNotNull(mappingFieldName, "can't get any field from mappingTable with oldFieldName " + fieldName);
-            newField = newField.setName(1, mappingFieldName);
-            sqlIdentifier.assignNamesFrom(newField);
-            return;
-        }
 
         if(!fieldReplaceRef.containsKey(fieldKey)){
             if(fieldReplaceRef.inverse().get(fieldName) != null){

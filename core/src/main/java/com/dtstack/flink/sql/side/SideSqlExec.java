@@ -108,25 +108,11 @@ public class SideSqlExec {
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
         Object pollObj = null;
 
-        //need clean
-        boolean preIsSideJoin = false;
-        List<FieldReplaceInfo> replaceInfoList = Lists.newArrayList();
-
         while((pollObj = exeQueue.poll()) != null){
 
             if(pollObj instanceof SqlNode){
                 SqlNode pollSqlNode = (SqlNode) pollObj;
 
-                if(preIsSideJoin){
-                    preIsSideJoin = false;
-                    List<String> fieldNames = null;
-                    for(FieldReplaceInfo replaceInfo : replaceInfoList){
-                        fieldNames = Lists.newArrayList();
-                        //replaceFieldName(pollSqlNode, replaceInfo);
-                        //TODO
-                        //addAliasForFieldNode(pollSqlNode, fieldNames, replaceInfo.getMappingTable());
-                    }
-                }
 
                 if(pollSqlNode.getKind() == INSERT){
                     System.out.println("----------real exec sql-----------" );
@@ -137,7 +123,7 @@ public class SideSqlExec {
                     }
 
                 }else if(pollSqlNode.getKind() == AS){
-                    dealAsSourceTable(tableEnv, pollSqlNode, tableCache, replaceInfoList);
+                    dealAsSourceTable(tableEnv, pollSqlNode, tableCache);
 
                 } else if (pollSqlNode.getKind() == WITH_ITEM) {
                     SqlWithItem sqlWithItem = (SqlWithItem) pollSqlNode;
@@ -166,8 +152,7 @@ public class SideSqlExec {
             }else if (pollObj instanceof JoinInfo){
                 System.out.println("----------exec join info----------");
                 System.out.println(pollObj.toString());
-                preIsSideJoin = true;
-                joinFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
+                joinFun(pollObj, localTableCache, sideTableMap, tableEnv);
             }
         }
 
@@ -401,8 +386,7 @@ public class SideSqlExec {
 
     protected void dealAsSourceTable(StreamTableEnvironment tableEnv,
                                      SqlNode pollSqlNode,
-                                     Map<String, Table> tableCache,
-                                     List<FieldReplaceInfo> replaceInfoList) throws SqlParseException {
+                                     Map<String, Table> tableCache) throws SqlParseException {
 
         AliasInfo aliasInfo = parseASNode(pollSqlNode);
         if (localTableCache.containsKey(aliasInfo.getName())) {
@@ -424,19 +408,13 @@ public class SideSqlExec {
         Set<String> fromTableNameSet = Sets.newHashSet();
         SqlNode fromNode = ((SqlBasicCall)pollSqlNode).getOperands()[0];
         TableUtils.getFromTableInfo(fromNode, fromTableNameSet);
-        for(FieldReplaceInfo tmp : replaceInfoList){
-            if(fromTableNameSet.contains(tmp.getTargetTableName())
-                    || fromTableNameSet.contains(tmp.getTargetTableAlias())){
-                fieldReplaceInfo.setPreNode(tmp);
-                break;
-            }
-        }
-        replaceInfoList.add(fieldReplaceInfo);
+
     }
 
-    private void joinFun(Object pollObj, Map<String, Table> localTableCache,
-                         Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
-                         List<FieldReplaceInfo> replaceInfoList) throws Exception{
+    private void joinFun(Object pollObj,
+                         Map<String, Table> localTableCache,
+                         Map<String, SideTableInfo> sideTableMap,
+                         StreamTableEnvironment tableEnv) throws Exception{
         JoinInfo joinInfo = (JoinInfo) pollObj;
 
         JoinScope joinScope = new JoinScope();
@@ -517,17 +495,6 @@ public class SideSqlExec {
         replaceInfo.setMappingTable(mappingTable);
         replaceInfo.setTargetTableName(targetTableName);
         replaceInfo.setTargetTableAlias(targetTableAlias);
-
-        //判断之前是不是被替换过,被替换过则设置之前的替换信息作为上一个节点
-        for(FieldReplaceInfo tmp : replaceInfoList){
-            if(tmp.getTargetTableName().equalsIgnoreCase(joinInfo.getLeftTableName())
-            ||tmp.getTargetTableName().equalsIgnoreCase(joinInfo.getLeftTableAlias())){
-                replaceInfo.setPreNode(tmp);
-                break;
-            }
-        }
-
-        replaceInfoList.add(replaceInfo);
 
         if (!tableEnv.isRegistered(joinInfo.getNewTableName())){
             Table joinTable = tableEnv.fromDataStream(dsOut);
