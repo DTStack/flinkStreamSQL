@@ -185,24 +185,9 @@ public class JoinNodeDealer {
                                            Set<Tuple2<String, String>> joinFieldSet,
                                            Map<String, String> fieldRef,
                                            JoinInfo tableInfo){
-        Set<String> fromTableNameSet = Sets.newHashSet();
-        TableUtils.getFromTableInfo(leftNode, fromTableNameSet);
-        Set<String> extractCondition = Sets.newHashSet();
-        extractWhereCondition(fromTableNameSet, (SqlBasicCall) parentWhere, extractCondition);
-        Set<String> extractSelectField = extractSelectFields(parentSelectList, fromTableNameSet, tableRef);
-        Set<String> fieldFromJoinCondition = extractSelectFieldFromJoinCondition(joinFieldSet, fromTableNameSet, tableRef);
 
-        extractSelectField.addAll(extractCondition);
-        extractSelectField.addAll(fieldFromJoinCondition);
-
-        Set<String> rightFromTableNameSet = Sets.newHashSet();
-        TableUtils.getFromTableInfo(rightNode, rightFromTableNameSet);
-        Set<String> extractRightCondition = Sets.newHashSet();
-        extractWhereCondition(rightFromTableNameSet, (SqlBasicCall) parentWhere, extractRightCondition);
-        Set<String> rightExtractSelectField = extractSelectFields(parentSelectList, rightFromTableNameSet, tableRef);
-        Set<String> rightFieldFromJoinCondition = extractSelectFieldFromJoinCondition(joinFieldSet, rightFromTableNameSet, tableRef);
-        rightExtractSelectField.addAll(extractRightCondition);
-        rightExtractSelectField.addAll(rightFieldFromJoinCondition);
+        Set<String> extractSelectField = extractField(leftNode, parentWhere, parentSelectList, tableRef, joinFieldSet);
+        Set<String> rightExtractSelectField = extractField(rightNode, parentWhere, parentSelectList, tableRef, joinFieldSet);
 
         //重命名right 中和 left 重名的
         Map<String, String> leftTbSelectField = Maps.newHashMap();
@@ -229,6 +214,25 @@ public class JoinNodeDealer {
 
         tableInfo.setLeftSelectFieldInfo(leftTbSelectField);
         tableInfo.setRightSelectFieldInfo(rightTbSelectField);
+    }
+
+    public Set<String> extractField(SqlNode sqlNode,
+                                    SqlNode parentWhere,
+                                    SqlNodeList parentSelectList,
+                                    Map<String, String> tableRef,
+                                    Set<Tuple2<String, String>> joinFieldSet){
+        Set<String> fromTableNameSet = Sets.newHashSet();
+        TableUtils.getFromTableInfo(sqlNode, fromTableNameSet);
+        Set<String> extractCondition = Sets.newHashSet();
+
+        extractWhereCondition(fromTableNameSet, (SqlBasicCall) parentWhere, extractCondition);
+        Set<String> extractSelectField = extractSelectFields(parentSelectList, fromTableNameSet, tableRef);
+        Set<String> fieldFromJoinCondition = extractSelectFieldFromJoinCondition(joinFieldSet, fromTableNameSet, tableRef);
+
+        extractSelectField.addAll(extractCondition);
+        extractSelectField.addAll(fieldFromJoinCondition);
+
+        return extractSelectField;
     }
 
 
