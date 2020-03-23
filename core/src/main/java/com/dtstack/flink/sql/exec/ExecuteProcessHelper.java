@@ -137,7 +137,7 @@ public class ExecuteProcessHelper {
      * @param pluginLoadMode
      * @return
      */
-    public static boolean checkRemoteSqlPluginPath(String remoteSqlPluginPath, String deployMode, String pluginLoadMode) {
+    private static boolean checkRemoteSqlPluginPath(String remoteSqlPluginPath, String deployMode, String pluginLoadMode) {
         if (StringUtils.isEmpty(remoteSqlPluginPath)) {
             return StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.SHIPFILE.name())
                     || StringUtils.equalsIgnoreCase(deployMode, ClusterMode.local.name());
@@ -174,7 +174,7 @@ public class ExecuteProcessHelper {
     }
 
 
-    public static List<URL> getExternalJarUrls(String addJarListStr) throws java.io.IOException {
+    private static List<URL> getExternalJarUrls(String addJarListStr) throws java.io.IOException {
         List<URL> jarUrlList = Lists.newArrayList();
         if (Strings.isNullOrEmpty(addJarListStr)) {
             return jarUrlList;
@@ -187,7 +187,7 @@ public class ExecuteProcessHelper {
         }
         return jarUrlList;
     }
-    
+
     private static void sqlTranslation(String localSqlPluginPath,
             StreamTableEnvironment tableEnv,
             SqlTree sqlTree,Map<String, SideTableInfo> sideTableMap,
@@ -238,7 +238,7 @@ public class ExecuteProcessHelper {
         }
     }
 
-    public static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv)
+    private static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv)
             throws IllegalAccessException, InvocationTargetException {
         // udf和tableEnv须由同一个类加载器加载
         ClassLoader levelClassLoader = tableEnv.getClass().getClassLoader();
@@ -266,9 +266,9 @@ public class ExecuteProcessHelper {
      * @return
      * @throws Exception
      */
-    public static Set<URL> registerTable(SqlTree sqlTree, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv, String localSqlPluginPath,
+    private static Set<URL> registerTable(SqlTree sqlTree, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv, String localSqlPluginPath,
                                          String remoteSqlPluginPath, String pluginLoadMode, Map<String, SideTableInfo> sideTableMap, Map<String, Table> registerTableCache) throws Exception {
-        Set<URL> pluginClassPatshSets = Sets.newHashSet();
+        Set<URL> pluginClassPathSets = Sets.newHashSet();
         WaterMarkerAssigner waterMarkerAssigner = new WaterMarkerAssigner();
         for (TableInfo tableInfo : sqlTree.getTableInfoMap().values()) {
 
@@ -306,7 +306,7 @@ public class ExecuteProcessHelper {
                 registerTableCache.put(tableInfo.getName(), regTable);
 
                 URL sourceTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
-                pluginClassPatshSets.add(sourceTablePathUrl);
+                pluginClassPathSets.add(sourceTablePathUrl);
             } else if (tableInfo instanceof TargetTableInfo) {
 
                 TableSink tableSink = StreamSinkFactory.getTableSink((TargetTableInfo) tableInfo, localSqlPluginPath);
@@ -314,18 +314,18 @@ public class ExecuteProcessHelper {
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
 
                 URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
-                pluginClassPatshSets.add(sinkTablePathUrl);
+                pluginClassPathSets.add(sinkTablePathUrl);
             } else if (tableInfo instanceof SideTableInfo) {
                 String sideOperator = ECacheType.ALL.name().equals(((SideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
                 sideTableMap.put(tableInfo.getName(), (SideTableInfo) tableInfo);
 
                 URL sideTablePathUrl = PluginUtil.buildSidePathByLoadMode(tableInfo.getType(), sideOperator, SideTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
-                pluginClassPatshSets.add(sideTablePathUrl);
+                pluginClassPathSets.add(sideTablePathUrl);
             } else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
         }
-        return pluginClassPatshSets;
+        return pluginClassPathSets;
     }
 
     /**
@@ -333,7 +333,7 @@ public class ExecuteProcessHelper {
      * @param env
      * @param classPathSet
      */
-    public static void registerPluginUrlToCachedFile(StreamExecutionEnvironment env, Set<URL> classPathSet) {
+    private static void registerPluginUrlToCachedFile(StreamExecutionEnvironment env, Set<URL> classPathSet) {
         int i = 0;
         for (URL url : classPathSet) {
             String classFileName = String.format(CLASS_FILE_NAME_FMT, i);
@@ -342,7 +342,7 @@ public class ExecuteProcessHelper {
         }
     }
 
-    public static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
+    private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
