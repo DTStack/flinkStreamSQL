@@ -149,7 +149,13 @@ public class Main {
         env.execute(name);
     }
 
-    private static void sqlTranslation(String localSqlPluginPath, StreamTableEnvironment tableEnv,SqlTree sqlTree,Map<String, SideTableInfo> sideTableMap,Map<String, Table> registerTableCache, StreamQueryConfig queryConfig) throws Exception {
+    private static void sqlTranslation(String localSqlPluginPath,
+                                       StreamTableEnvironment tableEnv,
+                                       SqlTree sqlTree,
+                                       Map<String, SideTableInfo> sideTableMap,
+                                       Map<String, Table> registerTableCache,
+                                       StreamQueryConfig queryConfig) throws Exception {
+
         SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {

@@ -84,8 +84,12 @@ public class SideSqlExec {
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
-    public void exec(String sql, Map<String, SideTableInfo> sideTableMap, StreamTableEnvironment tableEnv,
-                     Map<String, Table> tableCache, StreamQueryConfig queryConfig, CreateTmpTableParser.SqlParserResult createView) throws Exception {
+    public void exec(String sql,
+                     Map<String, SideTableInfo> sideTableMap,
+                     StreamTableEnvironment tableEnv,
+                     Map<String, Table> tableCache,
+                     StreamQueryConfig queryConfig,
+                     CreateTmpTableParser.SqlParserResult createView) throws Exception {
         if(localSqlPluginPath == null){
             throw new RuntimeException("need to set localSqlPluginPath");
         }
@@ -189,66 +193,6 @@ public class SideSqlExec {
         replaceInfo.setTargetTableName(alias.toString());
         replaceInfo.setTargetTableAlias(alias.toString());
         return replaceInfo;
-    }
-
-
-    /**
-     * 添加字段别名
-     * @param pollSqlNode
-     * @param fieldList
-     * @param mappingTable
-     */
-    private void addAliasForFieldNode(SqlNode pollSqlNode, List<String> fieldList, HashBasedTable<String, String, String> mappingTable) {
-        SqlKind sqlKind = pollSqlNode.getKind();
-        switch (sqlKind) {
-            case INSERT:
-                SqlNode source = ((SqlInsert) pollSqlNode).getSource();
-                addAliasForFieldNode(source, fieldList, mappingTable);
-                break;
-            case AS:
-                addAliasForFieldNode(((SqlBasicCall) pollSqlNode).getOperands()[0], fieldList, mappingTable);
-                break;
-            case SELECT:
-                SqlNodeList selectList = ((SqlSelect) pollSqlNode).getSelectList();
-                selectList.getList().forEach(node -> {
-                    if (node.getKind() == IDENTIFIER) {
-                        SqlIdentifier sqlIdentifier = (SqlIdentifier) node;
-                        if (sqlIdentifier.names.size() == 1) {
-                            return;
-                        }
-                        // save real field
-                        String fieldName = sqlIdentifier.names.get(1);
-                        if (!fieldName.endsWith("0") || fieldName.endsWith("0") && mappingTable.columnMap().containsKey(fieldName)) {
-                            fieldList.add(fieldName);
-                        }
-
-                    }
-                });
-                for (int i = 0; i < selectList.getList().size(); i++) {
-                    SqlNode node = selectList.get(i);
-                    if (node.getKind() == IDENTIFIER) {
-                        SqlIdentifier sqlIdentifier = (SqlIdentifier) node;
-                        if (sqlIdentifier.names.size() == 1) {
-                            return;
-                        }
-                        String name = sqlIdentifier.names.get(1);
-                        // avoid real field pv0 convert pv
-                        if (name.endsWith("0") &&  !fieldList.contains(name) && !fieldList.contains(name.substring(0, name.length() - 1))) {
-                            SqlOperator operator = new SqlAsOperator();
-                            SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
-
-                            SqlIdentifier sqlIdentifierAlias = new SqlIdentifier(name.substring(0, name.length() - 1), null, sqlParserPos);
-                            SqlNode[] sqlNodes = new SqlNode[2];
-                            sqlNodes[0] = sqlIdentifier;
-                            sqlNodes[1] = sqlIdentifierAlias;
-                            SqlBasicCall sqlBasicCall = new SqlBasicCall(operator, sqlNodes, sqlParserPos);
-
-                            selectList.set(i, sqlBasicCall);
-                        }
-                    }
-                }
-                break;
-        }
     }
 
 

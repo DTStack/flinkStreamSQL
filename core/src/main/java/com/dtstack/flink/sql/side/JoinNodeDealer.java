@@ -74,7 +74,7 @@ public class JoinNodeDealer {
      * 解析 join 操作
      * @param joinNode
      * @param sideTableSet 标明哪些表名是维表
-     * @param queueInfo
+     * @param queueInfo sql执行队列
      * @param parentWhere join 关联的最上层的where 节点
      * @param parentSelectList join 关联的最上层的select 节点
      * @param joinFieldSet
@@ -99,18 +99,13 @@ public class JoinNodeDealer {
         String rightTableName = "";
         String rightTableAlias = "";
 
-        //TODO 含义需要更明确
-        HashBiMap<String, String> fieldReplaceRef = HashBiMap.create();
-
-        //如果是连续join 判断是否已经处理过添加到执行队列
+        //抽取join中的的条件
         extractJoinField(joinNode.getCondition(), joinFieldSet);
 
-        if(leftNode.getKind() == IDENTIFIER){
-            leftTbName = leftNode.toString();
-        } else if (leftNode.getKind() == JOIN) {
+        if (leftNode.getKind() == JOIN) {
             //处理连续join
             dealNestJoin(joinNode, sideTableSet,
-                    queueInfo, parentWhere, parentSelectList, joinFieldSet, tableRef, fieldRef, parentSelectList, fieldReplaceRef);
+                    queueInfo, parentWhere, parentSelectList, joinFieldSet, tableRef, fieldRef, parentSelectList);
             leftNode = joinNode.getLeft();
         }
 
@@ -135,24 +130,16 @@ public class JoinNodeDealer {
         JoinInfo tableInfo = new JoinInfo();
         tableInfo.setLeftTableName(leftTbName);
         tableInfo.setRightTableName(rightTableName);
-        if (StringUtils.isEmpty(leftTbAlias)){
-            tableInfo.setLeftTableAlias(leftTbName);
-        } else {
-            tableInfo.setLeftTableAlias(leftTbAlias);
-        }
 
-        if (StringUtils.isEmpty(rightTableAlias)){
-            tableInfo.setRightTableAlias(rightTableName);
-        } else {
-            tableInfo.setRightTableAlias(rightTableAlias);
-        }
+        leftTbAlias = StringUtils.isEmpty(leftTbAlias) ? leftTbName : leftTbAlias;
+        rightTableAlias = StringUtils.isEmpty(rightTableAlias) ? rightTableName : rightTableAlias;
 
-        tableInfo.setLeftIsSideTable(leftIsSide);
+        tableInfo.setLeftTableAlias(leftTbAlias);
+        tableInfo.setRightTableAlias(rightTableAlias);
         tableInfo.setRightIsSideTable(rightIsSide);
         tableInfo.setLeftNode(leftNode);
         tableInfo.setRightNode(rightNode);
         tableInfo.setJoinType(joinType);
-
         tableInfo.setCondition(joinNode.getCondition());
         TableUtils.replaceJoinFieldRefTableName(joinNode.getCondition(), fieldRef);
 
@@ -216,6 +203,15 @@ public class JoinNodeDealer {
         tableInfo.setRightSelectFieldInfo(rightTbSelectField);
     }
 
+    /**
+     * 指定的节点关联到的 select 中的字段和 where中的字段
+     * @param sqlNode
+     * @param parentWhere
+     * @param parentSelectList
+     * @param tableRef
+     * @param joinFieldSet
+     * @return
+     */
     public Set<String> extractField(SqlNode sqlNode,
                                     SqlNode parentWhere,
                                     SqlNodeList parentSelectList,
@@ -250,8 +246,7 @@ public class JoinNodeDealer {
                                   Set<Tuple2<String, String>> joinFieldSet,
                                   Map<String, String> tableRef,
                                   Map<String, String> fieldRef,
-                                  SqlNodeList parentSelectList,
-                                  HashBiMap<String, String> fieldReplaceRef){
+                                  SqlNodeList parentSelectList){
 
         SqlJoin leftJoinNode = (SqlJoin) joinNode.getLeft();
         SqlNode parentRightJoinNode = joinNode.getRight();
@@ -267,7 +262,7 @@ public class JoinNodeDealer {
         SqlBasicCall buildAs = TableUtils.buildAsNodeByJoinInfo(joinInfo, null, null);
 
         if(rightIsSide){
-            addSideInfoToExeQueue(queueInfo, joinInfo, joinNode, parentSelectList, parentWhere, fieldReplaceRef, tableRef);
+            addSideInfoToExeQueue(queueInfo, joinInfo, joinNode, parentSelectList, parentWhere, tableRef);
         }
 
         SqlNode newLeftNode = joinNode.getLeft();
@@ -280,7 +275,7 @@ public class JoinNodeDealer {
 
             //替换leftNode 为新的查询
             joinNode.setLeft(buildAs);
-            replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentWhere, fieldReplaceRef);
+            replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentWhere);
         }
 
         return joinInfo;
@@ -294,7 +289,6 @@ public class JoinNodeDealer {
      * @param joinNode
      * @param parentSelectList
      * @param parentWhere
-     * @param fieldReplaceRef
      * @param tableRef
      */
     public void addSideInfoToExeQueue(Queue<Object> queueInfo,
@@ -302,7 +296,6 @@ public class JoinNodeDealer {
                                       SqlJoin joinNode,
                                       SqlNodeList parentSelectList,
                                       SqlNode parentWhere,
-                                      HashBiMap<String, String> fieldReplaceRef,
                                       Map<String, String> tableRef){
         //只处理维表
         if(!joinInfo.isRightIsSideTable()){
@@ -315,7 +308,7 @@ public class JoinNodeDealer {
         //替换左表为新的表名称
         joinNode.setLeft(buildAs);
 
-        replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentWhere, fieldReplaceRef);
+        replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentWhere);
     }
 
     /**
@@ -325,14 +318,12 @@ public class JoinNodeDealer {
      * @param tableRef
      * @param parentSelectList
      * @param parentWhere
-     * @param fieldReplaceRef
      */
     public void replaceSelectAndWhereField(SqlBasicCall buildAs,
                    SqlNode leftJoinNode,
                    Map<String, String> tableRef,
                    SqlNodeList parentSelectList,
-                   SqlNode parentWhere,
-                   HashBiMap<String, String> fieldReplaceRef){
+                   SqlNode parentWhere){
 
         String newLeftTableName = buildAs.getOperands()[1].toString();
         Set<String> fromTableNameSet = Sets.newHashSet();
@@ -343,6 +334,7 @@ public class JoinNodeDealer {
         }
 
         //替换select field 中的对应字段
+        HashBiMap<String, String> fieldReplaceRef = HashBiMap.create();
         for(SqlNode sqlNode : parentSelectList.getList()){
             for(String tbTmp : fromTableNameSet) {
                 TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);

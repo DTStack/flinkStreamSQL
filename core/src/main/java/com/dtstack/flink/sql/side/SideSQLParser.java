@@ -90,48 +90,16 @@ public class SideSQLParser {
         return queueInfo;
     }
 
-    private void checkAndReplaceMultiJoin(SqlNode sqlNode, Set<String> sideTableSet) {
-        SqlKind sqlKind = sqlNode.getKind();
-        switch (sqlKind) {
-            case WITH: {
-                SqlWith sqlWith = (SqlWith) sqlNode;
-                SqlNodeList sqlNodeList = sqlWith.withList;
-                for (SqlNode withAsTable : sqlNodeList) {
-                    SqlWithItem sqlWithItem = (SqlWithItem) withAsTable;
-                    checkAndReplaceMultiJoin(sqlWithItem.query, sideTableSet);
-                }
-                checkAndReplaceMultiJoin(sqlWith.body, sideTableSet);
-                break;
-            }
-            case INSERT:
-                SqlNode sqlSource = ((SqlInsert) sqlNode).getSource();
-                checkAndReplaceMultiJoin(sqlSource, sideTableSet);
-                break;
-            case SELECT:
-                SqlNode sqlFrom = ((SqlSelect) sqlNode).getFrom();
-                if (sqlFrom.getKind() != IDENTIFIER) {
-                    checkAndReplaceMultiJoin(sqlFrom, sideTableSet);
-                }
-                break;
-            case JOIN:
-                convertSideJoinToNewQuery((SqlJoin) sqlNode, sideTableSet);
-                break;
-            case AS:
-                SqlNode info = ((SqlBasicCall) sqlNode).getOperands()[0];
-                if (info.getKind() != IDENTIFIER) {
-                    checkAndReplaceMultiJoin(info, sideTableSet);
-                }
-                break;
-            case UNION:
-                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
-                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
-                checkAndReplaceMultiJoin(unionLeft, sideTableSet);
-                checkAndReplaceMultiJoin(unionRight, sideTableSet);
-                break;
-        }
-    }
 
-
+    /**
+     *  解析 sql 根据维表 join关系重新组装新的sql
+     * @param sqlNode
+     * @param sideTableSet
+     * @param queueInfo
+     * @param parentWhere
+     * @param parentSelectList
+     * @return
+     */
     public Object parseSql(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo, SqlNode parentWhere, SqlNodeList parentSelectList){
         SqlKind sqlKind = sqlNode.getKind();
         switch (sqlKind){
@@ -175,7 +143,9 @@ public class SideSQLParser {
                 JoinNodeDealer joinNodeDealer = new JoinNodeDealer(this);
                 Set<Tuple2<String, String>> joinFieldSet = Sets.newHashSet();
                 Map<String, String> tableRef = Maps.newHashMap();
-                return joinNodeDealer.dealJoinNode((SqlJoin) sqlNode, sideTableSet, queueInfo, parentWhere, parentSelectList, joinFieldSet, tableRef);
+                Map<String, String> fieldRef = Maps.newHashMap();
+                return joinNodeDealer.dealJoinNode((SqlJoin) sqlNode, sideTableSet, queueInfo,
+                        parentWhere, parentSelectList, joinFieldSet, tableRef, fieldRef);
             case AS:
                 SqlNode info = ((SqlBasicCall)sqlNode).getOperands()[0];
                 SqlNode alias = ((SqlBasicCall) sqlNode).getOperands()[1];
@@ -207,26 +177,7 @@ public class SideSQLParser {
         return "";
     }
 
-    private AliasInfo getSqlNodeAliasInfo(SqlNode sqlNode) {
-        SqlNode info = ((SqlBasicCall) sqlNode).getOperands()[0];
-        SqlNode alias = ((SqlBasicCall) sqlNode).getOperands()[1];
-        String infoStr = info.getKind() == IDENTIFIER ? info.toString() : null;
 
-        AliasInfo aliasInfo = new AliasInfo();
-        aliasInfo.setName(infoStr);
-        aliasInfo.setAlias(alias.toString());
-        return aliasInfo;
-    }
-
-    /**
-     * 将和维表关联的join 替换为一个新的查询
-     * @param sqlNode
-     * @param sideTableSet
-     */
-    private void convertSideJoinToNewQuery(SqlJoin sqlNode, Set<String> sideTableSet) {
-        checkAndReplaceMultiJoin(sqlNode.getLeft(), sideTableSet);
-        checkAndReplaceMultiJoin(sqlNode.getRight(), sideTableSet);
-    }
 
 
     public void setLocalTableCache(Map<String, Table> localTableCache) {

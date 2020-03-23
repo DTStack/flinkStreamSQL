@@ -41,7 +41,7 @@ public class JoinInfo implements Serializable {
     private static final long serialVersionUID = -1L;
 
     //左表是否是维表
-    private boolean leftIsSideTable;
+    private boolean leftIsSideTable = false;
 
     //右表是否是维表
     private boolean rightIsSideTable;
