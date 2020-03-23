@@ -1,4 +1,14 @@
-# flinkStreamSQL
+  
+## 技术交流
+  > * 招聘大数据平台开发工程师，想了解岗位详细信息可以添加本人微信号ysqwhiletrue,注明招聘，如有意者发送简历至sishu@dtstack.com
+  
+  > * 可以搜索群号30537511或者可以扫下面的二维码进入钉钉群
+<div align=center>
+    <img src=https://user-images.githubusercontent.com/11881814/76816457-3df44800-683b-11ea-94cc-707fb0250a9a.png width=600 />
+</div>
+
+
+## flinkStreamSQL
 > * 基于开源的flink，对其实时sql进行扩展   
 >  >  * 自定义create table 语法（包括源表,输出表,维表）
 >  >  * 自定义create view 语法
@@ -7,16 +17,11 @@
 >  >  * 支持原生FLinkSQL所有的语法
 >  >  * 扩展了输入和输出的性能指标到promethus
  
-# 已支持
+## 已支持
   * 源表：kafka 0.9、0.10、0.11、1.x版本
   * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse, impala, db2, sqlserver
   * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse, impala, db2, sqlserver
-  
-# 钉钉交流群（可以搜索群号30537511，也可以扫下面的二维码）
-  
-<div align=center>
-    <img src=https://user-images.githubusercontent.com/11881814/76816457-3df44800-683b-11ea-94cc-707fb0250a9a.png width=600 />
-</div>
+
 
 ## 1 快速起步
 ### 1.1 运行模式
@@ -306,6 +311,5 @@ into
             and a.pv=10      ) as d
 ```
 
-# 招聘
-1.大数据平台开发工程师，想了解岗位详细信息可以添加本人微信号ysqwhiletrue,注明招聘，如有意者发送简历至sishu@dtstack.com。
+
   
