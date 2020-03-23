@@ -1,10 +1,10 @@
   
 ## 技术交流
-  > * 招聘大数据平台开发工程师，想了解岗位详细信息可以添加本人微信号ysqwhiletrue,注明招聘，如有意者发送简历至sishu@dtstack.com
+   * 招聘大数据平台开发工程师，想了解岗位详细信息可以添加本人微信号ysqwhiletrue,注明招聘，如有意者发送简历至sishu@dtstack.com
   
-  > * 可以搜索群号30537511或者可以扫下面的二维码进入钉钉群
+   * 可以搜索群号30537511或者可以扫下面的二维码进入钉钉群
 <div align=center>
-    <img src=https://user-images.githubusercontent.com/11881814/76816457-3df44800-683b-11ea-94cc-707fb0250a9a.png width=600 />
+    <img src=https://github.com/DTStack/flinkStreamSQL/blob/1.8_release/images/IMG_1573.JPG width=300 />
 </div>
 
 
