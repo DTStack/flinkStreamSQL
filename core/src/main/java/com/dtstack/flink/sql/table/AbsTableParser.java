@@ -43,10 +43,12 @@ public abstract class AbsTableParser {
 
     private static final String PRIMARY_KEY = "primaryKey";
     private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
+    private static final String CHAR_TYPE_NO_LENGTH = "CHAR";
 
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
     private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
     private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
+    private static Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
 
     private Map<String, Pattern> patternMap = Maps.newHashMap();
 
@@ -107,13 +109,25 @@ public abstract class AbsTableParser {
             System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
             String fieldName = String.join(" ", filedNameArr);
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
-            Class fieldClass = dbTypeConvertToJavaType(fieldType);
+
+
+            Class fieldClass = null;
+            TableInfo.FieldExtraInfo fieldExtraInfo = null;
+
+            Matcher matcher = charTypePattern.matcher(fieldType);
+            if (matcher.find()) {
+                fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
+                fieldExtraInfo = new TableInfo.FieldExtraInfo();
+                fieldExtraInfo.setLength(Integer.valueOf(matcher.group(1)));
+            } else {
+                fieldClass = dbTypeConvertToJavaType(fieldType);
+            }
 
             tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
             tableInfo.addField(fieldName);
             tableInfo.addFieldClass(fieldClass);
             tableInfo.addFieldType(fieldType);
-            tableInfo.addFieldExtraInfo(null);
+            tableInfo.addFieldExtraInfo(fieldExtraInfo);
         }
 
         tableInfo.finish();

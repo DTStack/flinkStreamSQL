@@ -21,7 +21,6 @@ import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -34,10 +33,6 @@ import org.apache.flink.types.Row;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 
