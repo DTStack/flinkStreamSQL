@@ -47,6 +47,8 @@ public class RdbSideTableInfo extends SideTableInfo {
         Preconditions.checkNotNull(tableName, "rdb of tableName is required");
         Preconditions.checkNotNull(userName, "rdb of userName is required");
         Preconditions.checkNotNull(password, "rdb of password is required");
+        Preconditions.checkArgument(getFieldList().size() == getFieldExtraInfoList().size(),
+                "fields and fieldExtraInfoList attributes must be the same length");
         return true;
     }
 
