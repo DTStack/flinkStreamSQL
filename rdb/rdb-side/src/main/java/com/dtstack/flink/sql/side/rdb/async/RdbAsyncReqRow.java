@@ -92,7 +92,6 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
         AtomicInteger failCounter = new AtomicInteger(0);
-        AtomicReference<Throwable> connErrMsg = new AtomicReference<>();
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while(!finishFlag.get()){
             AtomicBoolean connectFinish = new AtomicBoolean(false);
@@ -103,10 +102,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                         logger.error("getConnection error", conn.cause());
                     }
                     if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3)){
-                        resultFuture.completeExceptionally(connErrMsg.get());
+                        resultFuture.completeExceptionally(conn.cause());
                         finishFlag.set(true);
                     }
-                    connErrMsg.set(conn.cause());
                     conn.result().close();
                     return;
                 }
