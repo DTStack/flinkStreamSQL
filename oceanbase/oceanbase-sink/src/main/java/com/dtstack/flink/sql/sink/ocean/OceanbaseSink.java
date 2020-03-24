@@ -3,7 +3,6 @@ package com.dtstack.flink.sql.sink.ocean;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
-import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
 /**
