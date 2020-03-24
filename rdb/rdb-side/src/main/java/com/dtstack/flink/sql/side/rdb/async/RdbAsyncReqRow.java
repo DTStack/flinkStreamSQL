@@ -43,6 +43,7 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -77,6 +78,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private transient SQLClient rdbSqlClient;
 
+    private final static AtomicBoolean CONN_STATUS = new AtomicBoolean(true);
+
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
@@ -91,13 +94,32 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+
+        while (!CONN_STATUS.get()){//network is unhealth
+            Thread.sleep(100);
+        }
+        rdbSqlClient.getConnection(conn -> {
+            if(conn.failed()){
+                CONN_STATUS.set(false);
+                connectWithRetry(inputParams, input, resultFuture, rdbSqlClient);
+                return;
+            }
+            CONN_STATUS.set(true);
+            ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
+            cancelTimerWhenComplete(resultFuture, timerFuture);
+            handleQuery(conn.result(), inputParams, input, resultFuture);
+        });
+
+    }
+
+    private void connectWithRetry(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture, SQLClient rdbSqlClient) {
         AtomicInteger failCounter = new AtomicInteger(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while(!finishFlag.get()){
-            AtomicBoolean connectFinish = new AtomicBoolean(false);
+            AtomicBoolean connFinish = new AtomicBoolean(false);
             rdbSqlClient.getConnection(conn -> {
+                connFinish.set(true);
                 if(conn.failed()){
-                    connectFinish.set(true);
                     if(failCounter.getAndIncrement() % 1000 == 0){
                         logger.error("getConnection error", conn.cause());
                     }
@@ -108,16 +130,22 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                     conn.result().close();
                     return;
                 }
+                CONN_STATUS.set(true);
                 ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
                 cancelTimerWhenComplete(resultFuture, timerFuture);
                 handleQuery(conn.result(), inputParams, input, resultFuture);
                 finishFlag.set(true);
             });
+            while(!connFinish.get()){
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e){
+                    logger.error("", e);
+                }
 
-            while(!connectFinish.get()){
-                Thread.sleep(50);
             }
         }
+
     }
 
     @Override
