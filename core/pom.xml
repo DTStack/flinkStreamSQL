@@ -116,12 +116,6 @@
             <artifactId>flink-statebackend-rocksdb_2.11</artifactId>
             <version>${flink.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-        </dependency>
         <dependency>
             <groupId>com.aiweiergou</groupId>
             <artifactId>tools-logger</artifactId>
