@@ -30,6 +30,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
@@ -45,6 +46,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Date: 2018/11/26
@@ -90,6 +92,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
         AtomicInteger failCounter = new AtomicInteger(0);
+        AtomicReference<Throwable> connErrMsg = new AtomicReference<>();
         while(true){
             AtomicBoolean connectFinish = new AtomicBoolean(false);
             rdbSqlClient.getConnection(conn -> {
@@ -98,17 +101,20 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                     if(failCounter.getAndIncrement() % 1000 == 0){
                         logger.error("getConnection error", conn.cause());
                     }
+                    connErrMsg.set(conn.cause());
                     conn.result().close();
                 }
                 ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
                 cancelTimerWhenComplete(resultFuture, timerFuture);
                 handleQuery(conn.result(), inputParams, input, resultFuture);
             });
+
             while(!connectFinish.get()){
                 Thread.sleep(50);
             }
+
             if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3)){
-                resultFuture.completeExceptionally(new RuntimeException("connection fail"));
+                resultFuture.completeExceptionally(connErrMsg.get());
                 return;
             }
         }
