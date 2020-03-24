@@ -80,9 +80,10 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- *  任务执行时的流程方法
+ * 任务执行时的流程方法
  * Date: 2020/2/17
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class ExecuteProcessHelper {
@@ -131,7 +132,8 @@ public class ExecuteProcessHelper {
     }
 
     /**
-     *   非local模式或者shipfile部署模式，remoteSqlPluginPath必填
+     * 非local模式或者shipfile部署模式，remoteSqlPluginPath必填
+     *
      * @param remoteSqlPluginPath
      * @param deployMode
      * @param pluginLoadMode
@@ -189,12 +191,12 @@ public class ExecuteProcessHelper {
     }
 
     private static void sqlTranslation(String localSqlPluginPath,
-            StreamTableEnvironment tableEnv,
-            SqlTree sqlTree,Map<String, SideTableInfo> sideTableMap,
-            Map<String, Table> registerTableCache,
-            StreamQueryConfig queryConfig) throws Exception {
+                                       StreamTableEnvironment tableEnv,
+                                       SqlTree sqlTree, Map<String, SideTableInfo> sideTableMap,
+                                       Map<String, Table> registerTableCache,
+                                       StreamQueryConfig queryConfig) throws Exception {
 
-    	SideSqlExec sideSqlExec = new SideSqlExec();
+        SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
             sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, result);
@@ -254,13 +256,14 @@ public class ExecuteProcessHelper {
     }
 
     /**
-     *    向Flink注册源表和结果表，返回执行时插件包的全路径
+     * 向Flink注册源表和结果表，返回执行时插件包的全路径
+     *
      * @param sqlTree
      * @param env
      * @param tableEnv
      * @param localSqlPluginPath
      * @param remoteSqlPluginPath
-     * @param pluginLoadMode   插件加载模式 classpath or shipfile
+     * @param pluginLoadMode      插件加载模式 classpath or shipfile
      * @param sideTableMap
      * @param registerTableCache
      * @return
@@ -293,7 +296,23 @@ public class ExecuteProcessHelper {
 
                 if (waterMarkerAssigner.checkNeedAssignWaterMarker(sourceTableInfo)) {
                     adaptStream = waterMarkerAssigner.assignWaterMarker(adaptStream, typeInfo, sourceTableInfo);
-                    fields += ",ROWTIME.ROWTIME";
+                    String eventTimeField = sourceTableInfo.getEventTimeField();
+                    boolean hasEventTimeField = false;
+                    if (!Strings.isNullOrEmpty(eventTimeField)) {
+                        String[] fieldArray = fields.split(",");
+                        for (int i = 0; i < fieldArray.length; i++) {
+                            if (fieldArray[i].equals(eventTimeField)) {
+                                fieldArray[i] = eventTimeField + ".ROWTIME";
+                                hasEventTimeField = true;
+                                break;
+                            }
+                        }
+                        if (hasEventTimeField) {
+                            fields = String.join(",", fieldArray);
+                        } else {
+                            fields += ",ROWTIME.ROWTIME";
+                        }
+                    }
                 } else {
                     fields += ",PROCTIME.PROCTIME";
                 }
@@ -329,7 +348,8 @@ public class ExecuteProcessHelper {
     }
 
     /**
-     *   perjob模式将job依赖的插件包路径存储到cacheFile，在外围将插件包路径传递给jobgraph
+     * perjob模式将job依赖的插件包路径存储到cacheFile，在外围将插件包路径传递给jobgraph
+     *
      * @param env
      * @param classPathSet
      */

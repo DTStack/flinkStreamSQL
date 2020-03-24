@@ -1,4 +1,14 @@
-# flinkStreamSQL
+  
+## 技术交流
+   * 招聘大数据平台开发工程师，想了解岗位详细信息可以添加本人微信号ysqwhiletrue,注明招聘，如有意者发送简历至sishu@dtstack.com
+  
+   * 可以搜索群号30537511或者可以扫下面的二维码进入钉钉群
+<div align=center>
+    <img src=https://github.com/DTStack/flinkStreamSQL/blob/1.8_release/images/IMG_1573.JPG width=300 />
+</div>
+
+
+## flinkStreamSQL
 > * 基于开源的flink，对其实时sql进行扩展   
 >  >  * 自定义create table 语法（包括源表,输出表,维表）
 >  >  * 自定义create view 语法
@@ -6,34 +16,12 @@
 >  >  * 实现了流与维表的join
 >  >  * 支持原生FLinkSQL所有的语法
 >  >  * 扩展了输入和输出的性能指标到promethus
-
- ## 新特性:
-  * 1.kafka源表支持not null语法,支持字符串类型的时间转换。
-  * 2.rdb维表与DB建立连接时，周期进行连接，防止连接断开。rdbsink写入时，对连接进行检查。
-  * 3.异步维表支持非等值连接，比如：<>,<,>。
-  * 4.增加kafka数组解析
-  * 5.增加kafka1.0以上版本的支持
-  * 6.增加postgresql、kudu、clickhouse维表、结果表的支持
-  * 7.支持插件的依赖方式,参考pluginLoadMode参数
-  * 8.支持cep处理
-  * 9.支持udaf
-  * 10.支持谓词下移
-  * 11.支持状态的ttl
-  
- ## BUG修复：
-  * 1.修复不能解析sql中orderby,union语法。
-  * 2.修复yarnPer模式提交失败的异常。
-  * 3.一些bug的修复
  
-# 已支持
+## 已支持
   * 源表：kafka 0.9、0.10、0.11、1.x版本
   * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse, impala, db2, sqlserver
   * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse, impala, db2, sqlserver
 
-# 后续开发计划
-  * 维表快照
-  * kafka avro格式
-  * topN
 
 ## 1 快速起步
 ### 1.1 运行模式
@@ -323,11 +311,5 @@ into
             and a.pv=10      ) as d
 ```
 
-# 招聘
-1.大数据平台开发工程师，想了解岗位详细信息可以添加本人微信号ysqwhiletrue,注明招聘，如有意者发送简历至sishu@dtstack.com。
+
   
-# FlinkX & FlinkStreamSQL钉钉交流群
-  
-<div align=center>
-    <img src=https://user-images.githubusercontent.com/11881814/76816457-3df44800-683b-11ea-94cc-707fb0250a9a.png width=600 />
-</div>
