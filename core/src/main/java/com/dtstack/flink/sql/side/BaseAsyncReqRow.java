@@ -145,11 +145,15 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
             LOG.info("Async function call has timed out. input:{}, timeOutNum:{}",input.toString(), timeOutNum);
         }
         timeOutNum ++;
-        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncTimeoutNumLimit()){
-            resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
-        } else {
+        if(sideInfo.getJoinType() == JoinType.LEFT){
             resultFuture.complete(null);
+            return;
         }
+        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Integer.MAX_VALUE)){
+            resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
+            return;
+        }
+        resultFuture.complete(null);
     }
 
     protected void preInvoke(CRow input, ResultFuture<CRow> resultFuture){
