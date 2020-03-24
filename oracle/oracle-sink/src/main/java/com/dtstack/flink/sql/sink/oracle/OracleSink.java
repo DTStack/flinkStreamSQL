@@ -31,10 +31,6 @@ import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
  */
 public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
-    private final String SQL_DEFAULT_PLACEHOLDER = " ? ";
-    private final String DEAL_CHAR_KEY = "char";
-    private String RPAD_FORMAT = " rpad(?, %d, ' ') ";
-
     public OracleSink() {
         super(new OracleDialect());
     }

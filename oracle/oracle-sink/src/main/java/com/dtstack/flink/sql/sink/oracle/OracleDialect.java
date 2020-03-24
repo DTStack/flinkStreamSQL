@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.sink.oracle;
 
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 

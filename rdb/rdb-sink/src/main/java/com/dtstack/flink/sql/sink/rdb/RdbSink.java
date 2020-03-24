@@ -106,6 +106,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         this.sqlTypes = JDBCTypeConvertUtils.buildSqlTypes(fieldTypeArray);
         this.allReplace = rdbTableInfo.isAllReplace();
         this.updateMode = rdbTableInfo.getUpdateMode();
+        rdbTableInfo.getFieldList();
         return this;
     }
 
