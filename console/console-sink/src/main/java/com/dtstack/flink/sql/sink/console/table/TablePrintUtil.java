@@ -95,7 +95,7 @@ public class TablePrintUtil {
                     try {
                         value = obj.getClass().getMethod(colList.get(j).getMethodName).invoke(data.get(i)).toString();
                     } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        e.printStackTrace();
+                        LOG.error("", e);
                     }
                     item[j] = value == null ? "null" : value;
                 }

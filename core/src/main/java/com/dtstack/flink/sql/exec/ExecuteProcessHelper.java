@@ -95,11 +95,8 @@ public class ExecuteProcessHelper {
 
     public static ParamsInfo parseParams(String[] args) throws Exception {
         LOG.info("------------program params-------------------------");
-        System.out.println("------------program params-------------------------");
         Arrays.stream(args).forEach(arg -> LOG.info("{}", arg));
-        Arrays.stream(args).forEach(System.out::println);
         LOG.info("-------------------------------------------");
-        System.out.println("----------------------------------------");
 
         OptionParser optionParser = new OptionParser(args);
         Options options = optionParser.getOptions();
@@ -228,12 +225,10 @@ public class ExecuteProcessHelper {
                         //sql-dimensional table contains the dimension table of execution
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, null);
                     } else {
-                        System.out.println("----------exec sql without dimension join-----------");
-                        System.out.println("----------real sql exec is--------------------------");
-                        System.out.println(result.getExecSql());
+                        LOG.info("----------exec sql without dimension join-----------");
+                        LOG.info("----------real sql exec is--------------------------\n{}", result.getExecSql());
                         FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql(), queryConfig);
                         if (LOG.isInfoEnabled()) {
-                            System.out.println();
                             LOG.info("exec sql: " + result.getExecSql());
                         }
                     }
