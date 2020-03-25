@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.side;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Reason:
@@ -63,5 +64,25 @@ public class FieldInfo implements Serializable {
 
     public void setTypeInformation(TypeInformation typeInformation) {
         this.typeInformation = typeInformation;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        FieldInfo fieldInfo = (FieldInfo) o;
+        return Objects.equals(table, fieldInfo.table) &&
+                Objects.equals(fieldName, fieldInfo.fieldName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(table, fieldName);
     }
 }

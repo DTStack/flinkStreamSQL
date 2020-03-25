@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.util;
 
@@ -27,6 +26,16 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.util.TimeZone;
+import java.util.regex.Pattern;
+
+import static java.time.format.DateTimeFormatter.ISO_INSTANT;
+
 /**
  * Convert val to specified numeric type
  * Date: 2017/4/21
@@ -35,7 +44,6 @@ import java.text.SimpleDateFormat;
  */
 
 public class MathUtil {
-
     public static Long getLongVal(Object obj) {
         if (obj == null) {
             return null;
@@ -126,12 +134,12 @@ public class MathUtil {
             return Double.valueOf((String) obj);
         } else if (obj instanceof Float) {
             return ((Float) obj).doubleValue();
-        } else if (obj instanceof Double){
+        } else if (obj instanceof Double) {
             return (Double) obj;
-        }else if (obj instanceof BigDecimal) {
+        } else if (obj instanceof BigDecimal) {
             return ((BigDecimal) obj).doubleValue();
-        }else if (obj instanceof Integer){
-            return ((Integer)obj).doubleValue();
+        } else if (obj instanceof Integer) {
+            return ((Integer) obj).doubleValue();
         }
 
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Double.");
@@ -229,12 +237,7 @@ public class MathUtil {
             return null;
         }
         if (obj instanceof String) {
-            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            try {
-                return new Date(format.parse((String) obj).getTime());
-            } catch (ParseException e) {
-                throw new RuntimeException("String convert to Date fail.");
-            }
+            return DateUtil.getDateFromStr((String) obj);
         } else if (obj instanceof Timestamp) {
             return new Date(((Timestamp) obj).getTime());
         } else if (obj instanceof Date) {
@@ -242,6 +245,8 @@ public class MathUtil {
         }
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
     }
+
+
 
     public static Timestamp getTimestamp(Object obj) {
         if (obj == null) {
@@ -252,8 +257,9 @@ public class MathUtil {
         } else if (obj instanceof Date) {
             return new Timestamp(((Date) obj).getTime());
         } else if (obj instanceof String) {
-            return new Timestamp(getDate(obj).getTime());
+            return DateUtil.getTimestampFromStr(obj.toString());
         }
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
     }
+
 }
