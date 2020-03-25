@@ -19,11 +19,10 @@
 package com.dtstack.flink.sql.side.rdb.all;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
 
 
 import com.dtstack.flink.sql.side.BaseAllReqRow;
@@ -35,14 +34,10 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.datatype.DatatypeConstants;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -50,7 +45,6 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -110,15 +104,15 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(CRow value, Collector<CRow> out) throws Exception {
+    public void flatMap(Tuple2<Boolean,Row> value, Collector<Tuple2<Boolean,Row>> out) throws Exception {
         List<Integer> equalValIndex = sideInfo.getEqualValIndex();
         ArrayList<Object> inputParams = equalValIndex.stream()
-                .map(value.row()::getField)
+                .map(value.f1::getField)
                 .filter(object -> null != object)
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
-            out.collect(new CRow(fillData(value.row(), null), value.change()));
+            out.collect(Tuple2.of(value.f0, fillData(value.f1, null)));
             return;
         }
 
@@ -128,10 +122,10 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
         if (CollectionUtils.isEmpty(cacheList) && sideInfo.getJoinType() == JoinType.LEFT) {
-            out.collect(new CRow(fillData(value.row(), null), value.change()));
+            out.collect(Tuple2.of(value.f0, fillData(value.f1, null)));
         }
 
-        cacheList.stream().forEach(one -> out.collect(new CRow(fillData(value.row(), one), value.change())));
+        cacheList.stream().forEach(one -> out.collect(Tuple2.of(value.f0, fillData(value.f1, null))));
     }
 
     @Override
@@ -167,8 +161,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
      */
     protected Object dealTimeAttributeType(Class<? extends TypeInformation> entry, Object obj) {
         boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
-        if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-            obj = ((Timestamp) obj).getTime();
+        if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+            obj = Timestamp.valueOf(((LocalDateTime) obj));
         }
         return obj;
     }

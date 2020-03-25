@@ -20,10 +20,10 @@ package com.dtstack.flink.sql.side.redis;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
@@ -126,12 +126,12 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(),input.change());
+    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        Tuple2<Boolean, Row> inputCopy = Tuple2.of(input.f0, input.f1);
         List<String> keyData = Lists.newLinkedList();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.row().getField(conValIndex);
+            Object equalObj = inputCopy.f1.getField(conValIndex);
             if(equalObj == null){
                 dealMissKey(inputCopy, resultFuture);
                 return;
@@ -151,8 +151,8 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                     return;
                 }else if(ECacheContentType.MultiLine == val.getType()){
                     try {
-                        Row row = fillData(inputCopy.row(), val.getContent());
-                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
+                        Row row = fillData(inputCopy.f1, val.getContent());
+                        resultFuture.complete(Collections.singleton(Tuple2.of(input.f0, row)));
                     } catch (Exception e) {
                         dealFillDataError(resultFuture, e, inputCopy);
                     }
@@ -181,9 +181,9 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                             keyValue.put(splitKeys[3], keyValues.get(i).getValue());
                         }
                         try {
-                            Row row = fillData(inputCopy.row(), keyValue);
+                            Row row = fillData(inputCopy.f1, keyValue);
                             dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
-                            resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
+                            resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0, row)));
                         } catch (Exception e) {
                             dealFillDataError(resultFuture, e, inputCopy);
                         }

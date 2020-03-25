@@ -18,9 +18,8 @@
 
 package com.dtstack.flink.sql.side.cassandra;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 
@@ -125,14 +124,14 @@ public class CassandraAllReqRow extends BaseAllReqRow {
 
 
     @Override
-    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
+    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean,Row>> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = input.row().getField(conValIndex);
+            Object equalObj = input.f1.getField(conValIndex);
             if (equalObj == null) {
-                if(sideInfo.getJoinType() == JoinType.LEFT){
-                    Row data = fillData(input.row(), null);
-                    out.collect(new CRow(data, input.change()));
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
+                    Row data = fillData(input.f1, null);
+                    out.collect(Tuple2.of(input.f0, data));
                 }
                 return;
             }
@@ -144,8 +143,8 @@ public class CassandraAllReqRow extends BaseAllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(input.row(), null);
-                out.collect(new CRow(row, input.change()));
+                Row row = fillData(input.f1, null);
+                out.collect(Tuple2.of(input.f0, row));
             } else {
                 return;
             }
@@ -154,7 +153,7 @@ public class CassandraAllReqRow extends BaseAllReqRow {
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(new CRow(fillData(input.row(), one), input.change()));
+            out.collect(Tuple2.of(input.f0, fillData(input.f1, one)));
         }
 
     }

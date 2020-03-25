@@ -19,11 +19,10 @@
 
 package com.dtstack.flink.sql.side.cassandra;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
 import com.datastax.driver.core.Cluster;
@@ -162,15 +161,15 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(), input.change());
+    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        Tuple2<Boolean, Row> inputCopy = Tuple2.of(input.f0, input.f1);
         JsonArray inputParams = new JsonArray();
         StringBuffer stringBuffer = new StringBuffer();
         String sqlWhere = " where ";
 
         for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.row().getField(conValIndex);
+            Object equalObj = inputCopy.f1.getField(conValIndex);
             if (equalObj == null) {
                 dealMissKey(inputCopy, resultFuture);
                 return;
@@ -199,10 +198,10 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                     dealMissKey(inputCopy, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<CRow> rowList = Lists.newArrayList();
+                    List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(inputCopy.row(), jsonArray);
-                        rowList.add(new CRow(row, inputCopy.change()));
+                        Row row = fillData(inputCopy.f1, jsonArray);
+                        rowList.add(Tuple2.of(inputCopy.f0, row));
                     }
                     resultFuture.complete(rowList);
                 } else {
@@ -240,13 +239,13 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                 cluster.closeAsync();
                 if (rows.size() > 0) {
                     List<com.datastax.driver.core.Row> cacheContent = Lists.newArrayList();
-                    List<CRow> rowList = Lists.newArrayList();
+                    List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
                     for (com.datastax.driver.core.Row line : rows) {
-                        Row row = fillData(inputCopy.row(), line);
+                        Row row = fillData(inputCopy.f1, line);
                         if (openCache()) {
                             cacheContent.add(line);
                         }
-                        rowList.add(new CRow(row,inputCopy.change()));
+                        rowList.add(Tuple2.of(inputCopy.f0,row));
                     }
                     resultFuture.complete(rowList);
                     if (openCache()) {

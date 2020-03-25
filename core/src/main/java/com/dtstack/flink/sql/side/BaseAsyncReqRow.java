@@ -26,12 +26,11 @@ import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
 import org.apache.calcite.sql.JoinType;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -39,7 +38,6 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.Collections;
 
 /**
@@ -50,7 +48,7 @@ import java.util.Collections;
  * @author xuchao
  */
 
-public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> implements ISideReqRow {
+public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,Row>, Tuple2<Boolean,Row>> implements ISideReqRow {
     private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
 
@@ -114,12 +112,12 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
         return sideInfo.getSideCache() != null;
     }
 
-    protected void dealMissKey(CRow input, ResultFuture<CRow> resultFuture){
+    protected void dealMissKey(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
         if(sideInfo.getJoinType() == JoinType.LEFT){
             //Reserved left table data
             try {
-                Row row = fillData(input.row(), null);
-                resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
+                Row row = fillData(input.f1, null);
+                resultFuture.complete(Collections.singleton(new Tuple2<>(input.f0, row)));
             } catch (Exception e) {
                 dealFillDataError(resultFuture, e, input);
             }
@@ -135,7 +133,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     }
 
     @Override
-    public void timeout(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+    public void timeout(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
 
         if(timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0){
             LOG.info("Async function call has timed out. input:{}, timeOutNum:{}",input.toString(), timeOutNum);
@@ -150,7 +148,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     }
 
 
-    protected void dealFillDataError(ResultFuture<CRow> resultFuture, Exception e, Object sourceData) {
+    protected void dealFillDataError(ResultFuture<Tuple2<Boolean,Row>> resultFuture, Exception e, Object sourceData) {
         LOG.debug("source data {} join side table error ", sourceData);
         LOG.debug("async buid row error..{}", e);
         parseErrorRecords.inc();

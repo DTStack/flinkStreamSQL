@@ -19,11 +19,10 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
@@ -44,18 +43,10 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -102,12 +93,12 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(), input.change());
+    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        Tuple2<Boolean, Row> inputCopy = Tuple2.of(input.f0, input.f1);
         BasicDBObject basicDbObject = new BasicDBObject();
         for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.row().getField(conValIndex);
+            Object equalObj = inputCopy.f1.getField(conValIndex);
             if (equalObj == null) {
                 dealMissKey(inputCopy, resultFuture);
                 return;
@@ -136,10 +127,10 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
                     dealMissKey(inputCopy, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<CRow> rowList = Lists.newArrayList();
+                    List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
                     for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(inputCopy.row(), jsonArray);
-                        rowList.add(new CRow(row, inputCopy.change()));
+                        Row row = fillData(inputCopy.f1, jsonArray);
+                        rowList.add(Tuple2.of(inputCopy.f0, row));
                     }
                     resultFuture.complete(rowList);
                 } else {
@@ -155,11 +146,11 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
             @Override
             public void apply(final Document document) {
                 atomicInteger.incrementAndGet();
-                Row row = fillData(inputCopy.row(), document);
+                Row row = fillData(inputCopy.f1, document);
                 if (openCache()) {
                     cacheContent.add(document);
                 }
-                resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
+                resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0,row)));
             }
         };
         SingleResultCallback<Void> callbackWhenFinished = new SingleResultCallback<Void>() {

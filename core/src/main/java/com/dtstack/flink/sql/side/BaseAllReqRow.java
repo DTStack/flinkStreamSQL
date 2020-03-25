@@ -21,9 +21,9 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.factory.DTThreadFactory;
-import org.apache.calcite.sql.JoinType;
+import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
@@ -41,7 +41,7 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> implements ISideReqRow {
+public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean,Row>, Tuple2<Boolean,Row>> implements ISideReqRow {
 
     protected BaseSideInfo sideInfo;
 
@@ -76,15 +76,6 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> impl
             obj = Timestamp.valueOf(((LocalDateTime) obj));
         }
         return obj;
-    }
-
-    protected void sendOutputRow(CRow value, Object sideInput, Collector<CRow> out) {
-        if (sideInput == null && sideInfo.getJoinType() != JoinType.LEFT) {
-            return;
-        }
-
-        Row row = fillData(value.row(), sideInput);
-        out.collect(new CRow(row, value.change()));
     }
 
     @Override

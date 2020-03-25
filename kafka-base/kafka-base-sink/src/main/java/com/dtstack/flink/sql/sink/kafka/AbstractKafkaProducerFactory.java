@@ -19,6 +19,7 @@ package com.dtstack.flink.sql.sink.kafka;
 
 import com.dtstack.flink.sql.format.FormatType;
 import com.dtstack.flink.sql.format.SerializationMetricWrapper;
+import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.SerializationSchema;
@@ -62,9 +63,9 @@ public abstract class AbstractKafkaProducerFactory {
         if (FormatType.JSON.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
 
             if (StringUtils.isNotBlank(kafkaSinkTableInfo.getSchemaString())) {
-                serializationSchema = new JsonRowSerializationSchema(kafkaSinkTableInfo.getSchemaString());
+                serializationSchema = new JsonRowSerializationSchema.Builder(kafkaSinkTableInfo.getSchemaString()).build();
             } else if (typeInformation != null && typeInformation.getArity() != 0) {
-                serializationSchema = new JsonRowSerializationSchema(typeInformation);
+                serializationSchema = new JsonRowSerializationSchema.Builder(typeInformation).build();
             } else {
                 throw new IllegalArgumentException("sinkDataType:" + FormatType.JSON.name() + " must set schemaString（JSON Schema）or TypeInformation<Row>");
             }

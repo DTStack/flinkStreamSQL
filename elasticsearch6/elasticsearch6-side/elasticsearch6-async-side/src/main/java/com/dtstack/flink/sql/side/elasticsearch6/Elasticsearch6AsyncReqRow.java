@@ -18,10 +18,10 @@
 
 package com.dtstack.flink.sql.side.elasticsearch6;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
@@ -81,13 +81,13 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
 
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow copyCrow = new CRow(input.row(), input.change());
+    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        Tuple2<Boolean,Row> copyInput= Tuple2.of(input.f0,input.f1);
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = copyCrow.row().getField(conValIndex);
+            Object equalObj = copyInput.f1.getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(copyCrow, resultFuture);
+                dealMissKey(copyInput, resultFuture);
                 return;
             }
             inputParams.add(equalObj);
@@ -98,14 +98,14 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
             CacheObj val = getFromCache(key);
             if (val != null) {
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(copyCrow, resultFuture);
+                    dealMissKey(copyInput, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        List<CRow> rowList = getRows(copyCrow, null, (List) val.getContent());
+                        List<Tuple2<Boolean,Row>> rowList = getRows(copyInput, null, (List) val.getContent());
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, copyCrow);
+                        dealFillDataError(resultFuture, e, copyInput);
                     }
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
@@ -128,14 +128,14 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
             public void onResponse(SearchResponse searchResponse) {
 
                 List<Object> cacheContent = Lists.newArrayList();
-                List<CRow> rowList = Lists.newArrayList();
+                List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
                 SearchHit[] searchHits = searchResponse.getHits().getHits();
                 if (searchHits.length > 0) {
                     Elasticsearch6SideTableInfo tableInfo = null;
                     RestHighLevelClient tmpRhlClient = null;
                     try {
                         while (true) {
-                            loadDataToCache(searchHits, rowList, cacheContent, copyCrow);
+                            loadDataToCache(searchHits, rowList, cacheContent, copyInput);
                             // determine if all results haven been ferched
                             if (searchHits.length < getFetchSize()) {
                                 break;
@@ -154,7 +154,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, copyCrow);
+                        dealFillDataError(resultFuture, e, copyInput);
                     } finally {
                         if (tmpRhlClient != null) {
                             try {
@@ -165,7 +165,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                         }
                     }
                 } else {
-                    dealMissKey(copyCrow, resultFuture);
+                    dealMissKey(copyInput, resultFuture);
                     dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
             }
@@ -180,7 +180,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
 
     }
 
-    private void loadDataToCache(SearchHit[] searchHits, List<CRow> rowList, List<Object> cacheContent, CRow copyCrow) {
+    private void loadDataToCache(SearchHit[] searchHits, List<Tuple2<Boolean,Row>> rowList, List<Object> cacheContent, Tuple2<Boolean,Row> copyCrow) {
         List<Object> results = Lists.newArrayList();
         for (SearchHit searchHit : searchHits) {
             Map<String, Object> object = searchHit.getSourceAsMap();
@@ -189,14 +189,14 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         rowList.addAll(getRows(copyCrow, cacheContent, results));
     }
 
-    protected List<CRow> getRows(CRow inputRow, List<Object> cacheContent, List<Object> results) {
-        List<CRow> rowList = Lists.newArrayList();
+    protected List<Tuple2<Boolean, Row>> getRows(Tuple2<Boolean, Row> inputRow, List<Object> cacheContent, List<Object> results) {
+        List<Tuple2<Boolean, Row>> rowList = Lists.newArrayList();
         for (Object line : results) {
-            Row row = fillData(inputRow.row(), line);
+            Row row = fillData(inputRow.f1, line);
             if (null != cacheContent && openCache()) {
                 cacheContent.add(line);
             }
-            rowList.add(new CRow(row, inputRow.change()));
+            rowList.add(Tuple2.of(inputRow.f0, row));
         }
         return rowList;
     }

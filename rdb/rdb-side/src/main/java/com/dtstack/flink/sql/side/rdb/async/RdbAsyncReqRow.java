@@ -30,15 +30,13 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
@@ -93,13 +91,14 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow copyCrow = new CRow(input.row(), input.change());
+    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        Tuple2<Boolean,Row> inputCopy =  Tuple2.of(input.f0,input.f1);
+
         JsonArray inputParams = new JsonArray();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = copyCrow.row().getField(conValIndex);
+            Object equalObj = inputCopy.f1.getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(copyCrow, resultFuture);
+                dealMissKey(inputCopy, resultFuture);
                 return;
             }
             inputParams.add(equalObj);
@@ -110,14 +109,14 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             CacheObj val = getFromCache(key);
             if (val != null) {
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(copyCrow, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        List<CRow> rowList = getRows(copyCrow, null, (List) val.getContent());
+                        List<Tuple2<Boolean,Row>> rowList = getRows(inputCopy, null, (List) val.getContent());
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, copyCrow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
@@ -145,14 +144,14 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 List<JsonArray> results = rs.result().getResults();
                 if (results.size() > 0) {
                     try {
-                        List<CRow> rowList = getRows(copyCrow, cacheContent, results);
+                        List<Tuple2<Boolean,Row>> rowList = getRows(inputCopy, cacheContent, results);
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                         resultFuture.complete(rowList);
                     } catch (Exception e){
-                        dealFillDataError(resultFuture, e, copyCrow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 } else {
-                    dealMissKey(copyCrow, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
 
@@ -166,14 +165,14 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         });
     }
 
-    protected List<CRow> getRows(CRow inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
-        List<CRow> rowList = Lists.newArrayList();
+    protected List<Tuple2<Boolean, Row>> getRows(Tuple2<Boolean, Row> inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
+        List<Tuple2<Boolean, Row>> rowList = Lists.newArrayList();
         for (JsonArray line : results) {
-            Row row = fillData(inputRow.row(), line);
+            Row row = fillData(inputRow.f1, line);
             if (null != cacheContent && openCache()) {
                 cacheContent.add(line);
             }
-            rowList.add(new CRow(row, inputRow.change()));
+            rowList.add(Tuple2.of(inputRow.f0, row));
         }
         return rowList;
     }

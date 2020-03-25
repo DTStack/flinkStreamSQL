@@ -33,17 +33,15 @@ import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -123,12 +121,12 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(), input.change());
+    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        Tuple2<Boolean,Row> inputCopy = Tuple2.of(input.f0,input.f1);
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.row().getField(conValIndex);
+            Object equalObj = inputCopy.f1.getField(conValIndex);
             if(equalObj == null){
                 dealMissKey(inputCopy, resultFuture);
                 return;
@@ -147,16 +145,16 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
                     return;
                 } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
-                        Row row = fillData(inputCopy.row(), val);
-                        resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
+                        Row row = fillData(inputCopy.f1, val);
+                        resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0,row)));
                     } catch (Exception e) {
                         dealFillDataError(resultFuture, e, inputCopy);
                     }
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
                         for (Object one : (List) val.getContent()) {
-                            Row row = fillData(inputCopy.row(), one);
-                            resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
+                            Row row = fillData(inputCopy.f1, one);
+                            resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0,row)));
                         }
                     } catch (Exception e) {
                         dealFillDataError(resultFuture, e, inputCopy);

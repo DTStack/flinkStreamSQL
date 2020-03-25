@@ -24,9 +24,9 @@ import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -34,16 +34,25 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class HbaseAllReqRow extends BaseAllReqRow {
@@ -116,15 +125,15 @@ public class HbaseAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
+    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean,Row>> out) throws Exception {
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.row().getField(conValIndex);
+            Object equalObj = input.f1.getField(conValIndex);
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input.row(), null);
-                    out.collect(new CRow(data, input.change()));
+                    Row data = fillData(input.f1, null);
+                    out.collect(Tuple2.of(input.f0, data));
                 }
                 return;
             }
@@ -141,14 +150,14 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()) {
                 if (entry.getKey().startsWith(rowKeyStr)) {
                     cacheList = cacheRef.get().get(entry.getKey());
-                    Row row = fillData(input.row(), cacheList);
-                    out.collect(new CRow(row, input.change()));
+                    Row row = fillData(input.f1, cacheList);
+                    out.collect(Tuple2.of(input.f0, row));
                 }
             }
         } else {
             cacheList = cacheRef.get().get(rowKeyStr);
-            Row row = fillData(input.row(), cacheList);
-            out.collect(new CRow(row, input.change()));
+            Row row = fillData(input.f1, cacheList);
+            out.collect(Tuple2.of(input.f0, row));
         }
 
     }

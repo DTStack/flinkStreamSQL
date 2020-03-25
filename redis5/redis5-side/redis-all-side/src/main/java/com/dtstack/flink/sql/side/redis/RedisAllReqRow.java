@@ -29,8 +29,8 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -107,14 +107,14 @@ public class RedisAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
+    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean,Row>> out) throws Exception {
         Map<String, String> inputParams = Maps.newHashMap();
         for(Integer conValIndex : sideInfo.getEqualValIndex()){
-            Object equalObj = input.row().getField(conValIndex);
+            Object equalObj = input.f1.getField(conValIndex);
             if(equalObj == null){
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input.row(), null);
-                    out.collect(new CRow(data, input.change()));
+                    Row data = fillData(input.f1, null);
+                    out.collect(Tuple2.of(input.f0,data));
                 }
                 return;
             }
@@ -127,8 +127,8 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
         if (cacheMap == null){
             if(sideInfo.getJoinType() == JoinType.LEFT){
-                Row data = fillData(input.row(), null);
-                out.collect(new CRow(data, input.change()));
+                Row data = fillData(input.f1, null);
+                out.collect(Tuple2.of(input.f0,data));
             }else{
                 return;
             }
@@ -136,8 +136,9 @@ public class RedisAllReqRow extends BaseAllReqRow {
             return;
         }
 
-        Row newRow = fillData(input.row(), cacheMap);
-        out.collect(new CRow(newRow, input.change()));
+        Row newRow = fillData(input.f1, cacheMap);
+        out.collect(Tuple2.of(input.f0,newRow));
+
     }
 
     private String buildKey(Map<String, String> inputParams) {

@@ -60,7 +60,6 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.table.api.StreamQueryConfig;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -151,7 +150,6 @@ public class ExecuteProcessHelper {
     public static StreamExecutionEnvironment getStreamExecution(ParamsInfo paramsInfo) throws Exception {
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
-        StreamQueryConfig streamQueryConfig = StreamEnvConfigManager.getStreamQueryConfig(tableEnv, paramsInfo.getConfProp());
 
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
         SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql());
@@ -167,7 +165,7 @@ public class ExecuteProcessHelper {
         // cache classPathSets
         ExecuteProcessHelper.registerPluginUrlToCachedFile(env, classPathSets);
 
-        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), tableEnv, sqlTree, sideTableMap, registerTableCache, streamQueryConfig);
+        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), tableEnv, sqlTree, sideTableMap, registerTableCache);
 
         if (env instanceof MyLocalStreamEnvironment) {
             ((MyLocalStreamEnvironment) env).setClasspaths(ClassLoaderManager.getClassPath());
@@ -193,13 +191,12 @@ public class ExecuteProcessHelper {
     private static void sqlTranslation(String localSqlPluginPath,
                                        StreamTableEnvironment tableEnv,
                                        SqlTree sqlTree,Map<String, AbstractSideTableInfo> sideTableMap,
-                                       Map<String, Table> registerTableCache,
-                                       StreamQueryConfig queryConfig) throws Exception {
+                                       Map<String, Table> registerTableCache) throws Exception {
 
         SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
-            sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, result);
+            sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, result);
         }
 
         for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
@@ -216,7 +213,7 @@ public class ExecuteProcessHelper {
                     SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(realSql, CalciteConfig.MYSQL_LEX_CONFIG).parseStmt();
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
                     tmp.setExecSql(tmpSql);
-                    sideSqlExec.exec(tmp.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, tmp);
+                    sideSqlExec.exec(tmp.getExecSql(), sideTableMap, tableEnv, registerTableCache, tmp);
                 } else {
                     for (String sourceTable : result.getSourceTableList()) {
                         if (sideTableMap.containsKey(sourceTable)) {
@@ -226,12 +223,12 @@ public class ExecuteProcessHelper {
                     }
                     if (isSide) {
                         //sql-dimensional table contains the dimension table of execution
-                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, null);
+                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, null);
                     } else {
                         System.out.println("----------exec sql without dimension join-----------");
                         System.out.println("----------real sql exec is--------------------------");
                         System.out.println(result.getExecSql());
-                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql(), queryConfig);
+                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
                         if (LOG.isInfoEnabled()) {
                             System.out.println();
                             LOG.info("exec sql: " + result.getExecSql());

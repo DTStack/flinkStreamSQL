@@ -22,6 +22,7 @@ import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -29,15 +30,12 @@ import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer011;
-import org.apache.flink.streaming.api.datastream.DataStreamSink;
+
 import org.apache.flink.streaming.connectors.kafka.KafkaTableSinkBase;
-import org.apache.flink.streaming.connectors.kafka.KafkaTableSinkBase;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
-import org.apache.flink.table.utils.TableConnectorUtils;
 import org.apache.flink.types.Row;
 
 import java.util.Optional;
@@ -72,6 +70,9 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
 
     /** Partitioner to select Kafka partition for each item. */
     protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
+
+    protected SerializationSchema serializationSchema;
+
     private String[] partitionKeys;
 
 
@@ -108,6 +109,9 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
 
         this.kafkaProducer011 = (FlinkKafkaProducer011<Row>) new KafkaProducer011Factory()
                 .createKafkaProducer(kafka11SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
+
+        this.serializationSchema = new CustomerJsonRowSerializationSchema(getOutputType().getTypeAt(1));
+
         return this;
     }
 
@@ -138,7 +142,6 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
                 .returns(getOutputType().getTypeAt(1))
                 .setParallelism(parallelism);
 
-        DataStreamSink<Row> dataStreamSink = (DataStreamSink<Row>) kafkaTableSink.consumeDataStream(ds);
         return dataStreamSink;
     }
 

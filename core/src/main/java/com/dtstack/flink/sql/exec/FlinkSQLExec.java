@@ -45,18 +45,19 @@ import java.util.List;
 
 
 /**
- * @description:  mapping by name when insert into sink table
+ * @description: mapping by name when insert into sink table
  * @author: maqi
  * @create: 2019/08/15 11:09
  */
 public class FlinkSQLExec {
     private static final Logger LOG = LoggerFactory.getLogger(FlinkSQLExec.class);
+
     public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt) throws Exception {
         StreamTableEnvironmentImpl tableEnvImpl = ((StreamTableEnvironmentImpl) tableEnv);
-        StreamPlanner streamPlanner = (StreamPlanner)tableEnvImpl.getPlanner();
+        StreamPlanner streamPlanner = (StreamPlanner) tableEnvImpl.getPlanner();
         FlinkPlannerImpl flinkPlanner = streamPlanner.createFlinkPlanner();
 
-        RichSqlInsert insert = (RichSqlInsert)flinkPlanner.parse(stmt);
+        RichSqlInsert insert = (RichSqlInsert) flinkPlanner.parse(stmt);
         TableImpl queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
 
         String targetTableName = ((SqlIdentifier) ((SqlInsert) insert).getTargetTable()).names.get(0);
@@ -78,9 +79,9 @@ public class FlinkSQLExec {
             newTable = queryResult.select(String.join(",", sinkFieldNames));
         } catch (Exception e) {
             throw new ValidationException(
-                    "Field name of query result and registered TableSink "+targetTableName +" do not match.\n" +
-                    "Query result schema: " + String.join(",", queryFieldNames) + "\n" +
-                    "TableSink schema: " + String.join(",", sinkFieldNames));
+                    "Field name of query result and registered TableSink " + targetTableName + " do not match.\n" +
+                            "Query result schema: " + String.join(",", queryFieldNames) + "\n" +
+                            "TableSink schema: " + String.join(",", sinkFieldNames));
         }
 
         try {

@@ -24,8 +24,8 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import org.apache.calcite.sql.JoinType;
 import com.google.common.collect.Maps;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.hbase.async.HBaseClient;
 
@@ -73,12 +73,12 @@ public abstract class AbstractRowKeyModeDealer {
         this.sideFieldIndex = sideFieldIndex;
     }
 
-    protected void dealMissKey(CRow input, ResultFuture<CRow> resultFuture){
+    protected void dealMissKey(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
         if(joinType == JoinType.LEFT){
             try {
                 //保留left 表数据
-                Row row = fillData(input.row(), null);
-                resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
+                Row row = fillData(input.f1, null);
+                resultFuture.complete(Collections.singleton(Tuple2.of(input.f0,row)));
             } catch (Exception e) {
                 resultFuture.completeExceptionally(e);
             }
@@ -110,6 +110,6 @@ public abstract class AbstractRowKeyModeDealer {
         return row;
     }
 
-    public abstract void asyncGetData(String tableName, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture,
+    public abstract void asyncGetData(String tableName, String rowKeyStr, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture,
                                       AbstractSideCache sideCache);
 }
