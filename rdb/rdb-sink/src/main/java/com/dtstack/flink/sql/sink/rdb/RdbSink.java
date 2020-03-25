@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.sink.rdb;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -83,6 +84,10 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
 
     protected String updateMode;
 
+    public List<String> fieldList;
+    public List<String> fieldTypeList;
+    public List<TableInfo.FieldExtraInfo> fieldExtraInfoList;
+
     public RdbSink(JDBCDialect jdbcDialect) {
         this.jdbcDialect = jdbcDialect;
     }
@@ -106,7 +111,9 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         this.sqlTypes = JDBCTypeConvertUtils.buildSqlTypes(fieldTypeArray);
         this.allReplace = rdbTableInfo.isAllReplace();
         this.updateMode = rdbTableInfo.getUpdateMode();
-        rdbTableInfo.getFieldList();
+        this.fieldList = rdbTableInfo.getFieldList();
+        this.fieldTypeList = rdbTableInfo.getFieldTypeList();
+        this.fieldExtraInfoList = rdbTableInfo.getFieldExtraInfoList();
         return this;
     }
 
