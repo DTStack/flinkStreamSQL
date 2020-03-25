@@ -731,9 +731,9 @@ public class JoinNodeDealer {
             Set<String> conditionRefTableNameSet = Sets.newHashSet();
 
             fieldInfos.forEach(fieldInfo -> {
-                String[] splitInfo = StringUtils.split(fieldInfo, ",");
+                String[] splitInfo = StringUtils.split(fieldInfo, ".");
                 if(splitInfo.length == 2){
-                    conditionRefTableNameSet.add(splitInfo[1]);
+                    conditionRefTableNameSet.add(splitInfo[0]);
                 }
             });
 

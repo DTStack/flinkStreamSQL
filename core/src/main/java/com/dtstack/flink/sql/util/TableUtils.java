@@ -26,6 +26,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.typesafe.config.ConfigException;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -200,7 +201,14 @@ public class TableUtils {
         String joinLeftTableAlias = joinInfo.getLeftTableAlias();
         joinLeftTableName = Strings.isNullOrEmpty(joinLeftTableName) ? joinLeftTableAlias : joinLeftTableName;
         String newTableName = buildInternalTableName(joinLeftTableName, SPLIT, joinInfo.getRightTableName());
-        String newTableAlias = !StringUtils.isEmpty(tableAlias) ? tableAlias : buildInternalTableName(joinInfo.getLeftTableAlias(), SPLIT, joinInfo.getRightTableAlias());
+        String lefTbAlias = joinInfo.getLeftTableAlias();
+        if(Strings.isNullOrEmpty(lefTbAlias)){
+            Set<String> fromTableSet = Sets.newHashSet();
+            TableUtils.getFromTableInfo(joinInfo.getLeftNode(), fromTableSet);
+            lefTbAlias = StringUtils.join(fromTableSet, "_");
+        }
+
+        String newTableAlias = !StringUtils.isEmpty(tableAlias) ? tableAlias : buildInternalTableName(lefTbAlias, SPLIT, joinInfo.getRightTableAlias());
 
         if (null == sqlNode0) {
             sqlNode0 = new SqlIdentifier(newTableName, null, sqlParserPos);

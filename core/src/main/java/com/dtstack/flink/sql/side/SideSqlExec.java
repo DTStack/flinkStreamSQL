@@ -394,7 +394,6 @@ public class SideSqlExec {
         HashBasedTable<String, String, String> mappingTable = ((JoinInfo) pollObj).getTableFieldRef();
 
         //获取两个表的所有字段
-        //TODO 抽取
         List<FieldInfo> sideJoinFieldInfo = ParserJoinField.getRowTypeInfo(joinInfo.getSelectNode(), joinScope, true);
         //通过join的查询字段信息过滤出需要的字段信息
         sideJoinFieldInfo.removeIf(tmpFieldInfo -> mappingTable.get(tmpFieldInfo.getTable(), tmpFieldInfo.getFieldName()) == null);
