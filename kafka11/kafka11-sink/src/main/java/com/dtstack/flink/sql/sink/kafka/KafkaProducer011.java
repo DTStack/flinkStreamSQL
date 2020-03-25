@@ -18,6 +18,7 @@
 package com.dtstack.flink.sql.sink.kafka;
 
 import com.dtstack.flink.sql.format.SerializationMetricWrapper;
+import com.dtstack.flink.sql.sink.kafka.serialization.CustomerKeyedSerializationSchema;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SerializationSchema
         ;

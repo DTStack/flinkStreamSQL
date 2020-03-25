@@ -21,11 +21,13 @@
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.factory.DTThreadFactory;
+import org.apache.calcite.sql.JoinType;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
+import org.apache.flink.util.Collector;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -76,6 +78,14 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean,R
             obj = Timestamp.valueOf(((LocalDateTime) obj));
         }
         return obj;
+    }
+
+    protected void sendOutputRow(Tuple2<Boolean, Row> value, Object sideInput, Collector<Tuple2<Boolean, Row>> out) {
+        if (sideInput == null && sideInfo.getJoinType() != JoinType.LEFT) {
+            return;
+        }
+        Row row = fillData(value.f1, sideInput);
+        out.collect(Tuple2.of(value.f0, row));
     }
 
     @Override

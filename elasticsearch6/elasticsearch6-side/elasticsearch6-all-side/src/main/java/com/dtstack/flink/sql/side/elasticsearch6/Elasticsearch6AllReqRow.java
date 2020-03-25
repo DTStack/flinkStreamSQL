@@ -29,8 +29,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -72,10 +72,10 @@ public class Elasticsearch6AllReqRow extends BaseAllReqRow implements Serializab
     }
 
     @Override
-    public void flatMap(CRow value, Collector<CRow> out) throws Exception {
+    public void flatMap(Tuple2<Boolean,Row> value, Collector<Tuple2<Boolean,Row>> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = value.row().getField(conValIndex);
+            Object equalObj = value.f1.getField(conValIndex);
             if (equalObj == null) {
                 sendOutputRow(value, null, out);
                 return;

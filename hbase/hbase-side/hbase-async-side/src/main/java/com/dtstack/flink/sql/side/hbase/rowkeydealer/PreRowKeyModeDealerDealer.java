@@ -29,8 +29,8 @@ import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import com.google.common.collect.Lists;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.hbase.async.BinaryPrefixComparator;
 import org.hbase.async.Bytes;
@@ -65,7 +65,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
     }
 
     @Override
-    public void asyncGetData(String tableName, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture,
+    public void asyncGetData(String tableName, String rowKeyStr, Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, Row>> resultFuture,
                              AbstractSideCache sideCache) {
         Scanner prefixScanner = hBaseClient.newScanner(tableName);
         ScanFilter scanFilter = new RowFilter(CompareFilter.CompareOp.EQUAL, new BinaryPrefixComparator(Bytes.UTF8(rowKeyStr)));
@@ -79,7 +79,8 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
     }
 
 
-    private String dealOneRow(ArrayList<ArrayList<KeyValue>> args, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture, AbstractSideCache sideCache) {
+    private String dealOneRow(ArrayList<ArrayList<KeyValue>> args, String rowKeyStr, Tuple2<Boolean,Row>  input,
+                              ResultFuture<Tuple2<Boolean,Row> > resultFuture, AbstractSideCache sideCache) {
         if(args == null || args.size() == 0){
             dealMissKey(input, resultFuture);
             if (openCache) {
@@ -88,7 +89,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
         }
 
         List<Object> cacheContent = Lists.newArrayList();
-        List<CRow> rowList = Lists.newArrayList();
+        List<Tuple2<Boolean,Row> > rowList = Lists.newArrayList();
 
         for(List<KeyValue> oneRow : args){
             try {
@@ -117,11 +118,12 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
                             sideVal.add(val);
                         }
 
-                        Row row = fillData(input.row(), sideVal);
+                        Row row = fillData(input.f1, sideVal);
                         if (openCache) {
                             cacheContent.add(sideVal);
                         }
-                        rowList.add(new CRow(row, input.change()));
+
+                        rowList.add(Tuple2.of(input.f0,row));
                     }
                 }catch (Exception e) {
                     resultFuture.completeExceptionally(e);
@@ -144,7 +146,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
         return "";
     }
 
-    private String dealFail(Object arg2, CRow input, ResultFuture<CRow> resultFuture){
+    private String dealFail(Object arg2, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
         LOG.error("record:" + input);
         LOG.error("get side record exception:" + arg2);
         resultFuture.complete(null);

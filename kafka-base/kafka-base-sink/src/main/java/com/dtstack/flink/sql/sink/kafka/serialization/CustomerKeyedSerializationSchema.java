@@ -1,4 +1,4 @@
-package com.dtstack.flink.sql.sink.kafka;
+package com.dtstack.flink.sql.sink.kafka.serialization;
 
 
 import com.dtstack.flink.sql.format.SerializationMetricWrapper;
@@ -30,6 +30,7 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
         this.mapper = new ObjectMapper();
     }
 
+    @Override
     public byte[] serializeKey(Row element) {
         if(partitionKeys == null || partitionKeys.length <=0){
             return null;
@@ -41,10 +42,12 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
         return null;
     }
 
+    @Override
     public byte[] serializeValue(Row element) {
         return this.serializationMetricWrapper.serialize(element);
     }
 
+    @Override
     public String getTargetTopic(Row element) {
         return null;
     }
