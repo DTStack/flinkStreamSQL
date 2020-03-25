@@ -18,28 +18,46 @@
 
 package com.dtstack.flink.sql.side.redis;
 
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
 import com.esotericsoftware.minlog.Log;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Maps;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.*;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
-public class RedisAllReqRow extends AllReqRow{
+/**
+ * @author yanxi
+ */
+public class RedisAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = 7578879189085344807L;
 
@@ -57,7 +75,7 @@ public class RedisAllReqRow extends AllReqRow{
 
     private RedisSideReqRow redisSideReqRow;
 
-    public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         this.redisSideReqRow = new RedisSideReqRow(super.sideInfo);
     }
@@ -89,14 +107,14 @@ public class RedisAllReqRow extends AllReqRow{
     }
 
     @Override
-    public void flatMap(Row row, Collector<Row> out) throws Exception {
+    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
         Map<String, String> inputParams = Maps.newHashMap();
         for(Integer conValIndex : sideInfo.getEqualValIndex()){
-            Object equalObj = row.getField(conValIndex);
+            Object equalObj = input.row().getField(conValIndex);
             if(equalObj == null){
-                if(sideInfo.getJoinType() == JoinType.LEFT){
-                    Row data = fillData(row, null);
-                    out.collect(data);
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
+                    Row data = fillData(input.row(), null);
+                    out.collect(new CRow(data, input.change()));
                 }
                 return;
             }
@@ -109,8 +127,8 @@ public class RedisAllReqRow extends AllReqRow{
 
         if (cacheMap == null){
             if(sideInfo.getJoinType() == JoinType.LEFT){
-                Row data = fillData(row, null);
-                out.collect(data);
+                Row data = fillData(input.row(), null);
+                out.collect(new CRow(data, input.change()));
             }else{
                 return;
             }
@@ -118,8 +136,8 @@ public class RedisAllReqRow extends AllReqRow{
             return;
         }
 
-        Row newRow = fillData(row, cacheMap);
-        out.collect(newRow);
+        Row newRow = fillData(input.row(), cacheMap);
+        out.collect(new CRow(newRow, input.change()));
     }
 
     private String buildKey(Map<String, String> inputParams) {
@@ -161,19 +179,19 @@ public class RedisAllReqRow extends AllReqRow{
                 Set<String> keys = ((Jedis) jedis).keys(perKey);
                 List<String> newPerKeys = new LinkedList<>();
                 for (String key : keys){
-                    String[] splitKey = key.split(":");
+                    String[] splitKey = StringUtils.split(key, ":");
                     String newKey = splitKey[0] + ":" + splitKey[1] + ":" + splitKey[2];
                     newPerKeys.add(newKey);
                 }
                 List<String> list = newPerKeys.stream().distinct().collect(Collectors.toList());
                 for(String key : list){
                     Map<String, String> kv = Maps.newHashMap();
-                    String[] primaryKv = key.split(":");
+                    String[] primaryKv = StringUtils.split(key, ":");
                     kv.put(primaryKv[1], primaryKv[2]);
                     String pattern = key + "*";
                     Set<String> realKeys = ((Jedis) jedis).keys(pattern);
                     for (String realKey : realKeys){
-                        kv.put(realKey.split(":")[3], jedis.get(realKey));
+                        kv.put(StringUtils.split(realKey, ":")[3], jedis.get(realKey));
                     }
                     tmpCache.put(key, kv);
                 }
@@ -182,19 +200,19 @@ public class RedisAllReqRow extends AllReqRow{
                 Set<String> keys = keys((JedisCluster) jedis, perKey);
                 List<String> newPerKeys = new LinkedList<>();
                 for (String key : keys){
-                    String[] splitKey = key.split(":");
+                    String[] splitKey = StringUtils.split(key, ":");
                     String newKey = splitKey[0] + ":" + splitKey[1] + ":" + splitKey[2];
                     newPerKeys.add(newKey);
                 }
                 List<String> list = newPerKeys.stream().distinct().collect(Collectors.toList());
                 for(String key : list){
                     Map<String, String> kv = Maps.newHashMap();
-                    String[] primaryKv = key.split(":");
+                    String[] primaryKv = StringUtils.split(key, ":");
                     kv.put(primaryKv[1], primaryKv[2]);
                     String pattern = key + "*";
                     Set<String> realKeys = keys((JedisCluster) jedis, pattern);
                     for (String realKey : realKeys){
-                        kv.put(realKey.split(":")[3], jedis.get(realKey));
+                        kv.put(StringUtils.split(key, ":")[3], jedis.get(realKey));
                     }
                     tmpCache.put(key, kv);
                 }
@@ -229,15 +247,15 @@ public class RedisAllReqRow extends AllReqRow{
             timeout = 1000;
         }
 
-        String[] nodes = url.split(",");
-        String[] firstIpPort = nodes[0].split(":");
+        String[] nodes = StringUtils.split(url, ",");
+        String[] firstIpPort = StringUtils.split(nodes[0], ":");
         String firstIp = firstIpPort[0];
         String firstPort = firstIpPort[1];
         Set<HostAndPort> addresses = new HashSet<>();
         Set<String> ipPorts = new HashSet<>();
         for (String ipPort : nodes) {
             ipPorts.add(ipPort);
-            String[] ipPortPair = ipPort.split(":");
+            String[] ipPortPair = StringUtils.split(ipPort, ":");
             addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
         }
         if (timeout == 0){
@@ -258,7 +276,8 @@ public class RedisAllReqRow extends AllReqRow{
                 break;
             //集群
             case 3:
-                jedis = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
+                jedis = new JedisCluster(addresses, timeout, timeout, 1, poolConfig);
+            default:
         }
 
         return jedis;

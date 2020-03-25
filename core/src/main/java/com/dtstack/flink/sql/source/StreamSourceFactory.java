@@ -22,8 +22,8 @@ package com.dtstack.flink.sql.source;
 
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
-import com.dtstack.flink.sql.table.AbsSourceParser;
-import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceParser;
+import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -43,17 +43,17 @@ public class StreamSourceFactory {
 
     private static final String DIR_NAME_FORMAT = "%ssource";
 
-    public static AbsSourceParser getSqlParser(String pluginType, String sqlRootDir) throws Exception {
+    public static AbstractSourceParser getSqlParser(String pluginType, String sqlRootDir) throws Exception {
 
         String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), sqlRootDir);
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
         String className = PluginUtil.getSqlParserClassName(typeNoVersion, CURR_TYPE);
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {
             Class<?> sourceParser = cl.loadClass(className);
-            if(!AbsSourceParser.class.isAssignableFrom(sourceParser)){
+            if(!AbstractSourceParser.class.isAssignableFrom(sourceParser)){
                 throw new RuntimeException("class " + sourceParser.getName() + " not subClass of AbsSourceParser");
             }
-            return sourceParser.asSubclass(AbsSourceParser.class).newInstance();
+            return sourceParser.asSubclass(AbstractSourceParser.class).newInstance();
         });
     }
 
@@ -62,7 +62,7 @@ public class StreamSourceFactory {
      * @param sourceTableInfo
      * @return
      */
-    public static Table getStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env,
+    public static Table getStreamSource(AbstractSourceTableInfo sourceTableInfo, StreamExecutionEnvironment env,
                                         StreamTableEnvironment tableEnv, String sqlRootDir) throws Exception {
 
         String sourceTypeStr = sourceTableInfo.getType();

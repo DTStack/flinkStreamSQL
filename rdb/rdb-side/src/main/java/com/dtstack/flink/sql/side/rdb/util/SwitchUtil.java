@@ -17,7 +17,7 @@
  */
 package com.dtstack.flink.sql.side.rdb.util;
 
-import java.text.ParseException;
+import com.dtstack.flink.sql.util.MathUtil;
 
 /**
  * Reason:
@@ -78,6 +78,7 @@ public class SwitchUtil {
             case "timestamp":
             case "datetime":
                 return MathUtil.getTimestamp(obj);
+            default:
         }
         return obj;
     }

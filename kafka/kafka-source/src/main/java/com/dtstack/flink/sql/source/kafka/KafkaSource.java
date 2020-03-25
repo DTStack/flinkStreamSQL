@@ -20,10 +20,9 @@ package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
-import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -38,7 +37,6 @@ import org.apache.flink.types.Row;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Pattern;
 
 /**
  * @author: chuixue
@@ -58,7 +56,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
      */
     @SuppressWarnings("rawtypes")
     @Override
-    public Table genStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
+    public Table genStreamSource(AbstractSourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
 
         KafkaSourceTableInfo kafkaSourceTableInfo = (KafkaSourceTableInfo) sourceTableInfo;
         String topicName = kafkaSourceTableInfo.getTopic();
@@ -84,14 +82,8 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 
         TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafkaSourceTableInfo.getFields());
 
-        FlinkKafkaConsumer<Row> kafkaSrc;
-        if (BooleanUtils.isTrue(kafkaSourceTableInfo.getTopicIsPattern())) {
-            kafkaSrc = new CustomerKafkaConsumer(Pattern.compile(topicName),
-                    new CustomerJsonDeserialization(typeInformation, kafkaSourceTableInfo.getPhysicalFields(), kafkaSourceTableInfo.getFieldExtraInfoList()), props);
-        } else {
-            kafkaSrc = new CustomerKafkaConsumer(topicName,
-                    new CustomerJsonDeserialization(typeInformation, kafkaSourceTableInfo.getPhysicalFields(), kafkaSourceTableInfo.getFieldExtraInfoList()), props);
-        }
+        FlinkKafkaConsumer<Row> kafkaSrc = (FlinkKafkaConsumer<Row>) new KafkaConsumerFactory().createKafkaTableSource(kafkaSourceTableInfo, typeInformation, props);
+
 
         //earliest,latest
         if ("earliest".equalsIgnoreCase(kafkaSourceTableInfo.getOffsetReset())) {
@@ -99,7 +91,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         } else if (DtStringUtil.isJosn(kafkaSourceTableInfo.getOffsetReset())) {// {"0":12312,"1":12321,"2":12312}
             try {
                 Properties properties = PluginUtil.jsonStrToObject(kafkaSourceTableInfo.getOffsetReset(), Properties.class);
-                Map<String, Object> offsetMap = PluginUtil.ObjectToMap(properties);
+                Map<String, Object> offsetMap = PluginUtil.objectToMap(properties);
                 Map<KafkaTopicPartition, Long> specificStartupOffsets = new HashMap<>();
                 for (Map.Entry<String, Object> entry : offsetMap.entrySet()) {
                     specificStartupOffsets.put(new KafkaTopicPartition(topicName, Integer.valueOf(entry.getKey())), Long.valueOf(entry.getValue().toString()));

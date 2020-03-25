@@ -22,7 +22,7 @@ CREATE TABLE tableName(
 ```
 
 ## 2.支持的版本
-    kafka08,kafka09,kafka10,kafka11及以上版本    
+    kafka09,kafka10,kafka11及以上版本    
  **kafka读取和写入的版本必须一致，否则会有兼容性错误。**
 
 ## 3.表结构定义
@@ -39,7 +39,7 @@ CREATE TABLE tableName(
  
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
-|type | kafka09 | 是|kafka08、kafka09、kafka10、kafka11、kafka(对应kafka1.0及以上版本)|
+|type | kafka09 | 是|kafka09、kafka10、kafka11、kafka(对应kafka1.0及以上版本)|
 |groupId | 需要读取的 groupId 名称|否||
 |bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
 |zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||

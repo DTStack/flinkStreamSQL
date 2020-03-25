@@ -38,6 +38,12 @@
 
 package com.dtstack.flink.sql.sink.cassandra;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.types.Row;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.HostDistance;
@@ -48,14 +54,11 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.types.Row;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.sql.DriverManager;
@@ -69,7 +72,7 @@ import java.util.ArrayList;
  * @see Tuple
  * @see DriverManager
  */
-public class CassandraOutputFormat extends MetricOutputFormat {
+public class CassandraOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private static final long serialVersionUID = -7994311331389155692L;
 
     private static final Logger LOG = LoggerFactory.getLogger(CassandraOutputFormat.class);
@@ -145,9 +148,9 @@ public class CassandraOutputFormat extends MetricOutputFormat {
                 //重试策略
                 RetryPolicy retryPolicy = DowngradingConsistencyRetryPolicy.INSTANCE;
 
-                for (String server : address.split(",")) {
-                    cassandraPort = Integer.parseInt(server.split(":")[1]);
-                    serversList.add(InetAddress.getByName(server.split(":")[0]));
+                for (String server : StringUtils.split(address, ",")) {
+                    cassandraPort = Integer.parseInt(StringUtils.split(server, ":")[1]);
+                    serversList.add(InetAddress.getByName(StringUtils.split(server, ":")[0]));
                 }
 
                 if (userName == null || userName.isEmpty() || password == null || password.isEmpty()) {
@@ -193,7 +196,6 @@ public class CassandraOutputFormat extends MetricOutputFormat {
         try {
             if (retract) {
                 insertWrite(row);
-                outRecords.inc();
             } else {
                 //do nothing
             }
@@ -204,14 +206,24 @@ public class CassandraOutputFormat extends MetricOutputFormat {
 
     private void insertWrite(Row row) {
         try {
+
+            if(outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
+                LOG.info("Receive data : {}", row);
+            }
+
             String cql = buildSql(row);
             if (cql != null) {
                 ResultSet resultSet = session.execute(cql);
                 resultSet.wasApplied();
+                outRecords.inc();
             }
         } catch (Exception e) {
+            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
+                LOG.error("record insert failed, total dirty num:{}, current record:{}", outDirtyRecords.getCount(), row.toString());
+                LOG.error("", e);
+            }
+
             outDirtyRecords.inc();
-            LOG.error("[upsert] is error:" + e.getMessage());
         }
     }
 

@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.side.impala;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import io.vertx.core.Vertx;
@@ -50,37 +50,34 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
     private final static String IMPALA_DRIVER = "com.cloudera.impala.jdbc41.Driver";
 
 
-    public ImpalaAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public ImpalaAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new ImpalaAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        JsonObject impalaClientConfig = getClientConfig();
+        ImpalaSideTableInfo impalaSideTableInfo = (ImpalaSideTableInfo) sideInfo.getSideTableInfo();
 
-        System.setProperty("vertx.disableFileCPResolving", "true");
-
-        VertxOptions vo = new VertxOptions();
-        vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
-        vo.setFileResolverCachingEnabled(false);
-        Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, impalaClientConfig));
-    }
-
-    public JsonObject getClientConfig() {
         JsonObject impalaClientConfig = new JsonObject();
         impalaClientConfig.put("url", getUrl())
                 .put("driver_class", IMPALA_DRIVER)
-                .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
+                .put("max_pool_size", impalaSideTableInfo.getAsyncPoolSize())
                 .put("provider_class", DT_PROVIDER_CLASS)
                 .put("idle_connection_test_period", 300)
                 .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN)
                 .put("max_idle_time", 600);
 
-        return impalaClientConfig;
+        System.setProperty("vertx.disableFileCPResolving", "true");
+
+        VertxOptions vo = new VertxOptions();
+        vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
+        vo.setWorkerPoolSize(impalaSideTableInfo.getAsyncPoolSize());
+        vo.setFileResolverCachingEnabled(false);
+        Vertx vertx = Vertx.vertx(vo);
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, impalaClientConfig));
     }
+
 
     public String getUrl() {
         ImpalaSideTableInfo impalaSideTableInfo = (ImpalaSideTableInfo) sideInfo.getSideTableInfo();

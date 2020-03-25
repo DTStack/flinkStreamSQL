@@ -21,91 +21,38 @@ package com.dtstack.flink.sql.sink.postgresql;
 
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
-import com.dtstack.flink.sql.sink.postgresql.table.PostgresqlTableInfo;
-import com.dtstack.flink.sql.sink.rdb.RdbSink;
-import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
-import com.dtstack.flink.sql.table.TargetTableInfo;
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.List;
-import java.util.Map;
+import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
+import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
+import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
 /**
- * Date: 2019-08-22
- * Company: mmg
- *
- * @author tcm
+ * @author maqi
  */
-
-public class PostgresqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
-
-    private static final String POSTGRESQL_DRIVER = "org.postgresql.Driver";
-
-    private boolean isUpsert;
-
-    private String keyField;
-
+public class PostgresqlSink extends AbstractRdbSink implements IStreamSinkGener<AbstractRdbSink> {
     public PostgresqlSink() {
+        super(new PostgresqlDialect());
     }
 
     @Override
-    public RdbSink genStreamSink(TargetTableInfo targetTableInfo) {
-        PostgresqlTableInfo pgTableInfo = (PostgresqlTableInfo) targetTableInfo;
-        this.isUpsert = pgTableInfo.isUpsert();
-        this.keyField = pgTableInfo.getKeyField();
-        super.genStreamSink(targetTableInfo);
-        return this;
+    public JDBCUpsertOutputFormat getOutputFormat() {
+        JDBCOptions jdbcOptions = JDBCOptions.builder()
+                .setDbUrl(dbUrl)
+                .setDialect(jdbcDialect)
+                .setUsername(userName)
+                .setPassword(password)
+                .setTableName(tableName)
+                .setSchema(schema)
+                .build();
+
+        return JDBCUpsertOutputFormat.builder()
+                .setOptions(jdbcOptions)
+                .setFieldNames(fieldNames)
+                .setFlushMaxSize(batchNum)
+                .setFlushIntervalMills(batchWaitInterval)
+                .setFieldTypes(sqlTypes)
+                .setKeyFields(primaryKeys)
+                .setAllReplace(allReplace)
+                .setUpdateMode(updateMode)
+                .build();
     }
-
-    @Override
-    public RetractJDBCOutputFormat getOutputFormat() {
-        return new RetractJDBCOutputFormat();
-    }
-
-    @Override
-    public void buildSql(String scheam, String tableName, List<String> fields) {
-        buildInsertSql(tableName, fields);
-    }
-
-    @Override
-    public String buildUpdateSql(String schema, String tableName, List<String> fieldNames, Map<String, List<String>> realIndexes, List<String> fullField) {
-        return null;
-    }
-
-    private void buildInsertSql(String tableName, List<String> fields) {
-        StringBuffer sqlBuffer = new StringBuffer();
-
-        sqlBuffer.append("insert into ".concat(tableName)
-                .concat(" (")
-                .concat(StringUtils.join(fields, ","))
-                .concat(") ")
-        );
-        sqlBuffer.append("values (");
-        StringBuffer upsertFields = new StringBuffer();
-        for (String fieldName : fields) {
-            sqlBuffer.append("?,");
-            if (this.isUpsert) {
-                if (fieldName.equals(this.keyField)) {
-                    continue;
-                }
-                upsertFields.append(String.format("%s=excluded.%s,", fieldName, fieldName));
-            }
-        }
-        sqlBuffer.deleteCharAt(sqlBuffer.length() - 1);
-        sqlBuffer.append(")");
-
-        if (this.isUpsert) {
-            upsertFields.deleteCharAt(upsertFields.length() - 1);
-            sqlBuffer.append(" ON conflict(".concat(keyField).concat(")"));
-            sqlBuffer.append(" DO UPDATE SET ");
-            sqlBuffer.append(upsertFields);
-        }
-        this.sql = sqlBuffer.toString();
-    }
-
-    @Override
-    public String getDriverName() {
-        return POSTGRESQL_DRIVER;
-    }
-
 }

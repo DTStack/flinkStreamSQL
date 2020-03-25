@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.sink.mongo.table;
 
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 
 /**
@@ -30,7 +30,7 @@ import com.google.common.base.Preconditions;
  */
 
 
-public class MongoTableInfo extends TargetTableInfo {
+public class MongoTableInfo extends AbstractTargetTableInfo {
 
     private static final String CURR_TYPE = "mongo";
 

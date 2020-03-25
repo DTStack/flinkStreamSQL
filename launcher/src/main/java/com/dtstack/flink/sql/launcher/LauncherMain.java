@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.launcher;
 
+import com.aiweiergou.tool.logger.api.ChangeLogLevelProcess;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.google.common.collect.Lists;
 import com.alibaba.fastjson.JSON;

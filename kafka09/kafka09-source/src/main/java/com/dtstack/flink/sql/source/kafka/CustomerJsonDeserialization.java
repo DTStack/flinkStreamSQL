@@ -60,12 +60,10 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
     private static final long serialVersionUID = 2385115520960444192L;
 
     private AbstractFetcher<Row, ?> fetcher;
-    private TypeInformation<Row> typeInfo;
 
     private boolean firstMsg = true;
 
     public CustomerJsonDeserialization(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos){
-        this.typeInfo = typeInfo;
         this.jsonDataParser= new JsonDataParser(typeInfo,rowAndFieldMapping,fieldExtraInfos);
     }
 
@@ -122,15 +120,8 @@ public class CustomerJsonDeserialization extends AbsDeserialization<Row> {
         return tp + ".records-lag";
     }
 
+
     public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
         this.fetcher = fetcher;
     }
-
-
-
-    @Override
-    public TypeInformation<Row> getProducedType() {
-        return typeInfo;
-    }
-
 }

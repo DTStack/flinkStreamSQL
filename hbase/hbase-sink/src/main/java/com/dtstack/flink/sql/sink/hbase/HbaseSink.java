@@ -22,7 +22,7 @@ package com.dtstack.flink.sql.sink.hbase;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.hbase.table.HbaseTableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -31,7 +31,6 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-import org.apache.flink.table.sinks.AppendStreamTableSink;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
@@ -52,6 +51,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String port;
     protected String parent;
     protected String tableName;
+    protected String updateMode;
     protected String[] rowkey;
 
     public HbaseSink() {
@@ -59,7 +59,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     }
 
     @Override
-    public HbaseSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public HbaseSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         HbaseTableInfo hbaseTableInfo = (HbaseTableInfo) targetTableInfo;
         this.zookeeperQuorum = hbaseTableInfo.getHost();
         this.port = hbaseTableInfo.getPort();
@@ -67,6 +67,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.tableName = hbaseTableInfo.getTableName();
         this.rowkey = hbaseTableInfo.getRowkey();
         this.columnNameFamily = hbaseTableInfo.getColumnNameFamily();
+        this.updateMode = hbaseTableInfo.getUpdateMode();
         return this;
     }
 
@@ -78,11 +79,13 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     @Override
     public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         HbaseOutputFormat.HbaseOutputFormatBuilder builder = HbaseOutputFormat.buildHbaseOutputFormat();
-        builder.setHost(this.zookeeperQuorum).setZkParent(this.parent).setTable(this.tableName);
-
-        builder.setRowkey(rowkey);
-        builder.setColumnNames(fieldNames);
-        builder.setColumnNameFamily(columnNameFamily);
+        builder.setHost(this.zookeeperQuorum)
+                .setZkParent(this.parent)
+                .setTable(this.tableName)
+                .setRowkey(rowkey)
+                .setUpdateMode(updateMode)
+                .setColumnNames(fieldNames)
+                .setColumnNameFamily(columnNameFamily);
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);

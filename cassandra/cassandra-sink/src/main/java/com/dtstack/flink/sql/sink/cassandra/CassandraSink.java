@@ -22,7 +22,7 @@ package com.dtstack.flink.sql.sink.cassandra;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.cassandra.table.CassandraTableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -64,7 +64,7 @@ public class CassandraSink implements RetractStreamTableSink<Row>, IStreamSinkGe
     }
 
     @Override
-    public CassandraSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public CassandraSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         CassandraTableInfo cassandraTableInfo = (CassandraTableInfo) targetTableInfo;
         this.address = cassandraTableInfo.getAddress();
         this.tableName = cassandraTableInfo.getTableName();

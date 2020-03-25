@@ -23,13 +23,14 @@ package com.dtstack.flink.sql.side.hbase.rowkeydealer;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.cache.AbsSideCache;
+import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.hbase.async.GetRequest;
 import org.hbase.async.HBaseClient;
@@ -48,7 +49,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
+public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
 
     private static final Logger LOG = LoggerFactory.getLogger(RowKeyEqualModeDealer.class);
 
@@ -60,8 +61,8 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
 
 
     @Override
-    public void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<Row> resultFuture,
-                             AbsSideCache sideCache){
+    public void asyncGetData(String tableName, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture,
+                             AbstractSideCache sideCache){
         //TODO 是否有查询多个col family 和多个col的方法
         GetRequest getRequest = new GetRequest(tableName, rowKeyStr);
         hBaseClient.get(getRequest).addCallbacks(arg -> {
@@ -92,11 +93,11 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
                             sideVal.add(val);
                         }
 
-                        Row row = fillData(input, sideVal);
+                        Row row = fillData(input.row(), sideVal);
                         if(openCache){
                             sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
                         }
-                        resultFuture.complete(Collections.singleton(row));
+                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                     } catch (Exception e) {
                         resultFuture.completeExceptionally(e);
                     }
