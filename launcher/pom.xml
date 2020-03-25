@@ -34,11 +34,6 @@
             <artifactId>fastjson</artifactId>
             <version>1.2.7</version>
         </dependency>
-        <dependency>
-            <groupId>com.aiweiergou</groupId>
-            <artifactId>tools-logger</artifactId>
-            <version>${logger.tool.version}</version>
-        </dependency>
     </dependencies>
 
     <build>
