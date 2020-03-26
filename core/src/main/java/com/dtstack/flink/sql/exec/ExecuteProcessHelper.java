@@ -60,6 +60,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -149,7 +150,7 @@ public class ExecuteProcessHelper {
 
     public static StreamExecutionEnvironment getStreamExecution(ParamsInfo paramsInfo) throws Exception {
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
-        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+        StreamTableEnvironment tableEnv = getStreamTableEnv(env,paramsInfo.getConfProp());
 
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
         SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql());
@@ -284,11 +285,7 @@ public class ExecuteProcessHelper {
                 Table adaptTable = adaptSql == null ? table : tableEnv.sqlQuery(adaptSql);
 
                 RowTypeInfo typeInfo = new RowTypeInfo(adaptTable.getSchema().getFieldTypes(), adaptTable.getSchema().getFieldNames());
-                DataStream adaptStream = tableEnv.toRetractStream(adaptTable, typeInfo)
-                        .map((Tuple2<Boolean, Row> f0) -> {
-                            return f0.f1;
-                        })
-                        .returns(typeInfo);
+                DataStream adaptStream = tableEnv.toAppendStream(adaptTable, typeInfo);
 
                 String fields = String.join(",", typeInfo.getFieldNames());
 
@@ -351,6 +348,19 @@ public class ExecuteProcessHelper {
         StreamEnvConfigManager.streamExecutionEnvironmentConfig(env, confProperties);
         return env;
     }
+
+    private static StreamTableEnvironment getStreamTableEnv(StreamExecutionEnvironment env, Properties confProperties) {
+        // use blink and streammode
+        EnvironmentSettings settings = EnvironmentSettings.newInstance()
+                .useBlinkPlanner()
+                .inStreamingMode()
+                .build();
+
+        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, settings);
+        StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties);
+        return tableEnv;
+    }
+
 
     public static void setLogLevel(ParamsInfo paramsInfo){
         String logLevel = paramsInfo.getConfProp().getProperty(ConfigConstrant.LOG_LEVEL_KEY);

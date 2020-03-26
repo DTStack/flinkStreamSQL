@@ -19,7 +19,6 @@ package com.dtstack.flink.sql.sink.kafka;
 
 import com.dtstack.flink.sql.format.FormatType;
 import com.dtstack.flink.sql.format.SerializationMetricWrapper;
-import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.SerializationSchema;

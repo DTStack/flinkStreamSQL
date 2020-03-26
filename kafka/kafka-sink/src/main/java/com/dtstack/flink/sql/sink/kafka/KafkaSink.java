@@ -27,13 +27,12 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
-import org.apache.flink.table.utils.TableConnectorUtils;
 import org.apache.flink.types.Row;
 
 import java.util.Optional;
@@ -45,6 +44,7 @@ import java.util.Properties;
  * @description:
  **/
 public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<KafkaSink> {
+    private static final String SINK_OPERATOR_NAME_TPL = "${topic}_${table}";
 
     protected String[] fieldNames;
 
@@ -65,6 +65,9 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
 
     private String[] partitionKeys;
+
+    protected String sinkOperatorName;
+
 
     @Override
     public KafkaSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
@@ -87,7 +90,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.fieldTypes = types;
 
         TableSchema.Builder schemaBuilder = TableSchema.builder();
-        for (int i=0;i<fieldNames.length;i++) {
+        for (int i = 0; i < fieldNames.length; i++) {
             schemaBuilder.field(fieldNames[i], fieldTypes[i]);
         }
         this.schema = schemaBuilder.build();
@@ -97,7 +100,10 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
             this.parallelism = parallelism;
         }
 
-        this.flinkKafkaProducer = (FlinkKafkaProducer<Row>) new KafkaProducerFactory().createKafkaProducer(kafkaSinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
+        this.flinkKafkaProducer = (FlinkKafkaProducer<Row>) new KafkaProducerFactory()
+                .createKafkaProducer(kafkaSinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
+
+        this.sinkOperatorName = SINK_OPERATOR_NAME_TPL.replace("${topic}", topic).replace("${table}", kafkaSinkTableInfo.getName());
         return this;
     }
 
@@ -108,12 +114,20 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        DataStream<Row> mapDataStream = dataStream.filter((Tuple2<Boolean, Row> record) -> record.f0)
+        consumeDataStream(dataStream);
+    }
+
+    @Override
+    public DataStreamSink<Row> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        DataStream<Row> ds = dataStream
+                .filter((Tuple2<Boolean, Row> record) -> record.f0)
                 .map((Tuple2<Boolean, Row> record) -> record.f1)
                 .returns(getOutputType().getTypeAt(1))
                 .setParallelism(parallelism);
 
-        mapDataStream.addSink(flinkKafkaProducer).name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));
+        DataStreamSink<Row> dataStreamSink = ds.addSink(flinkKafkaProducer).name(sinkOperatorName);
+        return dataStreamSink;
+
     }
 
     @Override
@@ -121,15 +135,12 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         return new TupleTypeInfo(org.apache.flink.table.api.Types.BOOLEAN(), new RowTypeInfo(fieldTypes, fieldNames));
     }
 
-    @Override
-    public String[] getFieldNames() {
-        return fieldNames;
-    }
 
     @Override
-    public TypeInformation<?>[] getFieldTypes() {
-        return fieldTypes;
+    public TableSchema getTableSchema() {
+        return schema;
     }
+
 
     @Override
     public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
@@ -138,8 +149,8 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         return this;
     }
 
-    private String[] getPartitionKeys(KafkaSinkTableInfo kafkaSinkTableInfo){
-        if(StringUtils.isNotBlank(kafkaSinkTableInfo.getPartitionKeys())){
+    private String[] getPartitionKeys(KafkaSinkTableInfo kafkaSinkTableInfo) {
+        if (StringUtils.isNotBlank(kafkaSinkTableInfo.getPartitionKeys())) {
             return StringUtils.split(kafkaSinkTableInfo.getPartitionKeys(), ',');
         }
         return null;

@@ -58,8 +58,10 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
     private final String[] fieldNames;
     private final TypeInformation<?>[] fieldTypes;
     private List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos;
+    private TypeInformation<Row> typeInfo;
 
     public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos) {
+        this.typeInfo = typeInfo;
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
         this.rowAndFieldMapping = rowAndFieldMapping;
@@ -178,5 +180,8 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         }
     }
 
-
+    @Override
+    public TypeInformation<Row> getProducedType() {
+        return typeInfo;
+    }
 }

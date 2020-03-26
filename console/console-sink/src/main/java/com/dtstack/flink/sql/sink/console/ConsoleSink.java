@@ -73,6 +73,7 @@ public class ConsoleSink implements RetractStreamTableSink<Row>, IStreamSinkGene
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         // flink 1.9 use consumeDataStream
+        consumeDataStream(dataStream);
     }
 
     @Override
