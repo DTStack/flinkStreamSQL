@@ -5,6 +5,6 @@ build:
     - mvn sonar:sonar -Dsonar.projectKey="dt-insight-engine/flinkStreamSQL" -Dsonar.host.url=http://172.16.100.198:9000 -Dsonar.jdbc.url=jdbc:postgresql://172.16.100.198:5432/sonar -Dsonar.java.binaries=target/sonar
     - sh ci/sonar_notify.sh
   only:
-    - 1.8_dev
+    - v1.8.0_dev
   tags:
     - dt-insight-engine
