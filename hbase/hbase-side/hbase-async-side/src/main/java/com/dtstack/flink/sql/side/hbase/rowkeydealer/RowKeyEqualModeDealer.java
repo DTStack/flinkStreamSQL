@@ -23,12 +23,13 @@ package com.dtstack.flink.sql.side.hbase.rowkeydealer;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.cache.AbsSideCache;
+import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import com.google.common.collect.Lists;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.types.Row;
 import org.hbase.async.GetRequest;
@@ -48,7 +49,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
+public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
 
     private static final Logger LOG = LoggerFactory.getLogger(RowKeyEqualModeDealer.class);
 
@@ -60,8 +61,8 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
 
 
     @Override
-    public void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<Row> resultFuture,
-                             AbsSideCache sideCache){
+    public void asyncGetData(String tableName, String rowKeyStr, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture,
+                             AbstractSideCache sideCache){
         //TODO 是否有查询多个col family 和多个col的方法
         GetRequest getRequest = new GetRequest(tableName, rowKeyStr);
         hBaseClient.get(getRequest).addCallbacks(arg -> {
@@ -85,18 +86,17 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
                         for(String key : colNames){
                             Object val = sideMap.get(key);
                             if(val == null){
-                                System.out.println("can't get data with column " + key);
-                                LOG.error("can't get data with column " + key);
+                                LOG.error("can't get data with column {}", key);
                             }
 
                             sideVal.add(val);
                         }
 
-                        Row row = fillData(input, sideVal);
+                        Row row = fillData(input.f1, sideVal);
                         if(openCache){
                             sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
                         }
-                        resultFuture.complete(Collections.singleton(row));
+                        resultFuture.complete(Collections.singleton(Tuple2.of(input.f0, row)));
                     } catch (Exception e) {
                         resultFuture.completeExceptionally(e);
                     }

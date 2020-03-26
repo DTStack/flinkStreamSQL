@@ -21,23 +21,25 @@
 package com.dtstack.flink.sql.sink.hbase.table;
 
 
-import com.dtstack.flink.sql.table.AbsTableParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.enums.EUpdateMode;
+import com.dtstack.flink.sql.table.AbstractTableParser;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
 
 /**
  * Date: 2018/09/14
  * Company: www.dtstack.com
  * @author sishu.yss
  */
-public class HbaseSinkParser extends AbsTableParser {
+public class HbaseSinkParser extends AbstractTableParser {
 
 
     public static final String HBASE_ZOOKEEPER_QUORUM = "zookeeperQuorum";
@@ -50,13 +52,15 @@ public class HbaseSinkParser extends AbsTableParser {
 
     public static final String TABLE_NAME_KEY = "tableName";
 
+    public static final String UPDATE_KEY = "updateMode";
+
     @Override
     protected boolean fieldNameNeedsUpperCase() {
         return false;
     }
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         HbaseTableInfo hbaseTableInfo = new HbaseTableInfo();
         hbaseTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, hbaseTableInfo);
@@ -65,7 +69,9 @@ public class HbaseSinkParser extends AbsTableParser {
         hbaseTableInfo.setHost((String) props.get(HBASE_ZOOKEEPER_QUORUM.toLowerCase()));
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
-        hbaseTableInfo.setRowkey(rk.split(","));
+        hbaseTableInfo.setRowkey(StringUtils.split(rk, ","));
+        String updateMode = (String) props.getOrDefault(UPDATE_KEY, EUpdateMode.APPEND.name());
+        hbaseTableInfo.setUpdateMode(updateMode);
         return hbaseTableInfo;
     }
 
@@ -91,7 +97,7 @@ public class HbaseSinkParser extends AbsTableParser {
             String fieldName = String.join(" ", filedNameArr);
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
             Class fieldClass = dbTypeConvertToJavaType(fieldType);
-            String[] columnFamily = fieldName.trim().split(":");
+            String[] columnFamily = StringUtils.split(fieldName.trim(), ":");
             columnFamilies.put(fieldName.trim(),columnFamily[1]);
             tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
             tableInfo.addField(columnFamily[1]);

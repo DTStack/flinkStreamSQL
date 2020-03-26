@@ -20,7 +20,7 @@
         <calcite.server.version>1.16.0</calcite.server.version>
         <jackson.version>2.7.9</jackson.version>
         <guava.version>19.0</guava.version>
-        <logback.classic.version>1.1.7</logback.classic.version>
+        <logger.tool.version>1.0.0-SNAPSHOT</logger.tool.version>
     </properties>
 
     <dependencies>
@@ -118,14 +118,16 @@
             <version>2.5</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.classic.version}</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
         </dependency>
-
-
+        <dependency>
+            <groupId>com.aiweiergou</groupId>
+            <artifactId>tools-logger</artifactId>
+            <version>${logger.tool.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -189,13 +191,13 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../sqlplugins">
+                                <copy todir="${basedir}/../plugins">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
-                                <move file="${basedir}/../sqlplugins/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../sqlplugins/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../plugins/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../plugins/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

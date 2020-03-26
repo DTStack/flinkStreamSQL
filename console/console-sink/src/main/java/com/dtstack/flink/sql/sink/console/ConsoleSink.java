@@ -19,7 +19,7 @@
 package com.dtstack.flink.sql.sink.console;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -73,10 +73,11 @@ public class ConsoleSink implements RetractStreamTableSink<Row>, IStreamSinkGene
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         // flink 1.9 use consumeDataStream
+        consumeDataStream(dataStream);
     }
 
     @Override
-    public ConsoleSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public ConsoleSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         return this;
     }
 

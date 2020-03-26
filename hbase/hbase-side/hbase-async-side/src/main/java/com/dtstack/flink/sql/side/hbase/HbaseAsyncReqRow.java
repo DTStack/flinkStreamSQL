@@ -21,28 +21,27 @@
 package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.AsyncReqRow;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
-import com.dtstack.flink.sql.side.hbase.rowkeydealer.AbsRowKeyModeDealer;
+import com.dtstack.flink.sql.side.hbase.rowkeydealer.AbstractRowKeyModeDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +56,7 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public class HbaseAsyncReqRow extends AsyncReqRow {
+public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = 2098635104857937717L;
 
@@ -72,13 +71,13 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     private transient HBaseClient hBaseClient;
 
-    private transient AbsRowKeyModeDealer rowKeyMode;
+    private transient AbstractRowKeyModeDealer rowKeyMode;
 
     private String tableName;
 
     private String[] colNames;
 
-    public HbaseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public HbaseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new HbaseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
 
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
@@ -88,7 +87,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
                 0L, TimeUnit.MILLISECONDS,
@@ -122,14 +121,14 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = Row.copy(input);
+    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        Tuple2<Boolean,Row> inputCopy = Tuple2.of(input.f0,input.f1);
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputRow.getField(conValIndex);
+            Object equalObj = inputCopy.f1.getField(conValIndex);
             if(equalObj == null){
-                dealMissKey(inputRow, resultFuture);
+                dealMissKey(inputCopy, resultFuture);
                 return;
             }
             refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
@@ -138,34 +137,34 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
         String rowKeyStr = ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
 
         //get from cache
-        if(openCache()){
+        if (openCache()) {
             CacheObj val = getFromCache(rowKeyStr);
-            if(val != null){
-                if(ECacheContentType.MissVal == val.getType()){
-                    dealMissKey(inputRow, resultFuture);
+            if (val != null) {
+                if (ECacheContentType.MissVal == val.getType()) {
+                    dealMissKey(inputCopy, resultFuture);
                     return;
-                }else if(ECacheContentType.SingleLine == val.getType()){
+                } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
-                        Row row = fillData(inputRow, val);
-                        resultFuture.complete(Collections.singleton(row));
+                        Row row = fillData(inputCopy.f1, val);
+                        resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0,row)));
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
-                }else if(ECacheContentType.MultiLine == val.getType()){
+                } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        for(Object one : (List)val.getContent()){
-                            Row row = fillData(inputRow, one);
-                            resultFuture.complete(Collections.singleton(row));
+                        for (Object one : (List) val.getContent()) {
+                            Row row = fillData(inputCopy.f1, one);
+                            resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0,row)));
                         }
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 }
                 return;
             }
         }
 
-        rowKeyMode.asyncGetData(tableName, rowKeyStr, inputRow, resultFuture, sideInfo.getSideCache());
+        rowKeyMode.asyncGetData(tableName, rowKeyStr, inputCopy, resultFuture, sideInfo.getSideCache());
     }
 
     @Override

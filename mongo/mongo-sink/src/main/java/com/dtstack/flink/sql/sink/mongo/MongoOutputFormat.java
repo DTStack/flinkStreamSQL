@@ -19,15 +19,12 @@
 
 package com.dtstack.flink.sql.sink.mongo;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoCredential;
-import com.mongodb.ServerAddress;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.UpdateResult;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -36,8 +33,8 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,7 +44,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class MongoOutputFormat extends MetricOutputFormat {
+public class MongoOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(MongoOutputFormat.class);
 
     private String address;
@@ -62,10 +59,6 @@ public class MongoOutputFormat extends MetricOutputFormat {
     private MongoDatabase db;
 
     private static String PK = "_ID";
-
-    private static int rowLenth = 1000;
-
-    public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
 
     @Override
     public void configure(Configuration parameters) {
@@ -110,7 +103,7 @@ public class MongoOutputFormat extends MetricOutputFormat {
             dbCollection.insertOne(doc);
         }
 
-        if (outRecords.getCount()%rowLenth == 0){
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
         }
         outRecords.inc();
@@ -128,30 +121,8 @@ public class MongoOutputFormat extends MetricOutputFormat {
     }
 
     private void establishConnection() {
-        try {
-            MongoCredential credential;
-            String[] servers = address.split(",");
-            String host;
-            Integer port;
-            String[] hostAndPort;
-            List<ServerAddress> lists = new ArrayList<>();
-            for (String server : servers) {
-                hostAndPort = server.split(":");
-                host = hostAndPort[0];
-                port = Integer.parseInt(hostAndPort[1]);
-                lists.add(new ServerAddress(host, port));
-            }
-            if (!StringUtils.isEmpty(userName) || !StringUtils.isEmpty(password)) {
-                credential = MongoCredential.createCredential(userName, database, password.toCharArray());
-                // To connect to mongodb server
-                mongoClient = new MongoClient(lists, credential, new MongoClientOptions.Builder().build());
-            } else {
-                mongoClient = new MongoClient(lists);
-            }
-            db = mongoClient.getDatabase(database);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("[connMongoDB]:" + e.getMessage());
-        }
+        mongoClient = new MongoClient(new MongoClientURI(address));
+        db = mongoClient.getDatabase(database);
     }
 
     private MongoOutputFormat() {

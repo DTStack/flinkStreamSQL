@@ -19,14 +19,14 @@
 package com.dtstack.flink.sql.side.impala.table;
 
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,7 +48,7 @@ public class ImpalaSideParser extends RdbSideParser {
     private static final String CURR_TYPE = "impala";
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         ImpalaSideTableInfo impalaSideTableInfo = new ImpalaSideTableInfo();
         impalaSideTableInfo.setType(CURR_TYPE);
         impalaSideTableInfo.setName(tableName);
@@ -94,9 +94,9 @@ public class ImpalaSideParser extends RdbSideParser {
         impalaSideTableInfo.setEnablePartition(enablePartition);
         if (enablePartition) {
             String partitionfieldsStr = MathUtil.getString(props.get(ImpalaSideTableInfo.PARTITIONFIELDS_KEY.toLowerCase()));
-            impalaSideTableInfo.setPartitionfields(partitionfieldsStr.split(","));
+            impalaSideTableInfo.setPartitionfields(StringUtils.split(partitionfieldsStr, ","));
             String partitionfieldTypesStr = MathUtil.getString(props.get(ImpalaSideTableInfo.PARTITIONFIELDTYPES_KEY.toLowerCase()));
-            impalaSideTableInfo.setPartitionFieldTypes(partitionfieldTypesStr.split(","));
+            impalaSideTableInfo.setPartitionFieldTypes(StringUtils.split(partitionfieldTypesStr, ","));
             String partitionfieldValuesStr = MathUtil.getString(props.get(ImpalaSideTableInfo.PARTITIONVALUES_KEY.toLowerCase()));
             impalaSideTableInfo.setPartitionValues(setPartitionFieldValues(partitionfieldValuesStr));
         }
@@ -147,6 +147,8 @@ public class ImpalaSideParser extends RdbSideParser {
                 return String.class;
             case "timestamp":
                 return Timestamp.class;
+            default:
+                break;
         }
 
         throw new RuntimeException("不支持 " + fieldType + " 类型");

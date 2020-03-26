@@ -21,10 +21,9 @@ package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
-import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -39,7 +38,6 @@ import org.apache.flink.types.Row;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Pattern;
 
 /**
  * If eventtime field is specified, the default time field rowtime
@@ -62,68 +60,59 @@ public class KafkaSource implements IStreamSourceGener<Table> {
 	 */
 	@SuppressWarnings("rawtypes")
 	@Override
-	public Table genStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
+	public Table genStreamSource(AbstractSourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
 
-		KafkaSourceTableInfo kafka010SourceTableInfo = (KafkaSourceTableInfo) sourceTableInfo;
-		String topicName = kafka010SourceTableInfo.getTopic();
+		KafkaSourceTableInfo kafkaSourceTableInfo = (KafkaSourceTableInfo) sourceTableInfo;
+		String topicName = kafkaSourceTableInfo.getTopic();
 
 		Properties props = new Properties();
-		for (String key : kafka010SourceTableInfo.getKafkaParamKeys()) {
-			props.setProperty(key, kafka010SourceTableInfo.getKafkaParam(key));
+		for (String key : kafkaSourceTableInfo.getKafkaParamKeys()) {
+			props.setProperty(key, kafkaSourceTableInfo.getKafkaParam(key));
 		}
-		props.setProperty("bootstrap.servers", kafka010SourceTableInfo.getBootstrapServers());
-		if (DtStringUtil.isJosn(kafka010SourceTableInfo.getOffsetReset())){
+		props.setProperty("bootstrap.servers", kafkaSourceTableInfo.getBootstrapServers());
+		if (DtStringUtil.isJosn(kafkaSourceTableInfo.getOffsetReset())){
 			props.setProperty("auto.offset.reset", "none");
 		} else {
-			props.setProperty("auto.offset.reset", kafka010SourceTableInfo.getOffsetReset());
+			props.setProperty("auto.offset.reset", kafkaSourceTableInfo.getOffsetReset());
 		}
-		if (StringUtils.isNotBlank(kafka010SourceTableInfo.getGroupId())){
-			props.setProperty("group.id", kafka010SourceTableInfo.getGroupId());
-		}
-		// only required for Kafka 0.8
-		//TODO props.setProperty("zookeeper.connect", kafka09SourceTableInfo.)
-
-		TypeInformation[] types = new TypeInformation[kafka010SourceTableInfo.getFields().length];
-		for (int i = 0; i < kafka010SourceTableInfo.getFieldClasses().length; i++) {
-			types[i] = TypeInformation.of(kafka010SourceTableInfo.getFieldClasses()[i]);
+		if (StringUtils.isNotBlank(kafkaSourceTableInfo.getGroupId())){
+			props.setProperty("group.id", kafkaSourceTableInfo.getGroupId());
 		}
 
-		TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafka010SourceTableInfo.getFields());
-
-		FlinkKafkaConsumer010<Row> kafkaSrc;
-		if (BooleanUtils.isTrue(kafka010SourceTableInfo.getTopicIsPattern())) {
-			kafkaSrc = new CustomerKafka010Consumer(Pattern.compile(topicName),
-					new CustomerJsonDeserialization(typeInformation, kafka010SourceTableInfo.getPhysicalFields(), kafka010SourceTableInfo.getFieldExtraInfoList()), props);
-		} else {
-			kafkaSrc = new CustomerKafka010Consumer(topicName,
-					new CustomerJsonDeserialization(typeInformation, kafka010SourceTableInfo.getPhysicalFields(), kafka010SourceTableInfo.getFieldExtraInfoList()), props);
+		TypeInformation[] types = new TypeInformation[kafkaSourceTableInfo.getFields().length];
+		for (int i = 0; i < kafkaSourceTableInfo.getFieldClasses().length; i++) {
+			types[i] = TypeInformation.of(kafkaSourceTableInfo.getFieldClasses()[i]);
 		}
+
+		TypeInformation<Row> typeInformation = new RowTypeInfo(types, kafkaSourceTableInfo.getFields());
+
+        FlinkKafkaConsumer010<Row> kafkaSrc = (FlinkKafkaConsumer010<Row>) new KafkaConsumer010Factory().createKafkaTableSource(kafkaSourceTableInfo, typeInformation, props);
 
 		//earliest,latest
-		if ("earliest".equalsIgnoreCase(kafka010SourceTableInfo.getOffsetReset())) {
+		if ("earliest".equalsIgnoreCase(kafkaSourceTableInfo.getOffsetReset())) {
 			kafkaSrc.setStartFromEarliest();
-		} else if (DtStringUtil.isJosn(kafka010SourceTableInfo.getOffsetReset())) {// {"0":12312,"1":12321,"2":12312}
+		} else if (DtStringUtil.isJosn(kafkaSourceTableInfo.getOffsetReset())) {// {"0":12312,"1":12321,"2":12312}
 			try {
-				Properties properties = PluginUtil.jsonStrToObject(kafka010SourceTableInfo.getOffsetReset(), Properties.class);
-				Map<String, Object> offsetMap = PluginUtil.ObjectToMap(properties);
+				Properties properties = PluginUtil.jsonStrToObject(kafkaSourceTableInfo.getOffsetReset(), Properties.class);
+				Map<String, Object> offsetMap = PluginUtil.objectToMap(properties);
 				Map<KafkaTopicPartition, Long> specificStartupOffsets = new HashMap<>();
 				for (Map.Entry<String, Object> entry : offsetMap.entrySet()) {
 					specificStartupOffsets.put(new KafkaTopicPartition(topicName, Integer.valueOf(entry.getKey())), Long.valueOf(entry.getValue().toString()));
 				}
 				kafkaSrc.setStartFromSpecificOffsets(specificStartupOffsets);
 			} catch (Exception e) {
-				throw new RuntimeException("not support offsetReset type:" + kafka010SourceTableInfo.getOffsetReset());
+				throw new RuntimeException("not support offsetReset type:" + kafkaSourceTableInfo.getOffsetReset());
 			}
 		} else {
 			kafkaSrc.setStartFromLatest();
 		}
 
-		String fields = StringUtils.join(kafka010SourceTableInfo.getFields(), ",");
+		String fields = StringUtils.join(kafkaSourceTableInfo.getFields(), ",");
 		String sourceOperatorName = SOURCE_OPERATOR_NAME_TPL.replace("${topic}", topicName).replace("${table}", sourceTableInfo.getName());
 
 		DataStreamSource kafkaSource = env.addSource(kafkaSrc, sourceOperatorName, typeInformation);
-		Integer parallelism = kafka010SourceTableInfo.getParallelism();
-		if (parallelism > 0) {
+		Integer parallelism = kafkaSourceTableInfo.getParallelism();
+		if (parallelism != null) {
 			kafkaSource.setParallelism(parallelism);
 		}
 		return tableEnv.fromDataStream(kafkaSource, fields);

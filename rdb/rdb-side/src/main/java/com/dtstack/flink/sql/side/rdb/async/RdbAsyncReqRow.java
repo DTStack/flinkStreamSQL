@@ -20,28 +20,23 @@
 package com.dtstack.flink.sql.side.rdb.async;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -52,7 +47,7 @@ import java.util.Map;
  * @author maqi
  */
 
-public class RdbAsyncReqRow extends AsyncReqRow {
+public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = 2098635244857937720L;
 
@@ -62,7 +57,9 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     public final static int DEFAULT_VERTX_WORKER_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
-    public final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
+    public final static int DEFAULT_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
+
+    public final static int MAX_DB_CONN_POOL_SIZE_LIMIT = 20;
 
     public final static int DEFAULT_IDLE_CONNECTION_TEST_PEROID = 60;
 
@@ -72,20 +69,36 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     public final static String PREFERRED_TEST_QUERY_SQL = "select 1 from dual";
 
-    private transient SQLClient rdbSQLClient;
+    private transient SQLClient rdbSqlClient;
 
-    public RdbAsyncReqRow(SideInfo sideInfo) {
+    public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
+        init(sideInfo);
+    }
+
+    protected void init(BaseSideInfo sideInfo) {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        int defaultAsyncPoolSize = Math.min(MAX_DB_CONN_POOL_SIZE_LIMIT, DEFAULT_DB_CONN_POOL_SIZE);
+        int rdbPoolSize = rdbSideTableInfo.getAsyncPoolSize() > 0 ? rdbSideTableInfo.getAsyncPoolSize() : defaultAsyncPoolSize;
+        rdbSideTableInfo.setAsyncPoolSize(rdbPoolSize);
     }
 
     @Override
-    public void asyncInvoke(Row input, ResultFuture<Row> resultFuture) throws Exception {
-        Row inputRow = Row.copy(input);
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        LOG.info("rdb dim table config info: {} ", rdbSideTableInfo.toString());
+    }
+
+    @Override
+    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        Tuple2<Boolean,Row> inputCopy =  Tuple2.of(input.f0,input.f1);
+
         JsonArray inputParams = new JsonArray();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = inputRow.getField(conValIndex);
+            Object equalObj = inputCopy.f1.getField(conValIndex);
             if (equalObj == null) {
-                dealMissKey(inputRow, resultFuture);
+                dealMissKey(inputCopy, resultFuture);
                 return;
             }
             inputParams.add(equalObj);
@@ -96,14 +109,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             CacheObj val = getFromCache(key);
             if (val != null) {
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     return;
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        List<Row> rowList = getRows(inputRow, null, (List) val.getContent());
+                        List<Tuple2<Boolean,Row>> rowList = getRows(inputCopy, null, (List) val.getContent());
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
@@ -112,7 +125,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             }
         }
 
-        rdbSQLClient.getConnection(conn -> {
+        rdbSqlClient.getConnection(conn -> {
             if (conn.failed()) {
                 //Treatment failures
                 resultFuture.completeExceptionally(conn.cause());
@@ -131,14 +144,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
                 List<JsonArray> results = rs.result().getResults();
                 if (results.size() > 0) {
                     try {
-                        List<Row> rowList = getRows(inputRow, cacheContent, results);
+                        List<Tuple2<Boolean,Row>> rowList = getRows(inputCopy, cacheContent, results);
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                         resultFuture.complete(rowList);
                     } catch (Exception e){
-                        dealFillDataError(resultFuture, e, inputRow);
+                        dealFillDataError(resultFuture, e, inputCopy);
                     }
                 } else {
-                    dealMissKey(inputRow, resultFuture);
+                    dealMissKey(inputCopy, resultFuture);
                     dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
 
@@ -152,14 +165,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         });
     }
 
-    protected List<Row> getRows(Row inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
-        List<Row> rowList = Lists.newArrayList();
+    protected List<Tuple2<Boolean, Row>> getRows(Tuple2<Boolean, Row> inputRow, List<JsonArray> cacheContent, List<JsonArray> results) {
+        List<Tuple2<Boolean, Row>> rowList = Lists.newArrayList();
         for (JsonArray line : results) {
-            Row row = fillData(inputRow, line);
+            Row row = fillData(inputRow.f1, line);
             if (null != cacheContent && openCache()) {
                 cacheContent.add(line);
             }
-            rowList.add(row);
+            rowList.add(Tuple2.of(inputRow.f0, row));
         }
         return rowList;
     }
@@ -190,8 +203,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        if (rdbSQLClient != null) {
-            rdbSQLClient.close();
+        if (rdbSqlClient != null) {
+            rdbSqlClient.close();
         }
 
     }
@@ -206,8 +219,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         return sb.toString();
     }
 
-    public void setRdbSQLClient(SQLClient rdbSQLClient) {
-        this.rdbSQLClient = rdbSQLClient;
+    public void setRdbSqlClient(SQLClient rdbSqlClient) {
+        this.rdbSqlClient = rdbSqlClient;
     }
 
 }

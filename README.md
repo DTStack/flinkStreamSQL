@@ -149,6 +149,10 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
         * taskmanager.slots：per_job模式下指定每个taskmanager对应的slot数量(默认1)
         * savePointPath：任务恢复点的路径（默认无）
         * allowNonRestoredState：指示保存点是否允许非还原状态的标志（默认false）
+        * restore.enable：是否失败重启（默认是true）
+        * failure.interval：衡量失败率的时间段，单位分钟（默认6m）
+        * delay.interval：连续两次重启尝试间的间隔，单位是秒（默认10s）
+    	* logLevel: 日志级别动态配置（默认info）
         * [prometheus 相关参数](docs/prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	
@@ -181,6 +185,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 	* 描述：yarn session 模式下指定的运行的一些参数，[可参考](https://ci.apache.org/projects/flink/flink-docs-release-1.8/ops/cli.html),目前只支持指定yid
 	* 必选：否
 	* 默认值：false	
+	
 
 ## 2 结构
 ### 2.1 源表插件

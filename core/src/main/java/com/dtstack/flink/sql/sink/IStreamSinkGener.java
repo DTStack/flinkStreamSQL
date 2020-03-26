@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.sink;
 
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 
 /**
  * Reason:
@@ -30,5 +30,5 @@ import com.dtstack.flink.sql.table.TargetTableInfo;
  */
 public interface IStreamSinkGener<T> {
 
-    T genStreamSink(TargetTableInfo targetTableInfo);
+    T genStreamSink(AbstractTargetTableInfo targetTableInfo);
 }

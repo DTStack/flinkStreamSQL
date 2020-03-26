@@ -33,14 +33,18 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-
+/**
+ * Date: 2019/11/26
+ * Company: www.dtstack.com
+ * @author maqi
+ */
 public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(SqlserverAsyncReqRow.class);
 
     private final static String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
 
-    public SqlserverAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public SqlserverAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new SqlserverAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -51,7 +55,7 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         sqlserverClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", SQLSERVER_DRIVER)
-                .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
+                .put("max_pool_size", rdbSideTableInfo.getAsyncPoolSize())
                 .put("user", rdbSideTableInfo.getUserName())
                 .put("password", rdbSideTableInfo.getPassword())
                 .put("provider_class", DT_PROVIDER_CLASS)
@@ -64,9 +68,9 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
 
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
+        vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, sqlserverClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, sqlserverClientConfig));
     }
 }

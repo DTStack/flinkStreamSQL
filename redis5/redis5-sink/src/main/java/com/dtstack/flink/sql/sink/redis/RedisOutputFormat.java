@@ -18,7 +18,8 @@
 
 package com.dtstack.flink.sql.sink.redis;
 
-import com.dtstack.flink.sql.sink.MetricOutputFormat;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -26,12 +27,24 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.*;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisSentinelPool;
+
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
-public class RedisOutputFormat extends MetricOutputFormat {
+/**
+ * @author yanxi
+ */
+public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
 
     private String url;
@@ -68,8 +81,6 @@ public class RedisOutputFormat extends MetricOutputFormat {
 
     private GenericObjectPoolConfig poolConfig;
 
-    private static int rowLenth = 1000;
-
     private RedisOutputFormat(){
     }
     @Override
@@ -99,15 +110,15 @@ public class RedisOutputFormat extends MetricOutputFormat {
 
     private void establishConnection() {
         poolConfig = setPoolConfig(maxTotal, maxIdle, minIdle);
-        String[] nodes = url.split(",");
-        String[] firstIpPort = nodes[0].split(":");
+        String[] nodes = StringUtils.split(url, ",");
+        String[] firstIpPort = StringUtils.split(nodes[0], ":");
         String firstIp = firstIpPort[0];
         String firstPort = firstIpPort[1];
         Set<HostAndPort> addresses = new HashSet<>();
         Set<String> ipPorts = new HashSet<>();
         for (String ipPort : nodes) {
             ipPorts.add(ipPort);
-            String[] ipPortPair = ipPort.split(":");
+            String[] ipPortPair = StringUtils.split(ipPort, ":");
             addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
         }
         if (timeout == 0){
@@ -131,7 +142,8 @@ public class RedisOutputFormat extends MetricOutputFormat {
                 break;
             //集群
             case 3:
-                jedis = new JedisCluster(addresses, timeout, timeout,10, password, poolConfig);
+                jedis = new JedisCluster(addresses, timeout, timeout, 10, password, poolConfig);
+            default:
         }
     }
 
@@ -147,11 +159,10 @@ public class RedisOutputFormat extends MetricOutputFormat {
             return;
         }
 
-        HashMap<String, Integer> map = new HashMap<>();
-
-        for (String primaryKey : primaryKeys){
-            for (int i=0; i<fieldNames.length; i++){
-                if (fieldNames[i].equals(primaryKey)){
+        HashMap<String, Integer> map = new HashMap<>(8);
+        for (String primaryKey : primaryKeys) {
+            for (int i = 0; i < fieldNames.length; i++) {
+                if (fieldNames[i].equals(primaryKey)) {
                     map.put(primaryKey, i);
                 }
             }
@@ -159,15 +170,13 @@ public class RedisOutputFormat extends MetricOutputFormat {
 
         List<String> kvList = new LinkedList<>();
         for (String primaryKey : primaryKeys){
-            StringBuilder primaryKV = new StringBuilder();
+            StringBuilder primaryKv = new StringBuilder();
             int index = map.get(primaryKey).intValue();
-            primaryKV.append(primaryKey).append(":").append(row.getField(index));
-            kvList.add(primaryKV.toString());
+            primaryKv.append(primaryKey).append(":").append(row.getField(index));
+            kvList.add(primaryKv.toString());
         }
 
         String perKey = String.join(":", kvList);
-
-
         for (int i = 0; i < fieldNames.length; i++) {
             StringBuilder key = new StringBuilder();
             key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
@@ -180,7 +189,7 @@ public class RedisOutputFormat extends MetricOutputFormat {
             jedis.set(key.toString(), value);
         }
 
-        if (outRecords.getCount()%rowLenth == 0){
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
         }
         outRecords.inc();

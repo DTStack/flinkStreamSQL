@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -33,19 +34,28 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class HbaseAllReqRow extends AllReqRow {
+public class HbaseAllReqRow extends BaseAllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseAllReqRow.class);
 
@@ -55,7 +65,7 @@ public class HbaseAllReqRow extends AllReqRow {
 
     private AtomicReference<Map<String, Map<String, Object>>> cacheRef = new AtomicReference<>();
 
-    public HbaseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public HbaseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new HbaseAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
 
@@ -115,47 +125,45 @@ public class HbaseAllReqRow extends AllReqRow {
     }
 
     @Override
-    public void flatMap(Row value, Collector<Row> out) throws Exception {
+    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean,Row>> out) throws Exception {
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = value.getField(conValIndex);
-            if(equalObj == null){
-                if(sideInfo.getJoinType() == JoinType.LEFT){
-                    Row data = fillData(value, null);
-                    out.collect(data);
+            Object equalObj = input.f1.getField(conValIndex);
+            if (equalObj == null) {
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
+                    Row data = fillData(input.f1, null);
+                    out.collect(Tuple2.of(input.f0, data));
                 }
                 return;
             }
             refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
 
-        String rowKeyStr = ((HbaseAllSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
+        String rowKeyStr = ((HbaseAllSideInfo) sideInfo).getRowKeyBuilder().getRowKey(refData);
 
         Map<String, Object> cacheList = null;
 
-        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        if (hbaseSideTableInfo.isPreRowKey())
-        {
-            for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()){
-                if (entry.getKey().startsWith(rowKeyStr))
-                {
+        if (hbaseSideTableInfo.isPreRowKey()) {
+            for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()) {
+                if (entry.getKey().startsWith(rowKeyStr)) {
                     cacheList = cacheRef.get().get(entry.getKey());
-                    Row row = fillData(value, cacheList);
-                    out.collect(row);
+                    Row row = fillData(input.f1, cacheList);
+                    out.collect(Tuple2.of(input.f0, row));
                 }
             }
         } else {
             cacheList = cacheRef.get().get(rowKeyStr);
-            Row row = fillData(value, cacheList);
-            out.collect(row);
+            Row row = fillData(input.f1, cacheList);
+            out.collect(Tuple2.of(input.f0, row));
         }
 
     }
 
     private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
-        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         Configuration conf = new Configuration();
         conf.set("hbase.zookeeper.quorum", hbaseSideTableInfo.getHost());
@@ -184,9 +192,17 @@ public class HbaseAllReqRow extends AllReqRow {
             LOG.error("", e);
         } finally {
             try {
-                conn.close();
-                table.close();
-                resultScanner.close();
+                if (null != conn && !conn.isClosed()) {
+                    conn.close();
+                }
+
+                if (null != table) {
+                    table.close();
+                }
+
+                if (null != resultScanner) {
+                    resultScanner.close();
+                }
             } catch (IOException e) {
                 LOG.error("", e);
             }
