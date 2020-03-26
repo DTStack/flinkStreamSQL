@@ -41,11 +41,7 @@ import java.lang.Long;
 public class WaterMarkerAssigner {
 
     public boolean checkNeedAssignWaterMarker(AbstractSourceTableInfo tableInfo){
-        if(Strings.isNullOrEmpty(tableInfo.getEventTimeField())){
-            return false;
-        }
-
-        return true;
+        return !Strings.isNullOrEmpty(tableInfo.getEventTimeField());
     }
 
     public DataStream assignWaterMarker(DataStream<Row> dataStream, RowTypeInfo typeInfo, AbstractSourceTableInfo sourceTableInfo){

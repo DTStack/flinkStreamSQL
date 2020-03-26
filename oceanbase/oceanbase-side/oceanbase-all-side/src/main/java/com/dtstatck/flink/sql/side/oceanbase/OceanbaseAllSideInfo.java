@@ -15,28 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.dtstack.flink.sql.sink.ocean.table;
 
-import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+package com.dtstatck.flink.sql.side.oceanbase;
 
-import java.util.Map;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.rdb.all.RdbAllSideInfo;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+
+import java.util.List;
 
 /**
  * @author : tiezhu
- * @date : 2020/3/24
+ * @date : 2020/3/26
  */
-public class OceanbaseSinkParser extends RdbSinkParser {
-
-    private static final String CURRENT_TYPE = "oceanbase";
-
-    @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-
-        AbstractTableInfo oceanbaseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-
-        oceanbaseTableInfo.setType(CURRENT_TYPE);
-
-        return oceanbaseTableInfo;
+public class OceanbaseAllSideInfo extends RdbAllSideInfo {
+    public OceanbaseAllSideInfo(RowTypeInfo rowTypeInfo,
+                                JoinInfo joinInfo,
+                                List<FieldInfo> outFieldInfoList,
+                                AbstractSideTableInfo sideTableInfo) {
+        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 }

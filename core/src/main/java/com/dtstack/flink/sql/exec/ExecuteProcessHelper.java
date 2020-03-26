@@ -94,11 +94,9 @@ public class ExecuteProcessHelper {
 
 
     public static ParamsInfo parseParams(String[] args) throws Exception {
-        LOG.info("------------program params-------------------------");
         System.out.println("------------program params-------------------------");
         Arrays.stream(args).forEach(arg -> LOG.info("{}", arg));
         Arrays.stream(args).forEach(System.out::println);
-        LOG.info("-------------------------------------------");
         System.out.println("----------------------------------------");
 
         OptionParser optionParser = new OptionParser(args);
@@ -288,9 +286,7 @@ public class ExecuteProcessHelper {
 
                 RowTypeInfo typeInfo = new RowTypeInfo(adaptTable.getSchema().getFieldTypes(), adaptTable.getSchema().getFieldNames());
                 DataStream adaptStream = tableEnv.toRetractStream(adaptTable, typeInfo)
-                        .map((Tuple2<Boolean, Row> f0) -> {
-                            return f0.f1;
-                        })
+                        .map((Tuple2<Boolean, Row> f0) -> f0.f1)
                         .returns(typeInfo);
 
                 String fields = String.join(",", typeInfo.getFieldNames());
