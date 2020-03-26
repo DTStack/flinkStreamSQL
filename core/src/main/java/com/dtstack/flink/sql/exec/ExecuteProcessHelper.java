@@ -203,7 +203,6 @@ public class ExecuteProcessHelper {
             if (LOG.isInfoEnabled()) {
                 LOG.info("exe-sql:\n" + result.getExecSql());
             }
-
             boolean isSide = false;
             for (String tableName : result.getTargetTableList()) {
                 if (sqlTree.getTmpTableMap().containsKey(tableName)) {
@@ -349,6 +348,7 @@ public class ExecuteProcessHelper {
         StreamEnvConfigManager.streamExecutionEnvironmentConfig(env, confProperties);
         return env;
     }
+
 
     public static void setLogLevel(ParamsInfo paramsInfo){
         String logLevel = paramsInfo.getConfProp().getProperty(ConfigConstrant.LOG_LEVEL_KEY);
