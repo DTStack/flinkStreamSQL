@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.launcher.perjob;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
 import com.dtstack.flink.sql.launcher.YarnConfLoader;
 import com.dtstack.flink.sql.option.Options;
+import com.esotericsoftware.minlog.Log;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.configuration.Configuration;
@@ -79,7 +80,7 @@ public class PerJobClusterClientBuilder {
         yarnClient.init(yarnConf);
         yarnClient.start();
 
-        System.out.println("----init yarn success ----");
+        Log.info("----init yarn success ----");
     }
 
     public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(String flinkJarPath, Options launcherOptions, JobGraph jobGraph)

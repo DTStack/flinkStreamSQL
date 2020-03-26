@@ -25,6 +25,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import org.apache.calcite.sql.JoinType;
@@ -43,6 +45,8 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> implements ISideReqRow {
 
+    private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
+
     protected BaseSideInfo sideInfo;
 
     private ScheduledExecutorService es;
@@ -60,7 +64,7 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> impl
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         initCache();
-        System.out.println("----- all cacheRef init end-----");
+        LOG.info("----- all cacheRef init end-----");
 
         //start reload cache thread
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
