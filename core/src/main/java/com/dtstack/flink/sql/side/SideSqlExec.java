@@ -142,11 +142,9 @@ public class SideSqlExec {
                 }
 
                 if(pollSqlNode.getKind() == INSERT){
-                    System.out.println("----------real exec sql-----------" );
-                    System.out.println(pollSqlNode.toString());
                     FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
                     if(LOG.isInfoEnabled()){
-                        LOG.info("exec sql: " + pollSqlNode.toString());
+                        LOG.info("----------real exec sql-----------\n{}", pollSqlNode.toString());
                     }
 
                 }else if(pollSqlNode.getKind() == AS){
@@ -177,8 +175,7 @@ public class SideSqlExec {
                 }
 
             }else if (pollObj instanceof JoinInfo){
-                System.out.println("----------exec join info----------");
-                System.out.println(pollObj.toString());
+                LOG.info("----------exec join info----------\n{}", pollObj.toString());
                 preIsSideJoin = true;
                 joinFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
             }
@@ -392,8 +389,6 @@ public class SideSqlExec {
                         }
                     }
                 }else{
-                    //TODO
-                    System.out.println(sqlNode);
                     throw new RuntimeException("---not deal type:" + sqlNode);
                 }
 
@@ -628,7 +623,6 @@ public class SideSqlExec {
 
             return selectNode;
         }else if(selectNode.getKind() == CASE){
-            System.out.println("selectNode");
             SqlCase sqlCase = (SqlCase) selectNode;
             SqlNodeList whenOperands = sqlCase.getWhenOperands();
             SqlNodeList thenOperands = sqlCase.getThenOperands();

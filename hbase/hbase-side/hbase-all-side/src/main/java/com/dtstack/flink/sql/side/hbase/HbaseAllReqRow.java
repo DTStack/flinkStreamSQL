@@ -192,9 +192,17 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             LOG.error("", e);
         } finally {
             try {
-                conn.close();
-                table.close();
-                resultScanner.close();
+                if (null != conn && !conn.isClosed()) {
+                    conn.close();
+                }
+
+                if (null != table) {
+                    table.close();
+                }
+
+                if (null != resultScanner) {
+                    resultScanner.close();
+                }
             } catch (IOException e) {
                 LOG.error("", e);
             }
