@@ -216,7 +216,7 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
         connCassandraDB(cassandraSideTableInfo);
 
         String sqlCondition = sideInfo.getSqlCondition() + " " + sqlWhere + "  ALLOW FILTERING ";
-        System.out.println("sqlCondition:" + sqlCondition);
+        LOG.info("sqlCondition:{}" + sqlCondition);
 
         ListenableFuture<ResultSet> resultSet = Futures.transformAsync(session,
                 new AsyncFunction<Session, ResultSet>() {
@@ -265,7 +265,6 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
             public void onFailure(Throwable t) {
                 LOG.error("Failed to retrieve the data: %s%n",
                         t.getMessage());
-                System.out.println("Failed to retrieve the data: " + t.getMessage());
                 cluster.closeAsync();
                 resultFuture.completeExceptionally(t);
             }

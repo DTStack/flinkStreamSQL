@@ -86,8 +86,7 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
                         for(String key : colNames){
                             Object val = sideMap.get(key);
                             if(val == null){
-                                System.out.println("can't get data with column " + key);
-                                LOG.error("can't get data with column " + key);
+                                LOG.error("can't get data with column {}", key);
                             }
 
                             sideVal.add(val);
