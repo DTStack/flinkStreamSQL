@@ -26,6 +26,7 @@ import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.table.api.Table;
@@ -77,6 +78,12 @@ public abstract class AbstractKafkaSource implements IStreamSourceGener<Table> {
                 .toArray(TypeInformation[]::new);
 
         return new RowTypeInfo(types, kafkaSourceTableInfo.getFields());
+    }
+
+    protected void setParallelism(Integer parallelism, DataStreamSource kafkaSource) {
+        if (parallelism > 0) {
+            kafkaSource.setParallelism(parallelism);
+        }
     }
 
     protected void setStartPosition(String offset, String topicName, FlinkKafkaConsumerBase<Row> kafkaSrc) {

@@ -52,8 +52,8 @@ public class KafkaSource extends AbstractKafkaSource {
 
         String sourceOperatorName = generateOperatorName(sourceTableInfo.getName(), topicName);
         DataStreamSource kafkaSource = env.addSource(kafkaSrc, sourceOperatorName, typeInformation);
-        kafkaSource.setParallelism(kafkaSourceTableInfo.getParallelism());
 
+        setParallelism(kafkaSourceTableInfo.getParallelism(), kafkaSource);
         setStartPosition(kafkaSourceTableInfo.getOffsetReset(), topicName, kafkaSrc);
         String fields = StringUtils.join(kafkaSourceTableInfo.getFields(), ",");
 
