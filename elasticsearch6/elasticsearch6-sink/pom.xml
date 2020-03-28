@@ -107,14 +107,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/elasticsearch6sink">
+                                <copy todir="${basedir}/../../sqlplugins/elasticsearch6sink">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/elasticsearch6sink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/elasticsearch6sink/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../sqlplugins/elasticsearch6sink/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/elasticsearch6sink/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
