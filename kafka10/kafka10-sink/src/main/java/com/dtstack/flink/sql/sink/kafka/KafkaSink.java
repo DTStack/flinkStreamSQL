@@ -67,7 +67,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     private String[] partitionKeys;
 
-    protected SinkFunction<Row> kafkaProducer010;
+    protected SinkFunction<Tuple2<Boolean, Row>> kafkaProducer010;
 
     protected String sinkOperatorName;
 
@@ -121,14 +121,11 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     }
 
     @Override
-    public DataStreamSink<Row> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        DataStream<Row> ds = dataStream
-                .filter((Tuple2<Boolean, Row> record) -> record.f0)
-                .map((Tuple2<Boolean, Row> record) -> record.f1)
-                .returns(getOutputType().getTypeAt(1))
-                .setParallelism(parallelism);
-
-        DataStreamSink<Row> dataStreamSink = ds.addSink(kafkaProducer010).name(sinkOperatorName);
+    public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        DataStreamSink<Tuple2<Boolean, Row>> dataStreamSink = dataStream.addSink(kafkaProducer010).name(sinkOperatorName);
+        if (parallelism > 0) {
+            dataStreamSink.setParallelism(parallelism);
+        }
         return dataStreamSink;
     }
 

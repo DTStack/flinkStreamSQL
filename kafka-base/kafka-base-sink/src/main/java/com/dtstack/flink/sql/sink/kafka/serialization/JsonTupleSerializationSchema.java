@@ -24,16 +24,16 @@ import org.apache.flink.api.common.typeinfo.BasicArrayTypeInfo;
 import org.apache.flink.api.common.typeinfo.PrimitiveArrayTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.ObjectArrayTypeInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.formats.json.JsonRowSchemaConverter;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ContainerNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.runtime.types.CRowTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 
@@ -52,12 +52,12 @@ import java.util.Objects;
  * converts it into <code>byte[]</code>.
  *
  */
-public class JsonCRowSerializationSchema implements SerializationSchema<CRow> {
+public class JsonTupleSerializationSchema implements SerializationSchema<Tuple2<Boolean,Row>> {
 
     private static final long serialVersionUID = -2885556750743978636L;
 
     /** Type information describing the input type. */
-    private final TypeInformation<CRow> typeInfo;
+    private final TypeInformation<Tuple2<Boolean,Row>> typeInfo;
 
     /** Object mapper that is used to create output JSON objects. */
     private final ObjectMapper mapper = new ObjectMapper();
@@ -78,7 +78,7 @@ public class JsonCRowSerializationSchema implements SerializationSchema<CRow> {
 
     private final String retractKey = "retract";
 
-    public JsonCRowSerializationSchema(String jsonSchema, String updateMode) {
+    public JsonTupleSerializationSchema(String jsonSchema, String updateMode) {
         this(JsonRowSchemaConverter.convert(jsonSchema), updateMode);
     }
 
@@ -87,7 +87,7 @@ public class JsonCRowSerializationSchema implements SerializationSchema<CRow> {
      *
      * @param typeInfo The field names of {@link Row} are used to map to JSON properties.
      */
-    public JsonCRowSerializationSchema(TypeInformation<CRow> typeInfo, String updateMode) {
+    public JsonTupleSerializationSchema(TypeInformation<Tuple2<Boolean,Row>> typeInfo, String updateMode) {
         Preconditions.checkNotNull(typeInfo, "Type information");
         this.typeInfo = typeInfo;
         this.updateMode = updateMode;
@@ -95,14 +95,14 @@ public class JsonCRowSerializationSchema implements SerializationSchema<CRow> {
 
 
     @Override
-    public byte[] serialize(CRow crow) {
-        Row row = crow.row();
-        boolean change = crow.change();
+    public byte[] serialize(Tuple2<Boolean, Row> tuple2) {
+        Row row = tuple2.f1;
+        boolean change = tuple2.f0;
         if (node == null) {
             node = mapper.createObjectNode();
         }
 
-        RowTypeInfo rowTypeInfo = ((CRowTypeInfo) typeInfo).rowType();
+        RowTypeInfo rowTypeInfo = (RowTypeInfo) ((TupleTypeInfo) typeInfo).getTypeAt(1);
         try {
             convertRow(node, rowTypeInfo, row);
             if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
@@ -123,7 +123,7 @@ public class JsonCRowSerializationSchema implements SerializationSchema<CRow> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final JsonCRowSerializationSchema that = (JsonCRowSerializationSchema) o;
+        final JsonTupleSerializationSchema that = (JsonTupleSerializationSchema) o;
         return Objects.equals(typeInfo, that.typeInfo);
     }
 

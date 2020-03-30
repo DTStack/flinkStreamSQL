@@ -1,21 +1,19 @@
-package com.dtstack.flink.sql.sink.kafka;
+package com.dtstack.flink.sql.sink.kafka.serialization;
 
 
 import com.dtstack.flink.sql.format.SerializationMetricWrapper;
-import com.dtstack.flink.sql.sink.kafka.serialization.JsonCRowSerializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.formats.json.JsonRowSerializationSchema;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
-import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public class CustomerKeyedSerializationSchema implements KeyedSerializationSchema<CRow> {
+public class CustomerKeyedSerializationSchema implements KeyedSerializationSchema<Tuple2<Boolean,Row>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerKeyedSerializationSchema.class);
 
@@ -33,30 +31,30 @@ public class CustomerKeyedSerializationSchema implements KeyedSerializationSchem
     }
 
     @Override
-    public byte[] serializeKey(CRow element) {
+    public byte[] serializeKey(Tuple2<Boolean,Row> element) {
         if (partitionKeys == null || partitionKeys.length <= 0) {
             return null;
         }
-        SerializationSchema<CRow> serializationSchema = serializationMetricWrapper.getSerializationSchema();
-        if (serializationSchema instanceof JsonCRowSerializationSchema) {
-            return serializeJsonKey((JsonCRowSerializationSchema) serializationSchema, element);
+        SerializationSchema<Tuple2<Boolean,Row>> serializationSchema = serializationMetricWrapper.getSerializationSchema();
+        if (serializationSchema instanceof JsonTupleSerializationSchema) {
+            return serializeJsonKey((JsonTupleSerializationSchema) serializationSchema, element);
         }
         return null;
     }
 
     @Override
-    public byte[] serializeValue(CRow element) {
+    public byte[] serializeValue(Tuple2<Boolean,Row> element) {
         return this.serializationMetricWrapper.serialize(element);
     }
 
     @Override
-    public String getTargetTopic(CRow element) {
+    public String getTargetTopic(Tuple2<Boolean,Row> element) {
         return null;
     }
 
-    private byte[] serializeJsonKey(JsonCRowSerializationSchema jsonCRowSerializationSchema, CRow element) {
+    private byte[] serializeJsonKey(JsonTupleSerializationSchema jsonTupleSerializationSchema, Tuple2<Boolean,Row> element) {
         try {
-            byte[] data = jsonCRowSerializationSchema.serialize(element);
+            byte[] data = jsonTupleSerializationSchema.serialize(element);
             ObjectNode objectNode = mapper.readValue(data, ObjectNode.class);
             StringBuilder sb = new StringBuilder();
             for (String key : partitionKeys) {
