@@ -78,7 +78,7 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
 
     protected void registerPtMetric(AbstractFetcher<Row, ?> fetcher) throws Exception {
 
-        Field consumerThreadField = fetcher.getClass().getSuperclass().getDeclaredField("consumerThread");
+        Field consumerThreadField = getConsumerThreadField(fetcher);
         consumerThreadField.setAccessible(true);
         KafkaConsumerThread consumerThread = (KafkaConsumerThread) consumerThreadField.get(fetcher);
 
@@ -113,6 +113,14 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
                     return calculate.calc(subscriptionState, topicPartition);
                 }
             });
+        }
+    }
+
+    private Field getConsumerThreadField(AbstractFetcher<Row, ?> fetcher) throws NoSuchFieldException {
+        try {
+            return fetcher.getClass().getDeclaredField("consumerThread");
+        } catch (Exception e) {
+            return fetcher.getClass().getSuperclass().getDeclaredField("consumerThread");
         }
     }
 
