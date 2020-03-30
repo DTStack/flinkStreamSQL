@@ -42,17 +42,7 @@ hbase2.0
 | zookeeperSaslClient | zookeeper.sasl.client值|否|true|
 | securityKrb5Conf | java.security.krb5.conf值|否||
       
-> kerberos 配置
 
-> kerberos 配置
-
-    *  hbase.security.authentication = 'kerberos', 
-    *  hbase.security.authorization = 'true',
-    *  hbase.master.kerberos.principal = 'hbase/cdh01@DTSTACK.COM',
-    *  hbase.master.keytab.file = 'hbase.keytab',
-    *  hbase.regionserver.keytab.file = 'hbase.keytab',
-    *  hbase.regionserver.kerberos.principal = 'hbase/cdh01@DTSTACK.COM'
-    *  (非必选)java.security.krb5.conf = 'krb5.conf'
 ## 5.样例：
 ```
 
