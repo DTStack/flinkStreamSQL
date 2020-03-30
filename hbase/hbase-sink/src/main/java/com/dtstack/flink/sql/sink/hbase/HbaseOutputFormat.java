@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.sink.hbase;
 import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -40,7 +41,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,8 +68,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private transient org.apache.hadoop.conf.Configuration conf;
     private transient Connection conn;
     private transient Table table;
-
-    public final SimpleDateFormat ROWKEY_DATE_FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
 
     @Override
     public void configure(Configuration parameters) {
@@ -178,28 +176,21 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private List<String> getRowKeyValues(Row record) {
         List<String> rowKeyValues = Lists.newArrayList();
-        for (int i = 0; i < rowkey.length; ++i) {
-            String colName = rowkey[i];
-            int rowKeyIndex = 0;
-            for (; rowKeyIndex < columnNames.length; ++rowKeyIndex) {
-                if (columnNames[rowKeyIndex].equals(colName)) {
-                    break;
-                }
-            }
-
-            if (rowKeyIndex != columnNames.length && record.getField(rowKeyIndex) != null) {
-                Object field = record.getField(rowKeyIndex);
-                if (field == null) {
-                    continue;
-                } else if (field instanceof java.util.Date) {
-                    java.util.Date d = (java.util.Date) field;
-                    rowKeyValues.add(ROWKEY_DATE_FORMAT.format(d));
-                } else {
-                    rowKeyValues.add(field.toString());
-                }
-            }
+        Map<String, Object> row = rowConvertMap(record);
+        for (String key : rowkey) {
+            RowKeyBuilder rowKeyBuilder = new RowKeyBuilder();
+            rowKeyBuilder.init(key);
+           rowKeyValues.add(rowKeyBuilder.getRowKey(row));
         }
         return rowKeyValues;
+    }
+
+    private Map<String, Object> rowConvertMap(Row record){
+        Map<String, Object> rowValue = Maps.newHashMap();
+        for(int i = 0; i < columnNames.length; i++){
+            rowValue.put(columnNames[i], record.getField(i));
+        }
+        return rowValue;
     }
 
     @Override
