@@ -29,6 +29,8 @@ import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.runtime.types.CRowTypeInfo;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.table.utils.TableConnectorUtils;
@@ -60,6 +62,9 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected int parallelism;
 
     protected  KafkaSinkTableInfo kafka10SinkTableInfo;
+
+    protected RichSinkFunction<CRow> kafkaProducer010;
+    protected CRowTypeInfo typeInformation;
 
     /** The schema of the table. */
     private TableSchema schema;
@@ -97,6 +102,12 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         if (parallelism != null) {
             this.parallelism = parallelism;
         }
+
+        typeInformation = new CRowTypeInfo(new RowTypeInfo(fieldTypes, fieldNames));
+        kafkaProducer010 = new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo,
+                typeInformation, properties,
+                Optional.of(new CustomerFlinkPartition<>()), partitionKeys);
+
         return this;
     }
 
@@ -107,13 +118,9 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-
-        RichSinkFunction<Row> kafkaProducer010 = new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType().getTypeAt(1), properties,
-                Optional.of(new CustomerFlinkPartition<>()), partitionKeys);
-
-        DataStream<Row> mapDataStream = dataStream.filter((Tuple2<Boolean, Row> record) -> record.f0)
-                .map((Tuple2<Boolean, Row> record) -> record.f1)
-                .returns(getOutputType().getTypeAt(1))
+        DataStream<CRow> mapDataStream = dataStream
+                .map((Tuple2<Boolean, Row> record) -> new CRow(record.f1, record.f0))
+                .returns(typeInformation)
                 .setParallelism(parallelism);
 
         mapDataStream.addSink(kafkaProducer010).name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));
