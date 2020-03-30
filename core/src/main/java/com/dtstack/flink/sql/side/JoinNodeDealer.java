@@ -114,6 +114,9 @@ public class JoinNodeDealer {
             AliasInfo aliasInfo = (AliasInfo) sideSQLParser.parseSql(leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
             leftTbName = aliasInfo.getName();
             leftTbAlias = aliasInfo.getAlias();
+        } else if(leftNode.getKind() == IDENTIFIER){
+            leftTbName = leftNode.toString();
+            leftTbAlias = leftTbName;
         }
 
         boolean leftIsSide = checkIsSideTable(leftTbName, sideTableSet);
