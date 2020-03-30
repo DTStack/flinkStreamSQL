@@ -87,6 +87,11 @@ public class HbaseOutputFormat extends MetricOutputFormat {
             if (kerberosAuthEnable) {
                 conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
                 conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
+                LOG.info("regionserverKeytabFile: {}",regionserverKeytabFile);
+                LOG.info("regionserverPrincipal: {}",regionserverPrincipal);
+                LOG.info("zookeeperSaslClient: {}",zookeeperSaslClient);
+                LOG.info("zookeeperSaslClient: {}",securityKrb5Conf);
+
                 fillSyncKerberosConfig(conf, regionserverKeytabFile, regionserverPrincipal, zookeeperSaslClient, securityKrb5Conf);
 
                 UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, regionserverPrincipal, regionserverKeytabFile);
