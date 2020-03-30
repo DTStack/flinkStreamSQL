@@ -31,6 +31,8 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer011;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.runtime.types.CRowTypeInfo;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.table.utils.TableConnectorUtils;
@@ -61,13 +63,15 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
 
     protected Properties properties;
 
-    protected FlinkKafkaProducer011<Row> kafkaProducer011;
+    protected FlinkKafkaProducer011<CRow> kafkaProducer011;
+    protected CRowTypeInfo typeInformation;
+
 
     /** The schema of the table. */
     private TableSchema schema;
 
     /** Partitioner to select Kafka partition for each item. */
-    protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
+    protected Optional<FlinkKafkaPartitioner<CRow>> partitioner;
     private String[] partitionKeys;
 
 
@@ -102,8 +106,9 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
             this.parallelism = parallelism;
         }
 
-        this.kafkaProducer011 = (FlinkKafkaProducer011<Row>) new KafkaProducer011Factory()
-                .createKafkaProducer(kafka11SinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
+        typeInformation = new CRowTypeInfo(new RowTypeInfo(fieldTypes, fieldNames));
+        this.kafkaProducer011 = (FlinkKafkaProducer011<CRow>) new KafkaProducer011Factory()
+                .createKafkaProducer(kafka11SinkTableInfo, typeInformation, properties, partitioner, partitionKeys);
         return this;
     }
 
@@ -114,9 +119,10 @@ public class KafkaSink  implements RetractStreamTableSink<Row>, IStreamSinkGener
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        DataStream<Row> mapDataStream = dataStream.filter((Tuple2<Boolean, Row> record) -> record.f0)
-                .map((Tuple2<Boolean, Row> record) -> record.f1)
-                .returns(getOutputType().getTypeAt(1))
+
+        DataStream<CRow> mapDataStream = dataStream
+                .map((Tuple2<Boolean, Row> record) -> new CRow(record.f1, record.f0))
+                .returns(typeInformation)
                 .setParallelism(parallelism);
 
         mapDataStream.addSink(kafkaProducer011).name(TableConnectorUtils.generateRuntimeName(this.getClass(), getFieldNames()));

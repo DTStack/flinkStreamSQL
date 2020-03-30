@@ -24,6 +24,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
+import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 
 
@@ -34,11 +35,11 @@ import org.apache.flink.types.Row;
  * author: toutian
  * create: 2019/12/24
  */
-public class SerializationMetricWrapper implements SerializationSchema<Row> {
+public class SerializationMetricWrapper implements SerializationSchema<CRow> {
 
     private static final long serialVersionUID = 1L;
 
-    private SerializationSchema<Row> serializationSchema;
+    private SerializationSchema<CRow> serializationSchema;
 
     private transient RuntimeContext runtimeContext;
 
@@ -47,7 +48,7 @@ public class SerializationMetricWrapper implements SerializationSchema<Row> {
     protected transient Meter dtNumRecordsOutRate;
 
 
-    public SerializationMetricWrapper(SerializationSchema<Row> serializationSchema) {
+    public SerializationMetricWrapper(SerializationSchema<CRow> serializationSchema) {
         this.serializationSchema = serializationSchema;
     }
 
@@ -57,7 +58,7 @@ public class SerializationMetricWrapper implements SerializationSchema<Row> {
     }
 
     @Override
-    public byte[] serialize(Row element) {
+    public byte[] serialize(CRow element) {
         beforeSerialize();
         byte[] row = serializationSchema.serialize(element);
         afterSerialize();
@@ -79,7 +80,7 @@ public class SerializationMetricWrapper implements SerializationSchema<Row> {
         this.runtimeContext = runtimeContext;
     }
 
-    public SerializationSchema<Row> getSerializationSchema() {
+    public SerializationSchema<CRow> getSerializationSchema() {
         return serializationSchema;
     }
 
