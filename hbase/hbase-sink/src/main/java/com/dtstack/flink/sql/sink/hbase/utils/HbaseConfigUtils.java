@@ -52,6 +52,8 @@ public class HbaseConfigUtils {
     public static final String KEY_ZOOKEEPER_SASL_CLIENT = "zookeeper.sasl.client";
 
     public static UserGroupInformation loginAndReturnUGI(Configuration conf, String principal, String keytab) throws IOException {
+        LOG.info("loginAndReturnUGI principal {}",principal);
+        LOG.info("loginAndReturnUGI keytab {}",keytab);
         if (conf == null) {
             throw new IllegalArgumentException("kerberos conf can not be null");
         }
