@@ -90,7 +90,7 @@ public class HbaseOutputFormat extends MetricOutputFormat {
                 LOG.info("regionserverKeytabFile: {}",regionserverKeytabFile);
                 LOG.info("regionserverPrincipal: {}",regionserverPrincipal);
                 LOG.info("zookeeperSaslClient: {}",zookeeperSaslClient);
-                LOG.info("zookeeperSaslClient: {}",securityKrb5Conf);
+                LOG.info("securityKrb5Conf: {}",securityKrb5Conf);
 
                 fillSyncKerberosConfig(conf, regionserverKeytabFile, regionserverPrincipal, zookeeperSaslClient, securityKrb5Conf);
 
