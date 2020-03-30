@@ -127,6 +127,7 @@ public class HbaseOutputFormat extends MetricOutputFormat {
 
     @Override
     public void writeRecord(Tuple2 tuple2) {
+        LOG.info("receive data {},", tuple2.toString());
 
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
@@ -158,19 +159,21 @@ public class HbaseOutputFormat extends MetricOutputFormat {
             put.addColumn(cf, qualifier, val);
         }
 
+
         try {
             table.put(put);
         } catch (IOException e) {
-            outDirtyRecords.inc();
             if (outDirtyRecords.getCount() % dirtyDataPrintFrequency == 0 || LOG.isDebugEnabled()) {
                 LOG.error("record insert failed ..", record.toString());
                 LOG.error("", e);
             }
+            outDirtyRecords.inc();
         }
 
         if (outRecords.getCount() % rowLenth == 0) {
             LOG.info(record.toString());
         }
+
         outRecords.inc();
 
     }
