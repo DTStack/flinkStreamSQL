@@ -60,13 +60,16 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         pgClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", POSTGRESQL_DRIVER)
-                .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
+                .put("max_pool_size", rdbSideTableInfo.getAsyncPoolSize())
                 .put("user", rdbSideTableInfo.getUserName())
-                .put("password", rdbSideTableInfo.getPassword());
+                .put("password", rdbSideTableInfo.getPassword())
+                .put("preferred_test_query", PREFERRED_TEST_QUERY_SQL)
+                .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
+                .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
 
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
+        vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         Vertx vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, pgClientConfig));
     }

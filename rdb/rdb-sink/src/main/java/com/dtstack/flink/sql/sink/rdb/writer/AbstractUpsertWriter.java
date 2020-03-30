@@ -70,11 +70,9 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
 
         String deleteSql = dialect.getDeleteStatement(schema, tableName, keyFields);
         LOG.info("deleteSQL is :{}", deleteSql);
-        System.out.println("deleteSQL is :" + deleteSql);
 
         Optional<String> upsertSql = dialect.getUpsertStatement(schema, tableName, fieldNames, keyFields, allReplace);
         LOG.info("execute UpsertStatement: {}", upsertSql.orElse("use UsingInsertUpdateStatement"));
-        System.out.println("execute UpsertStatement: " + upsertSql.orElse("use UsingInsertUpdateStatement"));
 
         return upsertSql.map((Function<String, AbstractUpsertWriter>) sql ->
                 new UpsertWriterUsingUpsertStatement(
@@ -171,7 +169,6 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                     }
                     connection.commit();
                 } catch (Exception e) {
-                    System.out.println(e.getCause());
                     // deal pg error: current transaction is aborted, commands ignored until end of transaction block
                     connection.rollback();
                     connection.commit();

@@ -4,6 +4,7 @@
  CREATE TABLE tableName(
      colName cloType,
      ...
+     PRIMARY KEY(colName1,colName2) ,
      PERIOD FOR SYSTEM_TIME
   )WITH(
      type ='redis',
@@ -27,9 +28,10 @@
 | tableName | 注册到flink的表名称(可选填;不填默认和redis对应的表名称相同)|
 | colName | 列名称，维表列名格式 表名:主键名:主键值:列名]|
 | colType | 列类型，当前只支持varchar|
+| PRIMARY KEY |主键，多个字段做为联合主键时以逗号分隔
 | PERIOD FOR SYSTEM_TIME | 关键字表明该定义的表为维表信息|
   
-## 3.参数
+## 4.参数
 
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
@@ -51,7 +53,7 @@
     * cacheTTLMs:缓存的过期时间(ms)
   * ALL: 缓存全量表数据
 
-## 4.样例
+## 5.样例
 ```
 create table sideTable(
     channel varchar,
@@ -69,6 +71,11 @@ create table sideTable(
     cacheTTLMs='10000'
  );
 
+```
+## 6.缓存redis的存储结构规则
+```
+redis使用散列类型 hash 数据结构，key=tableName_primaryKey1_primaryKey2,value={column1=value1, column2=value2}
+如果以班级class表为例，id和name作为联合主键，那么redis的结构为 <class_1_john ,{id=1, name=john, age=12}>
 ```
 
 

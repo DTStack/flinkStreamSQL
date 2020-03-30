@@ -30,6 +30,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -42,6 +44,8 @@ import java.util.List;
 public class CassandraAsyncSideInfo extends BaseSideInfo {
 
     private static final long serialVersionUID = -4403313049809013362L;
+    private static final Logger LOG = LoggerFactory.getLogger(CassandraAsyncSideInfo.class.getSimpleName());
+
 
     public CassandraAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
@@ -63,9 +67,9 @@ public class CassandraAsyncSideInfo extends BaseSideInfo {
         }
 
         sqlCondition = "select ${selectField} from ${tableName}";
-
         sqlCondition = sqlCondition.replace("${tableName}", cassandraSideTableInfo.getDatabase()+"."+cassandraSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
-        System.out.println("---------side_exe_sql-----\n" + sqlCondition);
+
+        LOG.info("---------side_exe_sql-----\n{}" + sqlCondition);
     }
 
 
