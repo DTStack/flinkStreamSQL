@@ -54,6 +54,16 @@ public class HbaseTableInfo extends TargetTableInfo {
 
     private String tableName;
 
+    private boolean kerberosAuthEnable;
+
+    private String regionserverKeytabFile;
+
+    private String regionserverPrincipal;
+
+    private String securityKrb5Conf;
+
+    private String zookeeperSaslClient;
+
     private Map<String,Object> hbaseConfig = Maps.newHashMap();
 
     public HbaseTableInfo(){
@@ -150,4 +160,45 @@ public class HbaseTableInfo extends TargetTableInfo {
     public void setHbaseConfig(Map<String, Object> hbaseConfig) {
         this.hbaseConfig = hbaseConfig;
     }
+
+    public boolean isKerberosAuthEnable() {
+        return kerberosAuthEnable;
+    }
+
+    public void setKerberosAuthEnable(boolean kerberosAuthEnable) {
+        this.kerberosAuthEnable = kerberosAuthEnable;
+    }
+
+    public String getRegionserverKeytabFile() {
+        return regionserverKeytabFile;
+    }
+
+    public void setRegionserverKeytabFile(String regionserverKeytabFile) {
+        this.regionserverKeytabFile = regionserverKeytabFile;
+    }
+
+    public String getRegionserverPrincipal() {
+        return regionserverPrincipal;
+    }
+
+    public void setRegionserverPrincipal(String regionserverPrincipal) {
+        this.regionserverPrincipal = regionserverPrincipal;
+    }
+
+    public String getSecurityKrb5Conf() {
+        return securityKrb5Conf;
+    }
+
+    public void setSecurityKrb5Conf(String securityKrb5Conf) {
+        this.securityKrb5Conf = securityKrb5Conf;
+    }
+
+    public String getZookeeperSaslClient() {
+        return zookeeperSaslClient;
+    }
+
+    public void setZookeeperSaslClient(String zookeeperSaslClient) {
+        this.zookeeperSaslClient = zookeeperSaslClient;
+    }
 }
+

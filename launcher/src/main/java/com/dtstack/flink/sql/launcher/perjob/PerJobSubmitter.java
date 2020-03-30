@@ -48,13 +48,12 @@ public class PerJobSubmitter {
     private static final Logger LOG = LoggerFactory.getLogger(PerJobSubmitter.class);
 
     public static String submit(Options launcherOptions, JobGraph jobGraph, Configuration flinkConfig) throws Exception {
-		if (!StringUtils.isBlank(launcherOptions.getAddjar())) {
-			String addjarPath = URLDecoder.decode(launcherOptions.getAddjar(), Charsets.UTF_8.toString());
-			List<String> paths = getJarPaths(addjarPath);
-			paths.forEach( path -> {
-				jobGraph.addJar(new Path("file://" + path));
-			});
-		}
+        if (!StringUtils.isBlank(launcherOptions.getAddjar())) {
+            List<String> paths = ConfigParseUtil.parsePathFromStr(launcherOptions.getAddjar());
+            paths.forEach(path -> {
+                jobGraph.addJar(new Path("file://" + path));
+            });
+        }
 
 		String confProp = launcherOptions.getConfProp();
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
