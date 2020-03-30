@@ -41,7 +41,7 @@ CREATE TABLE tableName(
 |partitionKeys | 用来分区的字段|否||
 |updateMode | 回溯流数据下发模式，append,upsert.upsert模式下会将是否为回溯信息以字段形式进行下发。|否|append|
 |sinkdatatype | 写入kafka数据格式，json,avro,csv|否|json|
-|fieldDelimiter | csv数据分隔符|否| \ |
+|fieldDelimiter | csv数据分隔符|否| , |
 
 
 **kafka相关参数可以自定义，使用kafka.开头即可。**
