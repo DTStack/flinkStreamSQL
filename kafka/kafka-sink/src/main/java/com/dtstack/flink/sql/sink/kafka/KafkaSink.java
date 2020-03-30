@@ -43,113 +43,23 @@ import java.util.Properties;
  * @create: 2019-11-05 11:45
  * @description:
  **/
-public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<KafkaSink> {
-    private static final String SINK_OPERATOR_NAME_TPL = "${topic}_${table}";
-
-    protected String[] fieldNames;
-
-    protected TypeInformation<?>[] fieldTypes;
-
-    protected String topic;
-
-    protected int parallelism;
-
-    protected Properties properties;
-
-    protected FlinkKafkaProducer<Tuple2<Boolean, Row>> flinkKafkaProducer;
-
-    /** The schema of the table. */
-    private TableSchema schema;
-
-    /** Partitioner to select Kafka partition for each item. */
-    protected Optional<FlinkKafkaPartitioner<Tuple2<Boolean, Row>>> partitioner;
-
-    private String[] partitionKeys;
-
-    protected String sinkOperatorName;
-
-
+public class KafkaSink extends AbstractKafkaSink {
     @Override
     public KafkaSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
-        KafkaSinkTableInfo kafkaSinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
-        this.topic = kafkaSinkTableInfo.getTopic();
+        KafkaSinkTableInfo kafka11SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
 
-        properties = new Properties();
-        properties.setProperty("bootstrap.servers", kafkaSinkTableInfo.getBootstrapServers());
-
-        for (String key : kafkaSinkTableInfo.getKafkaParamKeys()) {
-            properties.setProperty(key, kafkaSinkTableInfo.getKafkaParam(key));
-        }
+        Properties kafkaProperties = getKafkaProperties(kafka11SinkTableInfo);
+        this.tableName = kafka11SinkTableInfo.getName();
+        this.topic = kafka11SinkTableInfo.getTopic();
         this.partitioner = Optional.of(new CustomerFlinkPartition<>());
-        this.partitionKeys = getPartitionKeys(kafkaSinkTableInfo);
-        this.fieldNames = kafkaSinkTableInfo.getFields();
-        TypeInformation[] types = new TypeInformation[kafkaSinkTableInfo.getFields().length];
-        for (int i = 0; i < kafkaSinkTableInfo.getFieldClasses().length; i++) {
-            types[i] = TypeInformation.of(kafkaSinkTableInfo.getFieldClasses()[i]);
-        }
-        this.fieldTypes = types;
-
-        TableSchema.Builder schemaBuilder = TableSchema.builder();
-        for (int i = 0; i < fieldNames.length; i++) {
-            schemaBuilder.field(fieldNames[i], fieldTypes[i]);
-        }
-        this.schema = schemaBuilder.build();
-
-        Integer parallelism = kafkaSinkTableInfo.getParallelism();
-        if (parallelism != null) {
-            this.parallelism = parallelism;
-        }
-
-        this.flinkKafkaProducer = (FlinkKafkaProducer<Tuple2<Boolean, Row>>) new KafkaProducerFactory()
-                .createKafkaProducer(kafkaSinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
-
-        this.sinkOperatorName = SINK_OPERATOR_NAME_TPL.replace("${topic}", topic).replace("${table}", kafkaSinkTableInfo.getName());
+        this.partitionKeys = getPartitionKeys(kafka11SinkTableInfo);
+        this.fieldNames = kafka11SinkTableInfo.getFields();
+        this.fieldTypes = getTypeInformations(kafka11SinkTableInfo);
+        this.schema = buildTableSchema(fieldNames, fieldTypes);
+        this.parallelism = kafka11SinkTableInfo.getParallelism();
+        this.sinkOperatorName = SINK_OPERATOR_NAME_TPL.replace("${topic}", topic).replace("${table}", tableName);
+        this.kafkaProducer011 = new KafkaProducerFactory()
+                .createKafkaProducer(kafka11SinkTableInfo, getOutputType().getTypeAt(1), kafkaProperties, partitioner, partitionKeys);
         return this;
-    }
-
-    @Override
-    public TypeInformation<Row> getRecordType() {
-        return new RowTypeInfo(fieldTypes, fieldNames);
-    }
-
-    @Override
-    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        consumeDataStream(dataStream);
-    }
-
-    @Override
-    public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        DataStreamSink<Tuple2<Boolean, Row>> dataStreamSink = dataStream.addSink(flinkKafkaProducer).name(sinkOperatorName);
-        if (parallelism > 0) {
-            dataStreamSink.setParallelism(parallelism);
-        }
-        return dataStreamSink;
-
-    }
-
-    @Override
-    public TupleTypeInfo<Tuple2<Boolean, Row>> getOutputType() {
-        return new TupleTypeInfo(org.apache.flink.table.api.Types.BOOLEAN(), new RowTypeInfo(fieldTypes, fieldNames));
-    }
-
-
-    @Override
-    public TableSchema getTableSchema() {
-        return schema;
-    }
-
-
-    @Override
-    public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
-        this.fieldNames = fieldNames;
-        this.fieldTypes = fieldTypes;
-        return this;
-    }
-
-    private String[] getPartitionKeys(KafkaSinkTableInfo kafkaSinkTableInfo) {
-        if (StringUtils.isNotBlank(kafkaSinkTableInfo.getPartitionKeys())) {
-            return StringUtils.split(kafkaSinkTableInfo.getPartitionKeys(), ',');
-        }
-        return null;
     }
 }
