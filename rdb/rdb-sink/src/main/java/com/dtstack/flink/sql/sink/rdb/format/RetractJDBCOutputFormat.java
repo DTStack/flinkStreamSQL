@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,6 +73,8 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private int batchNum = 100;
     private String insertQuery;
     public int[] typesArray;
+
+    private String testConnectionSql;
 
     /** 存储用于批量写入的数据 */
     protected List<Row> rows = new ArrayList();
@@ -309,6 +312,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private synchronized void submitExecuteBatch() {
         try {
+            triggerConnectionCheck();
             this.upload.executeBatch();
             dbConn.commit();
         } catch (SQLException e) {
@@ -324,11 +328,24 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         }
     }
 
+    private void triggerConnectionCheck() {
+        try {
+            upload.executeQuery(testConnectionSql);
+        } catch (SQLException e) {
+            LOG.error("triggerConnectionCheck failed..", e);
+            try {
+                dbConn.close();
+            } catch (SQLException e1) {
+                LOG.error("dbConn close failed..", e);
+            }
+        }
+    }
+
     private void checkConnectionOpen(Connection dbConn) {
         try {
             if (dbConn.isClosed()) {
                 LOG.info("db connection reconnect..");
-                dbConn= establishConnection();
+                dbConn = establishConnection();
                 upload = dbConn.prepareStatement(insertQuery);
                 this.dbConn = dbConn;
             }
@@ -487,5 +504,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     public void fullFieldAdd(String colName) {
         this.fullField.add(colName);
+    }
+
+    public void setTestConnectionSql(String testConnectionSql) {
+        this.testConnectionSql = testConnectionSql;
     }
 }

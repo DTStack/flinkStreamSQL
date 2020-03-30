@@ -50,7 +50,7 @@ import java.util.Map;
  * @author maqi
  */
 public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializable, IStreamSinkGener<RdbSink> {
-
+    private final String DEFAULT_TEST_CHECK_CONNECTION_SQL = "select 1 from dual";
     protected String driverName;
 
     protected String dbURL;
@@ -101,6 +101,7 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
         outputFormat.setTableName(tableName);
         outputFormat.setDbType(dbType);
         outputFormat.setSchema(schema);
+        outputFormat.setTestConnectionSql(getCheckConnetionSql());
         outputFormat.setDbSink(this);
 
         outputFormat.verifyField();
@@ -279,6 +280,10 @@ public abstract class RdbSink implements RetractStreamTableSink<Row>, Serializab
             streamSink.setParallelism(parallelism);
         }
         return streamSink;
+    }
+
+    public String getCheckConnetionSql() {
+       return  DEFAULT_TEST_CHECK_CONNECTION_SQL;
     }
 
 }
