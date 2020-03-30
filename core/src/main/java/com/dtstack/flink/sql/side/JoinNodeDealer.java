@@ -86,6 +86,7 @@ public class JoinNodeDealer {
                                  Queue<Object> queueInfo,
                                  SqlNode parentWhere,
                                  SqlNodeList parentSelectList,
+                                 SqlNodeList parentGroupByList,
                                  Set<Tuple2<String, String>> joinFieldSet,
                                  Map<String, String> tableRef,
                                  Map<String, String> fieldRef) {
@@ -105,12 +106,12 @@ public class JoinNodeDealer {
         if (leftNode.getKind() == JOIN) {
             //处理连续join
             dealNestJoin(joinNode, sideTableSet,
-                    queueInfo, parentWhere, parentSelectList, joinFieldSet, tableRef, fieldRef, parentSelectList);
+                    queueInfo, parentWhere, parentSelectList, parentGroupByList, joinFieldSet, tableRef, fieldRef);
             leftNode = joinNode.getLeft();
         }
 
         if (leftNode.getKind() == AS) {
-            AliasInfo aliasInfo = (AliasInfo) sideSQLParser.parseSql(leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
+            AliasInfo aliasInfo = (AliasInfo) sideSQLParser.parseSql(leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
             leftTbName = aliasInfo.getName();
             leftTbAlias = aliasInfo.getAlias();
         }
@@ -118,7 +119,7 @@ public class JoinNodeDealer {
         boolean leftIsSide = checkIsSideTable(leftTbName, sideTableSet);
         Preconditions.checkState(!leftIsSide, "side-table must be at the right of join operator");
 
-        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
         rightTableName = rightTableNameAndAlias.f0;
         rightTableAlias = rightTableNameAndAlias.f1;
 
@@ -145,7 +146,7 @@ public class JoinNodeDealer {
 
         //extract 需要查询的字段信息
         if(rightIsSide){
-            extractJoinNeedSelectField(leftNode, rightNode, parentWhere, parentSelectList, tableRef, joinFieldSet, fieldRef, tableInfo);
+            extractJoinNeedSelectField(leftNode, rightNode, parentWhere, parentSelectList, parentGroupByList, tableRef, joinFieldSet, fieldRef, tableInfo);
         }
 
         if(tableInfo.getLeftNode().getKind() != AS){
@@ -168,13 +169,14 @@ public class JoinNodeDealer {
                                            SqlNode rightNode,
                                            SqlNode parentWhere,
                                            SqlNodeList parentSelectList,
+                                           SqlNodeList parentGroupByList,
                                            Map<String, String> tableRef,
                                            Set<Tuple2<String, String>> joinFieldSet,
                                            Map<String, String> fieldRef,
                                            JoinInfo tableInfo){
 
-        Set<String> extractSelectField = extractField(leftNode, parentWhere, parentSelectList, tableRef, joinFieldSet);
-        Set<String> rightExtractSelectField = extractField(rightNode, parentWhere, parentSelectList, tableRef, joinFieldSet);
+        Set<String> extractSelectField = extractField(leftNode, parentWhere, parentSelectList, parentGroupByList, tableRef, joinFieldSet);
+        Set<String> rightExtractSelectField = extractField(rightNode, parentWhere, parentSelectList, parentGroupByList, tableRef, joinFieldSet);
 
         //重命名right 中和 left 重名的
         Map<String, String> leftTbSelectField = Maps.newHashMap();
@@ -208,6 +210,7 @@ public class JoinNodeDealer {
      * @param sqlNode
      * @param parentWhere
      * @param parentSelectList
+     * @param parentGroupByList
      * @param tableRef
      * @param joinFieldSet
      * @return
@@ -215,6 +218,7 @@ public class JoinNodeDealer {
     public Set<String> extractField(SqlNode sqlNode,
                                     SqlNode parentWhere,
                                     SqlNodeList parentSelectList,
+                                    SqlNodeList parentGroupByList,
                                     Map<String, String> tableRef,
                                     Set<Tuple2<String, String>> joinFieldSet){
         Set<String> fromTableNameSet = Sets.newHashSet();
@@ -225,8 +229,11 @@ public class JoinNodeDealer {
         Set<String> extractSelectField = extractSelectFields(parentSelectList, fromTableNameSet, tableRef);
         Set<String> fieldFromJoinCondition = extractSelectFieldFromJoinCondition(joinFieldSet, fromTableNameSet, tableRef);
 
+        Set<String> extractGroupByField = extractFieldFromGroupByList(parentGroupByList, fromTableNameSet, tableRef);
+
         extractSelectField.addAll(extractCondition);
         extractSelectField.addAll(fieldFromJoinCondition);
+        extractSelectField.addAll(extractGroupByField);
 
         return extractSelectField;
     }
@@ -242,27 +249,27 @@ public class JoinNodeDealer {
                                   Set<String> sideTableSet,
                                   Queue<Object> queueInfo,
                                   SqlNode parentWhere,
-                                  SqlNodeList selectList,
+                                  SqlNodeList parentSelectList,
+                                  SqlNodeList parentGroupByList,
                                   Set<Tuple2<String, String>> joinFieldSet,
                                   Map<String, String> tableRef,
-                                  Map<String, String> fieldRef,
-                                  SqlNodeList parentSelectList){
+                                  Map<String, String> fieldRef){
 
         SqlJoin leftJoinNode = (SqlJoin) joinNode.getLeft();
         SqlNode parentRightJoinNode = joinNode.getRight();
         SqlNode rightNode = leftJoinNode.getRight();
-        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, selectList);
-        Tuple2<String, String> parentRightJoinInfo = parseRightNode(parentRightJoinNode, sideTableSet, queueInfo, parentWhere, selectList);
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
+        Tuple2<String, String> parentRightJoinInfo = parseRightNode(parentRightJoinNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
         boolean parentRightIsSide = checkIsSideTable(parentRightJoinInfo.f0, sideTableSet);
 
-        JoinInfo joinInfo = dealJoinNode(leftJoinNode, sideTableSet, queueInfo, parentWhere, selectList, joinFieldSet, tableRef, fieldRef);
+        JoinInfo joinInfo = dealJoinNode(leftJoinNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, joinFieldSet, tableRef, fieldRef);
 
         String rightTableName = rightTableNameAndAlias.f0;
         boolean rightIsSide = checkIsSideTable(rightTableName, sideTableSet);
         SqlBasicCall buildAs = TableUtils.buildAsNodeByJoinInfo(joinInfo, null, null);
 
         if(rightIsSide){
-            addSideInfoToExeQueue(queueInfo, joinInfo, joinNode, parentSelectList, parentWhere, tableRef);
+            addSideInfoToExeQueue(queueInfo, joinInfo, joinNode, parentSelectList, parentGroupByList, parentWhere, tableRef);
         }
 
         SqlNode newLeftNode = joinNode.getLeft();
@@ -275,7 +282,7 @@ public class JoinNodeDealer {
 
             //替换leftNode 为新的查询
             joinNode.setLeft(buildAs);
-            replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentWhere);
+            replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentGroupByList, parentWhere);
         }
 
         return joinInfo;
@@ -288,6 +295,7 @@ public class JoinNodeDealer {
      * @param joinInfo
      * @param joinNode
      * @param parentSelectList
+     * @param parentGroupByList
      * @param parentWhere
      * @param tableRef
      */
@@ -295,6 +303,7 @@ public class JoinNodeDealer {
                                       JoinInfo joinInfo,
                                       SqlJoin joinNode,
                                       SqlNodeList parentSelectList,
+                                      SqlNodeList parentGroupByList,
                                       SqlNode parentWhere,
                                       Map<String, String> tableRef){
         //只处理维表
@@ -308,7 +317,7 @@ public class JoinNodeDealer {
         //替换左表为新的表名称
         joinNode.setLeft(buildAs);
 
-        replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentWhere);
+        replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentGroupByList, parentWhere);
     }
 
     /**
@@ -317,12 +326,14 @@ public class JoinNodeDealer {
      * @param leftJoinNode
      * @param tableRef
      * @param parentSelectList
+     * @param parentGroupByList
      * @param parentWhere
      */
     public void replaceSelectAndWhereField(SqlBasicCall buildAs,
                    SqlNode leftJoinNode,
                    Map<String, String> tableRef,
                    SqlNodeList parentSelectList,
+                   SqlNodeList parentGroupByList,
                    SqlNode parentWhere){
 
         String newLeftTableName = buildAs.getOperands()[1].toString();
@@ -341,10 +352,20 @@ public class JoinNodeDealer {
             }
         }
 
+        //TODO 应该根据上面的查询字段的关联关系来替换
         //替换where 中的条件相关
         for(String tbTmp : fromTableNameSet){
-            TableUtils.replaceWhereCondition(parentWhere, tbTmp, newLeftTableName);
+            TableUtils.replaceWhereCondition(parentWhere, tbTmp, newLeftTableName, fieldReplaceRef);
         }
+
+        if(parentGroupByList != null){
+            for(SqlNode sqlNode : parentGroupByList.getList()){
+                for(String tbTmp : fromTableNameSet) {
+                    TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);
+                }
+            }
+        }
+
     }
 
     /**
@@ -407,7 +428,7 @@ public class JoinNodeDealer {
 
             //替换where 中的条件相关
             for(String tbTmp : fromTableNameSet){
-                TableUtils.replaceWhereCondition(parentWhere, tbTmp, tableAlias);
+                TableUtils.replaceWhereCondition(parentWhere, tbTmp, tableAlias, fieldReplaceRef);
             }
 
             for(String tbTmp : fromTableNameSet){
@@ -426,7 +447,6 @@ public class JoinNodeDealer {
 
     /**
      * 抽取上层需用使用到的字段
-     * 由于where字段已经抽取到上一层了所以不用查询出来
      * @param parentSelectList
      * @param fromTableNameSet
      * @return
@@ -451,12 +471,27 @@ public class JoinNodeDealer {
                 extractFieldList.add(field.f0 + "." + field.f1);
             }
 
-            //TODO
             if(tableRef.containsKey(field.f0)){
                 if(fromTableNameSet.contains(tableRef.get(field.f0))){
                     extractFieldList.add(tableRef.get(field.f0) + "." + field.f1);
                 }
             }
+        }
+
+        return extractFieldList;
+    }
+
+    private Set<String> extractFieldFromGroupByList(SqlNodeList parentGroupByList,
+                                                    Set<String> fromTableNameSet,
+                                                    Map<String, String> tableRef){
+
+        if(parentGroupByList == null){
+            return Sets.newHashSet();
+        }
+
+        Set<String> extractFieldList = Sets.newHashSet();
+        for(SqlNode selectNode : parentGroupByList.getList()){
+            extractSelectField(selectNode, extractFieldList, fromTableNameSet, tableRef);
         }
 
         return extractFieldList;
@@ -573,12 +608,12 @@ public class JoinNodeDealer {
 
 
     private Tuple2<String, String> parseRightNode(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo,
-                                                  SqlNode parentWhere, SqlNodeList selectList) {
+                                                  SqlNode parentWhere, SqlNodeList selectList, SqlNodeList parentGroupByList) {
         Tuple2<String, String> tabName = new Tuple2<>("", "");
         if(sqlNode.getKind() == IDENTIFIER){
             tabName.f0 = sqlNode.toString();
         }else{
-            AliasInfo aliasInfo = (AliasInfo)sideSQLParser.parseSql(sqlNode, sideTableSet, queueInfo, parentWhere, selectList);
+            AliasInfo aliasInfo = (AliasInfo)sideSQLParser.parseSql(sqlNode, sideTableSet, queueInfo, parentWhere, selectList, parentGroupByList);
             tabName.f0 = aliasInfo.getName();
             tabName.f1 = aliasInfo.getAlias();
         }

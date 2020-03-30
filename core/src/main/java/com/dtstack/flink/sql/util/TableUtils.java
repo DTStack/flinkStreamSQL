@@ -478,7 +478,7 @@ public class TableUtils {
         return preFieldName;
     }
 
-    public static void replaceWhereCondition(SqlNode parentWhere, String oldTbName, String newTbName){
+    public static void replaceWhereCondition(SqlNode parentWhere, String oldTbName, String newTbName, HashBiMap<String, String> fieldReplaceRef){
 
         if(parentWhere == null){
             return;
@@ -486,15 +486,15 @@ public class TableUtils {
 
         SqlKind kind = parentWhere.getKind();
         if(kind == AND){
-            replaceWhereCondition(((SqlBasicCall) parentWhere).getOperands()[0], oldTbName, newTbName);
-            replaceWhereCondition(((SqlBasicCall) parentWhere).getOperands()[1], oldTbName, newTbName);
+            replaceWhereCondition(((SqlBasicCall) parentWhere).getOperands()[0], oldTbName, newTbName, fieldReplaceRef);
+            replaceWhereCondition(((SqlBasicCall) parentWhere).getOperands()[1], oldTbName, newTbName, fieldReplaceRef);
 
         } else {
-            replaceConditionNode(parentWhere, oldTbName, newTbName);
+            replaceConditionNode(parentWhere, oldTbName, newTbName, fieldReplaceRef);
         }
     }
 
-    private static void replaceConditionNode(SqlNode selectNode, String oldTbName, String newTbName) {
+    private static void replaceConditionNode(SqlNode selectNode, String oldTbName, String newTbName, HashBiMap<String, String> fieldReplaceRef) {
         if(selectNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
@@ -503,8 +503,14 @@ public class TableUtils {
             }
 
             String tableName = sqlIdentifier.names.asList().get(0);
+            String tableField = sqlIdentifier.names.asList().get(1);
+            String fieldKey = tableName + "_" + tableField;
+
             if(tableName.equalsIgnoreCase(oldTbName)){
+
+                String newFieldName = fieldReplaceRef.get(fieldKey) == null ? tableField : fieldReplaceRef.get(fieldKey);
                 SqlIdentifier newField = ((SqlIdentifier)selectNode).setName(0, newTbName);
+                newField = newField.setName(1, newFieldName);
                 ((SqlIdentifier)selectNode).assignNamesFrom(newField);
             }
             return;
@@ -552,7 +558,7 @@ public class TableUtils {
                     continue;
                 }
 
-                replaceConditionNode(sqlNode, oldTbName, newTbName);
+                replaceConditionNode(sqlNode, oldTbName, newTbName, fieldReplaceRef);
             }
 
             return;
