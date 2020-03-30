@@ -21,6 +21,7 @@ import com.dtstack.flink.sql.format.SerializationMetricWrapper;
 import com.dtstack.flink.sql.sink.kafka.serialization.CustomerKeyedSerializationSchema;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
@@ -38,7 +39,7 @@ import java.util.Properties;
  *
  * @author maqi
  */
-public class KafkaProducer010 extends FlinkKafkaProducer010<Row> {
+public class KafkaProducer010 extends FlinkKafkaProducer010<Tuple2<Boolean,Row>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaProducer010.class);
 
@@ -46,7 +47,8 @@ public class KafkaProducer010 extends FlinkKafkaProducer010<Row> {
 
     private SerializationMetricWrapper serializationMetricWrapper;
 
-    public KafkaProducer010(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig, Optional<FlinkKafkaPartitioner<Row>> customPartitioner, String[] partitionKeys) {
+    public KafkaProducer010(String topicId, SerializationSchema<Tuple2<Boolean,Row>> serializationSchema, Properties producerConfig,
+                            Optional<FlinkKafkaPartitioner<Tuple2<Boolean,Row>>> customPartitioner, String[] partitionKeys) {
         super(topicId, new CustomerKeyedSerializationSchema((SerializationMetricWrapper)serializationSchema, partitionKeys), producerConfig, customPartitioner.get());
         this.serializationMetricWrapper = (SerializationMetricWrapper) serializationSchema;
     }

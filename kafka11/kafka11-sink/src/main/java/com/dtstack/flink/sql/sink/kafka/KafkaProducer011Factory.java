@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.sink.kafka;
 
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.types.Row;
@@ -36,8 +37,9 @@ import java.util.Properties;
 public class KafkaProducer011Factory extends AbstractKafkaProducerFactory {
 
     @Override
-    public RichSinkFunction<Row> createKafkaProducer(KafkaSinkTableInfo kafkaSinkTableInfo, TypeInformation<Row> typeInformation, Properties properties, Optional<FlinkKafkaPartitioner<Row>> partitioner,
-            String[] partitionKeys) {
+    public RichSinkFunction<Tuple2<Boolean,Row>> createKafkaProducer(KafkaSinkTableInfo kafkaSinkTableInfo, TypeInformation<Tuple2<Boolean,Row>> typeInformation,
+                                                                     Properties properties, Optional<FlinkKafkaPartitioner<Tuple2<Boolean,Row>>> partitioner,
+                                                                     String[] partitionKeys) {
         return new KafkaProducer011(kafkaSinkTableInfo.getTopic(), createSerializationMetricWrapper(kafkaSinkTableInfo, typeInformation), properties, partitioner, partitionKeys);
     }
 }

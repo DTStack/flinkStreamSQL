@@ -56,13 +56,13 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     protected Properties properties;
 
-    protected FlinkKafkaProducer<Row> flinkKafkaProducer;
+    protected FlinkKafkaProducer<Tuple2<Boolean, Row>> flinkKafkaProducer;
 
     /** The schema of the table. */
     private TableSchema schema;
 
     /** Partitioner to select Kafka partition for each item. */
-    protected Optional<FlinkKafkaPartitioner<Row>> partitioner;
+    protected Optional<FlinkKafkaPartitioner<Tuple2<Boolean, Row>>> partitioner;
 
     private String[] partitionKeys;
 
@@ -100,7 +100,7 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
             this.parallelism = parallelism;
         }
 
-        this.flinkKafkaProducer = (FlinkKafkaProducer<Row>) new KafkaProducerFactory()
+        this.flinkKafkaProducer = (FlinkKafkaProducer<Tuple2<Boolean, Row>>) new KafkaProducerFactory()
                 .createKafkaProducer(kafkaSinkTableInfo, getOutputType().getTypeAt(1), properties, partitioner, partitionKeys);
 
         this.sinkOperatorName = SINK_OPERATOR_NAME_TPL.replace("${topic}", topic).replace("${table}", kafkaSinkTableInfo.getName());
@@ -118,14 +118,11 @@ public class KafkaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     }
 
     @Override
-    public DataStreamSink<Row> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        DataStream<Row> ds = dataStream
-                .filter((Tuple2<Boolean, Row> record) -> record.f0)
-                .map((Tuple2<Boolean, Row> record) -> record.f1)
-                .returns(getOutputType().getTypeAt(1))
-                .setParallelism(parallelism);
-
-        DataStreamSink<Row> dataStreamSink = ds.addSink(flinkKafkaProducer).name(sinkOperatorName);
+    public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        DataStreamSink<Tuple2<Boolean, Row>> dataStreamSink = dataStream.addSink(flinkKafkaProducer).name(sinkOperatorName);
+        if (parallelism > 0) {
+            dataStreamSink.setParallelism(parallelism);
+        }
         return dataStreamSink;
 
     }

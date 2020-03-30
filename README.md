@@ -7,33 +7,10 @@
 >  >  * 支持原生FLinkSQL所有的语法
 >  >  * 扩展了输入和输出的性能指标到promethus
 
- ## 新特性:
-  * 1.kafka源表支持not null语法,支持字符串类型的时间转换。
-  * 2.rdb维表与DB建立连接时，周期进行连接，防止连接断开。rdbsink写入时，对连接进行检查。
-  * 3.异步维表支持非等值连接，比如：<>,<,>。
-  * 4.增加kafka数组解析
-  * 5.增加kafka1.0以上版本的支持
-  * 6.增加postgresql、kudu、clickhouse维表、结果表的支持
-  * 7.支持插件的依赖方式,参考pluginLoadMode参数
-  * 8.支持cep处理
-  * 9.支持udaf
-  * 10.支持谓词下移
-  * 11.支持状态的ttl
-  
- ## BUG修复：
-  * 1.修复不能解析sql中orderby,union语法。
-  * 2.修复yarnPer模式提交失败的异常。
-  * 3.一些bug的修复
- 
 # 已支持
   * 源表：kafka 0.9、0.10、0.11、1.x版本
   * 维表：mysql, SQlServer,oracle, hbase, mongo, redis, cassandra, serversocket, kudu, postgresql, clickhouse, impala, db2, sqlserver
   * 结果表：mysql, SQlServer, oracle, hbase, elasticsearch5.x, mongo, redis, cassandra, console, kudu, postgresql, clickhouse, impala, db2, sqlserver
-
-# 后续开发计划
-  * 维表快照
-  * kafka avro格式
-  * topN
 
 ## 1 快速起步
 ### 1.1 运行模式
@@ -205,6 +182,7 @@ sh submit.sh -sql D:\sideSql.txt  -name xctest -remoteSqlPluginPath /opt/dtstack
 * [impala 结果表插件](docs/impalaSink.md)
 * [db2 结果表插件](docs/db2Sink.md)
 * [sqlserver 结果表插件](docs/sqlserverSink.md)
+* [kafka 结果表插件](docs/kafkaSink.md)
 
 ### 2.3 维表插件
 * [hbase 维表插件](docs/hbaseSide.md)
