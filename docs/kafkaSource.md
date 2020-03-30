@@ -1,21 +1,21 @@
 ## 1.格式：
 ```
+
 CREATE TABLE tableName(
     colName colType,
     ...
     function(colNameX) AS aliasName,
     WATERMARK FOR colName AS withOffset( colName , delayTime )
  )WITH(
-    type ='kafka11',
+    type ='kafka09',
     bootstrapServers ='ip:port,ip:port...',
     zookeeperQuorum ='ip:port,ip:port/zkparent',
     offsetReset ='latest',
     topic ='topicName',
     groupId='test',
     parallelism ='parllNum',
-    --timezone='America/Los_Angeles',
     timezone='Asia/Shanghai',
-    sourcedatatype ='json' #可不设置
+    sourcedatatype ='dt_nest' #可不设置
  );
 ```
 
@@ -45,7 +45,9 @@ CREATE TABLE tableName(
 |topicIsPattern | topic是否是正则表达式格式(true&#124;false)  |否| false
 |offsetReset  | 读取的topic 的offset初始位置[latest&#124;earliest&#124;指定offset值({"0":12312,"1":12321,"2":12312},{"partition_no":offset_value})]|否|latest|
 |parallelism | 并行度设置|否|1|
-|sourcedatatype | 数据类型|否|json|
+|sourcedatatype | 数据类型,avro,csv,json,dt_nest。dt_nest为默认JSON解析器，能够解析嵌套JSON数据类型，其他仅支持非嵌套格式|否|dt_nest|
+|schemaInfo | avro类型使用的schema信息|否||
+|fieldDelimiter |csv类型使用的数据分隔符|否| | |
 |timezone|时区设置[timezone支持的参数](timeZone.md)|否|'Asia/Shanghai'
 **kafka相关参数可以自定义，使用kafka.开头即可。**
 ```
@@ -87,7 +89,7 @@ CREATE TABLE MyTable(
     xctime bigint,
     CHARACTER_LENGTH(channel) AS timeLeng
  )WITH(
-    type ='kafka11',
+    type ='kafka09',
     bootstrapServers ='172.16.8.198:9092',
     zookeeperQuorum ='172.16.8.198:2181/kafka',
     offsetReset ='latest',
@@ -167,24 +169,10 @@ CREATE TABLE MyTable(
     parallelism ='1'
  );
 ```
-# 二、csv格式数据源
-根据字段分隔符进行数据分隔，按顺序匹配sql中配置的列。如数据分隔列数和sql中配置的列数相等直接匹配；如不同参照lengthcheckpolicy策略处理。
-## 1.参数：
- 
-|参数名称|含义|是否必填|默认值|
-|----|---|---|---|
-|type | kafka09 | 是||
-|bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
-|zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||
-|topic | 需要读取的 topic 名称|是||
-|offsetReset | 读取的topic 的offset初始位置[latest&#124;earliest]|否|latest|
-|parallelism | 并行度设置 |否|1|
-|sourcedatatype | 数据类型|是 |csv|
-|fielddelimiter | 字段分隔符|是 ||
-|lengthcheckpolicy | 单行字段条数检查策略 |否|可选，默认为SKIP,其它可选值为EXCEPTION、PAD。SKIP：字段数目不符合时跳过 。EXCEPTION:字段数目不符合时抛出异常。PAD:按顺序填充，不存在的置为null。|
-**kafka相关参数可以自定义，使用kafka.开头即可。**
 
-## 2.样例：
+## 7.csv格式数据源
+
+
 ```
 CREATE TABLE MyTable(
     name varchar,
@@ -201,8 +189,28 @@ CREATE TABLE MyTable(
     --topic ='mqTest.*',
     --topicIsPattern='true'
     parallelism ='1',
-    sourcedatatype ='csv',
-    fielddelimiter ='\|',
-    lengthcheckpolicy = 'PAD'
+    sourceDatatype ='csv'
  );
  ```
+## 8.avro格式数据源
+
+```
+CREATE TABLE MyTable(
+    channel varchar,
+    pv varchar
+    --xctime bigint
+ )WITH(
+   type='kafka',
+   bootstrapServers='172.16.8.107:9092',
+   groupId='mqTest01',
+   offsetReset='latest',
+   topic='mqTest01',
+   parallelism ='1',
+   topicIsPattern ='false',
+   kafka.group.id='mqTest',
+   sourceDataType ='avro',
+   schemaInfo = '{"type":"record","name":"MyResult","fields":[{"name":"channel","type":"string"},{"name":"pv","type":"string"}]}'
+ );
+
+```
+

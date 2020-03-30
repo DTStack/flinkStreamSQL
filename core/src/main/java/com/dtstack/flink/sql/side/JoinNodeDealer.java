@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.config.CalciteConfig;
 import com.dtstack.flink.sql.util.TableUtils;
+import com.esotericsoftware.minlog.Log;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -190,11 +191,7 @@ public class JoinNodeDealer {
         tableInfo.setJoinType(joinType);
         tableInfo.setCondition(joinNode.getCondition());
 
-        if(!needBuildTemp){
-            return tableInfo;
-        }
-
-        if(tableInfo.getLeftNode().getKind() != AS){
+        if(tableInfo.getLeftNode().getKind() != AS && needBuildTemp){
             extractTemporaryQuery(tableInfo.getLeftNode(), tableInfo.getLeftTableAlias(), (SqlBasicCall) parentWhere,
                     parentSelectList, queueInfo, joinFieldSet, tableRef);
         }else {
@@ -264,11 +261,10 @@ public class JoinNodeDealer {
             SqlBasicCall sqlBasicCall = buildAsSqlNode(tableAlias, sqlNode);
             queueInfo.offer(sqlBasicCall);
 
-            System.out.println("-------build temporary query-----------");
-            System.out.println(tmpSelectSql);
-            System.out.println("---------------------------------------");
-        }catch (Exception e){
-            e.printStackTrace();
+            Log.info("-------build temporary query-----------\n{}", tmpSelectSql);
+            Log.info("---------------------------------------");
+        } catch (Exception e) {
+            Log.error("", e);
             throw new RuntimeException(e);
         }
     }
@@ -389,7 +385,6 @@ public class JoinNodeDealer {
             }
 
         }else if(selectNode.getKind() == CASE){
-            System.out.println("selectNode");
             SqlCase sqlCase = (SqlCase) selectNode;
             SqlNodeList whenOperands = sqlCase.getWhenOperands();
             SqlNodeList thenOperands = sqlCase.getThenOperands();

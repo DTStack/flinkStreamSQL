@@ -30,16 +30,11 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 
 public class OracleAsyncReqRow extends RdbAsyncReqRow {
-
-    private static final Logger LOG = LoggerFactory.getLogger(OracleAsyncReqRow.class);
-
     private static final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
 
     public OracleAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
@@ -53,7 +48,7 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         oracleClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", ORACLE_DRIVER)
-                .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
+                .put("max_pool_size", rdbSideTableInfo.getAsyncPoolSize())
                 .put("user", rdbSideTableInfo.getUserName())
                 .put("password", rdbSideTableInfo.getPassword())
                 .put("provider_class", DT_PROVIDER_CLASS)
@@ -65,7 +60,7 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
 
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
+        vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, oracleClientConfig));

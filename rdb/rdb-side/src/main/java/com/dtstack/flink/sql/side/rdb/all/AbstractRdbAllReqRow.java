@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.side.rdb.all;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -72,6 +73,14 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     public AbstractRdbAllReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
     }
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        LOG.info("rdb dim table config info: {} ", tableInfo.toString());
+    }
+
 
     @Override
     protected void initCache() throws SQLException {
