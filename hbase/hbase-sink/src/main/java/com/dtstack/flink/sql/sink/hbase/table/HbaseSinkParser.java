@@ -40,15 +40,18 @@ import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 public class HbaseSinkParser extends AbsTableParser {
 
 
+
     public static final String HBASE_ZOOKEEPER_QUORUM = "zookeeperQuorum";
-
     public static final String ZOOKEEPER_PARENT = "zookeeperParent";
-
     public static final String HBASE_COLUMN_FAMILY = "columnFamily";
-
     public static final String HBASE_ROWKEY = "rowkey";
-
     public static final String TABLE_NAME_KEY = "tableName";
+
+    public static final String KERBEROS_AUTH_ENABLE_KEY = "kerberosAuthEnable";
+    public static final String REGIONSERVER_KEYTAB_FILE_KEY = "regionserverKeytabFile";
+    public static final String REGIONSERVER_PRINCIPAL_KEY = "regionserverPrincipal";
+    public static final String SECURITY_KRB5_CONF_KEY = "securityKrb5Conf";
+    public static final String ZOOKEEPER_SASL_CLINT_KEY = "zookeeperSaslClient";
 
     @Override
     protected boolean fieldNameNeedsUpperCase() {
@@ -67,10 +70,11 @@ public class HbaseSinkParser extends AbsTableParser {
         String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
         hbaseTableInfo.setRowkey(rk.split(","));
 
-        props.entrySet().stream()
-                .filter(entity -> entity.getKey().contains("."))
-                .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), entity.getValue()))
-                .count();
+        hbaseTableInfo.setKerberosAuthEnable(MathUtil.getBoolean(props.get(KERBEROS_AUTH_ENABLE_KEY.toLowerCase()), false));
+        hbaseTableInfo.setRegionserverKeytabFile((String) props.get(REGIONSERVER_KEYTAB_FILE_KEY.toLowerCase()));
+        hbaseTableInfo.setRegionserverPrincipal((String) props.get(REGIONSERVER_PRINCIPAL_KEY.toLowerCase()));
+        hbaseTableInfo.setSecurityKrb5Conf((String) props.get(SECURITY_KRB5_CONF_KEY.toLowerCase()));
+        hbaseTableInfo.setZookeeperSaslClient((String) props.get(ZOOKEEPER_SASL_CLINT_KEY.toLowerCase()));
 
         return hbaseTableInfo;
     }

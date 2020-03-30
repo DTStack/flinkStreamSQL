@@ -54,8 +54,12 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String tableName;
     protected String[] rowkey;
     protected String registerTabName;
-    protected Map<String, Object> hbaseConfig;
 
+    protected boolean kerberosAuthEnable;
+    protected String regionserverKeytabFile;
+    protected String regionserverPrincipal;
+    protected String securityKrb5Conf;
+    protected String zookeeperSaslClient;
     private int parallelism = -1;
 
     public HbaseSink() {
@@ -72,7 +76,12 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.rowkey = hbaseTableInfo.getRowkey();
         this.columnNameFamily = hbaseTableInfo.getColumnNameFamily();
         this.registerTabName =  hbaseTableInfo.getName();
-        this.hbaseConfig = hbaseTableInfo.getHbaseConfig();
+
+        this.kerberosAuthEnable = hbaseTableInfo.isKerberosAuthEnable();
+        this.regionserverKeytabFile = hbaseTableInfo.getRegionserverKeytabFile();
+        this.regionserverPrincipal = hbaseTableInfo.getRegionserverPrincipal();
+        this.securityKrb5Conf = hbaseTableInfo.getSecurityKrb5Conf();
+        this.zookeeperSaslClient = hbaseTableInfo.getZookeeperSaslClient();
 
         Integer tmpSinkParallelism = hbaseTableInfo.getParallelism();
         if (tmpSinkParallelism != null) {
@@ -121,7 +130,12 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         builder.setRowkey(rowkey);
         builder.setColumnNames(fieldNames);
         builder.setColumnNameFamily(columnNameFamily);
-        builder.setHbaseConfig(hbaseConfig);
+
+        builder.setKerberosAuthEnable(kerberosAuthEnable);
+        builder.setRegionserverKeytabFile(regionserverKeytabFile);
+        builder.setRegionserverPrincipal(regionserverPrincipal);
+        builder.setSecurityKrb5Conf(securityKrb5Conf);
+        builder.setZookeeperSaslClient(zookeeperSaslClient);
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);

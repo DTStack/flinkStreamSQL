@@ -54,6 +54,9 @@ public class Options {
     @OptionRequired(description = "sql ext jar,eg udf jar")
     private  String addjar;
 
+    @OptionRequired(description = "file add to ship file")
+    private  String addShipfile;
+
     @OptionRequired(description = "sql ref prop,eg specify event time")
     private  String confProp = "{}";
 
@@ -193,5 +196,13 @@ public class Options {
 
     public void setPluginLoadMode(String pluginLoadMode) {
         this.pluginLoadMode = pluginLoadMode;
+    }
+
+    public String getAddShipfile() {
+        return addShipfile;
+    }
+
+    public void setAddShipfile(String addShipfile) {
+        this.addShipfile = addShipfile;
     }
 }
