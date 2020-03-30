@@ -43,6 +43,7 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -116,9 +117,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         AtomicInteger failCounter = new AtomicInteger(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while(!finishFlag.get()){
-            AtomicBoolean connFinish = new AtomicBoolean(false);
+            CountDownLatch latch = new CountDownLatch(1);
             rdbSqlClient.getConnection(conn -> {
-                connFinish.set(true);
                 if(conn.failed()){
                     if(failCounter.getAndIncrement() % 1000 == 0){
                         logger.error("getConnection error", conn.cause());
@@ -127,22 +127,27 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                         resultFuture.completeExceptionally(conn.cause());
                         finishFlag.set(true);
                     }
+                    latch.countDown();
                     conn.result().close();
                     return;
                 }
-                CONN_STATUS.set(true);
-                ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
-                cancelTimerWhenComplete(resultFuture, timerFuture);
-                handleQuery(conn.result(), inputParams, input, resultFuture);
-                finishFlag.set(true);
-            });
-            while(!connFinish.get()){
                 try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e){
+                    CONN_STATUS.set(true);
+                    ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
+                    cancelTimerWhenComplete(resultFuture, timerFuture);
+                    handleQuery(conn.result(), inputParams, input, resultFuture);
+                    finishFlag.set(true);
+                } catch (Exception e) {
                     logger.error("", e);
+                } finally {
+                    latch.countDown();
                 }
-
+            });
+            //主线程阻塞
+            try {
+                latch.wait();
+            } catch (InterruptedException e) {
+                logger.error("", e);
             }
         }
 
