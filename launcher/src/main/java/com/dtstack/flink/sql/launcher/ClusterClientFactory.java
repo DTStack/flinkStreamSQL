@@ -96,7 +96,7 @@ public class ClusterClientFactory {
                 YarnClient yarnClient = YarnClient.createYarnClient();
                 yarnClient.init(yarnConf);
                 yarnClient.start();
-                ApplicationId applicationId = null;
+                ApplicationId applicationId;
 
                 String yarnSessionConf = launcherOptions.getYarnSessionConf();
                 yarnSessionConf = URLDecoder.decode(yarnSessionConf, Charsets.UTF_8.toString());

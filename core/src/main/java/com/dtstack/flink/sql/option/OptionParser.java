@@ -26,6 +26,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang.StringUtils;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.io.File;
@@ -104,8 +105,8 @@ public class OptionParser {
                 continue;
             } else if (OPTION_SQL.equalsIgnoreCase(key)) {
                 File file = new File(value.toString());
-                String content = FileUtils.readFile(file, "UTF-8");
-                value = URLEncoder.encode(content, Charsets.UTF_8.name());
+                String content = FileUtils.readFile(file, StandardCharsets.UTF_8.name());
+                value = URLEncoder.encode(content, StandardCharsets.UTF_8.name());
             }
             args.add("-" + key);
             args.add(value.toString());
