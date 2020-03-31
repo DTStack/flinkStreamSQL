@@ -64,6 +64,10 @@ public class HbaseTableInfo extends TargetTableInfo {
 
     private String zookeeperSaslClient;
 
+    private String clientPrincipal;
+
+    private String clientKeytabFile;
+
     private Map<String,Object> hbaseConfig = Maps.newHashMap();
 
     public HbaseTableInfo(){
@@ -199,6 +203,22 @@ public class HbaseTableInfo extends TargetTableInfo {
 
     public void setZookeeperSaslClient(String zookeeperSaslClient) {
         this.zookeeperSaslClient = zookeeperSaslClient;
+    }
+
+    public String getClientPrincipal() {
+        return clientPrincipal;
+    }
+
+    public void setClientPrincipal(String clientPrincipal) {
+        this.clientPrincipal = clientPrincipal;
+    }
+
+    public String getClientKeytabFile() {
+        return clientKeytabFile;
+    }
+
+    public void setClientKeytabFile(String clientKeytabFile) {
+        this.clientKeytabFile = clientKeytabFile;
     }
 }
 

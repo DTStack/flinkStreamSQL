@@ -65,6 +65,8 @@ public class HbaseOutputFormat extends MetricOutputFormat {
     private String regionserverPrincipal;
     private String securityKrb5Conf;
     private String zookeeperSaslClient;
+    private String clientPrincipal;
+    private String clientKeytabFile;
 
     private String[] families;
     private String[] qualifiers;
@@ -92,9 +94,21 @@ public class HbaseOutputFormat extends MetricOutputFormat {
                 LOG.info("zookeeperSaslClient: {}",zookeeperSaslClient);
                 LOG.info("securityKrb5Conf: {}",securityKrb5Conf);
 
+                LOG.info("clientPrincipal : {}", clientPrincipal);
+                LOG.info("clientKeytabFile : {}", clientKeytabFile);
+
                 fillSyncKerberosConfig(conf, regionserverKeytabFile, regionserverPrincipal, zookeeperSaslClient, securityKrb5Conf);
 
-                UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, regionserverPrincipal, regionserverKeytabFile);
+                if (!StringUtils.isEmpty(clientKeytabFile)) {
+                    clientKeytabFile = System.getProperty("user.dir") + File.separator + clientKeytabFile;
+                } else {
+                    clientKeytabFile = System.getProperty("user.dir") + File.separator + regionserverKeytabFile;
+                }
+
+                clientPrincipal = !StringUtils.isEmpty(clientPrincipal) ? clientPrincipal : regionserverPrincipal;
+
+
+                UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, clientPrincipal, clientKeytabFile);
                 org.apache.hadoop.conf.Configuration finalConf = conf;
                 conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
                     @Override
@@ -285,6 +299,16 @@ public class HbaseOutputFormat extends MetricOutputFormat {
 
         public HbaseOutputFormatBuilder setZookeeperSaslClient(String zookeeperSaslClient) {
             format.zookeeperSaslClient = zookeeperSaslClient;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setClientPrincipal(String clientPrincipal) {
+            format.clientPrincipal = clientPrincipal;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setClientKeytabFile(String clientKeytabFile) {
+            format.clientKeytabFile = clientKeytabFile;
             return this;
         }
 

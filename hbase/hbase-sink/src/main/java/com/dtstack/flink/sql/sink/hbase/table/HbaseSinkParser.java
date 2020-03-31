@@ -53,6 +53,9 @@ public class HbaseSinkParser extends AbsTableParser {
     public static final String SECURITY_KRB5_CONF_KEY = "securityKrb5Conf";
     public static final String ZOOKEEPER_SASL_CLINT_KEY = "zookeeperSaslClient";
 
+    public static final String CLIENT_PRINCIPAL_KEY = "clientPrincipal";
+    public static final String CLIENT_KEYTABFILE_KEY = "clientKeytabFile";
+
     @Override
     protected boolean fieldNameNeedsUpperCase() {
         return false;
@@ -75,6 +78,9 @@ public class HbaseSinkParser extends AbsTableParser {
         hbaseTableInfo.setRegionserverPrincipal((String) props.get(REGIONSERVER_PRINCIPAL_KEY.toLowerCase()));
         hbaseTableInfo.setSecurityKrb5Conf((String) props.get(SECURITY_KRB5_CONF_KEY.toLowerCase()));
         hbaseTableInfo.setZookeeperSaslClient((String) props.get(ZOOKEEPER_SASL_CLINT_KEY.toLowerCase()));
+
+        hbaseTableInfo.setClientPrincipal((String) props.get(CLIENT_PRINCIPAL_KEY.toLowerCase()));
+        hbaseTableInfo.setClientKeytabFile((String) props.get(CLIENT_KEYTABFILE_KEY.toLowerCase()));
 
         return hbaseTableInfo;
     }
