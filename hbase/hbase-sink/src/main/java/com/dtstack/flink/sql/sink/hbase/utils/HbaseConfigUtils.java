@@ -44,8 +44,8 @@ public class HbaseConfigUtils {
     public final static String KEY_HBASE_REGIONSERVER_KEYTAB_FILE = "hbase.regionserver.keytab.file";
     public final static String KEY_HBASE_REGIONSERVER_KERBEROS_PRINCIPAL = "hbase.regionserver.kerberos.principal";
 
-    public final static String KEY_HBASE_ZOOKEEPER_QUORUM = "zookeeper.quorum";
-    public final static String KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM = "hbase.zookeeper.znode.parent";
+    public final static String KEY_HBASE_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
+    public final static String KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM = "zookeeper.znode.parent";
 
 
     public static final String KEY_JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf";
