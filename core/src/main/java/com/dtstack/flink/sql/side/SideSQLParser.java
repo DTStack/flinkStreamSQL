@@ -165,6 +165,9 @@ public class SideSQLParser {
             case ORDER_BY:
                 SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
                 parseSql(sqlOrderBy.query, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
+
+            case LITERAL:
+                return LITERAL.toString();
         }
         return "";
     }

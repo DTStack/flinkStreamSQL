@@ -435,6 +435,9 @@ public class TableUtils {
      * @param oldTabFieldRefNew
      */
     public static void replaceJoinFieldRefTableName(SqlNode condition, Map<String, String> oldTabFieldRefNew){
+        if (null == condition || condition.getKind() == LITERAL) {
+            return;
+        }
         SqlKind joinKind = condition.getKind();
         if( joinKind == AND || joinKind == EQUALS ){
             replaceJoinFieldRefTableName(((SqlBasicCall)condition).operands[0], oldTabFieldRefNew);

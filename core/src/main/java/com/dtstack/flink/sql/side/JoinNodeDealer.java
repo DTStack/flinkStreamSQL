@@ -507,6 +507,10 @@ public class JoinNodeDealer {
      * @param joinFieldSet
      */
     private void extractJoinField(SqlNode condition, Set<Tuple2<String, String>> joinFieldSet){
+        if (null == condition || condition.getKind() == LITERAL) {
+            return;
+        }
+
         SqlKind joinKind = condition.getKind();
         if( joinKind == AND || joinKind == EQUALS ){
             extractJoinField(((SqlBasicCall)condition).operands[0], joinFieldSet);
