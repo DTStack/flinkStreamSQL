@@ -26,12 +26,9 @@ import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.formats.avro.AvroRowSerializationSchema;
-import org.apache.flink.formats.csv.CsvRowSerializationSchema;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.types.Row;
 
 import java.util.Optional;
 import java.util.Properties;
