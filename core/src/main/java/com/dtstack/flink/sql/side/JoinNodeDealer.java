@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.config.CalciteConfig;
+import com.dtstack.flink.sql.parser.FlinkPlanner;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.base.Preconditions;
@@ -38,11 +38,11 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import java.util.List;
 import java.util.Map;
@@ -416,8 +416,9 @@ public class JoinNodeDealer {
                     node.toString(),
                     extractConditionStr);
 
-            SqlParser sqlParser = SqlParser.create(tmpSelectSql, CalciteConfig.MYSQL_LEX_CONFIG);
-            SqlNode sqlNode = sqlParser.parseStmt();
+            FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
+            SqlNode sqlNode = flinkPlanner.parse(tmpSelectSql);
+
             SqlBasicCall sqlBasicCall = buildAsSqlNode(tableAlias, sqlNode);
             queueInfo.offer(sqlBasicCall);
 
