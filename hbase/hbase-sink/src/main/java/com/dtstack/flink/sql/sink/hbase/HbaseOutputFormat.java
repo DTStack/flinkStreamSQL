@@ -89,13 +89,10 @@ public class HbaseOutputFormat extends MetricOutputFormat {
             if (kerberosAuthEnable) {
                 conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
                 conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
-                LOG.info("regionserverKeytabFile: {}",regionserverKeytabFile);
-                LOG.info("regionserverPrincipal: {}",regionserverPrincipal);
-                LOG.info("zookeeperSaslClient: {}",zookeeperSaslClient);
-                LOG.info("securityKrb5Conf: {}",securityKrb5Conf);
 
-                LOG.info("clientPrincipal : {}", clientPrincipal);
-                LOG.info("clientKeytabFile : {}", clientKeytabFile);
+                LOG.info("kerberos config:{}", this.toString());
+                Preconditions.checkArgument(!StringUtils.isEmpty(clientPrincipal), " clientPrincipal not null!");
+                Preconditions.checkArgument(!StringUtils.isEmpty(clientKeytabFile), " clientKeytabFile not null!");
 
                 fillSyncKerberosConfig(conf, regionserverPrincipal, zookeeperSaslClient, securityKrb5Conf);
 
@@ -337,14 +334,6 @@ public class HbaseOutputFormat extends MetricOutputFormat {
 
     private void fillSyncKerberosConfig(org.apache.hadoop.conf.Configuration config, String regionserverPrincipal,
                                         String zookeeperSaslClient, String securityKrb5Conf) throws IOException {
-//        if (StringUtils.isEmpty(regionserverKeytabFile)) {
-//            throw new IllegalArgumentException("Must provide regionserverKeytabFile when authentication is Kerberos");
-//        }
-//        String regionserverKeytabFilePath = System.getProperty("user.dir") + File.separator + regionserverKeytabFile;
-//        LOG.info("regionserverKeytabFilePath:{}",regionserverKeytabFilePath);
-//        config.set(HbaseConfigUtils.KEY_HBASE_MASTER_KEYTAB_FILE, regionserverKeytabFilePath);
-//        config.set(HbaseConfigUtils.KEY_HBASE_REGIONSERVER_KEYTAB_FILE, regionserverKeytabFilePath);
-
         if (StringUtils.isEmpty(regionserverPrincipal)) {
             throw new IllegalArgumentException("Must provide regionserverPrincipal when authentication is Kerberos");
         }
@@ -365,5 +354,16 @@ public class HbaseOutputFormat extends MetricOutputFormat {
         }
     }
 
-
+    @Override
+    public String toString() {
+        return "HbaseOutputFormat kerberos{" +
+                "kerberosAuthEnable=" + kerberosAuthEnable +
+                ", regionserverKeytabFile='" + regionserverKeytabFile + '\'' +
+                ", regionserverPrincipal='" + regionserverPrincipal + '\'' +
+                ", securityKrb5Conf='" + securityKrb5Conf + '\'' +
+                ", zookeeperSaslClient='" + zookeeperSaslClient + '\'' +
+                ", clientPrincipal='" + clientPrincipal + '\'' +
+                ", clientKeytabFile='" + clientKeytabFile + '\'' +
+                '}';
+    }
 }
