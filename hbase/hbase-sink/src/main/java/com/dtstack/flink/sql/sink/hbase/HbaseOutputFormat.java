@@ -97,14 +97,9 @@ public class HbaseOutputFormat extends MetricOutputFormat {
                 LOG.info("clientPrincipal : {}", clientPrincipal);
                 LOG.info("clientKeytabFile : {}", clientKeytabFile);
 
-                fillSyncKerberosConfig(conf, regionserverKeytabFile, regionserverPrincipal, zookeeperSaslClient, securityKrb5Conf);
+                fillSyncKerberosConfig(conf, regionserverPrincipal, zookeeperSaslClient, securityKrb5Conf);
 
-                if (!StringUtils.isEmpty(clientKeytabFile)) {
-                    clientKeytabFile = System.getProperty("user.dir") + File.separator + clientKeytabFile;
-                } else {
-                    clientKeytabFile = System.getProperty("user.dir") + File.separator + regionserverKeytabFile;
-                }
-
+                clientKeytabFile = System.getProperty("user.dir") + File.separator + clientKeytabFile;
                 clientPrincipal = !StringUtils.isEmpty(clientPrincipal) ? clientPrincipal : regionserverPrincipal;
 
 
@@ -340,15 +335,15 @@ public class HbaseOutputFormat extends MetricOutputFormat {
 
     }
 
-    private void fillSyncKerberosConfig(org.apache.hadoop.conf.Configuration config, String regionserverKeytabFile, String regionserverPrincipal,
+    private void fillSyncKerberosConfig(org.apache.hadoop.conf.Configuration config, String regionserverPrincipal,
                                         String zookeeperSaslClient, String securityKrb5Conf) throws IOException {
-        if (StringUtils.isEmpty(regionserverKeytabFile)) {
-            throw new IllegalArgumentException("Must provide regionserverKeytabFile when authentication is Kerberos");
-        }
-        String regionserverKeytabFilePath = System.getProperty("user.dir") + File.separator + regionserverKeytabFile;
-        LOG.info("regionserverKeytabFilePath:{}",regionserverKeytabFilePath);
-        config.set(HbaseConfigUtils.KEY_HBASE_MASTER_KEYTAB_FILE, regionserverKeytabFilePath);
-        config.set(HbaseConfigUtils.KEY_HBASE_REGIONSERVER_KEYTAB_FILE, regionserverKeytabFilePath);
+//        if (StringUtils.isEmpty(regionserverKeytabFile)) {
+//            throw new IllegalArgumentException("Must provide regionserverKeytabFile when authentication is Kerberos");
+//        }
+//        String regionserverKeytabFilePath = System.getProperty("user.dir") + File.separator + regionserverKeytabFile;
+//        LOG.info("regionserverKeytabFilePath:{}",regionserverKeytabFilePath);
+//        config.set(HbaseConfigUtils.KEY_HBASE_MASTER_KEYTAB_FILE, regionserverKeytabFilePath);
+//        config.set(HbaseConfigUtils.KEY_HBASE_REGIONSERVER_KEYTAB_FILE, regionserverKeytabFilePath);
 
         if (StringUtils.isEmpty(regionserverPrincipal)) {
             throw new IllegalArgumentException("Must provide regionserverPrincipal when authentication is Kerberos");
