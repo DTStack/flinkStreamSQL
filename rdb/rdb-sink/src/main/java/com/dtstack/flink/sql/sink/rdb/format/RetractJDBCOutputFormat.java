@@ -51,7 +51,8 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(RetractJDBCOutputFormat.class);
-
+    private static final int CONNECTION_CHECK_FREQUENCY = 100;
+    private int checkTimes;
     private String username;
     private String password;
     private String drivername;
@@ -181,7 +182,6 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
 
 
     private void insertWrite(Row row) {
-        checkConnectionOpen(dbConn);
         try {
             if (batchNum == 1) {
                 writeSingleRecord(row);
@@ -315,6 +315,7 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
 
     private synchronized void submitExecuteBatch() {
         try {
+            checkConnectionOpen();
             this.upload.executeBatch();
             dbConn.commit();
         } catch (SQLException e) {
@@ -330,11 +331,17 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
         }
     }
 
-    private void checkConnectionOpen(Connection dbConn) {
+    private void checkConnectionOpen() {
+        LOG.info("test db connection Valid check !");
+        checkTimes++;
+        if (checkTimes % CONNECTION_CHECK_FREQUENCY != 0) {
+            return;
+        }
+        LOG.warn("db connection Valid check !");
         try {
-            if (dbConn.isClosed()) {
+            if (dbConn.isClosed() || !dbConn.isValid(100)) {
                 LOG.info("db connection reconnect..");
-                dbConn= establishConnection();
+                dbConn = establishConnection();
                 upload = dbConn.prepareStatement(insertQuery);
                 this.dbConn = dbConn;
             }
@@ -345,6 +352,7 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
         } catch (IOException e) {
             LOG.error("kerberos authentication failed..", e);
         }
+        checkTimes = 0;
     }
 
     /**
