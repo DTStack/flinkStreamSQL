@@ -58,7 +58,9 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private static int dirtyDataPrintFrequency = 1000;
 
     private static int receiveDataPrintFrequency = 1000;
+    private static int connectionCheckFrequency = 50;
 
+    private long checkTimes;
     private String username;
     private String password;
     private String drivername;
@@ -73,8 +75,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
     private int batchNum = 100;
     private String insertQuery;
     public int[] typesArray;
-
-    private String testConnectionSql;
 
     /** 存储用于批量写入的数据 */
     protected List<Row> rows = new ArrayList();
@@ -188,7 +188,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
 
     private void insertWrite(Row row) {
-        checkConnectionOpen(dbConn);
         try {
             if (batchNum == 1) {
                 writeSingleRecord(row);
@@ -312,7 +311,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private synchronized void submitExecuteBatch() {
         try {
-            triggerConnectionCheck();
+            checkConnectionOpen();
             this.upload.executeBatch();
             dbConn.commit();
         } catch (SQLException e) {
@@ -328,22 +327,15 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         }
     }
 
-    private void triggerConnectionCheck() {
-        try {
-            upload.executeQuery(testConnectionSql);
-        } catch (SQLException e) {
-            LOG.error("triggerConnectionCheck failed..", e);
-            try {
-                dbConn.close();
-            } catch (SQLException e1) {
-                LOG.error("dbConn close failed..", e);
-            }
-        }
-    }
 
-    private void checkConnectionOpen(Connection dbConn) {
+    private void checkConnectionOpen() {
+        checkTimes++;
+        if (checkTimes % connectionCheckFrequency != 0) {
+            return;
+        }
+        LOG.warn("db connection check..");
         try {
-            if (dbConn.isClosed()) {
+            if (dbConn.isClosed() || !dbConn.isValid(60)) {
                 LOG.info("db connection reconnect..");
                 dbConn = establishConnection();
                 upload = dbConn.prepareStatement(insertQuery);
@@ -354,6 +346,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         } catch (ClassNotFoundException e) {
             LOG.error("load jdbc class error when reconnect db..", e);
         }
+        checkTimes = 0;
     }
 
     /**
@@ -506,7 +499,4 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
         this.fullField.add(colName);
     }
 
-    public void setTestConnectionSql(String testConnectionSql) {
-        this.testConnectionSql = testConnectionSql;
-    }
 }
