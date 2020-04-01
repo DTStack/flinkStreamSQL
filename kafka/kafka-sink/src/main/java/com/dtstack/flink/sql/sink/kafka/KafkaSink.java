@@ -18,22 +18,8 @@
 
 package com.dtstack.flink.sql.sink.kafka;
 
-import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.api.java.typeutils.TupleTypeInfo;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.DataStreamSink;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
-import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
-import org.apache.flink.table.api.TableSchema;
-import org.apache.flink.table.sinks.RetractStreamTableSink;
-import org.apache.flink.table.sinks.TableSink;
-import org.apache.flink.types.Row;
 
 import java.util.Optional;
 import java.util.Properties;
@@ -46,20 +32,19 @@ import java.util.Properties;
 public class KafkaSink extends AbstractKafkaSink {
     @Override
     public KafkaSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
-        KafkaSinkTableInfo kafka11SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
+        KafkaSinkTableInfo kafkaSinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
 
-        Properties kafkaProperties = getKafkaProperties(kafka11SinkTableInfo);
-        this.tableName = kafka11SinkTableInfo.getName();
-        this.topic = kafka11SinkTableInfo.getTopic();
+        Properties kafkaProperties = getKafkaProperties(kafkaSinkTableInfo);
+        this.tableName = kafkaSinkTableInfo.getName();
+        this.topic = kafkaSinkTableInfo.getTopic();
         this.partitioner = Optional.of(new CustomerFlinkPartition<>());
-        this.partitionKeys = getPartitionKeys(kafka11SinkTableInfo);
-        this.fieldNames = kafka11SinkTableInfo.getFields();
-        this.fieldTypes = getTypeInformations(kafka11SinkTableInfo);
+        this.partitionKeys = getPartitionKeys(kafkaSinkTableInfo);
+        this.fieldNames = kafkaSinkTableInfo.getFields();
+        this.fieldTypes = getTypeInformations(kafkaSinkTableInfo);
         this.schema = buildTableSchema(fieldNames, fieldTypes);
-        this.parallelism = kafka11SinkTableInfo.getParallelism();
+        this.parallelism = kafkaSinkTableInfo.getParallelism();
         this.sinkOperatorName = SINK_OPERATOR_NAME_TPL.replace("${topic}", topic).replace("${table}", tableName);
-        this.kafkaProducer011 = new KafkaProducerFactory()
-                .createKafkaProducer(kafka11SinkTableInfo, getOutputType().getTypeAt(1), kafkaProperties, partitioner, partitionKeys);
+        this.kafkaProducer011 = new KafkaProducerFactory().createKafkaProducer(kafkaSinkTableInfo, getOutputType(), kafkaProperties, partitioner, partitionKeys);
         return this;
     }
 }
