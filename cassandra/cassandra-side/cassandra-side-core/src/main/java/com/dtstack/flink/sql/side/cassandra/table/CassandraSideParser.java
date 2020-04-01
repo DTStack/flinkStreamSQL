@@ -65,9 +65,8 @@ public class CassandraSideParser extends AbsSideTableParser {
 
     public static final String POOL_TIMEOUT_MILLIS_KEY = "poolTimeoutMillis";
 
-    static {
-        keyPatternMap.put(SIDE_SIGN_KEY, SIDE_TABLE_SIGN);
-        keyHandlerMap.put(SIDE_SIGN_KEY, CassandraSideParser::dealSideSign);
+    public CassandraSideParser() {
+        addParserHandler(SIDE_SIGN_KEY, SIDE_TABLE_SIGN, this::dealSideSign);
     }
 
     @Override
@@ -94,6 +93,6 @@ public class CassandraSideParser extends AbsSideTableParser {
         return cassandraSideTableInfo;
     }
 
-    private static void dealSideSign(Matcher matcher, TableInfo tableInfo) {
+    private void dealSideSign(Matcher matcher, TableInfo tableInfo) {
     }
 }
