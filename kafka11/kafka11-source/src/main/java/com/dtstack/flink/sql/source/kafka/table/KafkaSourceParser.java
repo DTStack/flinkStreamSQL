@@ -22,14 +22,9 @@ package com.dtstack.flink.sql.source.kafka.table;
 
 import com.dtstack.flink.sql.table.AbsSourceParser;
 import com.dtstack.flink.sql.table.TableInfo;
-import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Reason:
@@ -39,42 +34,6 @@ import java.util.regex.Pattern;
  */
 
 public class KafkaSourceParser extends AbsSourceParser {
-
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaSourceParser.class);
-
-    private static final String KAFKA_NEST_FIELD_KEY = "nestFieldKey";
-
-    private static Pattern kafkaNestFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
-
-    static {
-        keyPatternMap.put(KAFKA_NEST_FIELD_KEY, kafkaNestFieldKeyPattern);
-
-        keyHandlerMap.put(KAFKA_NEST_FIELD_KEY, KafkaSourceParser::dealNestField);
-    }
-
-    /**
-     * add parser for alias field
-     * @param matcher
-     * @param tableInfo
-     */
-    static void dealNestField(Matcher matcher, TableInfo tableInfo) {
-        String physicalField = matcher.group(1);
-        String fieldType = matcher.group(3);
-        String mappingField = matcher.group(4);
-        Class fieldClass= ClassUtil.stringConvertClass(fieldType);
-        boolean notNull = matcher.group(5) != null;
-        TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
-        fieldExtraInfo.setNotNull(notNull);
-
-        tableInfo.addPhysicalMappings(mappingField, physicalField);
-        tableInfo.addField(mappingField);
-        tableInfo.addFieldClass(fieldClass);
-        tableInfo.addFieldType(fieldType);
-        tableInfo.addFieldExtraInfo(fieldExtraInfo);
-        if(LOG.isInfoEnabled()){
-            LOG.info(physicalField + "--->" + mappingField + " Class: " + fieldClass.toString());
-        }
-    }
 
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {

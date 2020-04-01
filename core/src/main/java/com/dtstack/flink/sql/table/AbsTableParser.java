@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -42,16 +43,19 @@ import java.util.stream.Collectors;
 public abstract class AbsTableParser {
 
     private static final String PRIMARY_KEY = "primaryKey";
+    private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
 
+    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
+    private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
 
-    public static Map<String, Pattern> keyPatternMap = Maps.newHashMap();
+    public Map<String, Pattern> keyPatternMap = Maps.newHashMap();
 
-    public static Map<String, ITableFieldDealHandler> keyHandlerMap = Maps.newHashMap();
+    public Map<String, ITableFieldDealHandler> keyHandlerMap = Maps.newHashMap();
 
-    static {
-        keyPatternMap.put(PRIMARY_KEY, primaryKeyPattern);
-        keyHandlerMap.put(PRIMARY_KEY, AbsTableParser::dealPrimaryKey);
+    public AbsTableParser() {
+        addParserHandler(PRIMARY_KEY, primaryKeyPattern, this::dealPrimaryKey);
+        addParserHandler(NEST_JSON_FIELD_KEY, nestJsonFieldKeyPattern, this::dealNestField);
     }
 
     protected boolean fieldNameNeedsUpperCase() {
@@ -112,7 +116,7 @@ public abstract class AbsTableParser {
         tableInfo.finish();
     }
 
-    public static void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
+    public  void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
         String primaryFields = matcher.group(1).trim();
         if (primaryFields != null) {
             String[] splitArry = primaryFields.split(",");
@@ -123,8 +127,37 @@ public abstract class AbsTableParser {
         tableInfo.setPrimaryKeys(Lists.newArrayList());
     }
 
+    /**
+     * add parser for alias field
+     * @param matcher
+     * @param tableInfo
+     */
+    protected void dealNestField(Matcher matcher, TableInfo tableInfo) {
+        String physicalField = matcher.group(1);
+        Preconditions.checkArgument(!physicalFieldFunPattern.matcher(physicalField).find(),
+                "No need to add data types when using functions, The correct way is : strLen(name) as nameSize, ");
+
+        String fieldType = matcher.group(3);
+        String mappingField = matcher.group(4);
+        Class fieldClass = dbTypeConvertToJavaType(fieldType);
+        boolean notNull = matcher.group(5) != null;
+        TableInfo.FieldExtraInfo fieldExtraInfo = new TableInfo.FieldExtraInfo();
+        fieldExtraInfo.setNotNull(notNull);
+
+        tableInfo.addPhysicalMappings(mappingField, physicalField);
+        tableInfo.addField(mappingField);
+        tableInfo.addFieldClass(fieldClass);
+        tableInfo.addFieldType(fieldType);
+        tableInfo.addFieldExtraInfo(fieldExtraInfo);
+    }
+
     public Class dbTypeConvertToJavaType(String fieldType) {
         return ClassUtil.stringConvertClass(fieldType);
+    }
+
+    protected void addParserHandler(String parserName, Pattern pattern, ITableFieldDealHandler handler) {
+        keyPatternMap.put(parserName, pattern);
+        keyHandlerMap.put(parserName, handler);
     }
 
 }
