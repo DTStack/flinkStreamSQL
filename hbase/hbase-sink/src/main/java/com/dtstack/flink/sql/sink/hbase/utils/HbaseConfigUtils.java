@@ -45,13 +45,15 @@ public class HbaseConfigUtils {
     public final static String KEY_HBASE_REGIONSERVER_KERBEROS_PRINCIPAL = "hbase.regionserver.kerberos.principal";
 
     public final static String KEY_HBASE_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
-    public final static String KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM = "hbase.zookeeper.znode.parent";
+    public final static String KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM = "zookeeper.znode.parent";
 
 
     public static final String KEY_JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf";
     public static final String KEY_ZOOKEEPER_SASL_CLIENT = "zookeeper.sasl.client";
 
     public static UserGroupInformation loginAndReturnUGI(Configuration conf, String principal, String keytab) throws IOException {
+        LOG.info("loginAndReturnUGI principal {}",principal);
+        LOG.info("loginAndReturnUGI keytab {}",keytab);
         if (conf == null) {
             throw new IllegalArgumentException("kerberos conf can not be null");
         }

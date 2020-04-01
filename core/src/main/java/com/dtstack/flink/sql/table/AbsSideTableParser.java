@@ -41,7 +41,7 @@ public abstract class AbsSideTableParser extends AbsTableParser {
 
     private final static Pattern SIDE_TABLE_SIGN = Pattern.compile("(?i)^PERIOD\\s+FOR\\s+SYSTEM_TIME$");
 
-    static {
+    public AbsSideTableParser() {
         keyPatternMap.put(SIDE_SIGN_KEY, SIDE_TABLE_SIGN);
         keyHandlerMap.put(SIDE_SIGN_KEY, AbsSideTableParser::dealSideSign);
     }

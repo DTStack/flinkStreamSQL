@@ -24,14 +24,12 @@ import com.dtstack.flink.sql.table.AbsSideTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
-import scala.collection.mutable.HashMap$;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
@@ -59,10 +57,10 @@ public class HbaseSideParser extends AbsSideTableParser {
     public static final String CACHE = "cache";
 
 
-    static {
-        keyPatternMap.put(FIELD_KEY, FIELD_PATTERN);
-        keyHandlerMap.put(FIELD_KEY, HbaseSideParser::dealField);
+    public HbaseSideParser() {
+        addParserHandler(FIELD_KEY, FIELD_PATTERN, this::dealField);
     }
+
 
 
     @Override
@@ -91,7 +89,7 @@ public class HbaseSideParser extends AbsSideTableParser {
      * @param matcher
      * @param tableInfo
      */
-    private static void dealField(Matcher matcher, TableInfo tableInfo){
+    private void dealField(Matcher matcher, TableInfo tableInfo) {
 
         HbaseSideTableInfo sideTableInfo = (HbaseSideTableInfo) tableInfo;
         String filedDefineStr = matcher.group(1);
