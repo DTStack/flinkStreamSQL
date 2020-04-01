@@ -312,7 +312,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
 
     private synchronized void submitExecuteBatch() {
         try {
-            triggerConnectionCheck();
             this.upload.executeBatch();
             dbConn.commit();
         } catch (SQLException e) {
@@ -325,19 +324,6 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
             rows.forEach(this::writeSingleRecord);
         } finally {
             rows.clear();
-        }
-    }
-
-    private void triggerConnectionCheck() {
-        try {
-            upload.executeQuery(testConnectionSql);
-        } catch (SQLException e) {
-            LOG.error("triggerConnectionCheck failed..", e);
-            try {
-                dbConn.close();
-            } catch (SQLException e1) {
-                LOG.error("dbConn close failed..", e);
-            }
         }
     }
 
