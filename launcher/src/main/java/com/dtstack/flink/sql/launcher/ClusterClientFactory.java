@@ -157,7 +157,7 @@ public class ClusterClientFactory {
 
         }
 
-        if (StringUtils.isEmpty(applicationId.toString())) {
+        if (applicationId == null || StringUtils.isEmpty(applicationId.toString())) {
             throw new RuntimeException("No flink session found on yarn cluster.");
         }
         return applicationId;
