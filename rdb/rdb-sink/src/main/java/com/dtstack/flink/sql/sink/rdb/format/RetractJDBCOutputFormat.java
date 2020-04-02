@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.rdb.format;
 
+import com.dtstack.flink.sql.enums.EConnectionErrorCode;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -181,7 +182,7 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
     }
 
 
-    private void insertWrite(Row row) {
+    private void insertWrite(Row row)  {
         try {
             if (batchNum == 1) {
                 writeSingleRecord(row);
@@ -201,8 +202,6 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
             } else {
                 outDirtyRecords.inc(batchNum == 1 ? batchNum : rows.size());
             }
-
-
         }
 
     }
@@ -213,7 +212,7 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
             upload.executeUpdate();
             dbConn.commit();
         } catch (SQLException e) {
-
+            dealSQLException(e);
             if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
                 LOG.error("record insert failed,dirty record num:{}, current row:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
@@ -315,44 +314,57 @@ public class RetractJDBCOutputFormat extends DtRichOutputFormat {
 
     private synchronized void submitExecuteBatch() {
         try {
-            checkConnectionOpen();
+            regularlyCheckConnection();
             this.upload.executeBatch();
             dbConn.commit();
         } catch (SQLException e) {
+            LOG.warn("submitExecuteBatch error {}", e);
             try {
                 dbConn.rollback();
             } catch (SQLException e1) {
-                LOG.error("rollback  data error !", e);
+                dealSQLException(e1);
             }
-
             rows.forEach(this::writeSingleRecord);
         } finally {
             rows.clear();
         }
     }
 
-    private void checkConnectionOpen() {
-        LOG.info("test db connection Valid check !");
+    private void dealSQLException(Exception e) {
+        EConnectionErrorCode errorCode = EConnectionErrorCode.resolveErrorCodeFromException(e);
+        switch (errorCode) {
+            case CONN_DB_INVALID:
+                reconnection();
+                break;
+            case CONN_DB_FAILED:
+            case DB_TABLE_NOT_EXIST:
+                throw new RuntimeException(e);
+            default:
+        }
+    }
+
+
+    private void regularlyCheckConnection() throws SQLException {
         checkTimes++;
         if (checkTimes % CONNECTION_CHECK_FREQUENCY != 0) {
             return;
         }
         LOG.warn("db connection Valid check !");
-        try {
-            if (dbConn.isClosed() || !dbConn.isValid(100)) {
-                LOG.info("db connection reconnect..");
-                dbConn = establishConnection();
-                upload = dbConn.prepareStatement(insertQuery);
-                this.dbConn = dbConn;
-            }
-        } catch (SQLException e) {
-            LOG.error("check connection open failed..", e);
-        } catch (ClassNotFoundException e) {
-            LOG.error("load jdbc class error when reconnect db..", e);
-        } catch (IOException e) {
-            LOG.error("kerberos authentication failed..", e);
+        if (dbConn.isClosed() || !dbConn.isValid(100)) {
+            reconnection();
         }
         checkTimes = 0;
+    }
+
+    public void reconnection() throws RuntimeException {
+        try {
+            LOG.info("db connection reconnect..");
+            dbConn = establishConnection();
+            upload = dbConn.prepareStatement(insertQuery);
+            this.dbConn = dbConn;
+        } catch (Exception e) {
+            throw new RuntimeException("connection open failed..", e);
+        }
     }
 
     /**
