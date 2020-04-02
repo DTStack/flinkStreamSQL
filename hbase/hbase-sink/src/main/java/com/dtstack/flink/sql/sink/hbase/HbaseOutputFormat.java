@@ -133,7 +133,9 @@ public class HbaseOutputFormat extends MetricOutputFormat {
 
     @Override
     public void writeRecord(Tuple2 tuple2) {
-        LOG.info("receive data {},", tuple2.toString());
+        if (outRecords.getCount() == 0 || outRecords.getCount() % rowLenth == 0) {
+            LOG.info(tuple2.toString());
+        }
 
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
@@ -174,10 +176,6 @@ public class HbaseOutputFormat extends MetricOutputFormat {
                 LOG.error("", e);
             }
             outDirtyRecords.inc();
-        }
-
-        if (outRecords.getCount() % rowLenth == 0) {
-            LOG.info(record.toString());
         }
 
         outRecords.inc();
