@@ -89,8 +89,7 @@ public class LauncherMain {
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
-//        LOG.info("current mode is {}", mode);
-        System.out.println("current mode is " + mode);
+        LOG.info("current mode is {}", mode);
 
         if (mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[0]);
