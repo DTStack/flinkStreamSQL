@@ -117,14 +117,13 @@ public class ClusterClientFactory {
 
                 LOG.info("applicationId={}", applicationId.toString());
 
-                if (config.getString("high-availability.cluster-id", null) == null) {
-                    config.setString("high-availability.cluster-id", applicationId.toString());
-                }
-
                 if (StringUtils.isEmpty(applicationId.toString())) {
                     throw new RuntimeException("No flink session found on yarn cluster.");
                 }
 
+                if (config.getString("high-availability.cluster-id", null) == null) {
+                    config.setString("high-availability.cluster-id", applicationId.toString());
+                }
                 LOG.info("current config detail:\n{}", config);
 
                 AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, flinkConfDir, yarnClient, false);
