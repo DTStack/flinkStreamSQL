@@ -47,6 +47,8 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> impl
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
+    public static final long LOAD_DATA_ERROR_SLEEP_TIME = 5_000L;
+
     protected BaseSideInfo sideInfo;
 
     private ScheduledExecutorService es;

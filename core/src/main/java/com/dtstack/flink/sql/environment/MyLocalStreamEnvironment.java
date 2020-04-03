@@ -113,14 +113,16 @@ public class MyLocalStreamEnvironment extends StreamExecutionEnvironment {
             LOG.info("Running job on local embedded Flink mini cluster");
         }
 
-        MiniCluster exec = new MiniCluster(configBuilder.build());
+        MiniCluster exec = null;
         try {
+            exec = new MiniCluster(configBuilder.build());
             exec.start();
             return exec.executeJobBlocking(jobGraph);
-        }
-        finally {
+        } finally {
             transformations.clear();
-            exec.closeAsync();
+            if (null != exec) {
+                exec.closeAsync();
+            }
         }
     }
 }
