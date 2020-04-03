@@ -126,7 +126,6 @@ public class ClusterClientFactory {
                 config.toMap().forEach((key, value) -> LOG.info("{}: {}", key, value));
                 LOG.info("-------------------------------------------");
 
-
                 AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, flinkConfDir, yarnClient, false);
                 ClusterClient clusterClient = clusterDescriptor.retrieve(applicationId);
                 clusterClient.setDetached(true);
