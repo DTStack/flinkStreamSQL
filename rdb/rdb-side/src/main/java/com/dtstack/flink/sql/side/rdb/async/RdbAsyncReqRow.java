@@ -201,7 +201,6 @@ public class RdbAsyncReqRow extends AsyncReqRow {
     public Row fillData(Row input, Object line) {
         JsonArray jsonArray = (JsonArray) line;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
-        String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
             Object obj = input.getField(entry.getValue());
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
@@ -216,7 +215,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
             if (jsonArray == null) {
                 row.setField(entry.getKey(), null);
             } else {
-                Object object = SwitchUtil.getTarget(jsonArray.getValue(entry.getValue()), fields[entry.getValue()]);
+                String fieldType = sideInfo.getSelectSideFieldType(entry.getValue());
+                Object object = SwitchUtil.getTarget(jsonArray.getValue(entry.getValue()), fieldType);
                 row.setField(entry.getKey(), object);
             }
         }

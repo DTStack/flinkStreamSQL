@@ -37,14 +37,12 @@
 package com.dtstack.flink.sql.util;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashBiMap;
 import org.apache.calcite.sql.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -145,11 +143,42 @@ public class ParseUtils {
 
     public static String dealDuplicateFieldName(HashBasedTable<String, String, String> mappingTable, String fieldName) {
         String mappingFieldName = fieldName;
-        int index = 0;
+        int index = 1;
         while (!mappingTable.column(mappingFieldName).isEmpty()) {
-            mappingFieldName = mappingFieldName + index;
+            mappingFieldName = suffixWithChar(fieldName, '0', index);
             index++;
         }
         return mappingFieldName;
+    }
+
+    public static String dealDuplicateFieldName(HashBiMap<String, String> refFieldMap, String fieldName) {
+        String mappingFieldName = fieldName;
+        int index = 1;
+        while (refFieldMap.inverse().get(mappingFieldName) != null ) {
+            mappingFieldName = suffixWithChar(fieldName, '0', index);
+            index++;
+        }
+
+        return mappingFieldName;
+    }
+
+    public static String dealDuplicateFieldName(Map<String, String> refFieldMap, String fieldName) {
+        String mappingFieldName = fieldName;
+        int index = 1;
+        while (refFieldMap.containsKey(mappingFieldName)){
+            mappingFieldName = suffixWithChar(fieldName, '0', index);
+            index++;
+        }
+
+        return mappingFieldName;
+    }
+
+    public static String suffixWithChar(String str, char padChar, int repeat){
+        StringBuilder stringBuilder = new StringBuilder(str);
+        for(int i=0; i<repeat; i++){
+            stringBuilder.append(padChar);
+        }
+
+        return stringBuilder.toString();
     }
 }
