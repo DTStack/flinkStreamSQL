@@ -22,7 +22,6 @@ import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.redis.enums.RedisType;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;

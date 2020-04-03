@@ -23,10 +23,21 @@ package com.dtstack.flink.sql.util;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.*;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 import static java.time.format.DateTimeFormatter.ISO_INSTANT;
@@ -756,7 +767,8 @@ public class DateUtil {
         if (column == null) {
             return null;
         } else if(column instanceof String) {
-            return null == stringToDate((String) column) ? null : new java.sql.Timestamp(stringToDate((String) column).getTime());
+            Date date = stringToDate((String) column);
+            return null == date ? null : new java.sql.Timestamp(date.getTime());
         } else if (column instanceof Integer) {
             Integer rawData = (Integer) column;
             return new java.sql.Timestamp(rawData.longValue());
@@ -790,7 +802,8 @@ public class DateUtil {
             Instant instant = Instant.from(ISO_INSTANT.parse(timeStr));
             return new Timestamp(instant.getEpochSecond() * MILLIS_PER_SECOND);
         }
-        return null == stringToDate(timeStr) ? null : new Timestamp(stringToDate(timeStr).getTime());
+        Date date = stringToDate(timeStr);
+        return null == date ? null : new Timestamp(date.getTime());
     }
 
     public static java.sql.Date getDateFromStr(String dateStr) {
@@ -802,7 +815,8 @@ public class DateUtil {
             Instant instant = Instant.from(ISO_INSTANT.parse(dateStr));
             return new java.sql.Date(instant.toEpochMilli());
         }
-        return null == stringToDate(dateStr) ? null : new java.sql.Date(stringToDate(dateStr).getTime());
+        Date date = stringToDate(dateStr);
+        return null == date ? null : new java.sql.Date(date.getTime());
     }
 
 }

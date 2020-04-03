@@ -29,9 +29,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.io.File;
-import java.io.FileInputStream;
 import java.net.URLEncoder;
-import java.util.stream.Stream;
 
 import org.apache.commons.codec.Charsets;
 import org.apache.flink.util.FileUtils;
