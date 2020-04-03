@@ -57,11 +57,11 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     public static final String ASYNC_REQ_POOL_KEY = "asyncPoolSize";
 
-    private String cacheType = "none";//None or LRU or ALL
+    private String cacheType = "none";
 
     private int cacheSize = 10000;
 
-    private long cacheTimeout = 60 * 1000;//
+    private long cacheTimeout = 60_000L;
 
     private int  asyncCapacity=100;
 

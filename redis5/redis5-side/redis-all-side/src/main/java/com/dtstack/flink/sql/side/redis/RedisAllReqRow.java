@@ -239,17 +239,17 @@ public class RedisAllReqRow extends BaseAllReqRow {
     }
 
     private JedisCommands getJedisWithRetry(int retryNum) {
-        while (retryNum-- > 0){
+        while (retryNum-- > 0) {
             try {
                 return getJedis(tableInfo);
             } catch (Exception e) {
-                if(retryNum <= 0){
+                if (retryNum <= 0) {
                     throw new RuntimeException("getJedisWithRetry error", e);
                 }
                 try {
                     String jedisInfo = "url:" + tableInfo.getUrl() + ",pwd:" + tableInfo.getPassword() + ",database:" + tableInfo.getDatabase();
                     LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + jedisInfo);
-                    Thread.sleep(5 * 1000);
+                    Thread.sleep(LOAD_DATA_ERROR_SLEEP_TIME);
                 } catch (InterruptedException e1) {
                     LOG.error("", e1);
                 }
