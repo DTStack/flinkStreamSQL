@@ -44,6 +44,8 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.StringHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
@@ -58,6 +60,8 @@ import java.util.Set;
  * @author sishu.yss
  */
 public class ClusterClientFactory {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ClusterClientFactory.class);
 
     public static ClusterClient createClusterClient(Options launcherOptions) throws Exception {
         String mode = launcherOptions.getMode();
@@ -100,6 +104,9 @@ public class ClusterClientFactory {
                 String yarnSessionConf = launcherOptions.getYarnSessionConf();
                 yarnSessionConf = URLDecoder.decode(yarnSessionConf, Charsets.UTF_8.toString());
                 Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
+
+                LOG.info("current yarn config:\n{}", yarnSessionConfProperties);
+
                 Object yid = yarnSessionConfProperties.get("yid");
 
                 if (null != yid) {
@@ -108,11 +115,17 @@ public class ClusterClientFactory {
                     applicationId = getYarnClusterApplicationId(yarnClient);
                 }
 
-                Log.info("applicationId={}", applicationId.toString());
+                LOG.info("applicationId={}", applicationId.toString());
+
+                if (config.getString("high-availability.cluster-id", null) == null) {
+                    config.setString("high-availability.cluster-id", applicationId.toString());
+                }
 
                 if (StringUtils.isEmpty(applicationId.toString())) {
                     throw new RuntimeException("No flink session found on yarn cluster.");
                 }
+
+                LOG.info("current config detail:\n{}", config);
 
                 AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, flinkConfDir, yarnClient, false);
                 ClusterClient clusterClient = clusterDescriptor.retrieve(applicationId);
