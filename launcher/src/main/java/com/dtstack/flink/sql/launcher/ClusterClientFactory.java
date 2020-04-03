@@ -21,21 +21,15 @@ package com.dtstack.flink.sql.launcher;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
-import com.esotericsoftware.minlog.Log;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.program.ClusterClient;
-import org.apache.flink.client.program.MiniClusterClient;
 import org.apache.flink.client.program.rest.RestClusterClient;
-import org.apache.flink.client.program.rest.RestClusterClientConfiguration;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.runtime.akka.AkkaUtils;
-import org.apache.flink.runtime.minicluster.MiniCluster;
-import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 import org.apache.flink.runtime.util.LeaderConnectionInfo;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
@@ -50,12 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author sishu.yss
@@ -127,6 +116,11 @@ public class ClusterClientFactory {
                 if (config.getString(HA_CLUSTER_ID, null) == null) {
                     config.setString(HA_CLUSTER_ID, applicationId.toString());
                 }
+
+                LOG.info("------------config params-------------------------");
+                config.toMap().forEach((key, value) -> LOG.info("{}: {}", key, value));
+                LOG.info("-------------------------------------------");
+
 
                 AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, flinkConfDir, yarnClient, false);
                 ClusterClient clusterClient = clusterDescriptor.retrieve(applicationId);
