@@ -22,6 +22,7 @@ import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import com.esotericsoftware.minlog.Log;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.program.ClusterClient;
@@ -63,6 +64,10 @@ public class ClusterClientFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClusterClientFactory.class);
 
+    private static final String HA_CLUSTER_ID = "high-availability.cluster-id";
+
+    private static final String HADOOP_CONF = "fs.hdfs.hadoopconf";
+
     public static ClusterClient createClusterClient(Options launcherOptions) throws Exception {
         String mode = launcherOptions.getMode();
         if (mode.equals(ClusterMode.standalone.name())) {
@@ -92,7 +97,7 @@ public class ClusterClientFactory {
 
         if (StringUtils.isNotBlank(yarnConfDir)) {
             try {
-                config.setString("fs.hdfs.hadoopconf", yarnConfDir);
+                config.setString(HADOOP_CONF, yarnConfDir);
                 FileSystem.initialize(config);
 
                 YarnConfiguration yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
@@ -105,8 +110,6 @@ public class ClusterClientFactory {
                 yarnSessionConf = URLDecoder.decode(yarnSessionConf, Charsets.UTF_8.toString());
                 Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
 
-                LOG.info("current yarn config:\n{}", yarnSessionConfProperties);
-
                 Object yid = yarnSessionConfProperties.get("yid");
 
                 if (null != yid) {
@@ -115,16 +118,15 @@ public class ClusterClientFactory {
                     applicationId = getYarnClusterApplicationId(yarnClient);
                 }
 
-                LOG.info("applicationId={}", applicationId.toString());
+                LOG.info("current applicationId = {}", applicationId.toString());
 
                 if (StringUtils.isEmpty(applicationId.toString())) {
                     throw new RuntimeException("No flink session found on yarn cluster.");
                 }
 
-                if (config.getString("high-availability.cluster-id", null) == null) {
-                    config.setString("high-availability.cluster-id", applicationId.toString());
+                if (config.getString(HA_CLUSTER_ID, null) == null) {
+                    config.setString(HA_CLUSTER_ID, applicationId.toString());
                 }
-                LOG.info("current config detail:\n{}", config);
 
                 AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, flinkConfDir, yarnClient, false);
                 ClusterClient clusterClient = clusterDescriptor.retrieve(applicationId);
