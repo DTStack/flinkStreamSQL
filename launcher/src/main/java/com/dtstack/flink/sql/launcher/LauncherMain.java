@@ -20,9 +20,7 @@
 
 package com.dtstack.flink.sql.launcher;
 
-import com.aiweiergou.tool.logger.api.ChangeLogLevelProcess;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
-import com.dtstack.flink.sql.launcher.perjob.PerJobClusterClientBuilder;
 import com.google.common.collect.Lists;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
@@ -43,14 +41,9 @@ import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.util.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URLDecoder;
 import java.util.LinkedList;
 import java.util.List;
