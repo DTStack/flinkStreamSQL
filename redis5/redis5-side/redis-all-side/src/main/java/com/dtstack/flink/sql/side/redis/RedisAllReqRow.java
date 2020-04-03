@@ -103,6 +103,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
             loadData(newCache);
         } catch (SQLException e) {
             LOG.error("", e);
+            throw new RuntimeException(e);
         }
 
         cacheRef.set(newCache);
@@ -160,21 +161,22 @@ public class RedisAllReqRow extends BaseAllReqRow {
         JedisCommands jedis = null;
         try {
             StringBuilder keyPattern = new StringBuilder(tableInfo.getTableName());
-            for(String key : tableInfo.getPrimaryKeys()){
+            for (String key : tableInfo.getPrimaryKeys()) {
                 keyPattern.append("_").append("*");
-            };
+            }
             jedis = getJedisWithRetry(CONN_RETRY_NUM);
+            if (null == jedis) {
+                throw new RuntimeException("redis all load data error,get jedis commands error!");
+            }
             Set<String> keys = getRedisKeys(RedisType.parse(tableInfo.getRedisType()), jedis, keyPattern.toString());
-            if(CollectionUtils.isEmpty(keys)){
+            if (CollectionUtils.isEmpty(keys)) {
                 return;
             }
-            for(String key : keys){
+            for (String key : keys) {
                 tmpCache.put(key, jedis.hgetAll(key));
             }
-        } catch (Exception e){
-            LOG.error("", e);
         } finally {
-            if (jedis != null){
+            if (jedis != null) {
                 try {
                     ((Closeable) jedis).close();
                 } catch (IOException e) {
