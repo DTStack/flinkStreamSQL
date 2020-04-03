@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.config.CalciteConfig;
+import com.dtstack.flink.sql.parser.FlinkPlanner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -30,11 +30,10 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -47,8 +46,8 @@ import static org.apache.calcite.sql.SqlKind.*;
  */
 public class SidePredicatesParser {
     public void fillPredicatesForSideTable(String exeSql, Map<String, SideTableInfo> sideTableMap) throws SqlParseException {
-        SqlParser sqlParser = SqlParser.create(exeSql, CalciteConfig.MYSQL_LEX_CONFIG);
-        SqlNode sqlNode = sqlParser.parseStmt();
+        FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
+        SqlNode sqlNode = flinkPlanner.parse(exeSql);
         parseSql(sqlNode, sideTableMap, Maps.newHashMap());
     }
 
