@@ -70,6 +70,11 @@ public class ClusterClientFactory {
     public static ClusterClient createStandaloneClient(Options launcherOptions) throws Exception {
         String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
+
+        LOG.info("------------config params-------------------------");
+        config.toMap().forEach((key, value) -> LOG.info("{}: {}", key, value));
+        LOG.info("-------------------------------------------");
+
         RestClusterClient clusterClient = new RestClusterClient<>(config, "clusterClient");
         LeaderConnectionInfo connectionInfo = clusterClient.getClusterConnectionInfo();
         InetSocketAddress address = AkkaUtils.getInetSocketAddressFromAkkaURL(connectionInfo.getAddress());
