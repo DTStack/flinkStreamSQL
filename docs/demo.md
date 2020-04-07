@@ -80,6 +80,4 @@ into
 ```
 
 ### 创建视图demo:
-
-```
-```
+[参考视图文档](docs/createView.md)
