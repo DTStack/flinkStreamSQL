@@ -26,7 +26,7 @@ FlinkStreamSQL
 [ 1.4 支持的插件介绍和demo](docs/pluginsInfo.md)     
 [ 1.5 指标参数](docs/newMetric.md)  
 [ 1.6 自定义函数](docs/function.md)  
-[ 1.7 视图定义](docs/createView.md)  
+[ 1.7 自定义视图](docs/createView.md)  
    
     
 ## License
