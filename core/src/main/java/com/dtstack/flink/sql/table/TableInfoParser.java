@@ -77,11 +77,11 @@ public class TableInfoParser {
                     sourceTableInfoMap.put(type, absTableParser);
                 }
             }else{
-                absTableParser = sideTableInfoMap.get(type);
+                String cacheType = MathUtil.getString(props.get(SideTableInfo.CACHE_KEY));
+                absTableParser = sideTableInfoMap.get(type + cacheType);
                 if(absTableParser == null){
-                    String cacheType = MathUtil.getString(props.get(SideTableInfo.CACHE_KEY));
                     absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType);
-                    sideTableInfoMap.put(type, absTableParser);
+                    sideTableInfoMap.put(type + cacheType, absTableParser);
                 }
             }
 

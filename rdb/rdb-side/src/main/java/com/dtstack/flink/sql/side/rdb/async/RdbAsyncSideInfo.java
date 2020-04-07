@@ -137,14 +137,26 @@ public class RdbAsyncSideInfo extends SideInfo {
 
     public String getSelectFromStatement(String tableName, List<String> selectFields, List<String> conditionFields, List<String> sqlJoinCompareOperate,
                                          List<PredicateInfo> predicateInfoes) {
-        String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
-        String whereClause = conditionFields.stream().map(f -> quoteIdentifier(f) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + " ? ")
-                .collect(Collectors.joining(" AND "));
-        String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
+        String fromClause = selectFields.stream()
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
 
-        String sql = "SELECT " + fromClause + " FROM " + tableName + (conditionFields.size() > 0 ? " WHERE " + whereClause : "")
+        String whereClause = conditionFields.stream()
+                .map(f -> quoteIdentifier(f) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + wrapperPlaceholder(f))
+                .collect(Collectors.joining(" AND "));
+
+        String predicateClause = predicateInfoes.stream()
+                .map(this::buildFilterCondition)
+                .collect(Collectors.joining(" AND "));
+
+        String dimQuerySql = "SELECT " + fromClause + " FROM " + tableName + (conditionFields.size() > 0 ? " WHERE " + whereClause : "")
                 + (predicateInfoes.size() > 0 ? " AND " + predicateClause : "") + getAdditionalWhereClause();
-        return sql;
+
+        return dimQuerySql;
+    }
+
+    public String wrapperPlaceholder(String fieldName) {
+        return " ? ";
     }
 
     public String buildFilterCondition(PredicateInfo info) {

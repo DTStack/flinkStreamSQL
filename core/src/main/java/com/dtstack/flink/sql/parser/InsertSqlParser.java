@@ -57,6 +57,7 @@ public class InsertSqlParser implements IParser {
                 .configBuilder()
                 .setLex(Lex.MYSQL)
                 .build();
+
         SqlParser sqlParser = SqlParser.create(sql,config);
         SqlNode sqlNode = null;
         try {

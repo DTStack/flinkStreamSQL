@@ -85,4 +85,13 @@ public class FieldInfo implements Serializable {
     public int hashCode() {
         return Objects.hash(table, fieldName);
     }
+
+    @Override
+    public String toString() {
+        return "FieldInfo{" +
+                "table='" + table + '\'' +
+                ", fieldName='" + fieldName + '\'' +
+                ", typeInformation=" + typeInformation +
+                '}';
+    }
 }
