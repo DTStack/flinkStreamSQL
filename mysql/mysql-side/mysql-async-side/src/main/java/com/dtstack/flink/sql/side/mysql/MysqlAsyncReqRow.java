@@ -21,7 +21,7 @@ package com.dtstack.flink.sql.side.mysql;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import io.vertx.core.Vertx;
@@ -30,6 +30,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -42,9 +44,12 @@ import java.util.List;
  */
 
 public class MysqlAsyncReqRow extends RdbAsyncReqRow {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MysqlAsyncReqRow.class);
+
     private final static String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 
-    public MysqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public MysqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new MysqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -56,7 +61,7 @@ public class MysqlAsyncReqRow extends RdbAsyncReqRow {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         mysqlClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", MYSQL_DRIVER)
-                .put("max_pool_size", rdbSideTableInfo.getAsyncPoolSize())
+                .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
                 .put("user", rdbSideTableInfo.getUserName())
                 .put("password", rdbSideTableInfo.getPassword())
                 .put("provider_class", DT_PROVIDER_CLASS)
@@ -68,10 +73,10 @@ public class MysqlAsyncReqRow extends RdbAsyncReqRow {
 
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
+        vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSqlClient(JDBCClient.createNonShared(vertx, mysqlClientConfig));
+        setRdbSQLClient(JDBCClient.createNonShared(vertx, mysqlClientConfig));
     }
 
 }

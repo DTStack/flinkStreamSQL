@@ -21,7 +21,7 @@ package com.dtstack.flink.sql.sink.mysql;
 
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
-import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
+import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
@@ -33,7 +33,7 @@ import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
  * @author xuchao
  */
 
-public class MysqlSink extends AbstractRdbSink implements IStreamSinkGener<AbstractRdbSink> {
+public class MysqlSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
     public MysqlSink() {
         super(new MySQLDialect());
@@ -42,7 +42,7 @@ public class MysqlSink extends AbstractRdbSink implements IStreamSinkGener<Abstr
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDbUrl(dbUrl)
+                .setDBUrl(dbURL)
                 .setDialect(jdbcDialect)
                 .setUsername(userName)
                 .setPassword(password)

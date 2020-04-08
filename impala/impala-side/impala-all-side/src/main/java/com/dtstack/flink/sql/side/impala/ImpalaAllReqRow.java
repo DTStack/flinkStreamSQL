@@ -20,10 +20,12 @@ package com.dtstack.flink.sql.side.impala;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
+import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.JDBCUtils;
+import com.google.common.collect.Maps;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -34,6 +36,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
+import java.util.Map;
 
 /**
  * side operator with cache for all(period reload)
@@ -43,7 +46,7 @@ import java.util.List;
  * @author xiuzhu
  */
 
-public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
+public class ImpalaAllReqRow extends RdbAllReqRow {
 
     private static final long serialVersionUID = 2098635140857937717L;
 
@@ -53,13 +56,13 @@ public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
 
     private ImpalaSideTableInfo impalaSideTableInfo;
 
-    public ImpalaAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public ImpalaAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new ImpalaAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         this.impalaSideTableInfo = (ImpalaSideTableInfo) sideTableInfo;
     }
 
     @Override
-    public Connection getConn(String dbUrl, String userName, String password) {
+    public Connection getConn(String dbURL, String userName, String password) {
         try {
             Connection connection ;
             String url = getUrl();

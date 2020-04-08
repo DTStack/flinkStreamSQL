@@ -19,13 +19,15 @@
 
 package com.dtstack.flink.sql.side.mongo.table;
 
-import com.dtstack.flink.sql.table.AbstractSideTableParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbsSideTableParser;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
 /**
  * Reason:
@@ -33,7 +35,7 @@ import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
  *
  * @author xuqianjin
  */
-public class MongoSideParser extends AbstractSideTableParser {
+public class MongoSideParser extends AbsSideTableParser {
 
     public static final String ADDRESS_KEY = "address";
 
@@ -46,7 +48,7 @@ public class MongoSideParser extends AbstractSideTableParser {
     public static final String DATABASE_KEY = "database";
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         MongoSideTableInfo mongoSideTableInfo = new MongoSideTableInfo();
         mongoSideTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, mongoSideTableInfo);

@@ -30,5 +30,5 @@ import java.util.regex.Matcher;
  */
 public interface ITableFieldDealHandler {
 
-    void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo);
+    void dealPrimaryKey(Matcher matcher, TableInfo tableInfo);
 }

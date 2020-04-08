@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.sink.cassandra.table;
 
-import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.base.Preconditions;
 
 /**
@@ -28,7 +28,7 @@ import com.google.common.base.Preconditions;
  *
  * @author xuqianjin
  */
-public class CassandraTableInfo extends AbstractTargetTableInfo {
+public class CassandraTableInfo extends TargetTableInfo {
 
     private static final String CURR_TYPE = "cassandra";
 

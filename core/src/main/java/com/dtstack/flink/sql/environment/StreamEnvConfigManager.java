@@ -18,12 +18,6 @@
 
 package com.dtstack.flink.sql.environment;
 
-import com.dtstack.flink.sql.constrant.ConfigConstrant;
-import com.dtstack.flink.sql.enums.EStateBackend;
-import com.dtstack.flink.sql.util.MathUtil;
-import com.dtstack.flink.sql.util.PropertiesUtils;
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.time.Time;
@@ -39,6 +33,13 @@ import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.StreamQueryConfig;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+
+import com.dtstack.flink.sql.constrant.ConfigConstrant;
+import com.dtstack.flink.sql.enums.EStateBackend;
+import com.dtstack.flink.sql.util.MathUtil;
+import com.dtstack.flink.sql.util.PropertiesUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -101,15 +102,11 @@ public final class StreamEnvConfigManager {
             }
         });
 
-        if(isRestore(confProperties).get()){
-            streamEnv.setRestartStrategy(RestartStrategies.failureRateRestart(
-                    ConfigConstrant.FAILUEE_RATE,
-                    Time.of(getFailureInterval(confProperties).get(), TimeUnit.MINUTES),
-                    Time.of(getDelayInterval(confProperties).get(), TimeUnit.SECONDS)
-            ));
-        } else {
-            streamEnv.setRestartStrategy(RestartStrategies.noRestart());
-        }
+        streamEnv.setRestartStrategy(RestartStrategies.failureRateRestart(
+                ConfigConstrant.failureRate,
+                Time.of(ConfigConstrant.failureInterval, TimeUnit.MINUTES),
+                Time.of(ConfigConstrant.delayInterval, TimeUnit.SECONDS)
+        ));
 
         // checkpoint config
         Optional<Boolean> checkpointingEnabled = isCheckpointingEnabled(confProperties);
@@ -165,20 +162,6 @@ public final class StreamEnvConfigManager {
     public static Optional<Long> getAutoWatermarkInterval(Properties properties) {
         String autoWatermarkInterval = properties.getProperty(ConfigConstrant.AUTO_WATERMARK_INTERVAL_KEY);
         return StringUtils.isNotBlank(autoWatermarkInterval) ? Optional.of(Long.valueOf(autoWatermarkInterval)) : Optional.empty();
-    }
-
-    public static Optional<Boolean> isRestore(Properties properties){
-        String restoreEnable = properties.getProperty(ConfigConstrant.RESTOREENABLE, "true");
-        return Optional.of(Boolean.valueOf(restoreEnable));
-    }
-
-    public static Optional<Integer> getDelayInterval(Properties properties){
-        String delayInterval = properties.getProperty(ConfigConstrant.DELAYINTERVAL, "10");
-        return Optional.of(Integer.valueOf(delayInterval));
-    }
-    public static Optional<Integer> getFailureInterval(Properties properties){
-        String failureInterval = properties.getProperty(ConfigConstrant.FAILUREINTERVAL, "6");
-        return Optional.of(Integer.valueOf(failureInterval));
     }
 
     /**
@@ -276,8 +259,6 @@ public final class StreamEnvConfigManager {
                 checkpointDataUriEmptyCheck(checkpointDataUri, backendType);
                 stateBackend = new RocksDBStateBackend(checkpointDataUri, BooleanUtils.toBoolean(backendIncremental));
                 break;
-            default:
-                break;
         }
         return stateBackend == null ? Optional.empty() : Optional.of(stateBackend);
     }
@@ -337,14 +318,14 @@ public final class StreamEnvConfigManager {
      * @return
      */
     private static Long getTtlTime(Integer timeNumber, String timeUnit) {
-        if ("d".equalsIgnoreCase(timeUnit)) {
-            return timeNumber * 1000L * 60 * 60 * 24;
-        } else if ("h".equalsIgnoreCase(timeUnit)) {
-            return timeNumber * 1000L * 60 * 60;
-        } else if ("m".equalsIgnoreCase(timeUnit)) {
-            return timeNumber * 1000L * 60;
-        } else if ("s".equalsIgnoreCase(timeUnit)) {
-            return timeNumber * 1000L;
+        if (timeUnit.equalsIgnoreCase("d")) {
+            return timeNumber * 1000l * 60 * 60 * 24;
+        } else if (timeUnit.equalsIgnoreCase("h")) {
+            return timeNumber * 1000l * 60 * 60;
+        } else if (timeUnit.equalsIgnoreCase("m")) {
+            return timeNumber * 1000l * 60;
+        } else if (timeUnit.equalsIgnoreCase("s")) {
+            return timeNumber * 1000l;
         } else {
             throw new RuntimeException("not support " + timeNumber + timeUnit);
         }

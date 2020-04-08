@@ -20,8 +20,8 @@ package com.dtstack.flink.sql.side.mongo;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.BaseSideInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
@@ -36,16 +36,16 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class MongoAllSideInfo extends BaseSideInfo {
+public class MongoAllSideInfo extends SideInfo{
 
     private static final long serialVersionUID = -1696860430075523841L;
 
-    public MongoAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public MongoAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
     @Override
-    public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
+    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
     }
 
     @Override

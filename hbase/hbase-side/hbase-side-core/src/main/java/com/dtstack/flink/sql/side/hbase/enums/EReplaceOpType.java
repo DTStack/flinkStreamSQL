@@ -28,12 +28,5 @@ package com.dtstack.flink.sql.side.hbase.enums;
  */
 
 public enum  EReplaceOpType {
-    /**
-     * 没有func
-     */
-    NO_FUNC,
-    /**
-     * md5 func
-     */
-    MD5_FUNC;
+    NO_FUNC, MD5_FUNC;
 }

@@ -18,13 +18,13 @@
 
 package com.dtstack.flink.sql.sink.console.table;
 
-import com.dtstack.flink.sql.table.AbstractTableParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbsTableParser;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 
-import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
 /**
  * Reason:
@@ -32,9 +32,9 @@ import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
  *
  * @author xuqianjin
  */
-public class ConsoleSinkParser extends AbstractTableParser {
+public class ConsoleSinkParser extends AbsTableParser {
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         ConsoleTableInfo consoleTableInfo = new ConsoleTableInfo();
         consoleTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, consoleTableInfo);

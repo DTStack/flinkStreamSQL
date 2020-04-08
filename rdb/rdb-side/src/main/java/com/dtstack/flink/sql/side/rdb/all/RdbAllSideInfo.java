@@ -23,16 +23,14 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.PredicateInfo;
-import com.dtstack.flink.sql.side.BaseSideInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,21 +44,20 @@ import java.util.stream.Collectors;
  * @author maqi
  */
 
-public class RdbAllSideInfo extends BaseSideInfo {
+public class RdbAllSideInfo extends SideInfo {
 
     private static final long serialVersionUID = -5858335638589472159L;
-    private static final Logger LOG = LoggerFactory.getLogger(RdbAllSideInfo.class.getSimpleName());
 
 
-    public RdbAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public RdbAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
     @Override
-    public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
+    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
         sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(StringUtils.split(sideSelectFields, ",")), sideTableInfo.getPredicateInfoes());
-        LOG.info("--------dimension sql query-------\n{}" + sqlCondition);
+        System.out.println("--------dimension sql query-------\n" + sqlCondition);
     }
 
     public String getAdditionalWhereClause() {

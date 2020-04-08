@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.sink.redis;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.redis.table.RedisTableInfo;
-import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -33,9 +33,7 @@ import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
 import java.util.List;
-/**
- * @author yanxi
- */
+
 public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<RedisSink> {
 
     protected String[] fieldNames;
@@ -69,7 +67,7 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     }
 
     @Override
-    public RedisSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
+    public RedisSink genStreamSink(TargetTableInfo targetTableInfo) {
         RedisTableInfo redisTableInfo = (RedisTableInfo) targetTableInfo;
         this.url = redisTableInfo.getUrl();
         this.database = redisTableInfo.getDatabase();

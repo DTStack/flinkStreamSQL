@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.side.elasticsearch6.table;
 
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.google.common.base.Preconditions;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
@@ -26,7 +26,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
  * @author yinxi
  * @date 2020/1/13 - 15:00
  */
-public class Elasticsearch6SideTableInfo extends AbstractSideTableInfo {
+public class Elasticsearch6SideTableInfo extends SideTableInfo {
 
     private static final String CURR_TYPE = "elasticsearch6";
 

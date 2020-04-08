@@ -18,12 +18,10 @@
 
 package com.dtstack.flink.sql.side.redis.table;
 
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.google.common.base.Preconditions;
-/**
- * @author yanxi
- */
-public class RedisSideTableInfo extends AbstractSideTableInfo {
+
+public class RedisSideTableInfo extends SideTableInfo {
 
     private static final long serialVersionUID = -1L;
 

@@ -17,10 +17,11 @@
  */
 
 
+
 package com.dtstack.flink.sql.source.kafka.table;
 
 import com.dtstack.flink.sql.format.FormatType;
-import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
+import com.dtstack.flink.sql.table.SourceTableInfo;
 import com.google.common.base.Preconditions;
 
 import java.util.HashMap;
@@ -34,126 +35,136 @@ import java.util.Set;
  * @author sishu.yss
  */
 
-public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
+public class KafkaSourceTableInfo extends SourceTableInfo {
 
-    public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
+	public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
 
-    public static final String TOPIC_KEY = "topic";
+	public static final String TOPIC_KEY = "topic";
 
-    public static final String TYPE_KEY = "type";
+	public static final String TYPE_KEY = "type";
 
-    public static final String GROUPID_KEY = "groupId";
+	public static final String GROUPID_KEY = "groupId";
 
-    public static final String OFFSETRESET_KEY = "offsetReset";
+	public static final String OFFSETRESET_KEY = "offsetReset";
 
-    public static final String TOPICISPATTERN_KEY = "topicIsPattern";
+	public static final String TOPICISPATTERN_KEY = "topicIsPattern";
 
-    public static final String SCHEMA_STRING_KEY = "schemaInfo";
+	private String bootstrapServers;
 
-    public static final String CSV_FIELD_DELIMITER_KEY = "fieldDelimiter";
+	private String topic;
 
-    public static final String SOURCE_DATA_TYPE_KEY = "sourceDataType";
+	private String groupId;
 
-    private String bootstrapServers;
+	//latest, earliest
+	private String offsetReset = "latest";
 
-    private String topic;
+	private String offset;
 
-    private String groupId;
+	private Boolean topicIsPattern = false;
 
-    private String offsetReset;
+	private String sourceDataType = FormatType.DT_NEST.name();
 
-    private Boolean topicIsPattern = false;
+	private String schemaString;
 
-    private String sourceDataType;
+	private String fieldDelimiter;
 
-    private String schemaString;
+	public String getBootstrapServers() {
+		return bootstrapServers;
+	}
 
-    private String fieldDelimiter;
+	public void setBootstrapServers(String bootstrapServers) {
+		this.bootstrapServers = bootstrapServers;
+	}
 
-    public Map<String, String> kafkaParam = new HashMap<>();
+	public String getTopic() {
+		return topic;
+	}
 
+	public void setTopic(String topic) {
+		this.topic = topic;
+	}
 
-    public String getBootstrapServers() {
-        return bootstrapServers;
-    }
+	public String getGroupId() {
+		return groupId;
+	}
 
-    public void setBootstrapServers(String bootstrapServers) {
-        this.bootstrapServers = bootstrapServers;
-    }
+	public void setGroupId(String groupId) {
+		this.groupId = groupId;
+	}
 
-    public String getTopic() {
-        return topic;
-    }
+	public String getOffsetReset() {
+		return offsetReset;
+	}
 
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
+	public void setOffsetReset(String offsetReset) {
+		if(offsetReset == null){
+			return;
+		}
+		this.offsetReset = offsetReset;
+	}
 
-    public String getGroupId() {
-        return groupId;
-    }
+	public String getOffset() {
+		return offset;
+	}
 
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
+	public void setOffset(String offset) {
+		if (offsetReset == null) {
+			return;
+		}
+		this.offset = offset;
+	}
 
-    public String getOffsetReset() {
-        return offsetReset;
-    }
+	public Boolean getTopicIsPattern() {
+		return topicIsPattern;
+	}
 
-    public void setOffsetReset(String offsetReset) {
-        this.offsetReset = offsetReset;
-    }
+	public void setTopicIsPattern(Boolean topicIsPattern) {
+		this.topicIsPattern = topicIsPattern;
+	}
 
-    public Boolean getTopicIsPattern() {
-        return topicIsPattern;
-    }
+	public Map<String, String> kafkaParam = new HashMap<>();
 
-    public void setTopicIsPattern(Boolean topicIsPattern) {
-        this.topicIsPattern = topicIsPattern;
-    }
+	public void addKafkaParam(String key, String value) {
+		kafkaParam.put(key, value);
+	}
 
-    public void addKafkaParam(Map<String, String> kafkaParam) {
-        kafkaParam.putAll(kafkaParam);
-    }
+	public String getKafkaParam(String key) {
+		return kafkaParam.get(key);
+	}
 
-    public String getKafkaParam(String key) {
-        return kafkaParam.get(key);
-    }
+	public Set<String> getKafkaParamKeys() {
+		return kafkaParam.keySet();
+	}
 
-    public Set<String> getKafkaParamKeys() {
-        return kafkaParam.keySet();
-    }
+	public String getSourceDataType() {
+		return sourceDataType;
+	}
 
-    public String getSourceDataType() {
-        return sourceDataType;
-    }
+	public void setSourceDataType(String sourceDataType) {
+		this.sourceDataType = sourceDataType;
+	}
 
-    public void setSourceDataType(String sourceDataType) {
-        this.sourceDataType = sourceDataType;
-    }
+	public String getSchemaString() {
+		return schemaString;
+	}
 
-    public String getSchemaString() {
-        return schemaString;
-    }
+	public void setSchemaString(String schemaString) {
+		this.schemaString = schemaString;
+	}
 
-    public void setSchemaString(String schemaString) {
-        this.schemaString = schemaString;
-    }
+	public String getFieldDelimiter() {
+		return fieldDelimiter;
+	}
 
-    public String getFieldDelimiter() {
-        return fieldDelimiter;
-    }
+	public void setFieldDelimiter(String fieldDelimiter) {
+		this.fieldDelimiter = fieldDelimiter;
+	}
 
-    public void setFieldDelimiter(String fieldDelimiter) {
-        this.fieldDelimiter = fieldDelimiter;
-    }
-
-    @Override
-    public boolean check() {
-        Preconditions.checkNotNull(getType(), "kafka of type is required");
-        Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
-        Preconditions.checkNotNull(topic, "kafka of topic is required");
-        return false;
-    }
+	@Override
+	public boolean check() {
+		Preconditions.checkNotNull(getType(), "kafka of type is required");
+		Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
+		Preconditions.checkNotNull(topic, "kafka of topic is required");
+		return false;
+	}
 }

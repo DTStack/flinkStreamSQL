@@ -22,7 +22,6 @@ package com.dtstack.flink.sql.side;
 import com.dtstack.flink.sql.parser.FlinkPlanner;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.TableUtils;
-import com.esotericsoftware.minlog.Log;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import org.apache.calcite.sql.JoinType;
@@ -440,18 +439,18 @@ public class JoinNodeDealer {
                 tableRef.put(tbTmp, tableAlias);
             }
 
-            Log.info("-------build temporary query-----------\n{}", tmpSelectSql);
-            Log.info("---------------------------------------");
+            System.out.println("-------build temporary query-----------");
+            System.out.println(tmpSelectSql);
+            System.out.println("---------------------------------------");
 
         }catch (Exception e){
-            Log.error("", e);
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
 
     /**
      * 抽取上层需用使用到的字段
-     * 由于where字段已经抽取到上一层了所以不用查询出来
      * @param parentSelectList
      * @param fromTableNameSet
      * @return
@@ -593,6 +592,7 @@ public class JoinNodeDealer {
             }
 
         }else if(selectNode.getKind() == CASE){
+            System.out.println("selectNode");
             SqlCase sqlCase = (SqlCase) selectNode;
             SqlNodeList whenOperands = sqlCase.getWhenOperands();
             SqlNodeList thenOperands = sqlCase.getThenOperands();

@@ -21,8 +21,8 @@ package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.table.AbstractSideTableParser;
-import com.dtstack.flink.sql.table.AbstractTableParser;
+import com.dtstack.flink.sql.table.AbsSideTableParser;
+import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.util.PluginUtil;
 
 /**
@@ -37,7 +37,7 @@ public class StreamSideFactory {
 
     private static final String CURR_TYPE = "side";
 
-    public static AbstractTableParser getSqlParser(String pluginType, String sqlRootDir, String cacheType) throws Exception {
+    public static AbsTableParser getSqlParser(String pluginType, String sqlRootDir, String cacheType) throws Exception {
 
         String sideOperator = ECacheType.ALL.name().equalsIgnoreCase(cacheType) ? "all" : "async";
         String pluginJarPath = PluginUtil.getSideJarFileDirPath(pluginType, sideOperator, "side", sqlRootDir);
@@ -45,10 +45,10 @@ public class StreamSideFactory {
 
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {
             Class<?> sideParser = cl.loadClass(className);
-            if (!AbstractSideTableParser.class.isAssignableFrom(sideParser)) {
+            if (!AbsSideTableParser.class.isAssignableFrom(sideParser)) {
                 throw new RuntimeException("class " + sideParser.getName() + " not subClass of AbsSideTableParser");
             }
-            return sideParser.asSubclass(AbstractTableParser.class).newInstance();
+            return sideParser.asSubclass(AbsTableParser.class).newInstance();
         });
     }
 }

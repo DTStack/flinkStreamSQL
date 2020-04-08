@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.elasticsearch.table;
 
-import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -29,7 +29,7 @@ import java.util.Arrays;
  * @author yinxi
  * @date 2020/1/9 - 15:06
  */
-public class ElasticsearchTableInfo extends AbstractTargetTableInfo {
+public class ElasticsearchTableInfo extends TargetTableInfo {
 
     private static final String CURR_TYPE = "elasticsearch6";
 

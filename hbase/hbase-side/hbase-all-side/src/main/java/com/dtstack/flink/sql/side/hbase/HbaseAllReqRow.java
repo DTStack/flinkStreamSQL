@@ -45,7 +45,7 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class HbaseAllReqRow extends BaseAllReqRow {
+public class HbaseAllReqRow extends AllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseAllReqRow.class);
 
@@ -55,7 +55,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
 
     private AtomicReference<Map<String, Map<String, Object>>> cacheRef = new AtomicReference<>();
 
-    public HbaseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public HbaseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new HbaseAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
 
@@ -134,7 +134,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
 
         Map<String, Object> cacheList = null;
 
-        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         if (hbaseSideTableInfo.isPreRowKey()) {
             for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()) {
@@ -153,7 +153,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
     }
 
     private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
-        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         Configuration conf = new Configuration();
         conf.set("hbase.zookeeper.quorum", hbaseSideTableInfo.getHost());
@@ -182,17 +182,9 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             LOG.error("", e);
         } finally {
             try {
-                if (null != conn && !conn.isClosed()) {
-                    conn.close();
-                }
-
-                if (null != table) {
-                    table.close();
-                }
-
-                if (null != resultScanner) {
-                    resultScanner.close();
-                }
+                conn.close();
+                table.close();
+                resultScanner.close();
             } catch (IOException e) {
                 LOG.error("", e);
             }

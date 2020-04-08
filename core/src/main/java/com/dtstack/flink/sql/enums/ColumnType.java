@@ -46,66 +46,11 @@ package com.dtstack.flink.sql.enums;
  * @author huyifan.zju@163.com
  */
 public enum ColumnType {
-    /*
-     * string
-     */
-    STRING,
-    /**
-     * varchar
-     */
-    VARCHAR,
-    /**
-     * char
-     */
-    CHAR,
-    /**
-     * int
-     */
-    INT,
-    /**
-     * mediumint
-     */
-    MEDIUMINT,
-    /**
-     * tinyint
-     */
-    TINYINT,
-    /**
-     * datetime
-     */
-    DATETIME,
-    /**
-     * smallint
-     */
-    SMALLINT,
-    /**
-     * bigint
-     */
-    BIGINT,
-    /**
-     * double
-     */
-    DOUBLE,
-    /**
-     * float
-     */
-    FLOAT,
-    /**
-     * boolean
-     */
+    STRING, VARCHAR, CHAR,
+    INT, MEDIUMINT, TINYINT, DATETIME, SMALLINT, BIGINT,
+    DOUBLE, FLOAT,
     BOOLEAN,
-    /**
-     * date
-     */
-    DATE,
-    /**
-     * timestamp
-     */
-    TIMESTAMP,
-    /**
-     * decimal
-     */
-    DECIMAL;
+    DATE, TIMESTAMP, DECIMAL;
 
     public static ColumnType fromString(String type) {
         if(type == null) {

@@ -20,8 +20,8 @@ package com.dtstack.flink.sql.side.mysql;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
+import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
@@ -41,7 +41,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public class MysqlAllReqRow extends AbstractRdbAllReqRow {
+public class MysqlAllReqRow extends RdbAllReqRow {
 
     private static final long serialVersionUID = 2098635140857937717L;
 
@@ -49,18 +49,18 @@ public class MysqlAllReqRow extends AbstractRdbAllReqRow {
 
     private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 
-    public MysqlAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public MysqlAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new MysqlAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override
-    public Connection getConn(String dbUrl, String userName, String password) {
+    public Connection getConn(String dbURL, String userName, String password) {
         try {
             Class.forName(MYSQL_DRIVER);
             //add param useCursorFetch=true
             Map<String, String> addParams = Maps.newHashMap();
             addParams.put("useCursorFetch", "true");
-            String targetDbUrl = DtStringUtil.addJdbcParam(dbUrl, addParams, true);
+            String targetDbUrl = DtStringUtil.addJdbcParam(dbURL, addParams, true);
             return DriverManager.getConnection(targetDbUrl, userName, password);
         } catch (Exception e) {
             LOG.error("", e);

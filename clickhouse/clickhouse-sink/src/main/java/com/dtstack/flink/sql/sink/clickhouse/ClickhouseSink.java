@@ -22,11 +22,14 @@ package com.dtstack.flink.sql.sink.clickhouse;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
-import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
+import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
+import java.util.List;
+import java.util.Map;
 
-public class ClickhouseSink extends AbstractRdbSink implements IStreamSinkGener<AbstractRdbSink> {
+
+public class ClickhouseSink extends RdbSink implements IStreamSinkGener<RdbSink> {
     public ClickhouseSink() {
         super(new ClickhouseDialect());
     }
@@ -34,7 +37,7 @@ public class ClickhouseSink extends AbstractRdbSink implements IStreamSinkGener<
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDbUrl(dbUrl)
+                .setDBUrl(dbURL)
                 .setDialect(jdbcDialect)
                 .setUsername(userName)
                 .setPassword(password)

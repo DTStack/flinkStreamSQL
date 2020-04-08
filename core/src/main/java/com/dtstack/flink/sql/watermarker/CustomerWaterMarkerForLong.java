@@ -35,7 +35,7 @@ import java.util.TimeZone;
  * @author xuchao
  */
 
-public class CustomerWaterMarkerForLong extends AbstractCustomerWaterMarker<Row> {
+public class CustomerWaterMarkerForLong extends AbsCustomerWaterMarker<Row> {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForLong.class);
 

@@ -21,9 +21,9 @@ package com.dtstack.flink.sql.sink.impala;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
-import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
+import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
-import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -36,7 +36,7 @@ import java.io.IOException;
  * @author xiuzhu
  */
 
-public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<AbstractRdbSink> {
+public class ImpalaSink extends RdbSink implements IStreamSinkGener<RdbSink> {
 
     private ImpalaTableInfo impalaTableInfo;
 
@@ -47,7 +47,7 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDbUrl(getImpalaJdbcUrl())
+                .setDBUrl(getImpalaJdbcUrl())
                 .setDialect(jdbcDialect)
                 .setUsername(userName)
                 .setPassword(password)
@@ -70,8 +70,8 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
 
     public String getImpalaJdbcUrl() {
         Integer authMech = impalaTableInfo.getAuthMech();
-        String newUrl = dbUrl;
-        StringBuffer urlBuffer = new StringBuffer(dbUrl);
+        String newUrl = dbURL;
+        StringBuffer urlBuffer = new StringBuffer(dbURL);
         if (authMech == EAuthMech.NoAuthentication.getType()) {
             return newUrl;
         } else if (authMech == EAuthMech.Kerberos.getType()) {
@@ -121,7 +121,7 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
     }
 
     @Override
-    public AbstractRdbSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
+    public RdbSink genStreamSink(TargetTableInfo targetTableInfo) {
         super.genStreamSink(targetTableInfo);
         this.impalaTableInfo = (ImpalaTableInfo) targetTableInfo;
         return this;

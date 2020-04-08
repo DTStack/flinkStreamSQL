@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.rdb.format;
 
-import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
@@ -36,7 +36,7 @@ import java.sql.SQLException;
  * @see Row
  * @see DriverManager
  */
-public abstract class AbstractJDBCOutputFormat<T> extends AbstractDtRichOutputFormat<T> {
+public abstract class AbstractJDBCOutputFormat<T> extends DtRichOutputFormat<T> {
 
 	private static final long serialVersionUID = 1L;
     public static final int DEFAULT_FLUSH_MAX_SIZE = 100;
@@ -47,16 +47,16 @@ public abstract class AbstractJDBCOutputFormat<T> extends AbstractDtRichOutputFo
 
 	protected final String username;
 	protected final String password;
-	private final String driverName;
+	private final String drivername;
 	protected final String dbURL;
 
 	protected transient Connection connection;
 
-	public AbstractJDBCOutputFormat(String username, String password, String driverName, String dbUrl) {
+	public AbstractJDBCOutputFormat(String username, String password, String drivername, String dbURL) {
 		this.username = username;
 		this.password = password;
-		this.driverName = driverName;
-		this.dbURL = dbUrl;
+		this.drivername = drivername;
+		this.dbURL = dbURL;
 	}
 
 	@Override
@@ -64,7 +64,7 @@ public abstract class AbstractJDBCOutputFormat<T> extends AbstractDtRichOutputFo
 	}
 
 	protected void establishConnection() throws SQLException, ClassNotFoundException, IOException {
-		JDBCUtils.forName(driverName, getClass().getClassLoader());
+		JDBCUtils.forName(drivername, getClass().getClassLoader());
 		if (username == null) {
 			connection = DriverManager.getConnection(dbURL);
 		} else {

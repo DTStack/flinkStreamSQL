@@ -1,10 +1,10 @@
 package com.dtstack.flink.sql.sink.kudu.table;
 
 import com.dtstack.flink.sql.sink.kudu.KuduOutputFormat;
-import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.base.Preconditions;
 
-public class KuduTableInfo extends AbstractTargetTableInfo {
+public class KuduTableInfo extends TargetTableInfo {
 
     private static final String CURR_TYPE = "kudu";
 

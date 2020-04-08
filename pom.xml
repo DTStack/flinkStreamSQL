@@ -18,7 +18,6 @@
         <module>mysql</module>
         <module>hbase</module>
         <module>elasticsearch5</module>
-        <module>elasticsearch6</module>
         <module>mongo</module>
         <module>redis5</module>
         <module>launcher</module>
@@ -34,6 +33,7 @@
         <module>impala</module>
         <module>db2</module>
         <module>polardb</module>
+        <module>elasticsearch6</module>
 
     </modules>
 
@@ -52,20 +52,6 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.7.8</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

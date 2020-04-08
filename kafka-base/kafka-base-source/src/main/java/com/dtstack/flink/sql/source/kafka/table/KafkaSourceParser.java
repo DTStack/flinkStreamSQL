@@ -19,14 +19,11 @@
 
 package com.dtstack.flink.sql.source.kafka.table;
 
-import com.dtstack.flink.sql.format.FormatType;
-import com.dtstack.flink.sql.source.kafka.enums.EKafkaOffset;
-import com.dtstack.flink.sql.table.AbstractSourceParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbsSourceParser;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Reason:
@@ -35,38 +32,33 @@ import java.util.stream.Collectors;
  *
  * @author sishu.yss
  */
-public class KafkaSourceParser extends AbstractSourceParser {
+public class KafkaSourceParser extends AbsSourceParser {
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {
 
         KafkaSourceTableInfo kafkaSourceTableInfo = new KafkaSourceTableInfo();
-        parseFieldsInfo(fieldsInfo, kafkaSourceTableInfo);
-
         kafkaSourceTableInfo.setName(tableName);
         kafkaSourceTableInfo.setType(MathUtil.getString(props.get(KafkaSourceTableInfo.TYPE_KEY.toLowerCase())));
+        parseFieldsInfo(fieldsInfo, kafkaSourceTableInfo);
+
         kafkaSourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
-        kafkaSourceTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
+        String bootstrapServer = MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase()));
+        if (bootstrapServer == null || bootstrapServer.trim().equals("")) {
+            throw new Exception("BootstrapServers can not be empty!");
+        } else {
+            kafkaSourceTableInfo.setBootstrapServers(bootstrapServer);
+        }
         kafkaSourceTableInfo.setGroupId(MathUtil.getString(props.get(KafkaSourceTableInfo.GROUPID_KEY.toLowerCase())));
         kafkaSourceTableInfo.setTopic(MathUtil.getString(props.get(KafkaSourceTableInfo.TOPIC_KEY.toLowerCase())));
         kafkaSourceTableInfo.setOffsetReset(MathUtil.getString(props.get(KafkaSourceTableInfo.OFFSETRESET_KEY.toLowerCase())));
         kafkaSourceTableInfo.setTopicIsPattern(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.TOPICISPATTERN_KEY.toLowerCase()), false));
-        kafkaSourceTableInfo.setOffsetReset(MathUtil.getString(props.getOrDefault(KafkaSourceTableInfo.OFFSETRESET_KEY.toLowerCase(), EKafkaOffset.LATEST.name().toLowerCase())));
-        kafkaSourceTableInfo.setTopicIsPattern(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.TOPICISPATTERN_KEY.toLowerCase())));
         kafkaSourceTableInfo.setTimeZone(MathUtil.getString(props.get(KafkaSourceTableInfo.TIME_ZONE_KEY.toLowerCase())));
-
-        kafkaSourceTableInfo.setSchemaString(MathUtil.getString(props.get(KafkaSourceTableInfo.SCHEMA_STRING_KEY.toLowerCase())));
-        kafkaSourceTableInfo.setFieldDelimiter(MathUtil.getString(props.getOrDefault(KafkaSourceTableInfo.CSV_FIELD_DELIMITER_KEY.toLowerCase(), "|")));
-        kafkaSourceTableInfo.setSourceDataType(MathUtil.getString(props.getOrDefault(KafkaSourceTableInfo.SOURCE_DATA_TYPE_KEY.toLowerCase(), FormatType.DT_NEST.name())));
-
-        Map<String, String> kafkaParams = props.keySet().stream()
-                .filter(key -> !key.isEmpty() && key.startsWith("kafka."))
-                .collect(Collectors.toMap(
-                        key -> key.substring(6), key -> props.get(key).toString())
-                );
-
-        kafkaSourceTableInfo.addKafkaParam(kafkaParams);
+        for (String key : props.keySet()) {
+            if (!key.isEmpty() && key.startsWith("kafka.")) {
+                kafkaSourceTableInfo.addKafkaParam(key.substring(6), props.get(key).toString());
+            }
+        }
         kafkaSourceTableInfo.check();
-
         return kafkaSourceTableInfo;
     }
 }

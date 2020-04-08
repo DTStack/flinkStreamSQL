@@ -21,12 +21,12 @@
 package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.side.AsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
-import com.dtstack.flink.sql.side.hbase.rowkeydealer.AbstractRowKeyModeDealer;
+import com.dtstack.flink.sql.side.hbase.rowkeydealer.AbsRowKeyModeDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
@@ -58,7 +58,7 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public class HbaseAsyncReqRow extends BaseAsyncReqRow {
+public class HbaseAsyncReqRow extends AsyncReqRow {
 
     private static final long serialVersionUID = 2098635104857937717L;
 
@@ -73,13 +73,13 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
     private transient HBaseClient hBaseClient;
 
-    private transient AbstractRowKeyModeDealer rowKeyMode;
+    private transient AbsRowKeyModeDealer rowKeyMode;
 
     private String tableName;
 
     private String[] colNames;
 
-    public HbaseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public HbaseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new HbaseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
 
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
@@ -89,7 +89,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
                 0L, TimeUnit.MILLISECONDS,

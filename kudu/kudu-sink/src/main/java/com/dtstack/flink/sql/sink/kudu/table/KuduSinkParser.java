@@ -1,8 +1,8 @@
 package com.dtstack.flink.sql.sink.kudu.table;
 
 import com.dtstack.flink.sql.sink.kudu.KuduOutputFormat;
-import com.dtstack.flink.sql.table.AbstractTableParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbsTableParser;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.math.BigDecimal;
@@ -10,9 +10,9 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Map;
 
-import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
-public class KuduSinkParser extends AbstractTableParser {
+public class KuduSinkParser extends AbsTableParser {
 
     public static final String KUDU_MASTERS = "kuduMasters";
 
@@ -27,7 +27,7 @@ public class KuduSinkParser extends AbstractTableParser {
     public static final String SOCKET_READ_TIMEOUT_MS = "defaultSocketReadTimeoutMs";
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         KuduTableInfo kuduTableInfo = new KuduTableInfo();
         kuduTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, kuduTableInfo);
@@ -86,7 +86,6 @@ public class KuduSinkParser extends AbstractTableParser {
                 return BigDecimal.class;
             case "binary":
                 return byte[].class;
-            default:
         }
 
         throw new RuntimeException("不支持 " + fieldType + " 类型");
