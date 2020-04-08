@@ -20,7 +20,6 @@
 
 package com.dtstack.flink.sql.watermarker;
 
-import com.dtstack.flink.sql.util.MathUtil;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ import java.util.TimeZone;
  * @author xuchao
  */
 
-public class CustomerWaterMarkerForTimeStamp extends AbsCustomerWaterMarker<Row> {
+public class CustomerWaterMarkerForTimeStamp extends AbstractCustomerWaterMarker<Row> {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForTimeStamp.class);
 

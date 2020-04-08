@@ -18,7 +18,7 @@
 package com.dtstack.flink.sql.sink.sqlserver.table;
 
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 
 import java.util.Map;
 
@@ -33,8 +33,8 @@ public class SqlserverSinkParser extends RdbSinkParser {
     private static final String CURR_TYPE = "sqlserver";
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo sqlserverTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        AbstractTableInfo sqlserverTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         sqlserverTableInfo.setType(CURR_TYPE);
         return sqlserverTableInfo;
     }

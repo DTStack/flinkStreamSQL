@@ -32,18 +32,18 @@ import java.util.regex.Pattern;
 
 public class CreateFuncParser implements IParser {
 
-    private static final String funcPatternStr = "(?i)\\s*create\\s+(scala|table|aggregate)\\s+function\\s+(\\S+)\\s+WITH\\s+(\\S+)";
+    private static final String FUNC_PATTERN_STR = "(?i)\\s*create\\s+(scala|table|aggregate)\\s+function\\s+(\\S+)\\s+WITH\\s+(\\S+)";
 
-    private static final Pattern funcPattern = Pattern.compile(funcPatternStr);
+    private static final Pattern FUNC_PATTERN = Pattern.compile(FUNC_PATTERN_STR);
 
     @Override
     public boolean verify(String sql) {
-        return funcPattern.matcher(sql).find();
+        return FUNC_PATTERN.matcher(sql).find();
     }
 
     @Override
     public void parseSql(String sql, SqlTree sqlTree) {
-        Matcher matcher = funcPattern.matcher(sql);
+        Matcher matcher = FUNC_PATTERN.matcher(sql);
         if(matcher.find()){
             String type = matcher.group(1);
             String funcName = matcher.group(2);

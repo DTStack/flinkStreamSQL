@@ -80,6 +80,7 @@ public class ParserJoinField {
                 switch(identifierSize) {
                     case 1:
                         fieldInfoList.addAll(getAllField(scope));
+                        break;
                     default:
                         SqlIdentifier tableIdentify = identifier.skipLast(1);
                         JoinScope.ScopeChild scopeChild = scope.getScope(tableIdentify.getSimple());
@@ -99,6 +100,7 @@ public class ParserJoinField {
                             fieldInfo.setTypeInformation(type);
                             fieldInfoList.add(fieldInfo);
                         }
+                        break;
                 }
             }
         }

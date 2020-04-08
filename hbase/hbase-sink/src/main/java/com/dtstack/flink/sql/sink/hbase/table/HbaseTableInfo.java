@@ -21,7 +21,7 @@
 package com.dtstack.flink.sql.sink.hbase.table;
 
 
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 import java.util.Map;
 
@@ -30,7 +30,7 @@ import java.util.Map;
  * Company: www.dtstack.com
  * @author sishu.yss
  */
-public class HbaseTableInfo extends TargetTableInfo {
+public class HbaseTableInfo extends AbstractTargetTableInfo {
 
     private static final String CURR_TYPE = "hbase";
 

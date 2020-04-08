@@ -219,14 +219,14 @@ public class DtStringUtil {
         return preStr + "?" + sb.toString();
     }
 
-    public  static boolean isJosn(String str){
+    public static boolean isJson(String str) {
         boolean flag = false;
-        if(StringUtils.isNotBlank(str)){
+        if (StringUtils.isNotBlank(str)) {
             try {
-                objectMapper.readValue(str,Map.class);
+                objectMapper.readValue(str, Map.class);
                 flag = true;
             } catch (Throwable e) {
-                flag=false;
+                flag = false;
             }
         }
         return flag;

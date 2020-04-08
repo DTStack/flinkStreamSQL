@@ -18,10 +18,12 @@
 
 package com.dtstack.flink.sql.sink.redis.table;
 
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
-
-public class RedisTableInfo extends TargetTableInfo {
+/**
+ * @author yanxi
+ */
+public class RedisTableInfo extends AbstractTargetTableInfo {
 
     private static final String CURR_TYPE = "redis";
 

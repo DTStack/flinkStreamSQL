@@ -109,7 +109,7 @@ public class PluginUtil {
         return CLASS_PRE_STR  + "." + type.toLowerCase() + "." +  pluginTypeName + "." + pluginClassName;
     }
 
-    public static Map<String,Object> ObjectToMap(Object obj) throws Exception{
+    public static Map<String,Object> objectToMap(Object obj) throws Exception{
         return objectMapper.readValue(objectMapper.writeValueAsBytes(obj), Map.class);
     }
 
@@ -173,8 +173,8 @@ public class PluginUtil {
         }
 
         for(File file : files){
-            URL pluginJarURL = file.toURI().toURL();
-            classLoader.addURL(pluginJarURL);
+            URL pluginJarUrl = file.toURI().toURL();
+            classLoader.addURL(pluginJarUrl);
         }
     }
 
@@ -191,8 +191,8 @@ public class PluginUtil {
         }
 
         for(File file : files){
-            URL pluginJarURL = file.toURI().toURL();
-            urlList.add(pluginJarURL);
+            URL pluginJarUrl = file.toURI().toURL();
+            urlList.add(pluginJarUrl);
         }
         return urlList.toArray(new URL[urlList.size()]);
     }

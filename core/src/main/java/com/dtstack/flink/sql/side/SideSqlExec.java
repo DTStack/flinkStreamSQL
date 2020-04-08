@@ -43,7 +43,10 @@ import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -97,7 +100,7 @@ public class SideSqlExec {
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
     public void exec(String sql,
-                     Map<String, SideTableInfo> sideTableMap,
+                     Map<String, AbstractSideTableInfo> sideTableMap,
                      StreamTableEnvironment tableEnv,
                      Map<String, Table> tableCache,
                      StreamQueryConfig queryConfig,
@@ -131,11 +134,9 @@ public class SideSqlExec {
 
 
                 if(pollSqlNode.getKind() == INSERT){
-                    System.out.println("----------real exec sql-----------" );
-                    System.out.println(pollSqlNode.toString());
                     FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString(), queryConfig);
                     if(LOG.isInfoEnabled()){
-                        LOG.info("exec sql: " + pollSqlNode.toString());
+                        LOG.info("----------real exec sql-----------\n{}", pollSqlNode.toString());
                     }
 
                 }else if(pollSqlNode.getKind() == AS){
@@ -166,9 +167,9 @@ public class SideSqlExec {
                 }
 
             }else if (pollObj instanceof JoinInfo){
-                System.out.println("----------exec join info----------");
-                System.out.println(pollObj.toString());
-                joinFun(pollObj, localTableCache, sideTableMap, tableEnv);
+                LOG.info("----------exec join info----------\n{}", pollObj.toString());
+                preIsSideJoin = true;
+                joinFun(pollObj, localTableCache, sideTableMap, tableEnv, replaceInfoList);
             }
         }
 

@@ -19,12 +19,11 @@
 package com.dtstack.flink.sql.sink.impala.table;
 
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +41,7 @@ public class ImpalaSinkParser extends RdbSinkParser {
     private static final String CURR_TYPE = "impala";
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         ImpalaTableInfo impalaTableInfo = new ImpalaTableInfo();
         impalaTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, impalaTableInfo);
@@ -117,6 +116,8 @@ public class ImpalaSinkParser extends RdbSinkParser {
                 return String.class;
             case "timestamp":
                 return Timestamp.class;
+            default:
+                break;
         }
 
         throw new RuntimeException("不支持 " + fieldType + " 类型");

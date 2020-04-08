@@ -18,9 +18,12 @@
 
 package com.dtstack.flink.sql.sink.kafka.table;
 
+import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.format.FormatType;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
+import org.apache.avro.Schema;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +36,7 @@ import java.util.Set;
  * @author DocLi
  * @modifyer maqi
  */
-public class KafkaSinkTableInfo extends TargetTableInfo {
+public class KafkaSinkTableInfo extends AbstractTargetTableInfo {
 
     public static final String BOOTSTRAPSERVERS_KEY = "bootstrapServers";
 
@@ -44,6 +47,14 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
     public static final String ENABLE_KEY_PARTITION_KEY = "enableKeyPartitions";
 
     public static final String PARTITION_KEY = "partitionKeys";
+
+    public static final String UPDATE_KEY = "updateMode";
+
+    public static final String SCHEMA_STRING_KEY = "schemaInfo";
+
+    public static final String RETRACT_FIELD_KEY = "retract";
+
+    public static final String CSV_FIELD_DELIMITER_KEY = "fieldDelimiter";
 
     private String bootstrapServers;
 
@@ -59,6 +70,8 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
 
     private String partitionKeys;
 
+    private String updateMode;
+
     public void addKafkaParam(String key, String value) {
         kafkaParam.put(key, value);
     }
@@ -70,7 +83,6 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
     public Set<String> getKafkaParamKeys() {
         return kafkaParam.keySet();
     }
-
 
     public String getBootstrapServers() {
         return bootstrapServers;
@@ -104,12 +116,38 @@ public class KafkaSinkTableInfo extends TargetTableInfo {
         this.fieldDelimiter = fieldDelimiter;
     }
 
+    public String getUpdateMode() {
+        return updateMode;
+    }
+
+    public void setUpdateMode(String updateMode) {
+        this.updateMode = updateMode;
+    }
+
     @Override
     public boolean check() {
         Preconditions.checkNotNull(getType(), "kafka of type is required");
         Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
         Preconditions.checkNotNull(topic, "kafka of topic is required");
+
+        if (StringUtils.equalsIgnoreCase(getSinkDataType(), FormatType.AVRO.name())) {
+            avroParamCheck();
+        }
+
         return false;
+    }
+
+    public void avroParamCheck() {
+        Preconditions.checkNotNull(schemaString, "avro type schemaInfo is required");
+        if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
+            Schema schema = new Schema.Parser().parse(schemaString);
+            schema.getFields()
+                    .stream()
+                    .filter(field -> StringUtils.equalsIgnoreCase(field.name(), RETRACT_FIELD_KEY))
+                    .findFirst()
+                    .orElseThrow(() ->
+                            new NullPointerException(String.valueOf("arvo upsert mode the retract attribute must be contained in schemaInfo field ")));
+        }
     }
 
     public String getEnableKeyPartition() {

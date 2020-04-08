@@ -20,15 +20,14 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
+import com.dtstack.flink.sql.enums.EUpdateMode;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
-
-import com.dtstack.flink.sql.enums.EUpdateMode;
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
-import com.google.common.collect.Lists;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
@@ -50,7 +49,7 @@ import java.util.Set;
  * @author: jingzhen@dtstack.com
  * date: 2017-6-29
  */
-public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
+public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseOutputFormat.class);
 

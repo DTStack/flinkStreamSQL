@@ -25,8 +25,17 @@ package com.dtstack.flink.sql.enums;
  * @author maqi
  */
 public enum EStateBackend {
+    /**
+     * memory
+     */
     MEMORY,
+    /**
+     * rockdb
+     */
     ROCKSDB,
+    /**
+     * filesystem
+     */
     FILESYSTEM;
 
     public static EStateBackend convertFromString(String type) {

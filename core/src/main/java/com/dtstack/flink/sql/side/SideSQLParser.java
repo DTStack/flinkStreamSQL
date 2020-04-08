@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-import static org.apache.calcite.sql.SqlKind.*;
+import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 
 /**
  * Parsing sql, obtain execution information dimension table
@@ -62,8 +62,6 @@ public class SideSQLParser {
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
     public Queue<Object> getExeQueue(String exeSql, Set<String> sideTableSet) throws SqlParseException {
-        System.out.println("----------exec original Sql----------");
-        System.out.println(exeSql);
         LOG.info("----------exec original Sql----------");
         LOG.info(exeSql);
 
@@ -168,6 +166,8 @@ public class SideSQLParser {
 
             case LITERAL:
                 return LITERAL.toString();
+            default:
+                break;
         }
         return "";
     }

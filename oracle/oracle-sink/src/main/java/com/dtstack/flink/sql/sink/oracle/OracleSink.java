@@ -19,7 +19,7 @@ package com.dtstack.flink.sql.sink.oracle;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
-import com.dtstack.flink.sql.sink.rdb.RdbSink;
+import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
 /**
@@ -29,7 +29,7 @@ import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
  *
  * @author maqi
  */
-public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
+public class OracleSink extends AbstractRdbSink implements IStreamSinkGener<AbstractRdbSink> {
 
     public OracleSink() {
         super(new OracleDialect());
@@ -42,7 +42,7 @@ public class OracleSink extends RdbSink implements IStreamSinkGener<RdbSink> {
         ((OracleDialect) jdbcDialect).setFieldExtraInfoList(fieldExtraInfoList);
 
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDBUrl(dbURL)
+                .setDbUrl(dbUrl)
                 .setDialect(jdbcDialect)
                 .setUsername(userName)
                 .setPassword(password)
