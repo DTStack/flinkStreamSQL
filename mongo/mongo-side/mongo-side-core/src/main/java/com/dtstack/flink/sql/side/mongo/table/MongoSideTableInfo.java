@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.side.mongo.table;
 
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.google.common.base.Preconditions;
 
 /**
@@ -28,7 +28,7 @@ import com.google.common.base.Preconditions;
  *
  * @author xuqianjin
  */
-public class MongoSideTableInfo extends SideTableInfo {
+public class MongoSideTableInfo extends AbstractSideTableInfo {
 
     private static final long serialVersionUID = -1L;
 

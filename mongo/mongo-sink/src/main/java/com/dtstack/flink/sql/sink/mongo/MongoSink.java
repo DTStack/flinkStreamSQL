@@ -21,7 +21,7 @@ package com.dtstack.flink.sql.sink.mongo;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.mongo.table.MongoTableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -54,7 +54,7 @@ public class MongoSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     }
 
     @Override
-    public MongoSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public MongoSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         MongoTableInfo mongoTableInfo = (MongoTableInfo) targetTableInfo;
         this.address = mongoTableInfo.getAddress();
         this.tableName = mongoTableInfo.getTableName();

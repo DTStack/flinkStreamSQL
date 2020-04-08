@@ -30,8 +30,17 @@ package com.dtstack.flink.sql.enums;
 
 public enum ECacheContentType {
 
+    /**
+     * 无
+     */
     MissVal(0),
+    /**
+     * 1行
+     */
     SingleLine(1),
+    /**
+     * 多行
+     */
     MultiLine(2);
 
     int type;

@@ -22,6 +22,7 @@ public class TablePrintUtil {
     public static final int ALIGN_LEFT = 1;//左对齐
     public static final int ALIGN_RIGHT = 2;//右对齐
     public static final int ALIGN_CENTER = 3;//居中对齐
+    private static final Pattern PATTERN = Pattern.compile("[\u4e00-\u9fa5]");
 
     private int align = ALIGN_CENTER;//默认居中对齐
     private boolean equilong = false;//默认不等宽
@@ -58,7 +59,9 @@ public class TablePrintUtil {
     public static <T> TablePrintUtil build(List<T> data) {
         TablePrintUtil self = new TablePrintUtil();
         self.data = new ArrayList<>();
-        if (data.size() <= 0) throw new RuntimeException("数据源至少得有一行吧");
+        if (data.size() <= 0) {
+            throw new RuntimeException("数据源至少得有一行吧");
+        }
         Object obj = data.get(0);
 
 
@@ -70,7 +73,9 @@ public class TablePrintUtil {
             int length = ((List) obj).size();
             for (Object item : data) {
                 List<String> col = (List<String>) item;
-                if (col.size() != length) throw new RuntimeException("数据源每列长度必须一致");
+                if (col.size() != length) {
+                    throw new RuntimeException("数据源每列长度必须一致");
+                }
                 self.data.add(col.toArray(new String[length]));
             }
         } else {
@@ -90,7 +95,7 @@ public class TablePrintUtil {
                     try {
                         value = obj.getClass().getMethod(colList.get(j).getMethodName).invoke(data.get(i)).toString();
                     } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        e.printStackTrace();
+                        LOG.error("", e);
                     }
                     item[j] = value == null ? "null" : value;
                 }
@@ -115,7 +120,7 @@ public class TablePrintUtil {
         Method[] methods = obj.getClass().getMethods();
         for (Method m : methods) {
             StringBuilder getMethodName = new StringBuilder(m.getName());
-            if (getMethodName.substring(0, 3).equals("get") && !m.getName().equals("getClass")) {
+            if ("get".equals(getMethodName.substring(0, 3)) && !"getClass".equals(m.getName())) {
                 Col col = new Col();
                 col.getMethodName = getMethodName.toString();
                 char first = Character.toLowerCase(getMethodName.delete(0, 3).charAt(0));
@@ -134,8 +139,8 @@ public class TablePrintUtil {
      * @return
      */
     private int getStringCharLength(String str) {
-        Pattern p = Pattern.compile("[\u4e00-\u9fa5]");//利用正则找到中文
-        Matcher m = p.matcher(str);
+        //利用正则找到中文
+        Matcher m = PATTERN.matcher(str);
         int count = 0;
         while (m.find()) {
             count++;
@@ -163,7 +168,9 @@ public class TablePrintUtil {
         if (equilong) {//如果等宽表格
             int max = 0;
             for (int len : result) {
-                if (len > max) max = len;
+                if (len > max) {
+                    max = len;
+                }
             }
             for (int i = 0; i < result.length; i++) {
                 result[i] = max;
@@ -212,6 +219,8 @@ public class TablePrintUtil {
                         for (int i = 0; i < left + padding; i++) {sb.append(s);}
                         sb.append(cell);
                         for (int i = 0; i < right + padding; i++) {sb.append(s);}
+                        break;
+                    default:
                         break;
                 }
                 sb.append(v);

@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.format.dtnest;
 
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
@@ -28,8 +28,9 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.*;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.NullNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.types.Row;
 
 import java.io.IOException;
@@ -57,9 +58,9 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
 
     private final String[] fieldNames;
     private final TypeInformation<?>[] fieldTypes;
-    private List<TableInfo.FieldExtraInfo> fieldExtraInfos;
+    private List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos;
 
-    public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
+    public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos) {
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
         this.rowAndFieldMapping = rowAndFieldMapping;
@@ -75,7 +76,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         try {
             for (int i = 0; i < fieldNames.length; i++) {
                 JsonNode node = getIgnoreCase(fieldNames[i]);
-                TableInfo.FieldExtraInfo fieldExtraInfo = fieldExtraInfos.get(i);
+                AbstractTableInfo.FieldExtraInfo fieldExtraInfo = fieldExtraInfos.get(i);
 
                 if (node == null) {
                     if (fieldExtraInfo != null && fieldExtraInfo.getNotNull()) {

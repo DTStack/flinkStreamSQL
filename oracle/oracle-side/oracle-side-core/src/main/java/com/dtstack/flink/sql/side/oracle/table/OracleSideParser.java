@@ -18,7 +18,7 @@
 package com.dtstack.flink.sql.side.oracle.table;
 
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 
 import java.util.Map;
 
@@ -27,8 +27,8 @@ public class OracleSideParser extends RdbSideParser {
     private static final String CURR_TYPE = "oracle";
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo oracleTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        AbstractTableInfo oracleTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         oracleTableInfo.setType(CURR_TYPE);
         return oracleTableInfo;
     }

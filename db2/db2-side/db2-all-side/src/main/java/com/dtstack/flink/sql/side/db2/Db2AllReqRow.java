@@ -20,10 +20,8 @@ package com.dtstack.flink.sql.side.db2;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
-import com.dtstack.flink.sql.util.DtStringUtil;
-import com.google.common.collect.Maps;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Date: 2019/11/20
@@ -40,21 +37,21 @@ import java.util.Map;
  * @author xiuzhu
  */
 
-public class Db2AllReqRow extends RdbAllReqRow {
+public class Db2AllReqRow extends AbstractRdbAllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(Db2AllReqRow.class);
 
     private static final String DB2_DRIVER = "com.ibm.db2.jcc.DB2Driver";
 
-    public Db2AllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public Db2AllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new Db2AllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override
-    public Connection getConn(String dbURL, String userName, String password) {
+    public Connection getConn(String dbUrl, String userName, String password) {
         try {
             Class.forName(DB2_DRIVER);
-            Connection conn = DriverManager.getConnection(dbURL, userName, password);
+            Connection conn = DriverManager.getConnection(dbUrl, userName, password);
             return conn;
         } catch (Exception e) {
             LOG.error("", e);

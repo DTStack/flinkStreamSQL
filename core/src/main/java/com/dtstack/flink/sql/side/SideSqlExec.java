@@ -43,24 +43,17 @@ import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
-import org.apache.calcite.sql.SqlAsOperator;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlInsert;
-import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWithItem;
-import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -68,7 +61,6 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +89,7 @@ public class SideSqlExec {
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
     public void exec(String sql,
-                     Map<String, SideTableInfo> sideTableMap,
+                     Map<String, AbstractSideTableInfo> sideTableMap,
                      StreamTableEnvironment tableEnv,
                      Map<String, Table> tableCache,
                      StreamQueryConfig queryConfig,
@@ -131,11 +123,9 @@ public class SideSqlExec {
 
 
                 if(pollSqlNode.getKind() == INSERT){
-                    System.out.println("----------real exec sql-----------" );
-                    System.out.println(pollSqlNode.toString());
                     FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString(), queryConfig);
                     if(LOG.isInfoEnabled()){
-                        LOG.info("exec sql: " + pollSqlNode.toString());
+                        LOG.info("----------real exec sql-----------\n{}", pollSqlNode.toString());
                     }
 
                 }else if(pollSqlNode.getKind() == AS){
@@ -166,8 +156,7 @@ public class SideSqlExec {
                 }
 
             }else if (pollObj instanceof JoinInfo){
-                System.out.println("----------exec join info----------");
-                System.out.println(pollObj.toString());
+                LOG.info("----------exec join info----------\n{}", pollObj.toString());
                 joinFun(pollObj, localTableCache, sideTableMap, tableEnv);
             }
         }
@@ -294,7 +283,7 @@ public class SideSqlExec {
      *
      * @return
      */
-    private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias, SideTableInfo sideTableInfo) {
+    private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias, AbstractSideTableInfo sideTableInfo) {
         List<String> conditionFields = getConditionFields(conditionNode, sideTableAlias, sideTableInfo);
         if(CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo))){
             return true;
@@ -302,7 +291,7 @@ public class SideSqlExec {
         return false;
     }
 
-    private List<String> convertPrimaryAlias(SideTableInfo sideTableInfo) {
+    private List<String> convertPrimaryAlias(AbstractSideTableInfo sideTableInfo) {
         List<String> res = Lists.newArrayList();
         sideTableInfo.getPrimaryKeys().forEach(field -> {
             res.add(sideTableInfo.getPhysicalFields().getOrDefault(field, field));
@@ -310,7 +299,7 @@ public class SideSqlExec {
         return res;
     }
 
-    public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName, SideTableInfo sideTableInfo){
+    public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName, AbstractSideTableInfo sideTableInfo){
         List<SqlNode> sqlNodeList = Lists.newArrayList();
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
         List<String> conditionFields = Lists.newArrayList();
@@ -369,7 +358,7 @@ public class SideSqlExec {
 
     private void joinFun(Object pollObj,
                          Map<String, Table> localTableCache,
-                         Map<String, SideTableInfo> sideTableMap,
+                         Map<String, AbstractSideTableInfo> sideTableMap,
                          StreamTableEnvironment tableEnv) throws Exception{
         JoinInfo joinInfo = (JoinInfo) pollObj;
 
@@ -385,7 +374,7 @@ public class SideSqlExec {
         JoinScope.ScopeChild rightScopeChild = new JoinScope.ScopeChild();
         rightScopeChild.setAlias(joinInfo.getRightTableAlias());
         rightScopeChild.setTableName(joinInfo.getRightTableName());
-        SideTableInfo sideTableInfo = sideTableMap.get(joinInfo.getRightTableName());
+        AbstractSideTableInfo sideTableInfo = sideTableMap.get(joinInfo.getRightTableName());
         if(sideTableInfo == null){
             sideTableInfo = sideTableMap.get(joinInfo.getRightTableAlias());
         }
@@ -394,9 +383,9 @@ public class SideSqlExec {
             throw new RuntimeException("can't not find side table:" + joinInfo.getRightTableName());
         }
 
-//        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo)){
-//            throw new RuntimeException("ON condition must contain all equal fields!!!");
-//        }
+        if(!checkJoinCondition(joinInfo.getCondition(), joinInfo.getRightTableAlias(), sideTableInfo)){
+            throw new RuntimeException("ON condition must contain all equal fields!!!");
+        }
 
         rightScopeChild.setRowTypeInfo(sideTableInfo.getRowTypeInfo());
 
