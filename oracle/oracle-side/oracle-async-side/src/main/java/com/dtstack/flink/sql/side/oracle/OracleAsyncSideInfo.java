@@ -23,7 +23,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -56,7 +56,7 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
         String rpadFormat = "rpad(?, %d, ' ')";
 
         if (StringUtils.contains(type.toLowerCase(), "char")) {
-            TableInfo.FieldExtraInfo fieldExtraInfo = sideTableInfo.getFieldExtraInfoList().get(pos);
+            AbstractTableInfo.FieldExtraInfo fieldExtraInfo = sideTableInfo.getFieldExtraInfoList().get(pos);
             int charLength = fieldExtraInfo == null ? 0 : fieldExtraInfo.getLength();
             if (charLength > 0) {
                 return String.format(rpadFormat, charLength);

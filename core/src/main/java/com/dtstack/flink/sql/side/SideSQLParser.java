@@ -48,6 +48,7 @@ import java.util.Queue;
 import java.util.Set;
 
 import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
+import static org.apache.calcite.sql.SqlKind.LITERAL;
 
 /**
  * Parsing sql, obtain execution information dimension table

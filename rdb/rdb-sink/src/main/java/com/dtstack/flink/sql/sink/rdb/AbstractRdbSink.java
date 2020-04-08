@@ -20,9 +20,8 @@ package com.dtstack.flink.sql.sink.rdb;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
-import com.dtstack.flink.sql.table.TableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -84,20 +83,20 @@ public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Se
 
     public List<String> fieldList;
     public List<String> fieldTypeList;
-    public List<TableInfo.FieldExtraInfo> fieldExtraInfoList;
+    public List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList;
 
     public AbstractRdbSink(JDBCDialect jdbcDialect) {
         this.jdbcDialect = jdbcDialect;
     }
 
     @Override
-    public RdbSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public AbstractRdbSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         RdbTableInfo rdbTableInfo = (RdbTableInfo) targetTableInfo;
         this.batchNum = rdbTableInfo.getBatchSize() == null ? batchNum : rdbTableInfo.getBatchSize();
         this.batchWaitInterval = rdbTableInfo.getBatchWaitInterval() == null ?
                 batchWaitInterval : rdbTableInfo.getBatchWaitInterval();
         this.parallelism = rdbTableInfo.getParallelism() == null ? parallelism : rdbTableInfo.getParallelism();
-        this.dbURL = rdbTableInfo.getUrl();
+        this.dbUrl = rdbTableInfo.getUrl();
         this.userName = rdbTableInfo.getUserName();
         this.password = rdbTableInfo.getPassword();
         this.tableName = rdbTableInfo.getTableName();

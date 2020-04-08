@@ -112,12 +112,12 @@ public abstract class AbstractTableParser {
 
 
             Class fieldClass = null;
-            TableInfo.FieldExtraInfo fieldExtraInfo = null;
+            AbstractTableInfo.FieldExtraInfo fieldExtraInfo = null;
 
             Matcher matcher = charTypePattern.matcher(fieldType);
             if (matcher.find()) {
                 fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
-                fieldExtraInfo = new TableInfo.FieldExtraInfo();
+                fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
                 fieldExtraInfo.setLength(Integer.valueOf(matcher.group(1)));
             } else {
                 fieldClass = dbTypeConvertToJavaType(fieldType);
