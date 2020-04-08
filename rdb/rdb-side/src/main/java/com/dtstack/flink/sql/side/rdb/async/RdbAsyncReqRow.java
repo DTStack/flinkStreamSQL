@@ -119,19 +119,18 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         while(!finishFlag.get()){
             CountDownLatch latch = new CountDownLatch(1);
             rdbSqlClient.getConnection(conn -> {
-                if(conn.failed()){
-                    if(failCounter.getAndIncrement() % 1000 == 0){
-                        logger.error("getConnection error", conn.cause());
-                    }
-                    if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3)){
-                        resultFuture.completeExceptionally(conn.cause());
-                        finishFlag.set(true);
-                    }
-                    latch.countDown();
-                    conn.result().close();
-                    return;
-                }
                 try {
+                    if(conn.failed()){
+                        if(failCounter.getAndIncrement() % 1000 == 0){
+                            logger.error("getConnection error", conn.cause());
+                        }
+                        if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3)){
+                            resultFuture.completeExceptionally(conn.cause());
+                            finishFlag.set(true);
+                        }
+                        conn.result().close();
+                        return;
+                    }
                     CONN_STATUS.set(true);
                     ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
                     cancelTimerWhenComplete(resultFuture, timerFuture);
