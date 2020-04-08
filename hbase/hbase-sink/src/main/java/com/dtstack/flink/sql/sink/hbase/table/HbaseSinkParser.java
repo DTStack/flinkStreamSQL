@@ -69,7 +69,7 @@ public class HbaseSinkParser extends AbstractTableParser {
         hbaseTableInfo.setHost((String) props.get(HBASE_ZOOKEEPER_QUORUM.toLowerCase()));
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
-        hbaseTableInfo.setRowkey(StringUtils.split(rk, ","));
+        hbaseTableInfo.setRowkey(rk);
         String updateMode = (String) props.getOrDefault(UPDATE_KEY, EUpdateMode.APPEND.name());
         hbaseTableInfo.setUpdateMode(updateMode);
         return hbaseTableInfo;
