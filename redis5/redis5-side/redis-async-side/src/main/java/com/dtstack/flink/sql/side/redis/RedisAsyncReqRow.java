@@ -20,6 +20,8 @@ package com.dtstack.flink.sql.side.redis;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import io.lettuce.core.KeyValue;
+import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -31,19 +33,19 @@ import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.redis.enums.RedisType;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.lettuce.core.KeyValue;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.async.RedisHashAsyncCommands;
 import io.lettuce.core.api.async.RedisKeyAsyncCommands;
-import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
+import com.google.common.collect.Maps;
 
 import java.util.Collections;
 import java.util.List;
@@ -94,15 +96,15 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
         if (database == null){
             database = "0";
         }
-        switch (tableInfo.getRedisType()){
-            case 1:
+        switch (RedisType.parse(tableInfo.getRedisType())){
+            case STANDALONE:
                 StringBuilder redisUri = new StringBuilder();
                 redisUri.append("redis://").append(password).append(url).append("/").append(database);
                 redisClient = RedisClient.create(redisUri.toString());
                 connection = redisClient.connect();
                 async = connection.async();
                 break;
-            case 2:
+            case SENTINEL:
                 StringBuilder sentinelUri = new StringBuilder();
                 sentinelUri.append("redis-sentinel://").append(password)
                         .append(url).append("/").append(database).append("#").append(redisSideTableInfo.getMasterName());
@@ -110,13 +112,14 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                 connection = redisClient.connect();
                 async = connection.async();
                 break;
-            case 3:
+            case CLUSTER:
                 StringBuilder clusterUri = new StringBuilder();
                 clusterUri.append("redis://").append(password).append(url);
                 clusterClient = RedisClusterClient.create(clusterUri.toString());
                 clusterConnection = clusterClient.connect();
                 async = clusterConnection.async();
             default:
+                break;
         }
     }
 
@@ -128,45 +131,40 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
         String key = buildCacheKey(inputParams);
-        Map<String, String> keyValue = Maps.newHashMap();
-        List<String> value = async.keys(key + ":*").get();
-        String[] values = value.toArray(new String[value.size()]);
-        if (values.length == 0) {
-            dealMissKey(input, resultFuture);
-        } else {
-            RedisFuture<List<KeyValue<String, String>>> future = ((RedisStringAsyncCommands) async).mget(values);
-            future.thenAccept(new Consumer<List<KeyValue<String, String>>>() {
-                @Override
-                public void accept(List<KeyValue<String, String>> keyValues) {
-                    if (keyValues.size() != 0) {
-                        for (int i = 0; i < keyValues.size(); i++) {
-                            String[] splitKeys = StringUtils.split(keyValues.get(i).getKey(), ":");
-                            keyValue.put(splitKeys[1], splitKeys[2]);
-                            keyValue.put(splitKeys[3], keyValues.get(i).getValue());
-                        }
-                        try {
-                            Row row = fillData(input.row(), keyValue);
-                            dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, keyValue));
-                            resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
-                        } catch (Exception e) {
-                            dealFillDataError(resultFuture, e, input);
-                        }
-                    } else {
-                        dealMissKey(input, resultFuture);
-                        dealCacheData(key, CacheMissVal.getMissKeyObj());
-                    }
-                }
-            });
+        if(StringUtils.isBlank(key)){
+            return;
         }
+        RedisFuture<Map<String, String>> future = ((RedisHashAsyncCommands) async).hgetall(key);
+        future.thenAccept(new Consumer<Map<String, String>>() {
+            @Override
+            public void accept(Map<String, String> values) {
+                if (MapUtils.isNotEmpty(values)) {
+                    try {
+                        Row row = fillData(input.row(), values);
+                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
+                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
+                    } catch (Exception e) {
+                        dealFillDataError(resultFuture, e, input);
+                    }
+                } else {
+                    dealMissKey(input, resultFuture);
+                    dealCacheData(key,CacheMissVal.getMissKeyObj());
+                }
+            }
+        });
     }
 
     @Override
-    public String buildCacheKey(Map<String, Object> inputParams) {
-        String kv = StringUtils.join(inputParams.values(), ":");
-        String tableName = redisSideTableInfo.getTableName();
-        StringBuilder preKey =  new StringBuilder();
-        preKey.append(tableName).append(":").append(kv);
-        return preKey.toString();
+    public String buildCacheKey(Map<String, Object> refData) {
+        StringBuilder keyBuilder = new StringBuilder(redisSideTableInfo.getTableName());
+        List<String> primaryKeys = redisSideTableInfo.getPrimaryKeys();
+        for(String primaryKey : primaryKeys){
+            if(!refData.containsKey(primaryKey)){
+                return null;
+            }
+            keyBuilder.append("_").append(refData.get(primaryKey));
+        }
+        return keyBuilder.toString();
     }
 
     @Override

@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.table;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -107,12 +108,6 @@ public abstract class AbstractSideTableParser extends AbstractTableParser {
                     throw new RuntimeException("asyncTimeout size need > 0.");
                 }
                 sideTableInfo.setAsyncTimeout(asyncTimeout);
-            }
-            if(props.containsKey(AbstractSideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase())){
-                Integer asyncTimeoutNum = MathUtil.getIntegerVal(props.get(AbstractSideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase()));
-                if (asyncTimeoutNum > 0){
-                    sideTableInfo.setAsyncTimeoutNumLimit(asyncTimeoutNum);
-                }
             }
 
             if(props.containsKey(AbstractSideTableInfo.ASYNC_FAIL_MAX_NUM_KEY.toLowerCase())){

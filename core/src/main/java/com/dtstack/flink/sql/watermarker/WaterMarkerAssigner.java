@@ -29,8 +29,6 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import java.sql.Timestamp;
-import java.lang.Long;
-
 /**
  * define watermarker
  * Date: 2018/6/29

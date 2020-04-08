@@ -24,13 +24,18 @@ import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
+import com.dtstack.flink.sql.util.DateUtil;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -38,7 +43,9 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -63,7 +70,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public final static int DEFAULT_VERTX_WORKER_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
-    public final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
+    public final static int DEFAULT_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
+
+    public final static int MAX_DB_CONN_POOL_SIZE_LIMIT = 20;
 
     public final static int DEFAULT_IDLE_CONNECTION_TEST_PEROID = 60;
 
@@ -83,6 +92,21 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
+        init(sideInfo);
+    }
+
+    protected void init(BaseSideInfo sideInfo) {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        int defaultAsyncPoolSize = Math.min(MAX_DB_CONN_POOL_SIZE_LIMIT, DEFAULT_DB_CONN_POOL_SIZE);
+        int rdbPoolSize = rdbSideTableInfo.getAsyncPoolSize() > 0 ? rdbSideTableInfo.getAsyncPoolSize() : defaultAsyncPoolSize;
+        rdbSideTableInfo.setAsyncPoolSize(rdbPoolSize);
+    }
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        LOG.info("rdb dim table config info: {} ", rdbSideTableInfo.toString());
     }
 
 
@@ -97,16 +121,17 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         while (!CONN_STATUS.get()){//network is unhealth
             Thread.sleep(100);
         }
+        Map<String, Object> params = formatInputParam(inputParams);
         rdbSqlClient.getConnection(conn -> {
             if(conn.failed()){
                 CONN_STATUS.set(false);
-                connectWithRetry(inputParams, input, resultFuture, rdbSqlClient);
+                connectWithRetry(params, input, resultFuture, rdbSqlClient);
                 return;
             }
             CONN_STATUS.set(true);
             ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
             cancelTimerWhenComplete(resultFuture, timerFuture);
-            handleQuery(conn.result(), inputParams, input, resultFuture);
+            handleQuery(conn.result(), params, input, resultFuture);
         });
 
     }
@@ -182,6 +207,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         return row;
     }
 
+
     @Override
     public void close() throws Exception {
         super.close();
@@ -195,7 +221,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         this.rdbSqlClient = rdbSqlClient;
     }
 
-    private void handleQuery(SQLConnection connection,Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture){
+    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture){
         String key = buildCacheKey(inputParams);
         JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
         connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {
@@ -252,4 +278,46 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         resultFuture.completeExceptionally(e);
     }
 
+    private Map<String, Object> formatInputParam(Map<String, Object> inputParam){
+        Map<String, Object> result = Maps.newHashMap();
+        inputParam.forEach((k,v) -> {
+            result.put(k, convertDataType(v));
+        });
+        return result;
+    }
+
+    private Object convertDataType(Object val) {
+        if (val == null) {
+            // OK
+        } else if (val instanceof Number && !(val instanceof BigDecimal)) {
+            // OK
+        } else if (val instanceof Boolean) {
+            // OK
+        } else if (val instanceof String) {
+            // OK
+        } else if (val instanceof Character) {
+            // OK
+        } else if (val instanceof CharSequence) {
+
+        } else if (val instanceof JsonObject) {
+
+        } else if (val instanceof JsonArray) {
+
+        } else if (val instanceof Map) {
+
+        } else if (val instanceof List) {
+
+        } else if (val instanceof byte[]) {
+
+        } else if (val instanceof Instant) {
+
+        } else if (val instanceof Timestamp) {
+            val = DateUtil.timestampToString((Timestamp) val);
+        } else if (val instanceof java.util.Date) {
+            val = DateUtil.dateToString((java.util.Date)val);
+        } else {
+            val = val.toString();
+        }
+        return val;
+    }
 }

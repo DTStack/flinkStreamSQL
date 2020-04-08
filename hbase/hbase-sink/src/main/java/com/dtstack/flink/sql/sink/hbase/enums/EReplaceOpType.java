@@ -18,41 +18,22 @@
 
  
 
-package com.dtstack.flinkx;
-
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+package com.dtstack.flink.sql.sink.hbase.enums;
 
 /**
- * Unit test for simple App.
+ * Reason:
+ * Date: 2018/8/23
+ * Company: www.dtstack.com
+ * @author xuchao
  */
-public class AppTest 
-    extends TestCase
-{
-    /**
-     * Create the test case
-     *
-     * @param testName name of the test case
-     */
-    public AppTest( String testName )
-    {
-        super( testName );
-    }
 
+public enum  EReplaceOpType {
     /**
-     * @return the suite of tests being tested
+     * 没有func
      */
-    public static Test suite()
-    {
-        return new TestSuite( AppTest.class );
-    }
-
+    NO_FUNC,
     /**
-     * Rigourous Test :-)
+     * md5 func
      */
-    public void testApp()
-    {
-        assertTrue( true );
-    }
+    MD5_FUNC;
 }

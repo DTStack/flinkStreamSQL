@@ -169,6 +169,7 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
         connCassandraDB(cassandraSideTableInfo);
 
         String sqlCondition = sideInfo.getSqlCondition() + " " + buildWhereCondition(inputParams) + "  ALLOW FILTERING ";
+        LOG.info("sqlCondition:{}" + sqlCondition);
 
         ListenableFuture<ResultSet> resultSet = Futures.transformAsync(session,
                 new AsyncFunction<Session, ResultSet>() {

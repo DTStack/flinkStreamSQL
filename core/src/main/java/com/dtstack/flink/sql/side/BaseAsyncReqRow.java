@@ -185,10 +185,11 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
                 return inputParams;
             }
             String columnName = sideInfo.getEqualFieldList().get(conValIndex);
-            inputParams.put(columnName, equalObj.toString());
+            inputParams.put(columnName, equalObj);
         }
         return inputParams;
     }
+
     protected boolean isUseCache(Map<String, Object> inputParams){
         return openCache() && getFromCache(buildCacheKey(inputParams)) != null;
     }

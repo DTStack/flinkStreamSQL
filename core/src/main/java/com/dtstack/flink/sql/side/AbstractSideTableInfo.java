@@ -54,19 +54,24 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     public static final String ASYNC_TIMEOUT_KEY = "asyncTimeout";
 
-    public static final String ASYNC_TIMEOUT_NUM_KEY = "asyncTimeoutNum";
-
     public static final String ASYNC_FAIL_MAX_NUM_KEY = "asyncFailMaxNum";
+    
+    public static final String ASYNC_REQ_POOL_KEY = "asyncPoolSize";
 
-    private String cacheType = "none";//None or LRU or ALL
+    private String cacheType = "none";
 
     private int cacheSize = 10000;
 
-    private long cacheTimeout = 60 * 1000;//
+    private long cacheTimeout = 60 * 1000L;
 
     private int  asyncCapacity=100;
 
     private int  asyncTimeout=10000;
+
+    /**
+     *  async operator req outside conn pool size, egg rdb conn pool size
+     */
+    private int asyncPoolSize = 0;
 
     private boolean partitionedJoin = false;
 
@@ -159,4 +164,26 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         this.asyncFailMaxNum = asyncFailMaxNum;
     }
 
+    public int getAsyncPoolSize() {
+        return asyncPoolSize;
+    }
+
+    public void setAsyncPoolSize(int asyncPoolSize) {
+        this.asyncPoolSize = asyncPoolSize;
+    }
+
+    @Override
+    public String toString() {
+        return "Cache Info{" +
+                "cacheType='" + cacheType + '\'' +
+                ", cacheSize=" + cacheSize +
+                ", cacheTimeout=" + cacheTimeout +
+                ", asyncCapacity=" + asyncCapacity +
+                ", asyncTimeout=" + asyncTimeout +
+                ", asyncPoolSize=" + asyncPoolSize +
+                ", asyncFailMaxNum=" + asyncFailMaxNum +
+                ", partitionedJoin=" + partitionedJoin +
+                ", cacheMode='" + cacheMode + '\'' +
+                '}';
+    }
 }
