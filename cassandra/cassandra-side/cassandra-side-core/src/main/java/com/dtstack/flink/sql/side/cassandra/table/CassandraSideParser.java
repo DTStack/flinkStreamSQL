@@ -19,16 +19,18 @@
 
 package com.dtstack.flink.sql.side.cassandra.table;
 
-import com.dtstack.flink.sql.table.AbstractSideTableParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbsSideTableParser;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
+import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
 /**
  * Reason:
@@ -36,7 +38,7 @@ import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
  *
  * @author xuqianjin
  */
-public class CassandraSideParser extends AbstractSideTableParser {
+public class CassandraSideParser extends AbsSideTableParser {
 
     private final static String SIDE_SIGN_KEY = "sideSignKey";
 
@@ -71,7 +73,7 @@ public class CassandraSideParser extends AbstractSideTableParser {
     }
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo cassandraSideTableInfo = new com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo();
         cassandraSideTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, cassandraSideTableInfo);
@@ -94,10 +96,9 @@ public class CassandraSideParser extends AbstractSideTableParser {
         return cassandraSideTableInfo;
     }
 
-    private void dealSideSign(Matcher matcher, AbstractTableInfo tableInfo) {
+    private void dealSideSign(Matcher matcher, TableInfo tableInfo) {
     }
 
-    @Override
     public Class dbTypeConvertToJavaType(String fieldType) {
         switch (fieldType.toLowerCase()) {
             case "bigint":
@@ -120,8 +121,6 @@ public class CassandraSideParser extends AbstractSideTableParser {
                 return Double.class;
             case "timestamp":
                 return Timestamp.class;
-            default:
-                break;
         }
 
         throw new RuntimeException("不支持 " + fieldType + " 类型");

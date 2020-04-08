@@ -31,8 +31,8 @@ import java.util.regex.Pattern;
 
 /**
  * company: www.dtstack.com
+ * author: toutian
  * create: 2019/12/24
- * @author: toutian
  */
 public class KafkaConsumer011Factory extends AbstractKafkaConsumerFactory {
 

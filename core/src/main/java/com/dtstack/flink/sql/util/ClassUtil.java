@@ -86,8 +86,7 @@ public class ClassUtil {
             case "decimal":
             case "decimalunsigned":
                 return BigDecimal.class;
-            default:
-                break;
+
         }
 
         throw new RuntimeException("不支持 " + str + " 类型");

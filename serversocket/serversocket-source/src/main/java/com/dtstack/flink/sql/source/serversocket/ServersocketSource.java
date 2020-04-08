@@ -19,7 +19,7 @@ package com.dtstack.flink.sql.source.serversocket;
 
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.serversocket.table.ServersocketSourceTableInfo;
-import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
+import com.dtstack.flink.sql.table.SourceTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -37,7 +37,7 @@ import org.apache.flink.table.api.java.StreamTableEnvironment;
  */
 public class ServersocketSource implements IStreamSourceGener<Table> {
 	@Override
-	public Table genStreamSource(AbstractSourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
+	public Table genStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv) {
 		ServersocketSourceTableInfo serversocketSourceTableInfo = (ServersocketSourceTableInfo) sourceTableInfo;
 		String tableName = serversocketSourceTableInfo.getName();
 

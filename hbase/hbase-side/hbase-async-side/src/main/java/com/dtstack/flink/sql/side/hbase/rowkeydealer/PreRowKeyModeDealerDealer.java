@@ -23,7 +23,7 @@ package com.dtstack.flink.sql.side.hbase.rowkeydealer;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.cache.AbstractSideCache;
+import com.dtstack.flink.sql.side.cache.AbsSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.google.common.collect.Maps;
@@ -44,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +55,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
+public class PreRowKeyModeDealerDealer extends AbsRowKeyModeDealer {
 
     private static final Logger LOG = LoggerFactory.getLogger(PreRowKeyModeDealerDealer.class);
 
@@ -66,7 +67,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
 
     @Override
     public void asyncGetData(String tableName, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture,
-                             AbstractSideCache sideCache) {
+                             AbsSideCache sideCache) {
         Scanner prefixScanner = hBaseClient.newScanner(tableName);
         ScanFilter scanFilter = new RowFilter(CompareFilter.CompareOp.EQUAL, new BinaryPrefixComparator(Bytes.UTF8(rowKeyStr)));
         prefixScanner.setFilter(scanFilter);
@@ -79,7 +80,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
     }
 
 
-    private String dealOneRow(ArrayList<ArrayList<KeyValue>> args, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture, AbstractSideCache sideCache) {
+    private String dealOneRow(ArrayList<ArrayList<KeyValue>> args, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture, AbsSideCache sideCache) {
         if(args == null || args.size() == 0){
             dealMissKey(input, resultFuture);
             if (openCache) {
@@ -110,7 +111,8 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
                         for (String key : colNames) {
                             Object val = sideMap.get(key);
                             if (val == null) {
-                                LOG.error("can't get data with column {}", key);
+                                System.out.println("can't get data with column " + key);
+                                LOG.error("can't get data with column " + key);
                             }
 
                             sideVal.add(val);

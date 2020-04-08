@@ -19,16 +19,20 @@
 
 package com.dtstack.flink.sql.sink.mongo;
 
-import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.result.UpdateResult;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
+
+import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.result.UpdateResult;
+import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
@@ -44,7 +48,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class MongoOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
+public class MongoOutputFormat extends DtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(MongoOutputFormat.class);
 
     private String address;
@@ -121,8 +125,30 @@ public class MongoOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     private void establishConnection() {
-        mongoClient = new MongoClient(new MongoClientURI(address));
-        db = mongoClient.getDatabase(database);
+        try {
+            MongoCredential credential;
+            String[] servers = StringUtils.split(address, ",");
+            String host;
+            Integer port;
+            String[] hostAndPort;
+            List<ServerAddress> lists = new ArrayList<>();
+            for (String server : servers) {
+                hostAndPort = StringUtils.split(server, ":");
+                host = hostAndPort[0];
+                port = Integer.parseInt(hostAndPort[1]);
+                lists.add(new ServerAddress(host, port));
+            }
+            if (!StringUtils.isEmpty(userName) || !StringUtils.isEmpty(password)) {
+                credential = MongoCredential.createCredential(userName, database, password.toCharArray());
+                // To connect to mongodb server
+                mongoClient = new MongoClient(lists, credential, new MongoClientOptions.Builder().build());
+            } else {
+                mongoClient = new MongoClient(lists);
+            }
+            db = mongoClient.getDatabase(database);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("[connMongoDB]:" + e.getMessage());
+        }
     }
 
     private MongoOutputFormat() {

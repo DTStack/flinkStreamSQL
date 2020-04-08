@@ -1,7 +1,7 @@
 package com.dtstack.flink.sql.side.kudu.table;
 
-import com.dtstack.flink.sql.table.AbstractSideTableParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbsSideTableParser;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.math.BigDecimal;
@@ -9,9 +9,9 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Map;
 
-import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
-public class KuduSideParser extends AbstractSideTableParser {
+public class KuduSideParser extends AbsSideTableParser {
 
 
     public static final String KUDU_MASTERS = "kuduMasters";
@@ -52,7 +52,7 @@ public class KuduSideParser extends AbstractSideTableParser {
 
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         KuduSideTableInfo kuduSideTableInfo = new KuduSideTableInfo();
         kuduSideTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, kuduSideTableInfo);
@@ -107,7 +107,6 @@ public class KuduSideParser extends AbstractSideTableParser {
                 return BigDecimal.class;
             case "binary":
                 return byte[].class;
-            default:
         }
 
         throw new RuntimeException("不支持 " + fieldType + " 类型");

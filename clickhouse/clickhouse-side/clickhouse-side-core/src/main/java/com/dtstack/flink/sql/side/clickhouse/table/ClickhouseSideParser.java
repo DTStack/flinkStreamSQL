@@ -20,7 +20,7 @@
 package com.dtstack.flink.sql.side.clickhouse.table;
 
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.TableInfo;
 import ru.yandex.clickhouse.domain.ClickHouseDataType;
 
 import java.util.Map;
@@ -38,8 +38,8 @@ public class ClickhouseSideParser extends RdbSideParser {
     private static final String CURR_TYPE = "clickhouse";
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        AbstractTableInfo clickhouseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        TableInfo clickhouseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         clickhouseTableInfo.setType(CURR_TYPE);
         return clickhouseTableInfo;
     }

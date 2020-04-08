@@ -21,11 +21,11 @@ package com.dtstack.flink.sql.launcher;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
-import com.esotericsoftware.minlog.Log;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.MiniClusterClient;
+import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.configuration.JobManagerOptions;
@@ -89,7 +89,7 @@ public class ClusterClientFactory {
 
         if (StringUtils.isNotBlank(yarnConfDir)) {
             try {
-                config.setString("fs.hdfs.hadoopconf", yarnConfDir);
+                config.setString(ConfigConstants.PATH_HADOOP_CONFIG, yarnConfDir);
                 FileSystem.initialize(config);
 
                 YarnConfiguration yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
@@ -109,7 +109,7 @@ public class ClusterClientFactory {
                     applicationId = getYarnClusterApplicationId(yarnClient);
                 }
 
-                Log.info("applicationId={}", applicationId.toString());
+                System.out.println("applicationId=" + applicationId.toString());
 
                 if (StringUtils.isEmpty(applicationId.toString())) {
                     throw new RuntimeException("No flink session found on yarn cluster.");
@@ -166,7 +166,7 @@ public class ClusterClientFactory {
 
     private static ApplicationId toApplicationId(String appIdStr) {
         Iterator<String> it = StringHelper._split(appIdStr).iterator();
-        if (!"application".equals(it.next())) {
+        if (!(it.next()).equals("application")) {
             throw new IllegalArgumentException("Invalid ApplicationId prefix: " + appIdStr + ". The valid ApplicationId should start with prefix " + "application");
         } else {
             try {

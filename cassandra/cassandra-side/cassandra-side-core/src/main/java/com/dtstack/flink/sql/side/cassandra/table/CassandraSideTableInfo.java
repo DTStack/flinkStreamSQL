@@ -19,7 +19,7 @@
 
 package com.dtstack.flink.sql.side.cassandra.table;
 
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.google.common.base.Preconditions;
 
 /**
@@ -28,7 +28,7 @@ import com.google.common.base.Preconditions;
  *
  * @author xuqianjin
  */
-public class CassandraSideTableInfo extends AbstractSideTableInfo {
+public class CassandraSideTableInfo extends SideTableInfo {
 
     private static final long serialVersionUID = -5556431094535478915L;
 

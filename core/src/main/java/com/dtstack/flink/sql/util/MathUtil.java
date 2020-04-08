@@ -227,7 +227,7 @@ public class MathUtil {
         } else if (obj instanceof BigInteger) {
             return new BigDecimal((BigInteger) obj);
         } else if (obj instanceof Number) {
-            return BigDecimal.valueOf(((Number) obj).doubleValue());
+            return new BigDecimal(((Number) obj).doubleValue());
         }
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to BigDecimal.");
     }

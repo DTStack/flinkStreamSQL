@@ -2,8 +2,8 @@ package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.BaseSideInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlNode;
@@ -21,7 +21,7 @@ import java.util.Map;
  * @author xuchao
  */
 
-public class HbaseAsyncSideInfo extends BaseSideInfo {
+public class HbaseAsyncSideInfo extends SideInfo {
 
     private static final long serialVersionUID = 257688427401088045L;
 
@@ -29,12 +29,12 @@ public class HbaseAsyncSideInfo extends BaseSideInfo {
 
     private Map<String, String> colRefType;
 
-    public HbaseAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public HbaseAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
     @Override
-    public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
+    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
         rowKeyBuilder = new RowKeyBuilder();
         if(sideTableInfo.getPrimaryKeys().size() < 1){
             throw new RuntimeException("Primary key dimension table must be filled");

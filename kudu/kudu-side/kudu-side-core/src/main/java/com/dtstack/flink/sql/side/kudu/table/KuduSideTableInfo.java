@@ -1,9 +1,9 @@
 package com.dtstack.flink.sql.side.kudu.table;
 
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.google.common.base.Preconditions;
 
-public class KuduSideTableInfo extends AbstractSideTableInfo {
+public class KuduSideTableInfo extends SideTableInfo {
 
     private static final String CURR_TYPE = "kudu";
 

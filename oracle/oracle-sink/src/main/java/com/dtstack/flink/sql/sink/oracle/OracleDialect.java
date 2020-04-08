@@ -19,7 +19,7 @@
 package com.dtstack.flink.sql.sink.oracle;
 
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 
@@ -41,7 +41,7 @@ public class OracleDialect implements JDBCDialect {
 
     private List<String> fieldList;
     private List<String> fieldTypeList;
-    private List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList;
+    private List<TableInfo.FieldExtraInfo> fieldExtraInfoList;
 
     @Override
     public boolean canHandle(String url) {
@@ -133,7 +133,7 @@ public class OracleDialect implements JDBCDialect {
         String type = fieldTypeList.get(pos);
 
         if (StringUtils.contains(type.toLowerCase(), DEAL_CHAR_KEY)) {
-            AbstractTableInfo.FieldExtraInfo fieldExtraInfo = fieldExtraInfoList.get(pos);
+            TableInfo.FieldExtraInfo fieldExtraInfo = fieldExtraInfoList.get(pos);
             int charLength = fieldExtraInfo == null ? 0 : fieldExtraInfo.getLength();
             if (charLength > 0) {
                 return String.format(RPAD_FORMAT, charLength);
@@ -151,7 +151,7 @@ public class OracleDialect implements JDBCDialect {
         this.fieldTypeList = fieldTypeList;
     }
 
-    public void setFieldExtraInfoList(List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList) {
+    public void setFieldExtraInfoList(List<TableInfo.FieldExtraInfo> fieldExtraInfoList) {
         this.fieldExtraInfoList = fieldExtraInfoList;
     }
 }

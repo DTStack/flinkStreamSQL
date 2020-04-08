@@ -1,23 +1,24 @@
 package com.dtstack.flink.sql.side.kudu;
 
-import com.dtstack.flink.sql.side.BaseAllReqRow;
-import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.PredicateInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
-import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.calcite.sql.JoinType;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.Preconditions;
+
+import com.dtstack.flink.sql.side.AllReqRow;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
+import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.apache.calcite.sql.JoinType;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.KuduClient;
@@ -40,7 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class KuduAllReqRow extends BaseAllReqRow {
+public class KuduAllReqRow extends AllReqRow {
 
     private static final long serialVersionUID = 6051774809356082219L;
 
@@ -61,7 +62,7 @@ public class KuduAllReqRow extends BaseAllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
-    public KuduAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public KuduAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new KuduAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -227,6 +228,9 @@ public class KuduAllReqRow extends BaseAllReqRow {
                 KuduClient.KuduClientBuilder kuduClientBuilder = new KuduClient.KuduClientBuilder(kuduMasters);
                 if (null != workerCount) {
                     kuduClientBuilder.workerCount(workerCount);
+                }
+                if (null != defaultSocketReadTimeoutMs) {
+                    kuduClientBuilder.defaultSocketReadTimeoutMs(defaultSocketReadTimeoutMs);
                 }
 
                 if (null != defaultOperationTimeoutMs) {

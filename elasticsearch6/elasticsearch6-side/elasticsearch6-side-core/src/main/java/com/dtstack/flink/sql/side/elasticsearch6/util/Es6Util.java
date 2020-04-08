@@ -18,8 +18,8 @@
 
 package com.dtstack.flink.sql.side.elasticsearch6.util;
 
-import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.PredicateInfo;
+import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
@@ -98,7 +98,7 @@ public class Es6Util {
     }
 
     // add index and type to search request
-    public static SearchRequest setSearchRequest(BaseSideInfo sideInfo) {
+    public static SearchRequest setSearchRequest(SideInfo sideInfo) {
         SearchRequest searchRequest = new SearchRequest();
         Elasticsearch6SideTableInfo tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
         // determine existence of index
@@ -129,7 +129,7 @@ public class Es6Util {
     }
 
     // build where cause
-    public static BoolQueryBuilder setPredicateclause(BaseSideInfo sideInfo) {
+    public static BoolQueryBuilder setPredicateclause(SideInfo sideInfo) {
 
         BoolQueryBuilder boolQueryBuilder = null;
         List<PredicateInfo> predicateInfoes = sideInfo.getSideTableInfo().getPredicateInfoes();
@@ -144,7 +144,7 @@ public class Es6Util {
     }
 
     // build filter condition
-    public static BoolQueryBuilder buildFilterCondition(BoolQueryBuilder boolQueryBuilder, PredicateInfo info, BaseSideInfo sideInfo) {
+    public static BoolQueryBuilder buildFilterCondition(BoolQueryBuilder boolQueryBuilder, PredicateInfo info, SideInfo sideInfo) {
         switch (info.getOperatorKind()) {
             case "IN":
                 return boolQueryBuilder.must(QueryBuilders.termsQuery(textConvertToKeyword(info.getFieldName(), sideInfo), removeSpaceAndApostrophe(info.getCondition())));
@@ -202,7 +202,7 @@ public class Es6Util {
     }
 
     // prevent word segmentation
-    public static String textConvertToKeyword(String fieldName, BaseSideInfo sideInfo) {
+    public static String textConvertToKeyword(String fieldName, SideInfo sideInfo) {
         String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
         int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
         String fieldType = sideFieldTypes[fieldIndex];

@@ -20,8 +20,8 @@ package com.dtstack.flink.sql.side.cassandra;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.BaseSideInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlNode;
@@ -37,16 +37,16 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class CassandraAllSideInfo extends BaseSideInfo {
+public class CassandraAllSideInfo extends SideInfo {
 
     private static final long serialVersionUID = -8690814317653033557L;
 
-    public CassandraAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public CassandraAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
     @Override
-    public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
+    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
         CassandraSideTableInfo cassandraSideTableInfo = (CassandraSideTableInfo) sideTableInfo;
 
         sqlCondition = "select ${selectField} from ${tableName} ";

@@ -20,7 +20,7 @@
 package com.dtstack.flink.sql.side.postgresql.table;
 
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.TableInfo;
 
 import java.util.Map;
 
@@ -37,8 +37,8 @@ public class PostgresqlSideParser extends RdbSideParser {
     private static final String CURR_TYPE = "postgresql";
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        AbstractTableInfo pgTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        TableInfo pgTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         pgTableInfo.setType(CURR_TYPE);
         return pgTableInfo;
     }

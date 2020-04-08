@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.side.hbase.table;
 
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -33,7 +33,7 @@ import java.util.Map;
  * Company: www.dtstack.com
  * @author xuchao
  */
-public class HbaseSideTableInfo extends AbstractSideTableInfo {
+public class HbaseSideTableInfo extends SideTableInfo {
 
     private static final String CURR_TYPE = "hbase";
 

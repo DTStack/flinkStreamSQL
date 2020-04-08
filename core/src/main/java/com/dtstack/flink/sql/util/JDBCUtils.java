@@ -28,10 +28,10 @@ public class JDBCUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClassUtil.class);
 
-    public final static String LOCK_STR = "jdbc_lock_str";
+    public final static String lock_str = "jdbc_lock_str";
 
     public static void forName(String clazz, ClassLoader classLoader)  {
-        synchronized (LOCK_STR){
+        synchronized (lock_str){
             try {
                 Class.forName(clazz, true, classLoader);
                 DriverManager.setLoginTimeout(10);

@@ -18,8 +18,8 @@
 
 package com.dtstack.flink.sql.sink.elasticsearch.table;
 
-import com.dtstack.flink.sql.table.AbstractTableInfo;
-import com.dtstack.flink.sql.table.AbstractTableParser;
+import com.dtstack.flink.sql.table.AbsTableParser;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import org.apache.commons.lang3.StringUtils;
 
@@ -29,7 +29,7 @@ import java.util.Map;
  * @author yinxi
  * @date 2020/1/9 - 15:06
  */
-public class ElasticsearchSinkParser extends AbstractTableParser {
+public class ElasticsearchSinkParser extends AbsTableParser {
 
     private static final String KEY_ES6_ADDRESS = "address";
 
@@ -55,7 +55,7 @@ public class ElasticsearchSinkParser extends AbstractTableParser {
     }
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         ElasticsearchTableInfo elasticsearchTableInfo = new ElasticsearchTableInfo();
         elasticsearchTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, elasticsearchTableInfo);

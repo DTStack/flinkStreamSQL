@@ -18,17 +18,25 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
-import com.dtstack.flink.sql.side.BaseAllReqRow;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+import org.apache.flink.util.Collector;
+
+import com.dtstack.flink.sql.side.AllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -36,19 +44,13 @@ import com.mongodb.client.MongoDatabase;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +62,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author xuqianjin
  */
-public class MongoAllReqRow extends BaseAllReqRow {
+public class MongoAllReqRow extends AllReqRow {
 
     private static final long serialVersionUID = -675332795591842778L;
 
@@ -76,7 +78,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
-    public MongoAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public MongoAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new MongoAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -179,13 +181,34 @@ public class MongoAllReqRow extends BaseAllReqRow {
         return sb.toString();
     }
 
-    private MongoCollection getConn(String address, String database, String tableName) {
+    private MongoCollection getConn(String address, String userName, String password, String database, String tableName) {
         MongoCollection dbCollection;
-        mongoClient = new MongoClient(new MongoClientURI(address));
-        db = mongoClient.getDatabase(database);
-        dbCollection = db.getCollection(tableName, Document.class);
-        return dbCollection;
-
+        try {
+            MongoCredential credential;
+            String[] servers = StringUtils.split(address, ",");
+            String host;
+            Integer port;
+            String[] hostAndPort;
+            List<ServerAddress> lists = new ArrayList<>();
+            for (String server : servers) {
+                hostAndPort = StringUtils.split(server, ":");
+                host = hostAndPort[0];
+                port = Integer.parseInt(hostAndPort[1]);
+                lists.add(new ServerAddress(host, port));
+            }
+            if (!StringUtils.isEmpty(userName) || !StringUtils.isEmpty(password)) {
+                credential = MongoCredential.createCredential(userName, database, password.toCharArray());
+                // To connect to mongodb server
+                mongoClient = new MongoClient(lists, credential, new MongoClientOptions.Builder().build());
+            } else {
+                mongoClient = new MongoClient(lists);
+            }
+            db = mongoClient.getDatabase(database);
+            dbCollection = db.getCollection(tableName, Document.class);
+            return dbCollection;
+        } catch (Exception e) {
+            throw new RuntimeException("[connMongoDB]:" + e.getMessage());
+        }
     }
 
     private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws SQLException {
@@ -195,7 +218,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
         try {
             for (int i = 0; i < CONN_RETRY_NUM; i++) {
                 try {
-                    dbCollection = getConn(tableInfo.getAddress(), tableInfo.getDatabase(), tableInfo.getTableName());
+                    dbCollection = getConn(tableInfo.getAddress(), tableInfo.getUserName(), tableInfo.getPassword(),
+                            tableInfo.getDatabase(), tableInfo.getTableName());
                     break;
                 } catch (Exception e) {
                     if (i == CONN_RETRY_NUM - 1) {

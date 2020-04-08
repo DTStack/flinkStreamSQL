@@ -98,9 +98,9 @@ public class ClassLoaderManager {
 
 
 
-    public static URLClassLoader loadExtraJar(List<URL> jarUrlList, URLClassLoader classLoader)
+    public static URLClassLoader loadExtraJar(List<URL> jarURLList, URLClassLoader classLoader)
             throws  IllegalAccessException, InvocationTargetException {
-        for(URL url : jarUrlList){
+        for(URL url : jarURLList){
             if(url.toString().endsWith(".jar")){
                 urlClassLoaderAddUrl(classLoader, url);
             }

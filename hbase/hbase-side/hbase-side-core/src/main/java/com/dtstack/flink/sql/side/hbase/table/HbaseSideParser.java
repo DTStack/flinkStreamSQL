@@ -20,15 +20,15 @@
 
 package com.dtstack.flink.sql.side.hbase.table;
 
-import com.dtstack.flink.sql.table.AbstractSideTableParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbsSideTableParser;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
 
 /**
  * hbase field information must include the definition of an alias -> sql which does not allow ":"
@@ -37,7 +37,7 @@ import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
  * @author xuchao
  */
 
-public class HbaseSideParser extends AbstractSideTableParser {
+public class HbaseSideParser extends AbsSideTableParser {
 
     private final static String FIELD_KEY = "fieldKey";
 
@@ -58,7 +58,7 @@ public class HbaseSideParser extends AbstractSideTableParser {
     }
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         HbaseSideTableInfo hbaseTableInfo = new HbaseSideTableInfo();
         hbaseTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, hbaseTableInfo);
@@ -77,7 +77,7 @@ public class HbaseSideParser extends AbstractSideTableParser {
      * @param matcher
      * @param tableInfo
      */
-    private void dealField(Matcher matcher, AbstractTableInfo tableInfo){
+    private void dealField(Matcher matcher, TableInfo tableInfo){
 
         HbaseSideTableInfo sideTableInfo = (HbaseSideTableInfo) tableInfo;
         String filedDefineStr = matcher.group(1);

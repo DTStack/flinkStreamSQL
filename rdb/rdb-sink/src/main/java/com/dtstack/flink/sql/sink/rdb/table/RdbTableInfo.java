@@ -18,9 +18,11 @@
 package com.dtstack.flink.sql.sink.rdb.table;
 
 import com.dtstack.flink.sql.enums.EUpdateMode;
-import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.Arrays;
 
 /**
  * Reason:
@@ -29,7 +31,7 @@ import org.apache.commons.lang3.StringUtils;
  *
  * @author maqi
  */
-public class RdbTableInfo extends AbstractTargetTableInfo {
+public class RdbTableInfo extends TargetTableInfo {
 
     public static final String URL_KEY = "url";
 

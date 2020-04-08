@@ -19,8 +19,8 @@
 package com.dtstack.flink.sql.side.elasticsearch6.table;
 
 import com.dtstack.flink.sql.side.elasticsearch6.util.ClassUtil;
-import com.dtstack.flink.sql.table.AbstractSideTableParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbsSideTableParser;
+import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import org.apache.commons.lang3.StringUtils;
 
@@ -30,7 +30,7 @@ import java.util.Map;
  * @author yinxi
  * @date 2020/1/13 - 1:07
  */
-public class Elasticsearch6SideParser extends AbstractSideTableParser {
+public class Elasticsearch6SideParser extends AbsSideTableParser {
 
     private static final String KEY_ES6_ADDRESS = "address";
 
@@ -55,7 +55,7 @@ public class Elasticsearch6SideParser extends AbstractSideTableParser {
     }
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         Elasticsearch6SideTableInfo elasticsearch6SideTableInfo = new Elasticsearch6SideTableInfo();
         elasticsearch6SideTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, elasticsearch6SideTableInfo);

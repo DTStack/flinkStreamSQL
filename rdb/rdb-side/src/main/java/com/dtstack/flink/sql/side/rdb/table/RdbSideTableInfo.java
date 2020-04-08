@@ -17,7 +17,7 @@
  */
 package com.dtstack.flink.sql.side.rdb.table;
 
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.google.common.base.Preconditions;
 
 /**
@@ -27,7 +27,7 @@ import com.google.common.base.Preconditions;
  *
  * @author maqi
  */
-public class RdbSideTableInfo extends AbstractSideTableInfo {
+public class RdbSideTableInfo extends SideTableInfo {
 
     private static final long serialVersionUID = -1L;
 
@@ -100,16 +100,5 @@ public class RdbSideTableInfo extends AbstractSideTableInfo {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    @Override
-    public String toString() {
-        String cacheInfo = super.toString();
-        String connectionInfo = "Rdb Side Connection Info{" +
-                "url='" + url + '\'' +
-                ", tableName='" + tableName + '\'' +
-                ", schema='" + schema + '\'' +
-                '}';
-        return cacheInfo + " , " + connectionInfo;
     }
 }

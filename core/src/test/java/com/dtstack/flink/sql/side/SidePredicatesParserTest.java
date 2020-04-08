@@ -54,7 +54,7 @@ public class SidePredicatesParserTest {
                         "           MyTable.a='1' and s.d='1' and  s.d <> '3' and s.c LIKE '%xx%' and s.c in ('1','2') and s.c between '10' and '23' and s.d is not null\n";
 
 
-        AbstractSideTableInfo sideTableInfo = new AbstractSideTableInfo(){
+        SideTableInfo sideTableInfo = new SideTableInfo(){
             @Override
             public boolean check() {
                 return false;
@@ -63,7 +63,7 @@ public class SidePredicatesParserTest {
 
         sideTableInfo.setName("sideTable");
 
-        Map<String, AbstractSideTableInfo> sideTableMap = new HashMap<>();
+        Map<String, SideTableInfo> sideTableMap = new HashMap<>();
         sideTableMap.put("sideTable", sideTableInfo);
 
         SidePredicatesParser sidePredicatesParser = new SidePredicatesParser();

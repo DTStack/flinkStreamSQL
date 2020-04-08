@@ -37,11 +37,11 @@ import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.side.AsyncReqRow;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo;
 import com.google.common.base.Function;
@@ -67,7 +67,7 @@ import java.util.Map;
  *
  * @author xuqianjin
  */
-public class CassandraAsyncReqRow extends BaseAsyncReqRow {
+public class CassandraAsyncReqRow extends AsyncReqRow {
 
     private static final long serialVersionUID = 6631584128079864735L;
 
@@ -83,7 +83,7 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
     private transient ListenableFuture session;
     private transient CassandraSideTableInfo cassandraSideTableInfo;
 
-    public CassandraAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+    public CassandraAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new com.dtstack.flink.sql.side.cassandra.CassandraAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -216,7 +216,7 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
         connCassandraDB(cassandraSideTableInfo);
 
         String sqlCondition = sideInfo.getSqlCondition() + " " + sqlWhere + "  ALLOW FILTERING ";
-        LOG.info("sqlCondition:{}" + sqlCondition);
+        System.out.println("sqlCondition:" + sqlCondition);
 
         ListenableFuture<ResultSet> resultSet = Futures.transformAsync(session,
                 new AsyncFunction<Session, ResultSet>() {
@@ -265,6 +265,7 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
             public void onFailure(Throwable t) {
                 LOG.error("Failed to retrieve the data: %s%n",
                         t.getMessage());
+                System.out.println("Failed to retrieve the data: " + t.getMessage());
                 cluster.closeAsync();
                 resultFuture.completeExceptionally(t);
             }
