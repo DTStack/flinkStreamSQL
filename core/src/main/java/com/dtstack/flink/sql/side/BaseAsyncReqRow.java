@@ -149,7 +149,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
             resultFuture.complete(null);
             return;
         }
-        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Integer.MAX_VALUE)){
+        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
             resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
             return;
         }

@@ -68,13 +68,11 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     private int  asyncTimeout=10000;
 
-    private int asyncTimeoutNumLimit = Integer.MAX_VALUE;
-
     private boolean partitionedJoin = false;
 
     private String cacheMode="ordered";
 
-    private Integer asyncFailMaxNum;
+    private Long asyncFailMaxNum;
 
     private List<PredicateInfo>  predicateInfoes = Lists.newArrayList();
 
@@ -153,19 +151,11 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         return predicateInfoes;
     }
 
-    public int getAsyncTimeoutNumLimit() {
-        return asyncTimeoutNumLimit;
-    }
-
-    public void setAsyncTimeoutNumLimit(int asyncTimeoutNumLimit) {
-        this.asyncTimeoutNumLimit = asyncTimeoutNumLimit;
-    }
-
-    public Integer getAsyncFailMaxNum(Integer defaultValue) {
+    public Long getAsyncFailMaxNum(Long defaultValue) {
         return Objects.isNull(asyncFailMaxNum) ? defaultValue : asyncFailMaxNum;
     }
 
-    public void setAsyncFailMaxNum(Integer asyncFailMaxNum) {
+    public void setAsyncFailMaxNum(Long asyncFailMaxNum) {
         this.asyncFailMaxNum = asyncFailMaxNum;
     }
 

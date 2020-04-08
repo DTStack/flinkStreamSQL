@@ -116,7 +116,7 @@ public abstract class AbstractSideTableParser extends AbstractTableParser {
             }
 
             if(props.containsKey(AbstractSideTableInfo.ASYNC_FAIL_MAX_NUM_KEY.toLowerCase())){
-                Integer asyncFailNum = MathUtil.getIntegerVal(props.get(AbstractSideTableInfo.ASYNC_FAIL_MAX_NUM_KEY.toLowerCase()));
+                Long asyncFailNum = MathUtil.getLongVal(props.get(AbstractSideTableInfo.ASYNC_FAIL_MAX_NUM_KEY.toLowerCase()));
                 if (asyncFailNum > 0){
                     sideTableInfo.setAsyncFailMaxNum(asyncFailNum);
                 }

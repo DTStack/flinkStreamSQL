@@ -30,6 +30,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
+import org.apache.calcite.sql.JoinType;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -38,16 +39,19 @@ import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Int;
 
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -80,6 +84,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     private transient SQLClient rdbSqlClient;
 
     private final static AtomicBoolean CONN_STATUS = new AtomicBoolean(true);
+
+    private final static AtomicLong TIMOUT_NUM = new AtomicLong(0);
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -114,7 +120,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     private void connectWithRetry(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture, SQLClient rdbSqlClient) {
-        AtomicInteger failCounter = new AtomicInteger(0);
+        AtomicLong failCounter = new AtomicLong(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while(!finishFlag.get()){
             CountDownLatch latch = new CountDownLatch(1);
@@ -124,8 +130,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                         if(failCounter.getAndIncrement() % 1000 == 0){
                             logger.error("getConnection error", conn.cause());
                         }
-                        if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3)){
-                            resultFuture.completeExceptionally(conn.cause());
+                        if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3L)){
+                            outByJoinType(resultFuture, conn.cause());
                             finishFlag.set(true);
                         }
                         conn.result().close();
@@ -202,8 +208,12 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
         connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {
             if (rs.failed()) {
+                if(TIMOUT_NUM.incrementAndGet() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
+                   outByJoinType(resultFuture, rs.cause());
+                    return;
+                }
                 LOG.error("Cannot retrieve the data from the database", rs.cause());
-                resultFuture.completeExceptionally(rs.cause());
+                resultFuture.complete(null);
                 return;
             }
 
@@ -240,6 +250,14 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 }
             });
         });
+    }
+
+    private void outByJoinType(ResultFuture<CRow> resultFuture, Throwable e){
+        if(sideInfo.getJoinType() == JoinType.LEFT){
+            resultFuture.complete(null);
+            return;
+        }
+        resultFuture.completeExceptionally(e);
     }
 
 }
