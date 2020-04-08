@@ -51,7 +51,11 @@ public class ClickhouseAsyncReqRow extends RdbAsyncReqRow {
                 .put("max_pool_size", rdbSideTableInfo.getAsyncPoolSize())
                 .put("user", rdbSideTableInfo.getUserName())
                 .put("password", rdbSideTableInfo.getPassword())
-                .put("provider_class", DT_PROVIDER_CLASS);
+                .put("provider_class", DT_PROVIDER_CLASS)
+                .put("preferred_test_query", PREFERRED_TEST_QUERY_SQL)
+                .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
+                .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
+
         System.setProperty("vertx.disableFileCPResolving", "true");
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(rdbSideTableInfo.getAsyncPoolSize());

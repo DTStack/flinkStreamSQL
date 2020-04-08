@@ -33,6 +33,8 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -50,6 +52,8 @@ import java.util.stream.Collectors;
 public class RdbAsyncSideInfo extends BaseSideInfo {
 
     private static final long serialVersionUID = 1942629132469918611L;
+    private static final Logger LOG = LoggerFactory.getLogger(RdbAsyncSideInfo.class);
+
 
     public RdbAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
@@ -74,7 +78,7 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
 
         sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(StringUtils.split(sideSelectFields, ",")),
                 equalFieldList, sqlJoinCompareOperate, sideTableInfo.getPredicateInfoes());
-        System.out.println("----------dimension sql query-----------\n" + sqlCondition);
+        LOG.info("----------dimension sql query-----------\n{}", sqlCondition);
     }
 
 

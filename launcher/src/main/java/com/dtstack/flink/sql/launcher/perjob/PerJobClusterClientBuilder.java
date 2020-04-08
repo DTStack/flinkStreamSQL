@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.launcher.perjob;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
 import com.dtstack.flink.sql.launcher.YarnConfLoader;
 import com.dtstack.flink.sql.option.Options;
+import com.esotericsoftware.minlog.Log;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.configuration.Configuration;
@@ -31,14 +32,12 @@ import org.apache.flink.runtime.security.SecurityUtils;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -79,7 +78,7 @@ public class PerJobClusterClientBuilder {
         yarnClient.init(yarnConf);
         yarnClient.start();
 
-        System.out.println("----init yarn success ----");
+        Log.info("----init yarn success ----");
     }
 
     public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(String flinkJarPath, Options launcherOptions, JobGraph jobGraph)

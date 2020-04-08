@@ -20,7 +20,6 @@
 
 package com.dtstack.flink.sql.launcher;
 
-import com.aiweiergou.tool.logger.api.ChangeLogLevelProcess;
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.google.common.collect.Lists;
 import com.alibaba.fastjson.JSON;
@@ -41,12 +40,10 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
+import org.apache.flink.util.FileUtils;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
@@ -64,7 +61,6 @@ public class LauncherMain {
     private static final String CORE_JAR = "core";
 
     private static String SP = File.separator;
-
 
     private static String getLocalCoreJarPath(String localSqlRootJar) throws Exception {
         String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR);
@@ -114,32 +110,11 @@ public class LauncherMain {
 
     }
 
-    private static String[] parseJson(String[] args) {
-        BufferedReader reader = null;
-        StringBuilder lastStr = new StringBuilder();
-        try{
-            FileInputStream fileInputStream = new FileInputStream(args[0]);
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, StandardCharsets.UTF_8);
-            reader = new BufferedReader(inputStreamReader);
-            String tempString = null;
-            while((tempString = reader.readLine()) != null){
-                lastStr.append(tempString);
-            }
-            reader.close();
-        }catch(IOException e){
-            e.printStackTrace();
-        }finally{
-            if(reader != null){
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        Map<String, Object> map = JSON.parseObject(lastStr.toString(), new TypeReference<Map<String, Object>>(){} );
+    private static String[] parseJson(String[] args) throws IOException {
+        String lastStr = FileUtils.readFileUtf8(new File(args[0]));
+        Map<String, Object> map = JSON.parseObject(lastStr, new TypeReference<Map<String, Object>>() {
+        });
         List<String> list = new LinkedList<>();
-
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             list.add("-" + entry.getKey());
             list.add(entry.getValue().toString());

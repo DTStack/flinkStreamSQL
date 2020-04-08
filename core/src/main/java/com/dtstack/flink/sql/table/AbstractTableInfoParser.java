@@ -81,7 +81,7 @@ public class AbstractTableInfoParser {
                 if(absTableParser == null){
                     String cacheType = MathUtil.getString(props.get(AbstractSideTableInfo.CACHE_KEY));
                     absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType);
-                    sideTableInfoMap.put(type, absTableParser);
+                    sideTableInfoMap.put(type + cacheType, absTableParser);
                 }
             }
 

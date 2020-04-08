@@ -94,10 +94,9 @@ public class ExecuteProcessHelper {
 
 
     public static ParamsInfo parseParams(String[] args) throws Exception {
-        System.out.println("------------program params-------------------------");
+        LOG.info("------------program params-------------------------");
         Arrays.stream(args).forEach(arg -> LOG.info("{}", arg));
-        Arrays.stream(args).forEach(System.out::println);
-        System.out.println("----------------------------------------");
+        LOG.info("-------------------------------------------");
 
         OptionParser optionParser = new OptionParser(args);
         Options options = optionParser.getOptions();
@@ -204,7 +203,6 @@ public class ExecuteProcessHelper {
             if (LOG.isInfoEnabled()) {
                 LOG.info("exe-sql:\n" + result.getExecSql());
             }
-
             boolean isSide = false;
             for (String tableName : result.getTargetTableList()) {
                 if (sqlTree.getTmpTableMap().containsKey(tableName)) {
@@ -226,12 +224,10 @@ public class ExecuteProcessHelper {
                         //sql-dimensional table contains the dimension table of execution
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, null);
                     } else {
-                        System.out.println("----------exec sql without dimension join-----------");
-                        System.out.println("----------real sql exec is--------------------------");
-                        System.out.println(result.getExecSql());
+                        LOG.info("----------exec sql without dimension join-----------");
+                        LOG.info("----------real sql exec is--------------------------\n{}", result.getExecSql());
                         FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql(), queryConfig);
                         if (LOG.isInfoEnabled()) {
-                            System.out.println();
                             LOG.info("exec sql: " + result.getExecSql());
                         }
                     }
@@ -350,6 +346,7 @@ public class ExecuteProcessHelper {
         StreamEnvConfigManager.streamExecutionEnvironmentConfig(env, confProperties);
         return env;
     }
+
 
     public static void setLogLevel(ParamsInfo paramsInfo){
         String logLevel = paramsInfo.getConfProp().getProperty(ConfigConstrant.LOG_LEVEL_KEY);
