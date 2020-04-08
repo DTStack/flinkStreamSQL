@@ -121,7 +121,7 @@ public class RowKeyBuilder implements Serializable{
 
     private List<ReplaceInfo> makeFormula(String formula){
         if(formula == null || formula.length() <= 0){
-            Lists.newArrayList();
+            return Lists.newArrayList();
         }
         List<ReplaceInfo> result = Lists.newArrayList();
         for(String meta: splitIgnoreQuotaBrackets(formula, "\\+")){
