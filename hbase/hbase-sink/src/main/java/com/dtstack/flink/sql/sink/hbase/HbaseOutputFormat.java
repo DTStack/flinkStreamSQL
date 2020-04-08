@@ -55,7 +55,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private String host;
     private String zkParent;
-    private String[] rowkey;
+    private String rowkey;
     private String tableName;
     private String[] columnNames;
     private String updateMode;
@@ -164,25 +164,21 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     private String buildRowKey(Row record) {
-        List<String> rowKeyValues = getRowKeyValues(record);
+        String rowKeyValues = getRowKeyValues(record);
         // all rowkey not null
-        if (rowKeyValues.size() != rowkey.length) {
+        if (StringUtils.isBlank(rowKeyValues)) {
             LOG.error("row key value must not null,record is ..{}", record);
             outDirtyRecords.inc();
             return "";
         }
-        return StringUtils.join(rowKeyValues, "-");
+        return rowKeyValues;
     }
 
-    private List<String> getRowKeyValues(Row record) {
-        List<String> rowKeyValues = Lists.newArrayList();
+    private String getRowKeyValues(Row record) {
         Map<String, Object> row = rowConvertMap(record);
-        for (String key : rowkey) {
-            RowKeyBuilder rowKeyBuilder = new RowKeyBuilder();
-            rowKeyBuilder.init(key);
-           rowKeyValues.add(rowKeyBuilder.getRowKey(row));
-        }
-        return rowKeyValues;
+        RowKeyBuilder rowKeyBuilder = new RowKeyBuilder();
+        rowKeyBuilder.init(rowkey);
+        return rowKeyBuilder.getRowKey(row);
     }
 
     private Map<String, Object> rowConvertMap(Row record){
@@ -232,7 +228,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
-        public HbaseOutputFormatBuilder setRowkey(String[] rowkey) {
+        public HbaseOutputFormatBuilder setRowkey(String rowkey) {
             format.rowkey = rowkey;
             return this;
         }
