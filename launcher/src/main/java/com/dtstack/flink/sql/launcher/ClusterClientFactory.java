@@ -60,6 +60,12 @@ public class ClusterClientFactory {
 
     private static final String HA_CLUSTER_ID = "high-availability.cluster-id";
 
+    private static final String HIGH_AVAILABILITY = "high-availability";
+
+    private static final String NODE = "NONE";
+
+    private static final String ZOOKEEPER = "zookeeper";
+
     private static final String HADOOP_CONF = "fs.hdfs.hadoopconf";
 
     public static ClusterClient createClusterClient(Options launcherOptions) throws Exception {
@@ -96,6 +102,8 @@ public class ClusterClientFactory {
 
         if (StringUtils.isNotBlank(yarnConfDir)) {
             try {
+                boolean isHighAvailability;
+
                 config.setString(HADOOP_CONF, yarnConfDir);
                 FileSystem.initialize(config);
 
@@ -123,7 +131,9 @@ public class ClusterClientFactory {
                     throw new RuntimeException("No flink session found on yarn cluster.");
                 }
 
-                if (config.getString(HA_CLUSTER_ID, null) == null) {
+                isHighAvailability = config.getString(HIGH_AVAILABILITY, NODE).equals(ZOOKEEPER);
+
+                if (isHighAvailability && config.getString(HA_CLUSTER_ID, null) == null) {
                     config.setString(HA_CLUSTER_ID, applicationId.toString());
                 }
 
