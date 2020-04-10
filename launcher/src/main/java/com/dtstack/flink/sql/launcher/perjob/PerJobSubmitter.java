@@ -75,7 +75,6 @@ public class PerJobSubmitter {
         String flinkJobId = jobGraph.getJobID().toString();
 
         String tips = String.format("deploy per_job with appId: %s, jobId: %s", applicationId, flinkJobId);
-        System.out.println(tips);
         LOG.info(tips);
 
         return applicationId;

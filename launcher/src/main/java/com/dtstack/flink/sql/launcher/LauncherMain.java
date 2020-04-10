@@ -19,8 +19,6 @@
 
 package com.dtstack.flink.sql.launcher;
 
-//import com.aiweiergou.tool.logger.api.ChangeLogLevelProcess;
-
 import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.google.common.collect.Lists;
 import com.alibaba.fastjson.JSON;
@@ -50,7 +48,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -129,7 +126,7 @@ public class LauncherMain {
         StringBuilder lastStr = new StringBuilder();
         try {
             FileInputStream fileInputStream = new FileInputStream(args[0]);
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, StandardCharsets.UTF_8);
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, Charsets.UTF_8);
             reader = new BufferedReader(inputStreamReader);
             String tempString;
             while ((tempString = reader.readLine()) != null) {
