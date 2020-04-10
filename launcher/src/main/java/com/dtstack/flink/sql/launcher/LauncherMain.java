@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.launcher;
 
@@ -66,8 +66,7 @@ public class LauncherMain {
 
     private static String getLocalCoreJarPath(String localSqlRootJar) throws Exception {
         String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR);
-        String corePath = localSqlRootJar + SP + jarPath;
-        return corePath;
+        return localSqlRootJar + SP + jarPath;
     }
 
     public static void main(String[] args) throws Exception {
@@ -104,6 +103,7 @@ public class LauncherMain {
             String flinkConfDir = launcherOptions.getFlinkconf();
             Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
             JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1);
+
             PerJobSubmitter.submit(launcherOptions, jobGraph, config);
         } else {
             ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
@@ -115,20 +115,20 @@ public class LauncherMain {
 
     private static String[] parseJson(String[] args) {
         BufferedReader reader = null;
-        String lastStr = "";
-        try{
+        StringBuilder lastStr = new StringBuilder();
+        try {
             FileInputStream fileInputStream = new FileInputStream(args[0]);
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, Charsets.UTF_8);
             reader = new BufferedReader(inputStreamReader);
-            String tempString = null;
-            while((tempString = reader.readLine()) != null){
-                lastStr += tempString;
+            String tempString;
+            while ((tempString = reader.readLine()) != null) {
+                lastStr.append(tempString);
             }
             reader.close();
-        }catch(IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
-        }finally{
-            if(reader != null){
+        } finally {
+            if (reader != null) {
                 try {
                     reader.close();
                 } catch (IOException e) {
@@ -136,14 +136,14 @@ public class LauncherMain {
                 }
             }
         }
-        Map<String, Object> map = JSON.parseObject(lastStr, new TypeReference<Map<String, Object>>(){} );
+        Map<String, Object> map = JSON.parseObject(lastStr.toString(), new TypeReference<Map<String, Object>>() {
+        });
         List<String> list = new LinkedList<>();
 
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             list.add("-" + entry.getKey());
             list.add(entry.getValue().toString());
         }
-        String[] array = list.toArray(new String[list.size()]);
-        return array;
+        return list.toArray(new String[0]);
     }
 }
