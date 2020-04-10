@@ -45,6 +45,7 @@ import org.apache.flink.util.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +64,7 @@ public class LauncherMain {
 
     private static String getLocalCoreJarPath(String localSqlRootJar) throws Exception {
         String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR);
-        String corePath = localSqlRootJar + SP + jarPath;
-        return corePath;
+        return localSqlRootJar + SP + jarPath;
     }
 
     public static void main(String[] args) throws Exception {
@@ -81,14 +81,14 @@ public class LauncherMain {
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
         if(mode.equals(ClusterMode.local.name())) {
-            String[] localArgs = argList.toArray(new String[argList.size()]);
+            String[] localArgs = argList.toArray(new String[0]);
             Main.main(localArgs);
             return;
         }
 
         String pluginRoot = launcherOptions.getLocalSqlPluginPath();
         File jarFile = new File(getLocalCoreJarPath(pluginRoot));
-        String[] remoteArgs = argList.toArray(new String[argList.size()]);
+        String[] remoteArgs = argList.toArray(new String[0]);
         PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
 
         String savePointPath = confProperties.getProperty(ConfigConstrant.SAVE_POINT_PATH_KEY);
@@ -119,7 +119,6 @@ public class LauncherMain {
             list.add("-" + entry.getKey());
             list.add(entry.getValue().toString());
         }
-        String[] array = list.toArray(new String[list.size()]);
-        return array;
+        return list.toArray(new String[0]);
     }
 }

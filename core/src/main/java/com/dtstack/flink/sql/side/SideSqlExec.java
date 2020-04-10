@@ -121,7 +121,7 @@ public class SideSqlExec {
         SideSQLParser sideSQLParser = new SideSQLParser();
         sideSQLParser.setLocalTableCache(localTableCache);
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
-        Object pollObj = null;
+        Object pollObj;
 
         //need clean
         boolean preIsSideJoin = false;
