@@ -39,15 +39,12 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.flink.util.FileUtils;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -64,9 +61,6 @@ public class LauncherMain {
     private static final String CORE_JAR = "core";
 
     private static String SP = File.separator;
-
-    private static final Logger LOG = LoggerFactory.getLogger(LauncherMain.class);
-
 
     private static String getLocalCoreJarPath(String localSqlRootJar) throws Exception {
         String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR);
@@ -86,9 +80,7 @@ public class LauncherMain {
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
-        LOG.info("current mode is {}", mode);
-
-        if (mode.equals(ClusterMode.local.name())) {
+        if(mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[0]);
             Main.main(localArgs);
             return;
@@ -121,33 +113,11 @@ public class LauncherMain {
 
     }
 
-    private static String[] parseJson(String[] args) {
-        BufferedReader reader = null;
-        StringBuilder lastStr = new StringBuilder();
-        try {
-            FileInputStream fileInputStream = new FileInputStream(args[0]);
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, Charsets.UTF_8);
-            reader = new BufferedReader(inputStreamReader);
-            String tempString;
-            while ((tempString = reader.readLine()) != null) {
-                lastStr.append(tempString);
-            }
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        Map<String, Object> map = JSON.parseObject(lastStr.toString(), new TypeReference<Map<String, Object>>() {
+    private static String[] parseJson(String[] args) throws IOException {
+        String lastStr = FileUtils.readFileUtf8(new File(args[0]));
+        Map<String, Object> map = JSON.parseObject(lastStr, new TypeReference<Map<String, Object>>() {
         });
         List<String> list = new LinkedList<>();
-
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             list.add("-" + entry.getKey());
             list.add(entry.getValue().toString());
