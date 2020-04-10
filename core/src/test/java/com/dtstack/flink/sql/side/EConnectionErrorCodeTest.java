@@ -34,6 +34,10 @@ public class EConnectionErrorCodeTest {
         EConnectionErrorCode errorCode =
                 EConnectionErrorCode.resolveErrorCodeFromException(new Exception("The last packet successfully received from the server was 179 milliseconds"));
 
+        EConnectionErrorCode ckSessionExpired =
+                EConnectionErrorCode.resolveErrorCodeFromException(new Exception("Excepetion: Zookeeper session has been expired"));
+
         Assert.assertEquals(errorCode, EConnectionErrorCode.CONN_DB_INVALID);
+        Assert.assertEquals(ckSessionExpired, EConnectionErrorCode.CONN_DB_INVALID);
     }
 }

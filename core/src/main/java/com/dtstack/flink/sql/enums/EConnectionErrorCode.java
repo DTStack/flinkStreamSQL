@@ -30,7 +30,7 @@ import java.util.Arrays;
  */
 public enum EConnectionErrorCode {
     ERROR_NOT_MATCH(0, "错误信息未匹配", new String[]{}),
-    CONN_DB_INVALID(1, "数据库连接失效，请重新打开", new String[]{"the last packet successfully received from the server was"}),
+    CONN_DB_INVALID(1, "数据库连接失效，请重新打开", new String[]{"the last packet successfully received from the server was", "Zookeeper session has been expired"}),
     CONN_DB_FAILED(2, "数据库连接失败，请检查用户名或密码是否正确", new String[]{"Access denied for user"}),
     DB_TABLE_NOT_EXIST(3, "操作的表名不存在", new String[]{"doesn't exist"});
 
