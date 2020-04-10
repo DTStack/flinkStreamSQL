@@ -40,11 +40,12 @@ import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.util.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,8 @@ import java.util.Properties;
 
 public class LauncherMain {
     private static final String CORE_JAR = "core";
+
+    private static final Logger LOG = LoggerFactory.getLogger(LauncherMain.class);
 
     private static String SP = File.separator;
 
@@ -80,7 +83,9 @@ public class LauncherMain {
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
-        if(mode.equals(ClusterMode.local.name())) {
+        LOG.info("current job mode is {}", mode);
+
+        if (mode.equals(ClusterMode.local.name())) {
             String[] localArgs = argList.toArray(new String[0]);
             Main.main(localArgs);
             return;
