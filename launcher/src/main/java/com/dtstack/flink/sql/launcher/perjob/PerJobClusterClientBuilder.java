@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -67,7 +67,7 @@ public class PerJobClusterClientBuilder {
 
     public void init(String yarnConfDir, Configuration flinkConfig, Properties userConf) throws Exception {
 
-        if(Strings.isNullOrEmpty(yarnConfDir)) {
+        if (Strings.isNullOrEmpty(yarnConfDir)) {
             throw new RuntimeException("parameters of yarn is required");
         }
         userConf.forEach((key, val) -> flinkConfig.setString(key.toString(), val.toString()));
@@ -79,8 +79,7 @@ public class PerJobClusterClientBuilder {
         yarnClient.init(yarnConf);
         yarnClient.start();
 
-        System.out.println("----init yarn success ----");
-//        LOG.info("----init yarn success ----");
+        LOG.info("----init yarn success ----");
     }
 
     public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(String flinkJarPath, Options launcherOptions, JobGraph jobGraph)
@@ -131,8 +130,8 @@ public class PerJobClusterClientBuilder {
 
     private static void fillJobGraphClassPath(JobGraph jobGraph) throws MalformedURLException {
         Map<String, DistributedCache.DistributedCacheEntry> jobCacheFileConfig = jobGraph.getUserArtifacts();
-        for(Map.Entry<String,  DistributedCache.DistributedCacheEntry> tmp : jobCacheFileConfig.entrySet()){
-            if(tmp.getKey().startsWith("class_path")){
+        for (Map.Entry<String, DistributedCache.DistributedCacheEntry> tmp : jobCacheFileConfig.entrySet()) {
+            if (tmp.getKey().startsWith("class_path")) {
                 jobGraph.getClasspaths().add(new URL("file:" + tmp.getValue().filePath));
             }
         }
@@ -141,8 +140,8 @@ public class PerJobClusterClientBuilder {
     private List<File> getPluginPathToShipFiles(JobGraph jobGraph) {
         List<File> shipFiles = new ArrayList<>();
         Map<String, DistributedCache.DistributedCacheEntry> jobCacheFileConfig = jobGraph.getUserArtifacts();
-        for(Map.Entry<String,  DistributedCache.DistributedCacheEntry> tmp : jobCacheFileConfig.entrySet()){
-            if(tmp.getKey().startsWith("class_path")){
+        for (Map.Entry<String, DistributedCache.DistributedCacheEntry> tmp : jobCacheFileConfig.entrySet()) {
+            if (tmp.getKey().startsWith("class_path")) {
                 shipFiles.add(new File(tmp.getValue().filePath));
             }
         }
