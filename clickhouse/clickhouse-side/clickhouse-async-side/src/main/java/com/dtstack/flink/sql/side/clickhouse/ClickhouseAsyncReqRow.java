@@ -48,7 +48,7 @@ public class ClickhouseAsyncReqRow extends RdbAsyncReqRow {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         clickhouseClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", CLICKHOUSE_DRIVER)
-                .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
+                .put("max_pool_size", rdbSideTableInfo.getAsyncPoolSize())
                 .put("user", rdbSideTableInfo.getUserName())
                 .put("password", rdbSideTableInfo.getPassword())
                 .put("provider_class", DT_PROVIDER_CLASS)
@@ -59,7 +59,7 @@ public class ClickhouseAsyncReqRow extends RdbAsyncReqRow {
         System.setProperty("vertx.disableFileCPResolving", "true");
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
+        vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
         setRdbSQLClient(JDBCClient.createNonShared(vertx, clickhouseClientConfig));

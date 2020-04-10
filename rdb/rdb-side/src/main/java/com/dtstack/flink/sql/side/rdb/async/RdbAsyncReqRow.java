@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.side.rdb.async;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import com.dtstack.flink.sql.util.DateUtil;
 import io.vertx.core.json.JsonArray;
@@ -59,7 +60,9 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     public final static int DEFAULT_VERTX_WORKER_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
-    public final static int DEFAULT_MAX_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
+    public final static int DEFAULT_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
+
+    public final static int MAX_DB_CONN_POOL_SIZE_LIMIT = 20;
 
     public final static int DEFAULT_IDLE_CONNECTION_TEST_PEROID = 60;
 
@@ -73,6 +76,14 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     public RdbAsyncReqRow(SideInfo sideInfo) {
         super(sideInfo);
+        init(sideInfo);
+    }
+
+    protected void init(SideInfo sideInfo) {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        int defaultAsyncPoolSize = Math.min(MAX_DB_CONN_POOL_SIZE_LIMIT, DEFAULT_DB_CONN_POOL_SIZE);
+        int rdbPoolSize = rdbSideTableInfo.getAsyncPoolSize() > 0 ? rdbSideTableInfo.getAsyncPoolSize() : defaultAsyncPoolSize;
+        rdbSideTableInfo.setAsyncPoolSize(rdbPoolSize);
     }
 
     @Override
