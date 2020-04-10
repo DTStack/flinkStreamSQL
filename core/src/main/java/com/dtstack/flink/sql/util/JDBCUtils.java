@@ -19,19 +19,13 @@
 
 package com.dtstack.flink.sql.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.DriverManager;
 
 public class JDBCUtils {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ClassUtil.class);
-
-    public final static String LOCK_STR = "jdbc_lock_str";
+    private static final Object LOCK = new Object();
 
     public static void forName(String clazz, ClassLoader classLoader)  {
-        synchronized (LOCK_STR){
+        synchronized (LOCK){
             try {
                 Class.forName(clazz, true, classLoader);
                 DriverManager.setLoginTimeout(10);
