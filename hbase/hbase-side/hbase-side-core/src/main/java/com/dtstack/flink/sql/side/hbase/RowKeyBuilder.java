@@ -123,6 +123,7 @@ public class RowKeyBuilder implements Serializable{
         if(formula == null || formula.length() <= 0){
             return Lists.newArrayList();
         }
+
         List<ReplaceInfo> result = Lists.newArrayList();
         for(String meta: splitIgnoreQuotaBrackets(formula, "\\+")){
             Matcher matcher = Md5Operator.matcher(meta.trim());

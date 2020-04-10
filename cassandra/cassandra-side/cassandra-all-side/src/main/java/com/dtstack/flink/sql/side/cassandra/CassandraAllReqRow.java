@@ -267,7 +267,7 @@ public class CassandraAllReqRow extends BaseAllReqRow {
                         String connInfo = "address:" + tableInfo.getAddress() + ";userName:" + tableInfo.getUserName()
                                 + ",pwd:" + tableInfo.getPassword();
                         LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
-                        Thread.sleep(5 * 1000);
+                        Thread.sleep(LOAD_DATA_ERROR_SLEEP_TIME);
                     } catch (InterruptedException e1) {
                         LOG.error("", e1);
                     }
