@@ -120,7 +120,7 @@ public class RowKeyBuilder implements Serializable{
     }
 
     private List<ReplaceInfo> makeFormula(String formula){
-        if (formula == null || formula.length() <= 0) {
+        if(formula == null || formula.length() <= 0){
             return Lists.newArrayList();
         }
 
