@@ -44,9 +44,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -107,7 +108,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         List<Integer> equalValIndex = sideInfo.getEqualValIndex();
         ArrayList<Object> inputParams = equalValIndex.stream()
                 .map(value.row()::getField)
-                .filter(object -> null != object)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
@@ -218,7 +219,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
             }
 
             String cacheKey = sideInfo.getEqualFieldList().stream()
-                    .map(equalField -> oneRow.get(equalField))
+                    .map(oneRow::get)
                     .map(Object::toString)
                     .collect(Collectors.joining("_"));
 

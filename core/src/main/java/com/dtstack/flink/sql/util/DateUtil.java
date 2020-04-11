@@ -23,10 +23,21 @@ package com.dtstack.flink.sql.util;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.*;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 import static java.time.format.DateTimeFormatter.ISO_INSTANT;
@@ -75,7 +86,6 @@ public class DateUtil {
             return null;
         }
         try {
-            ;
             return localDateTimetoDate(LocalDateTime.parse(strDate, DATE_TIME_FORMATTER));
         } catch (DateTimeParseException ignored) {
         }
@@ -113,13 +123,13 @@ public class DateUtil {
         if (("" + day).length() > 10) {
             cal.setTime(new Date(day));
         } else {
-            cal.setTime(new Date(day * 1000));
+            cal.setTime(new Date(day * 1000L));
         }
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        firstDay = cal.getTimeInMillis() / 1000;
+        firstDay = cal.getTimeInMillis() / 1000L;
         return firstDay;
     }
 
@@ -131,7 +141,7 @@ public class DateUtil {
      */
     public static long getTodayStart(long day,String scope) {
         if("MS".equals(scope)){
-            return getTodayStart(day)*1000;
+            return getTodayStart(day)*1000L;
         }else if("S".equals(scope)){
             return getTodayStart(day);
         }else{
@@ -151,13 +161,13 @@ public class DateUtil {
         if (("" + day).length() > 10) {
             cal.setTime(new Date(day));
         } else {
-            cal.setTime(new Date(day * 1000));
+            cal.setTime(new Date(day * 1000L));
         }
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        nextDay = (cal.getTimeInMillis() + daySpanMill) / 1000;
+        nextDay = (cal.getTimeInMillis() + daySpanMill) / 1000L;
         return nextDay;
     }
     
@@ -169,7 +179,7 @@ public class DateUtil {
      */
     public static long getNextDayStart(long day,String scope) {
         if("MS".equals(scope)){
-            return getNextDayStart(day)*1000;
+            return getNextDayStart(day)*1000L;
         }else if("S".equals(scope)){
             return getNextDayStart(day);
         }else{
@@ -186,13 +196,13 @@ public class DateUtil {
     public static long getMonthFirst(long day) {
         long firstDay = 0L;
         Calendar cal = Calendar.getInstance();
-        cal.setTime(new Date(day * 1000));
+        cal.setTime(new Date(day * 1000L));
         cal.set(Calendar.DAY_OF_MONTH, 1);
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        firstDay = cal.getTimeInMillis() / 1000;
+        firstDay = cal.getTimeInMillis() / 1000L;
         return firstDay;
     }
 
@@ -224,7 +234,7 @@ public class DateUtil {
     public static long getWeekFirst(long day) {
         long firstDay = 0L;
         Calendar cal = Calendar.getInstance();
-        cal.setTime(new Date(day * 1000));
+        cal.setTime(new Date(day * 1000L));
         cal.setFirstDayOfWeek(Calendar.MONDAY);
         cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
         cal.set(Calendar.HOUR_OF_DAY, 0);
@@ -243,7 +253,7 @@ public class DateUtil {
      */
     public static int getWeekOfYear(long day) {
         Calendar cal = Calendar.getInstance();
-        cal.setTime(new Date(day * 1000));
+        cal.setTime(new Date(day * 1000L));
         return cal.get(Calendar.WEEK_OF_YEAR);
     }
 
@@ -363,7 +373,7 @@ public class DateUtil {
         Date date = sdf.parse(day);
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
-        return calendar.getTimeInMillis()/1000;
+        return calendar.getTimeInMillis()/1000L;
     }
 
     /**
@@ -383,7 +393,7 @@ public class DateUtil {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        firstDay = cal.getTimeInMillis() / 1000;
+        firstDay = cal.getTimeInMillis() / 1000L;
         return firstDay;
     }
 
@@ -405,7 +415,7 @@ public class DateUtil {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        lastDay = cal.getTimeInMillis() / 1000;
+        lastDay = cal.getTimeInMillis() / 1000L;
         return lastDay;
     }
 
@@ -444,7 +454,7 @@ public class DateUtil {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        return cal.getTimeInMillis() / 1000;
+        return cal.getTimeInMillis() / 1000L;
     }
 
     /**
@@ -458,7 +468,7 @@ public class DateUtil {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        return cal.getTimeInMillis() / 1000;
+        return cal.getTimeInMillis() / 1000L;
     }
 
     /**
@@ -472,7 +482,7 @@ public class DateUtil {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        return cal.getTimeInMillis() / 1000;
+        return cal.getTimeInMillis() / 1000L;
     }
 
     /**
@@ -534,7 +544,7 @@ public class DateUtil {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        return cal.getTimeInMillis()/1000;
+        return cal.getTimeInMillis()/1000L;
     }
 
     /**
@@ -563,7 +573,7 @@ public class DateUtil {
         if (("" + day).length() > 10) {
             cal.setTime(new Date(day));
         } else {
-            cal.setTime(new Date(day * 1000));
+            cal.setTime(new Date(day * 1000L));
         }
         SimpleDateFormat sf = new SimpleDateFormat(format);
         return sf.format(cal.getTime());
@@ -619,7 +629,7 @@ public class DateUtil {
      */
     public static String longToString(long day, String format) throws ParseException {
         if (("" + day).length() <= 10){
-            day=day*1000;
+            day=day*1000L;
         }
         SimpleDateFormat dateFormat = new SimpleDateFormat(format);
         String date = dateFormat.format(day);
@@ -634,7 +644,7 @@ public class DateUtil {
      */
     public static int getMinusDate(int day, int minusDay) {
         Calendar cal = Calendar.getInstance();
-        cal.setTime(new Date(day * 1000));
+        cal.setTime(new Date(day * 1000L));
         cal.set(Calendar.DATE, cal.get(Calendar.DATE) - minusDay);
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
@@ -663,7 +673,7 @@ public class DateUtil {
 
     public static int getMaxWeekOfYear(long startDay) {
         Calendar cal = Calendar.getInstance();
-        cal.setTime(new Date(startDay * 1000));
+        cal.setTime(new Date(startDay * 1000L));
         return cal.getMaximum(Calendar.WEEK_OF_YEAR);
     }
 
@@ -696,7 +706,7 @@ public class DateUtil {
         if (("" + time).length() > 10) {
             cal.setTime(new Date(time));
         } else {
-            cal.setTime(new Date(time * 1000));
+            cal.setTime(new Date(time * 1000L));
         }
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
@@ -719,7 +729,7 @@ public class DateUtil {
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
         cal.set(Calendar.MINUTE, 0);
-        firstDay = cal.getTimeInMillis() / 1000;
+        firstDay = cal.getTimeInMillis() / 1000L;
         return firstDay;
     }
 
@@ -757,7 +767,8 @@ public class DateUtil {
         if (column == null) {
             return null;
         } else if(column instanceof String) {
-            return new java.sql.Timestamp(stringToDate((String)column).getTime());
+            Date date = stringToDate((String) column);
+            return null == date ? null : new java.sql.Timestamp(date.getTime());
         } else if (column instanceof Integer) {
             Integer rawData = (Integer) column;
             return new java.sql.Timestamp(rawData.longValue());
@@ -791,7 +802,8 @@ public class DateUtil {
             Instant instant = Instant.from(ISO_INSTANT.parse(timeStr));
             return new Timestamp(instant.getEpochSecond() * MILLIS_PER_SECOND);
         }
-        return new Timestamp(stringToDate(timeStr).getTime());
+        Date date = stringToDate(timeStr);
+        return null == date ? null : new Timestamp(date.getTime());
     }
 
     public static java.sql.Date getDateFromStr(String dateStr) {
@@ -803,7 +815,8 @@ public class DateUtil {
             Instant instant = Instant.from(ISO_INSTANT.parse(dateStr));
             return new java.sql.Date(instant.toEpochMilli());
         }
-        return new java.sql.Date(stringToDate(dateStr).getTime());
+        Date date = stringToDate(dateStr);
+        return null == date ? null : new java.sql.Date(date.getTime());
     }
 
 }

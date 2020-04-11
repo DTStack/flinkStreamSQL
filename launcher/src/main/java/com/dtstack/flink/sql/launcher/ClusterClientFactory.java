@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,18 +21,15 @@ package com.dtstack.flink.sql.launcher;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
-import com.esotericsoftware.minlog.Log;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.program.ClusterClient;
-import org.apache.flink.client.program.MiniClusterClient;
+import org.apache.flink.client.program.rest.RestClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.runtime.akka.AkkaUtils;
-import org.apache.flink.runtime.minicluster.MiniCluster;
-import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 import org.apache.flink.runtime.util.LeaderConnectionInfo;
 import org.apache.flink.yarn.AbstractYarnClusterDescriptor;
 import org.apache.flink.yarn.YarnClusterDescriptor;
@@ -42,20 +39,34 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.StringHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.Set;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
+import java.util.Iterator;
 
 /**
  * @author sishu.yss
  */
 public class ClusterClientFactory {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ClusterClientFactory.class);
+
+    private static final String HA_CLUSTER_ID = "high-availability.cluster-id";
+
+    private static final String HIGH_AVAILABILITY = "high-availability";
+
+    private static final String NODE = "NONE";
+
+    private static final String ZOOKEEPER = "zookeeper";
+
+    private static final String HADOOP_CONF = "fs.hdfs.hadoopconf";
 
     public static ClusterClient createClusterClient(Options launcherOptions) throws Exception {
         String mode = launcherOptions.getMode();
@@ -70,10 +81,12 @@ public class ClusterClientFactory {
     public static ClusterClient createStandaloneClient(Options launcherOptions) throws Exception {
         String flinkConfDir = launcherOptions.getFlinkconf();
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
-        MiniClusterConfiguration.Builder configBuilder = new MiniClusterConfiguration.Builder();
-        configBuilder.setConfiguration(config);
-        MiniCluster miniCluster = new MiniCluster(configBuilder.build());
-        MiniClusterClient clusterClient = new MiniClusterClient(config, miniCluster);
+
+        LOG.info("------------config params-------------------------");
+        config.toMap().forEach((key, value) -> LOG.info("{}: {}", key, value));
+        LOG.info("-------------------------------------------");
+
+        RestClusterClient clusterClient = new RestClusterClient<>(config, "clusterClient");
         LeaderConnectionInfo connectionInfo = clusterClient.getClusterConnectionInfo();
         InetSocketAddress address = AkkaUtils.getInetSocketAddressFromAkkaURL(connectionInfo.getAddress());
         config.setString(JobManagerOptions.ADDRESS, address.getAddress().getHostName());
@@ -89,18 +102,21 @@ public class ClusterClientFactory {
 
         if (StringUtils.isNotBlank(yarnConfDir)) {
             try {
-                config.setString("fs.hdfs.hadoopconf", yarnConfDir);
+                boolean isHighAvailability;
+
+                config.setString(HADOOP_CONF, yarnConfDir);
                 FileSystem.initialize(config);
 
                 YarnConfiguration yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
                 YarnClient yarnClient = YarnClient.createYarnClient();
                 yarnClient.init(yarnConf);
                 yarnClient.start();
-                ApplicationId applicationId = null;
+                ApplicationId applicationId;
 
                 String yarnSessionConf = launcherOptions.getYarnSessionConf();
                 yarnSessionConf = URLDecoder.decode(yarnSessionConf, Charsets.UTF_8.toString());
                 Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
+
                 Object yid = yarnSessionConfProperties.get("yid");
 
                 if (null != yid) {
@@ -109,11 +125,21 @@ public class ClusterClientFactory {
                     applicationId = getYarnClusterApplicationId(yarnClient);
                 }
 
-                Log.info("applicationId={}", applicationId.toString());
+                LOG.info("current applicationId = {}", applicationId.toString());
 
                 if (StringUtils.isEmpty(applicationId.toString())) {
                     throw new RuntimeException("No flink session found on yarn cluster.");
                 }
+
+                isHighAvailability = config.getString(HIGH_AVAILABILITY, NODE).equals(ZOOKEEPER);
+
+                if (isHighAvailability && config.getString(HA_CLUSTER_ID, null) == null) {
+                    config.setString(HA_CLUSTER_ID, applicationId.toString());
+                }
+
+                LOG.info("------------config params-------------------------");
+                config.toMap().forEach((key, value) -> LOG.info("{}: {}", key, value));
+                LOG.info("-------------------------------------------");
 
                 AbstractYarnClusterDescriptor clusterDescriptor = new YarnClusterDescriptor(config, yarnConf, flinkConfDir, yarnClient, false);
                 ClusterClient clusterClient = clusterDescriptor.retrieve(applicationId);
@@ -122,7 +148,7 @@ public class ClusterClientFactory {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        }else{
+        } else {
             throw new RuntimeException("yarn mode must set param of 'yarnconf'!!!");
         }
     }
@@ -158,7 +184,7 @@ public class ClusterClientFactory {
 
         }
 
-        if (StringUtils.isEmpty(applicationId.toString())) {
+        if (applicationId == null || StringUtils.isEmpty(applicationId.toString())) {
             throw new RuntimeException("No flink session found on yarn cluster.");
         }
         return applicationId;

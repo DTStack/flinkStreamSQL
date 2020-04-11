@@ -40,7 +40,7 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
 
     private String parent;
 
-    private String[] rowkey;
+    private String rowkey;
 
     private Map<String, String> columnNameFamily;
 
@@ -90,11 +90,11 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
         this.parent = parent;
     }
 
-    public String[] getRowkey() {
+    public String getRowkey() {
         return rowkey;
     }
 
-    public void setRowkey(String[] rowkey) {
+    public void setRowkey(String rowkey) {
         this.rowkey = rowkey;
     }
 
