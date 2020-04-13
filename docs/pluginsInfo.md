@@ -1,0 +1,32 @@
+### 1 插件列表
+#### 1.1 源表插件
+* [kafka 源表插件](docs/plugin/kafkaSource.md)
+
+#### 1.2 结果表插件
+* [elasticsearch 结果表插件](docs/plugin/elasticsearchSink.md)
+* [hbase 结果表插件](docs/plugin/hbaseSink.md)
+* [mysql 结果表插件](docs/plugin/mysqlSink.md)
+* [oracle 结果表插件](docs/plugin/oracleSink.md)
+* [mongo 结果表插件](docs/plugin/mongoSink.md)
+* [redis 结果表插件](docs/plugin/redisSink.md)
+* [cassandra 结果表插件](docs/plugin/cassandraSink.md)
+* [kudu 结果表插件](docs/plugin/kuduSink.md)
+* [postgresql 结果表插件](docs/plugin/postgresqlSink.md)
+* [clickhouse 结果表插件](docs/plugin/clickhouseSink.md)
+* [impala 结果表插件](docs/plugin/impalaSink.md)
+* [db2 结果表插件](docs/plugin/db2Sink.md)
+* [sqlserver 结果表插件](docs/plugin/sqlserverSink.md)
+
+#### 1.3 维表插件
+* [hbase 维表插件](docs/plugin/hbaseSide.md)
+* [mysql 维表插件](docs/plugin/mysqlSide.md)
+* [oracle 维表插件](docs/plugin/oracleSide.md)
+* [mongo 维表插件](docs/plugin/mongoSide.md)
+* [redis 维表插件](docs/plugin/redisSide.md)
+* [cassandra 维表插件](docs/plugin/cassandraSide.md)
+* [kudu 维表插件](docs/plugin/kuduSide.md)
+* [postgresql 维表插件](docs/plugin/postgresqlSide.md)
+* [clickhouse 维表插件](docs/plugin/clickhouseSide.md)
+* [impala 维表插件](docs/plugin/impalaSide.md)
+* [db2 维表插件](docs/plugin/db2Side.md)
+* [sqlserver 维表插件](docs/plugin/sqlserverSide.md)
