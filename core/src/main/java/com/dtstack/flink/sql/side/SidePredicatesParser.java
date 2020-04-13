@@ -138,16 +138,19 @@ public class SidePredicatesParser {
 
     private void fillPredicateInfoToList(SqlBasicCall whereNode, List<PredicateInfo> predicatesInfoList, String operatorName, SqlKind operatorKind,
                                          int fieldIndex, int conditionIndex) {
-        SqlIdentifier fieldFullPath = (SqlIdentifier) whereNode.getOperands()[fieldIndex];
-        if (fieldFullPath.names.size() == 2) {
-            String ownerTable = fieldFullPath.names.get(0);
-            String fieldName = fieldFullPath.names.get(1);
-            String content = (operatorKind == SqlKind.BETWEEN) ? whereNode.getOperands()[conditionIndex].toString() + " AND " +
-                    whereNode.getOperands()[2].toString() : whereNode.getOperands()[conditionIndex].toString();
+        SqlNode sqlNode = whereNode.getOperands()[fieldIndex];
+        if (sqlNode.getKind() == SqlKind.IDENTIFIER) {
+            SqlIdentifier fieldFullPath = (SqlIdentifier) sqlNode;
+            if (fieldFullPath.names.size() == 2) {
+                String ownerTable = fieldFullPath.names.get(0);
+                String fieldName = fieldFullPath.names.get(1);
+                String content = (operatorKind == SqlKind.BETWEEN) ? whereNode.getOperands()[conditionIndex].toString() + " AND " +
+                        whereNode.getOperands()[2].toString() : whereNode.getOperands()[conditionIndex].toString();
 
-            PredicateInfo predicateInfo = PredicateInfo.builder().setOperatorName(operatorName).setOperatorKind(operatorKind.toString())
-                    .setOwnerTable(ownerTable).setFieldName(fieldName).setCondition(content).build();
-            predicatesInfoList.add(predicateInfo);
+                PredicateInfo predicateInfo = PredicateInfo.builder().setOperatorName(operatorName).setOperatorKind(operatorKind.toString())
+                        .setOwnerTable(ownerTable).setFieldName(fieldName).setCondition(content).build();
+                predicatesInfoList.add(predicateInfo);
+            }
         }
     }
 

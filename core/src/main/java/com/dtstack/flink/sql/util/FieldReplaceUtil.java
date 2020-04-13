@@ -146,7 +146,22 @@ public class FieldReplaceUtil {
             }
 
             return sqlBasicCall;
-        }else{
+        } else if (groupNode.getKind() == CASE) {
+            SqlCase sqlCase = (SqlCase) groupNode;
+
+            for (int i = 0; i < sqlCase.getWhenOperands().size(); i++) {
+                SqlNode sqlNode = sqlCase.getWhenOperands().getList().get(i);
+                SqlNode replaceNode = replaceSelectFieldName(sqlNode, oldTbName, newTbName, mappingField);
+                sqlCase.getWhenOperands().set(i,replaceNode);
+            }
+
+            for (int i = 0; i < sqlCase.getThenOperands().size(); i++) {
+                SqlNode sqlNode = sqlCase.getThenOperands().getList().get(i);
+                SqlNode replaceNode = replaceSelectFieldName(sqlNode, oldTbName, newTbName, mappingField);
+                sqlCase.getThenOperands().set(i,replaceNode);
+            }
+            return sqlCase;
+        } else {
             return groupNode;
         }
     }
