@@ -66,6 +66,7 @@ public abstract class AsyncReqRow extends RichAsyncFunction<CRow, CRow> implemen
         super.open(parameters);
         initCache();
         initMetric();
+        LOG.info("async dim table config info: {} ", sideInfo.getSideTableInfo().toString());
     }
 
     private void initCache(){
