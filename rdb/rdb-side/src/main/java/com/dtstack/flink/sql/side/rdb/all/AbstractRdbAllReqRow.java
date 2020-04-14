@@ -94,12 +94,12 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     protected void reloadCache() {
         //reload cacheRef and replace to old cacheRef
         Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
-        cacheRef.set(newCache);
         try {
             loadData(newCache);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        cacheRef.set(newCache);
         LOG.info("----- rdb all cacheRef reload end:{}", Calendar.getInstance());
     }
 
@@ -123,9 +123,10 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
         if (CollectionUtils.isEmpty(cacheList) && sideInfo.getJoinType() == JoinType.LEFT) {
             out.collect(Tuple2.of(value.f0, fillData(value.f1, null)));
+        } else if (!CollectionUtils.isEmpty(cacheList)) {
+            cacheList.stream().forEach(one -> out.collect(Tuple2.of(value.f0, fillData(value.f1, one))));
         }
 
-        cacheList.stream().forEach(one -> out.collect(Tuple2.of(value.f0, fillData(value.f1, null))));
     }
 
     @Override
@@ -219,7 +220,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
             }
 
             String cacheKey = sideInfo.getEqualFieldList().stream()
-                    .map(equalField -> oneRow.get(equalField))
+                    .map(oneRow::get)
                     .map(Object::toString)
                     .collect(Collectors.joining("_"));
 
@@ -233,7 +234,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     }
 
     /**
-     *  get jdbc connection
+     * get jdbc connection
+     *
      * @param dbURL
      * @param userName
      * @param password
