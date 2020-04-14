@@ -33,9 +33,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * Company: www.dtstack.com
  * @author maqi
  */
-public abstract class AbstractClusterClientFactory {
+public interface AbstractClusterClientFactory {
 
-    public ClusterSpecification getClusterSpecification(Configuration configuration) {
+    default ClusterSpecification getClusterSpecification(Configuration configuration) {
         checkNotNull(configuration);
 
         final int jobManagerMemoryMb = ConfigurationUtils

@@ -29,7 +29,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * Company: www.dtstack.com
  * @author maqi
  */
-public class StandaloneClientFactory extends AbstractClusterClientFactory {
+public enum StandaloneClientFactory implements AbstractClusterClientFactory {
+    INSTANCE;
+
     @Override
     public ClusterDescriptor createClusterDescriptor(String clusterConfPath, Configuration flinkConfig) {
         checkNotNull(flinkConfig);

@@ -23,7 +23,6 @@ import com.dtstack.flink.sql.launcher.entity.JobParamsInfo;
 import com.dtstack.flink.sql.launcher.factory.YarnClusterClientFactory;
 import com.dtstack.flink.sql.launcher.utils.JobGraphBuildUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
@@ -39,10 +38,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 
@@ -58,12 +55,10 @@ public class YarnJobClusterExecutor {
     private static final String CONFIG_FILE_LOG4J_NAME = "log4j.properties";
     private static final String DEFAULT_TOTAL_PROCESS_MEMORY = "1024m";
 
-    YarnClusterClientFactory yarnClusterClientFactory;
     JobParamsInfo jobParamsInfo;
 
     public YarnJobClusterExecutor(JobParamsInfo jobParamsInfo) {
         this.jobParamsInfo = jobParamsInfo;
-        yarnClusterClientFactory = new YarnClusterClientFactory();
     }
 
     public void exec() throws Exception {
@@ -75,12 +70,13 @@ public class YarnJobClusterExecutor {
         Configuration flinkConfiguration = JobGraphBuildUtil.getFlinkConfiguration(jobParamsInfo.getFlinkConfDir(), jobParamsInfo.getConfProperties());
         appendApplicationConfig(flinkConfiguration, jobParamsInfo);
 
-        YarnClusterDescriptor clusterDescriptor = (YarnClusterDescriptor) yarnClusterClientFactory.createClusterDescriptor(jobParamsInfo.getYarnConfDir(), flinkConfiguration);
+        YarnClusterDescriptor clusterDescriptor = (YarnClusterDescriptor) YarnClusterClientFactory.INSTANCE
+                .createClusterDescriptor(jobParamsInfo.getYarnConfDir(), flinkConfiguration);
 
         List<File> shipFiles = getShipFiles(jobParamsInfo.getFlinkJarPath(), jobParamsInfo.getPluginLoadMode(), jobGraph, clusterDescriptor);
         clusterDescriptor.addShipFiles(shipFiles);
 
-        ClusterSpecification clusterSpecification = yarnClusterClientFactory.getClusterSpecification(flinkConfiguration);
+        ClusterSpecification clusterSpecification = YarnClusterClientFactory.INSTANCE.getClusterSpecification(flinkConfiguration);
         ClusterClientProvider<ApplicationId> applicationIdClusterClientProvider = clusterDescriptor.deployJobCluster(clusterSpecification, jobGraph, true);
 
         String applicationId = applicationIdClusterClientProvider.getClusterClient().getClusterId().toString();

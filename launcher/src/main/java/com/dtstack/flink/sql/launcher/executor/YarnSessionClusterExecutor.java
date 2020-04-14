@@ -34,7 +34,6 @@ import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
-import java.io.UnsupportedEncodingException;
 
 /**
  * Date: 2020/3/4
@@ -42,18 +41,16 @@ import java.io.UnsupportedEncodingException;
  * @author maqi
  */
 public class YarnSessionClusterExecutor {
-    YarnClusterClientFactory yarnClusterClientFactory;
     JobParamsInfo jobParamsInfo;
 
     public YarnSessionClusterExecutor(JobParamsInfo jobParamsInfo) {
         this.jobParamsInfo = jobParamsInfo;
-        yarnClusterClientFactory = new YarnClusterClientFactory();
     }
 
     public void exec() throws Exception {
         JobGraph jobGraph = JobGraphBuildUtil.buildJobGraph(jobParamsInfo);
         Configuration flinkConfiguration = JobGraphBuildUtil.getFlinkConfiguration(jobParamsInfo.getFlinkConfDir(), jobParamsInfo.getConfProperties());
-        ClusterDescriptor clusterDescriptor = yarnClusterClientFactory.createClusterDescriptor(jobParamsInfo.getYarnConfDir(), flinkConfiguration);
+        ClusterDescriptor clusterDescriptor = YarnClusterClientFactory.INSTANCE.createClusterDescriptor(jobParamsInfo.getYarnConfDir(), flinkConfiguration);
 
         Object yid = jobParamsInfo.getYarnSessionConfProperties().get("yid");
         if (null == yid) {

@@ -41,8 +41,11 @@ import java.util.Map;
  * Company: www.dtstack.com
  * @author maqi
  */
-public class YarnClusterClientFactory extends AbstractClusterClientFactory {
+public enum YarnClusterClientFactory implements AbstractClusterClientFactory {
+    INSTANCE;
+
     private static final String XML_FILE_EXTENSION = "xml";
+
     @Override
     public ClusterDescriptor createClusterDescriptor(String yarnConfDir, Configuration flinkConfig) {
 

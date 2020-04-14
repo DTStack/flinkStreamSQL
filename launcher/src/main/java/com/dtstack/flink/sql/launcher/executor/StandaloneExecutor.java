@@ -39,13 +39,10 @@ import org.apache.flink.util.Preconditions;
  * @author maqi
  */
 public class StandaloneExecutor {
-
-    StandaloneClientFactory standaloneClientFactory;
     JobParamsInfo jobParamsInfo;
 
     public StandaloneExecutor(JobParamsInfo jobParamsInfo) {
         this.jobParamsInfo = jobParamsInfo;
-        standaloneClientFactory = new StandaloneClientFactory();
     }
 
     public void exec() throws Exception {
@@ -62,7 +59,7 @@ public class StandaloneExecutor {
 
         JobGraphBuildUtil.fillJobGraphClassPath(jobGraph);
 
-        ClusterDescriptor clusterDescriptor = standaloneClientFactory.createClusterDescriptor("", flinkConfiguration);
+        ClusterDescriptor clusterDescriptor = StandaloneClientFactory.INSTANCE.createClusterDescriptor("", flinkConfiguration);
         ClusterClientProvider clusterClientProvider = clusterDescriptor.retrieve(StandaloneClusterId.getInstance());
         ClusterClient clusterClient = clusterClientProvider.getClusterClient();
 
