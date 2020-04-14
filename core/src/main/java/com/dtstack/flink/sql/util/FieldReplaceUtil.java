@@ -253,6 +253,7 @@ public class FieldReplaceUtil {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
         ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
