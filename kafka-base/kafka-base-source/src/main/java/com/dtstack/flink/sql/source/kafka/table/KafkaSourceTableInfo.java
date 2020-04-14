@@ -69,7 +69,7 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     private String fieldDelimiter;
 
-    public Map<String, String> kafkaParam = new HashMap<>();
+    public Map<String, String> kafkaParams = new HashMap<>();
 
 
     public String getBootstrapServers() {
@@ -113,15 +113,15 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
     }
 
     public void addKafkaParam(Map<String, String> kafkaParam) {
-        kafkaParam.putAll(kafkaParam);
+        kafkaParams.putAll(kafkaParam);
     }
 
     public String getKafkaParam(String key) {
-        return kafkaParam.get(key);
+        return kafkaParams.get(key);
     }
 
     public Set<String> getKafkaParamKeys() {
-        return kafkaParam.keySet();
+        return kafkaParams.keySet();
     }
 
     public String getSourceDataType() {
