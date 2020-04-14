@@ -25,7 +25,6 @@ import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
 import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.types.Row;
 
 
 /**

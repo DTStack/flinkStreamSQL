@@ -58,7 +58,7 @@ public class KafkaSinkTableInfo extends AbstractTargetTableInfo {
 
     private String bootstrapServers;
 
-    public Map<String, String> kafkaParam = new HashMap<String, String>();
+    public Map<String, String> kafkaParams = new HashMap<String, String>();
 
     private String topic;
 
@@ -73,15 +73,15 @@ public class KafkaSinkTableInfo extends AbstractTargetTableInfo {
     private String updateMode;
 
     public void addKafkaParam(String key, String value) {
-        kafkaParam.put(key, value);
+        kafkaParams.put(key, value);
     }
 
     public String getKafkaParam(String key) {
-        return kafkaParam.get(key);
+        return kafkaParams.get(key);
     }
 
     public Set<String> getKafkaParamKeys() {
-        return kafkaParam.keySet();
+        return kafkaParams.keySet();
     }
 
     public String getBootstrapServers() {

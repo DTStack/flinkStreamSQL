@@ -4,12 +4,10 @@ package com.dtstack.flink.sql.sink.kafka;
 import com.dtstack.flink.sql.format.SerializationMetricWrapper;
 import com.dtstack.flink.sql.sink.kafka.serialization.JsonCRowSerializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.formats.json.JsonRowSerializationSchema;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
 import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
