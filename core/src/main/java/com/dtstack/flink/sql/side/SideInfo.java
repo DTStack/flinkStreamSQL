@@ -93,7 +93,7 @@ public abstract class SideInfo implements Serializable{
             if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
                 String sideFieldName = sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName());
                 fields.add(sideFieldName);
-                sideSelectFieldsType.put(sideTableFieldIndex, getTargetFieldType(sideFieldName));
+                sideSelectFieldsType.put(sideTableFieldIndex, getTargetFieldType(fieldInfo.getFieldName()));
                 sideFieldIndex.put(i, sideTableFieldIndex);
                 sideFieldNameIndex.put(i, sideFieldName);
                 sideTableFieldIndex++;
@@ -132,12 +132,13 @@ public abstract class SideInfo implements Serializable{
 
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
+        Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
         String rightTableName = right.getComponent(0).getSimple();
         String rightField = right.getComponent(1).getSimple();
 
         if(leftTableName.equalsIgnoreCase(sideTableName)){
-            equalFieldList.add(leftField);
+            equalFieldList.add(physicalFields.get(leftField));
             int equalFieldIndex = -1;
             for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
                 String fieldName = rowTypeInfo.getFieldNames()[i];
@@ -153,7 +154,7 @@ public abstract class SideInfo implements Serializable{
 
         }else if(rightTableName.equalsIgnoreCase(sideTableName)){
 
-            equalFieldList.add(rightField);
+            equalFieldList.add(physicalFields.get(rightField));
             int equalFieldIndex = -1;
             for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
                 String fieldName = rowTypeInfo.getFieldNames()[i];
