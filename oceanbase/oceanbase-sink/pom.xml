@@ -71,14 +71,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/oceanbasesink">
+                                <copy todir="${basedir}/../../sqlplugins/oceanbasesink">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/oceanbasesink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/oceanbasesink/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../sqlplugins/oceanbasesink/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/oceanbasesink/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

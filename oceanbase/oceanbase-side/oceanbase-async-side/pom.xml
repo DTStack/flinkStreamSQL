@@ -74,14 +74,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/oceanbaseasyncside">
+                                <copy todir="${basedir}/../../../sqlplugins/oceanbaseasyncside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/oceanbaseasyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/oceanbaseasyncside/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../../sqlplugins/oceanbaseasyncside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/oceanbaseasyncside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
