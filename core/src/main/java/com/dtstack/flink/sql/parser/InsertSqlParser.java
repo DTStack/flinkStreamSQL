@@ -26,6 +26,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
+import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import java.util.List;
 
@@ -53,18 +54,9 @@ public class InsertSqlParser implements IParser {
 
     @Override
     public void parseSql(String sql, SqlTree sqlTree) {
-        SqlParser.Config config = SqlParser
-                .configBuilder()
-                .setLex(Lex.MYSQL)
-                .build();
 
-        SqlParser sqlParser = SqlParser.create(sql,config);
-        SqlNode sqlNode = null;
-        try {
-            sqlNode = sqlParser.parseStmt();
-        } catch (SqlParseException e) {
-            throw new RuntimeException("", e);
-        }
+        FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
+        SqlNode sqlNode = flinkPlanner.parse(sql);
 
         SqlParseResult sqlParseResult = new SqlParseResult();
         parseNode(sqlNode, sqlParseResult);
