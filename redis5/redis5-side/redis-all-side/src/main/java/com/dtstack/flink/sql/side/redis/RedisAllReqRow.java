@@ -102,6 +102,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
             loadData(newCache);
         } catch (SQLException e) {
             LOG.error("", e);
+            throw new RuntimeException(e);
         }
 
         cacheRef.set(newCache);
@@ -160,21 +161,22 @@ public class RedisAllReqRow extends BaseAllReqRow {
         JedisCommands jedis = null;
         try {
             StringBuilder keyPattern = new StringBuilder(tableInfo.getTableName());
-            for(String key : tableInfo.getPrimaryKeys()){
+            for (String key : tableInfo.getPrimaryKeys()) {
                 keyPattern.append("_").append("*");
-            };
+            }
             jedis = getJedisWithRetry(CONN_RETRY_NUM);
+            if (null == jedis) {
+                throw new RuntimeException("redis all load data error,get jedis commands error!");
+            }
             Set<String> keys = getRedisKeys(RedisType.parse(tableInfo.getRedisType()), jedis, keyPattern.toString());
-            if(CollectionUtils.isEmpty(keys)){
+            if (CollectionUtils.isEmpty(keys)) {
                 return;
             }
-            for(String key : keys){
+            for (String key : keys) {
                 tmpCache.put(key, jedis.hgetAll(key));
             }
-        } catch (Exception e){
-            LOG.error("", e);
         } finally {
-            if (jedis != null){
+            if (jedis != null) {
                 try {
                     ((Closeable) jedis).close();
                 } catch (IOException e) {
@@ -237,17 +239,17 @@ public class RedisAllReqRow extends BaseAllReqRow {
     }
 
     private JedisCommands getJedisWithRetry(int retryNum) {
-        while (retryNum-- > 0){
+        while (retryNum-- > 0) {
             try {
                 return getJedis(tableInfo);
             } catch (Exception e) {
-                if(retryNum <= 0){
+                if (retryNum <= 0) {
                     throw new RuntimeException("getJedisWithRetry error", e);
                 }
                 try {
                     String jedisInfo = "url:" + tableInfo.getUrl() + ",pwd:" + tableInfo.getPassword() + ",database:" + tableInfo.getDatabase();
                     LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + jedisInfo);
-                    Thread.sleep(5 * 1000);
+                    Thread.sleep(LOAD_DATA_ERROR_SLEEP_TIME);
                 } catch (InterruptedException e1) {
                     LOG.error("", e1);
                 }

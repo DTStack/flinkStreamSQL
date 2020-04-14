@@ -23,18 +23,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-
-
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
-import java.util.TimeZone;
-import java.util.regex.Pattern;
-
-import static java.time.format.DateTimeFormatter.ISO_INSTANT;
 
 /**
  * Convert val to specified numeric type

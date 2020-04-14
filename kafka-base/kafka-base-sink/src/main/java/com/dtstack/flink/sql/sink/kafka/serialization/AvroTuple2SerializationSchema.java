@@ -286,6 +286,7 @@ public class AvroTuple2SerializationSchema implements SerializationSchema<Tuple2
 			case DOUBLE:
 			case BOOLEAN:
 				return object;
+			default:
 		}
 		throw new RuntimeException("Unsupported Avro type:" + schema);
 	}
