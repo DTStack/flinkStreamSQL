@@ -94,12 +94,12 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     protected void reloadCache() {
         //reload cacheRef and replace to old cacheRef
         Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
-        cacheRef.set(newCache);
         try {
             loadData(newCache);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        cacheRef.set(newCache);
         LOG.info("----- rdb all cacheRef reload end:{}", Calendar.getInstance());
     }
 
@@ -123,9 +123,9 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
         if (CollectionUtils.isEmpty(cacheList) && sideInfo.getJoinType() == JoinType.LEFT) {
             out.collect(new CRow(fillData(value.row(), null), value.change()));
+        } else if (!CollectionUtils.isEmpty(cacheList)) {
+            cacheList.forEach(one -> out.collect(new CRow(fillData(value.row(), one), value.change())));
         }
-
-        cacheList.forEach(one -> out.collect(new CRow(fillData(value.row(), one), value.change())));
     }
 
     @Override
@@ -152,8 +152,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     }
 
     /**
-     *  covert flink time attribute.Type information for indicating event or processing time.
-     *  However, it behaves like a regular SQL timestamp but is serialized as Long.
+     * covert flink time attribute.Type information for indicating event or processing time.
+     * However, it behaves like a regular SQL timestamp but is serialized as Long.
      *
      * @param entry
      * @param obj
@@ -233,7 +233,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     }
 
     /**
-     *  get jdbc connection
+     * get jdbc connection
+     *
      * @param dbURL
      * @param userName
      * @param password
