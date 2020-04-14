@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import java.util.List;
@@ -146,6 +147,10 @@ public class SidePredicatesParser {
                 String fieldName = fieldFullPath.names.get(1);
                 String content = (operatorKind == SqlKind.BETWEEN) ? whereNode.getOperands()[conditionIndex].toString() + " AND " +
                         whereNode.getOperands()[2].toString() : whereNode.getOperands()[conditionIndex].toString();
+
+                if (StringUtils.containsIgnoreCase(content,SqlKind.CASE.toString())) {
+                    return;
+                }
 
                 PredicateInfo predicateInfo = PredicateInfo.builder().setOperatorName(operatorName).setOperatorKind(operatorKind.toString())
                         .setOwnerTable(ownerTable).setFieldName(fieldName).setCondition(content).build();
