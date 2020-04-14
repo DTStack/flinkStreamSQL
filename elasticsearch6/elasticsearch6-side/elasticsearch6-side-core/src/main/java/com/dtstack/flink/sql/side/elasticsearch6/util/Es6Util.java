@@ -176,13 +176,6 @@ public class Es6Util {
             case "NOT_EQUALS":
                 return boolQueryBuilder.mustNot(QueryBuilders.termQuery(textConvertToKeyword(info.getFieldName(), sideInfo), removeSpaceAndApostrophe(info.getCondition())[0]));
             default:
-                try {
-                    throw new Exception("elasticsearch6 does not support this operation: " + info.getOperatorKind());
-                } catch (Exception e) {
-
-                    e.printStackTrace();
-                    LOG.error(e.getMessage());
-                }
                 return boolQueryBuilder;
         }
 

@@ -50,6 +50,8 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean,R
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
+    public static final long LOAD_DATA_ERROR_SLEEP_TIME = 5_000L;
+
     protected BaseSideInfo sideInfo;
 
     private ScheduledExecutorService es;

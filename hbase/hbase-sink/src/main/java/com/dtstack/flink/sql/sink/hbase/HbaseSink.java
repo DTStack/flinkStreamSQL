@@ -52,7 +52,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String parent;
     protected String tableName;
     protected String updateMode;
-    protected String[] rowkey;
+    protected String rowkey;
 
     public HbaseSink() {
         // TO DO NOTHING

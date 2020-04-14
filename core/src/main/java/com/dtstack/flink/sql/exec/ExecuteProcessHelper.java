@@ -95,11 +95,8 @@ public class ExecuteProcessHelper {
 
     public static ParamsInfo parseParams(String[] args) throws Exception {
         LOG.info("------------program params-------------------------");
-        System.out.println("------------program params-------------------------");
         Arrays.stream(args).forEach(arg -> LOG.info("{}", arg));
-        Arrays.stream(args).forEach(System.out::println);
         LOG.info("-------------------------------------------");
-        System.out.println("----------------------------------------");
 
         OptionParser optionParser = new OptionParser(args);
         Options options = optionParser.getOptions();
@@ -226,12 +223,10 @@ public class ExecuteProcessHelper {
                         //sql-dimensional table contains the dimension table of execution
                         sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, null);
                     } else {
-                        System.out.println("----------exec sql without dimension join-----------");
-                        System.out.println("----------real sql exec is--------------------------");
-                        System.out.println(result.getExecSql());
+                        LOG.info("----------exec sql without dimension join-----------");
+                        LOG.info("----------real sql exec is--------------------------\n{}", result.getExecSql());
                         FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
                         if (LOG.isInfoEnabled()) {
-                            System.out.println();
                             LOG.info("exec sql: " + result.getExecSql());
                         }
                     }
@@ -270,7 +265,7 @@ public class ExecuteProcessHelper {
      */
     public static Set<URL> registerTable(SqlTree sqlTree, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv, String localSqlPluginPath,
                                          String remoteSqlPluginPath, String pluginLoadMode, Map<String, AbstractSideTableInfo> sideTableMap, Map<String, Table> registerTableCache) throws Exception {
-        Set<URL> pluginClassPatshSets = Sets.newHashSet();
+        Set<URL> pluginClassPathSets = Sets.newHashSet();
         WaterMarkerAssigner waterMarkerAssigner = new WaterMarkerAssigner();
         for (AbstractTableInfo tableInfo : sqlTree.getTableInfoMap().values()) {
 
@@ -304,7 +299,7 @@ public class ExecuteProcessHelper {
                 registerTableCache.put(tableInfo.getName(), regTable);
 
                 URL sourceTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractSourceTableInfo.SOURCE_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
-                pluginClassPatshSets.add(sourceTablePathUrl);
+                pluginClassPathSets.add(sourceTablePathUrl);
             } else if (tableInfo instanceof AbstractTargetTableInfo) {
 
                 TableSink tableSink = StreamSinkFactory.getTableSink((AbstractTargetTableInfo) tableInfo, localSqlPluginPath);
@@ -312,18 +307,18 @@ public class ExecuteProcessHelper {
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
 
                 URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractTargetTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
-                pluginClassPatshSets.add(sinkTablePathUrl);
+                pluginClassPathSets.add(sinkTablePathUrl);
             } else if (tableInfo instanceof AbstractSideTableInfo) {
                 String sideOperator = ECacheType.ALL.name().equals(((AbstractSideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
                 sideTableMap.put(tableInfo.getName(), (AbstractSideTableInfo) tableInfo);
 
                 URL sideTablePathUrl = PluginUtil.buildSidePathByLoadMode(tableInfo.getType(), sideOperator, AbstractSideTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
-                pluginClassPatshSets.add(sideTablePathUrl);
+                pluginClassPathSets.add(sideTablePathUrl);
             } else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
         }
-        return pluginClassPatshSets;
+        return pluginClassPathSets;
     }
 
     /**
