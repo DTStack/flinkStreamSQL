@@ -20,7 +20,6 @@
 package com.dtstack.flink.sql.side.rdb.async;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.CacheMissVal;
@@ -34,10 +33,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
-import org.apache.calcite.sql.JoinType;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -88,11 +84,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private final static AtomicBoolean CONN_STATUS = new AtomicBoolean(true);
 
-    private final static AtomicLong FAIL_NUM = new AtomicLong(0);
-
     private Logger logger = LoggerFactory.getLogger(getClass());
-
-    private Counter counter = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_SIDE_PARSE_ERROR_RECORDS);
 
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
@@ -114,7 +106,11 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
 
+        AtomicLong networkLogCounter = new AtomicLong(0L);
         while (!CONN_STATUS.get()){//network is unhealth
+            if(networkLogCounter.getAndIncrement() % 1000 == 0){
+                LOG.info("network unhealth to block task");
+            }
             Thread.sleep(100);
         }
         Map<String, Object> params = formatInputParam(inputParams);
@@ -144,12 +140,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                             logger.error("getConnection error", conn.cause());
                         }
                         if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3L)){
-                            if(FAIL_NUM.incrementAndGet() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
-                                counter.inc();
-                                resultFuture.completeExceptionally(conn.cause());
-                            } else {
-                                dealMissKey(input, resultFuture);
-                            }
+                            dealFillDataError(input, resultFuture, conn.cause());
                             finishFlag.set(true);
                         }
                         conn.result().close();
@@ -161,8 +152,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                     handleQuery(conn.result(), inputParams, input, resultFuture);
                     finishFlag.set(true);
                 } catch (Exception e) {
-                    dealFillDataError(resultFuture, e, null);
-                    logger.error("", e);
+                    dealFillDataError(input, resultFuture, e);
                 } finally {
                     latch.countDown();
                 }
@@ -228,13 +218,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
         connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {
             if (rs.failed()) {
-                if(FAIL_NUM.incrementAndGet() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
-                    LOG.error("Cannot retrieve the data from the database", rs.cause());
-                    counter.inc();
-                    resultFuture.completeExceptionally(rs.cause());
-                } else {
-                    dealMissKey(input, resultFuture);
-                }
+                dealFillDataError(input, resultFuture, rs.cause());
                 return;
             }
 
