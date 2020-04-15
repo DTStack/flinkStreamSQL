@@ -22,11 +22,8 @@ zookeeper.sasl.service-name: zookeeper
 zookeeper.sasl.login-context-name: Client
 ```
 
-
 ### 1.3 打包
-
 进入项目根目录，使用maven打包：
-
 ```
 mvn clean package -Dmaven.test.skip
 ```
@@ -38,13 +35,13 @@ mvn clean package -Dmaven.test.skip
 |     |--- submit.sh 任务启动脚本  
 |-----lib: launcher包存储路径，是任务提交的入口
 |     |--- sql.launcher.jar   
-|-----sqlplugins:  插件包存储路径(mvn 打包之后会自动将jar移动到该目录下)  
+|-----plugins:  插件包存储路径(mvn 打包之后会自动将jar移动到该目录下)  
 |     |--- core.jar
 |     |--- xxxsource
 |     |--- xxxsink
 |     |--- xxxside
 ```
-### 1.4 启动
+### 1.4 快速启动
 
 #### 1.4.1 启动命令
 
@@ -115,7 +112,7 @@ sh submit.sh
     
 * **confProp**
     * 描述：一些参数设置
-    * 必选：是 （如无参数填写空json即可）
+    * 必选：否
     * 默认值：{}
     * 可选参数:
         * sql.ttl.min: 最小过期时间,大于0的整数,如1d、1h(d\D:天,h\H:小时,m\M:分钟,s\s:秒)
@@ -176,9 +173,8 @@ sh submit.sh
 	* 默认值：{}
 	
 ## 1.5 任务样例
-
 ```
-# 一个kafka join all维表 sink kafka的样例
+# 一个 kafka source join all维表 到 kafka sink的样例
 CREATE TABLE MyTable(
         id bigint,
         name varchar,
