@@ -54,8 +54,6 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     public static final String ASYNC_TIMEOUT_KEY = "asyncTimeout";
 
-    public static final String ASYNC_TIMEOUT_NUM_KEY = "asyncTimeoutNum";
-
     public static final String ASYNC_FAIL_MAX_NUM_KEY = "asyncFailMaxNum";
 
     private String cacheType = "none";//None or LRU or ALL

@@ -51,6 +51,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * All interfaces inherit naming rules: type + "AsyncReqRow" such as == "MysqlAsyncReqRow
@@ -64,10 +65,9 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
     private RuntimeContext runtimeContext;
-
+    private final static AtomicLong FAIL_NUM = new AtomicLong(0);
     private static int TIMEOUT_LOG_FLUSH_NUM = 10;
     private int timeOutNum = 0;
-
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
 
@@ -125,7 +125,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
                 Row row = fillData(input.row(), null);
                 resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
             } catch (Exception e) {
-                dealFillDataError(resultFuture, e, input);
+                dealFillDataError(input, resultFuture, e);
             }
         }else{
             resultFuture.complete(null);
@@ -205,7 +205,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
                         Row row = fillData(input.row(), val);
                         resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, input);
+                        dealFillDataError(input, resultFuture, e);
                     }
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
@@ -216,7 +216,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
                         }
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, input);
+                        dealFillDataError(input, resultFuture, e);
                     }
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
@@ -256,11 +256,14 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
         }
     }
 
-    protected void dealFillDataError(ResultFuture<CRow> resultFuture, Exception e, Object sourceData) {
-        LOG.debug("source data {} join side table error ", sourceData);
-        LOG.debug("async buid row error..{}", e);
-        parseErrorRecords.inc();
-        resultFuture.complete(Collections.emptyList());
+    protected void dealFillDataError(CRow input, ResultFuture<CRow> resultFuture, Throwable e) {
+        if(FAIL_NUM.incrementAndGet() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
+            LOG.info("dealFillDataError", e);
+            parseErrorRecords.inc();
+            resultFuture.completeExceptionally(e);
+        } else {
+            dealMissKey(input, resultFuture);
+        }
     }
 
     @Override
