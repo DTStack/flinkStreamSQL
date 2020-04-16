@@ -23,6 +23,7 @@ zookeeper.sasl.login-context-name: Client
 ```
 
 ### 1.3 打包
+
 进入项目根目录，使用maven打包：
 ```shell script
 mvn clean package -Dmaven.test.skip
@@ -41,12 +42,34 @@ mvn clean package -Dmaven.test.skip
 |     |--- xxxsink
 |     |--- xxxside
 ```
-### 1.4 快速启动
+### 1.4 快速启动命令
 
-#### 1.4.1 启动命令
-
+#### local模式命令
 ```shell script
-# 脚本启动
+sh submit.sh
+  -mode local
+  -name local_test
+  -sql F:\dtstack\stressTest\flinkStreamSql\stressTest.sql
+  -localSqlPluginPath F:\dtstack\project\flinkStreamSQL\plugins
+```
+
+#### standalone模式命令
+```shell script
+sh submit.sh
+  -mode standalone
+  -sql F:\dtstack\flinkStreamSql\tiezhu\twodimjoin.sql
+  -name wtz_standalone_flinkStreamSql
+  -localSqlPluginPath F:\dtstack\project\flinkStreamSQL\plugins
+  -remoteSqlPluginPath /home/admin/dtstack/flinkStreamSQL/plugins
+  -flinkconf F:\dtstack\flinkStreamSql\localhost\flinkConf
+  -yarnconf F:\dtstack\flinkStreamSql\localhost\hadoop
+  -flinkJarPath F:\Java\flink-1.8.2-bin-scala_2.12\flink-1.8.2\lib
+  -pluginLoadMode shipfile
+  -confProp {\"time.characteristic\":\"eventTime\",\"logLevel\":\"info\"}
+```
+
+#### yarn模式命令
+```shell script
 sh submit.sh 
   -mode yarn
   -name flink1.10_yarnSession
@@ -57,20 +80,23 @@ sh submit.sh
   -yarnconf F:\dtstack\flinkStreamSql\yarnConf_node1
   -flinkJarPath F:\dtstack\flink\flink-1.10.0\lib
   -pluginLoadMode shipfile
-  -confProp {\"time.characteristic\":\"eventTime\",\"logLevel\":\"info\"}
   -yarnSessionConf {\"yid\":\"application_1586851105774_0014\"}
+```
 
-# mode: 任务启动的模式
-# name: 本次任务名称
-# sql: 本次任务执行sql脚本
-# localSqPluginPath: 本地插件包根目录地址
-# remoteSqlPluginPath: flink执行集群上的插件根目录地址
-# flinkconf: flink配置文件所在目录（local模式下不需要）
-# yarnconf: Hadoop配置文件（包括hdfs和yarn）所在目录
-# flinkJarPath: yarnPer模式提交需要指定本地的flink jar存放路径
-# pluginLoadMode:yarnPer模式下的插件包加载方式
-# confProp: 其他额外参数配置
-# yarnSessionConf: yarnSession模式下指定的运行参数，目前只支持指定yid
+#### yarnPer模式命令
+```shell script
+sh submit.sh
+  -mode yarnPer 
+  -sql /home/wen/Desktop/flink_stream_sql_conf/sql/Test01.sql
+  -name TestAll
+  -localSqlPluginPath /home/wen/IdeaProjects/flinkStreamSQL/plugins
+  -remoteSqlPluginPath /home/wen/IdeaProjects/flinkStreamSQL/plugins
+  -flinkconf /home/wen/Desktop/flink_stream_sql_conf/flinkConf
+  -yarnconf /home/wen/Desktop/flink_stream_sql_conf/yarnConf_node1
+  -flinkJarPath /home/wen/Desktop/dtstack/flink-1.8.1/lib
+  -pluginLoadMode shipfile
+  -confProp {\"time.characteristic\":\"eventTime\",\"logLevel\":\"info\"}
+  -queue c
 ```
 参数具体细节请看[命令参数说明](./config.md)
 
