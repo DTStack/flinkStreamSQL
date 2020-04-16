@@ -23,6 +23,7 @@ zookeeper.sasl.login-context-name: Client
 ```
 
 ### 1.3 打包
+
 进入项目根目录，使用maven打包：
 ```shell script
 mvn clean package -Dmaven.test.skip
@@ -41,19 +42,19 @@ mvn clean package -Dmaven.test.skip
 |     |--- xxxsink
 |     |--- xxxside
 ```
-### 1.4 快速启动
+### 1.4 快速启动命令
 
-#### 1.4.1 启动命令
-
+#### local模式命令
 ```shell script
-# local模式命令
 sh submit.sh
   -mode local
   -name local_test
   -sql F:\dtstack\stressTest\flinkStreamSql\stressTest.sql
   -localSqlPluginPath F:\dtstack\project\flinkStreamSQL\plugins
+```
 
-#standalone模式命令
+#### standalone模式命令
+```shell script
 sh submit.sh
   -mode standalone
   -sql F:\dtstack\flinkStreamSql\tiezhu\twodimjoin.sql
@@ -65,8 +66,10 @@ sh submit.sh
   -flinkJarPath F:\Java\flink-1.8.2-bin-scala_2.12\flink-1.8.2\lib
   -pluginLoadMode shipfile
   -confProp {\"time.characteristic\":\"eventTime\",\"logLevel\":\"info\"}
+```
 
-# yarn模式命令
+#### yarn模式命令
+```shell script
 sh submit.sh 
   -mode yarn
   -name flink1.10_yarnSession
@@ -78,8 +81,10 @@ sh submit.sh
   -flinkJarPath F:\dtstack\flink\flink-1.10.0\lib
   -pluginLoadMode shipfile
   -yarnSessionConf {\"yid\":\"application_1586851105774_0014\"}
+```
 
-# yarnPer模式命令
+#### yarnPer模式命令
+```shell script
 sh submit.sh
   -mode yarnPer 
   -sql /home/wen/Desktop/flink_stream_sql_conf/sql/Test01.sql
@@ -92,7 +97,6 @@ sh submit.sh
   -pluginLoadMode shipfile
   -confProp {\"time.characteristic\":\"eventTime\",\"logLevel\":\"info\"}
   -queue c
-
 ```
 参数具体细节请看[命令参数说明](./config.md)
 
