@@ -1,17 +1,14 @@
-## 关系型数据库维表参数
+## 维表参数
 
-适用于`MYSQL`,`ORACLE`,`SQLSERVER`,`POSTGRESQL`,`DB2`,`POLARDB`,`CLICKHOUSE`,`IMPALA`维表插件
 
 ### 维表参数
+
+维表需要的基本属性，每个插件还需要提供连接所需的基本信息。
 
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
 | type | 维表类型， 例如:mysql |是||
-| url | 连接数据库 jdbcUrl |是||
-| userName | 连接用户名 |是||
-| password | 连接密码|是||
 | tableName| 表名称|是||
-| schema| 表空间|否||
 | cache | 维表缓存策略(NONE/LRU/ALL)|否|LRU|
 | partitionedJoin | 是否在維表join之前先根据设定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
 | parallelism | 处理后的数据流并行度|否||
@@ -37,6 +34,6 @@
 | cacheMode | 异步请求处理有序还是无序，可选：ordered，unordered  |ordered|
 | asyncCapacity | 异步线程容量 |100|
 | asyncTimeout | 异步处理超时时间 |10000，单位毫秒|
-| asyncPoolSize | 异步查询DB最大线程池，上限20 |min(20,Runtime.getRuntime().availableProcessors() * 2)|
+| asyncPoolSize | 异步查询DB最大线程池，上限20。适用于MYSQL,ORACLE,SQLSERVER,POSTGRESQL,DB2,POLARDB,CLICKHOUSE,IMPALA维表插件|min(20,Runtime.getRuntime().availableProcessors() * 2)|
 
 

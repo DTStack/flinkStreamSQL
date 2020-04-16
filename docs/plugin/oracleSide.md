@@ -31,7 +31,18 @@
  10g 11g
  
 ## 3. 表结构定义
-   [关系型数据库维表参数](docs/plugin/rdbSideParams.md)
+   [维表参数](docs/plugin/sideParams.md)
+   
+   
+  oracle独有的参数配置：
+   
+   |参数名称|含义|是否必填|默认值|
+   |----|---|---|----|
+   | type | 维表类型， oracle |是||
+   | url | 连接数据库 jdbcUrl |是||
+   | userName | 连接用户名 |是||
+   | password | 连接密码|是||
+   | schema| 表空间|否||
 
 ## 4.样例
 
