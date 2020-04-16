@@ -23,6 +23,8 @@ import org.apache.flink.client.deployment.ClusterDescriptor;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
+import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.SecurityUtils;
 import org.apache.flink.util.FileUtils;
 import org.apache.flink.util.function.FunctionUtils;
 import org.apache.flink.yarn.YarnClientYarnClusterInformationRetriever;
@@ -53,6 +55,8 @@ public enum YarnClusterClientFactory implements AbstractClusterClientFactory {
             try {
                 flinkConfig.setString(ConfigConstants.PATH_HADOOP_CONFIG, yarnConfDir);
                 FileSystem.initialize(flinkConfig, null);
+
+                SecurityUtils.install(new SecurityConfiguration(flinkConfig));
 
                 YarnConfiguration yarnConf = getYarnConf(yarnConfDir);
                 YarnClient yarnClient = YarnClient.createYarnClient();
