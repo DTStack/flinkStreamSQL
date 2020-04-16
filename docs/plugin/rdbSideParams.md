@@ -14,6 +14,7 @@
 | schema| 表空间|否||
 | cache | 维表缓存策略(NONE/LRU/ALL)|否|LRU|
 | partitionedJoin | 是否在維表join之前先根据设定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
+| parallelism | 处理后的数据流并行度|否||
 
 ### 缓存策略
 
