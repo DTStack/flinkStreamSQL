@@ -1,5 +1,5 @@
 
-## 1.格式：
+## 1.格式
 ```
  CREATE TABLE tableName(
      colName cloType,
@@ -15,7 +15,9 @@
      redisType = '1',
      cache ='LRU',
      cacheSize ='10000',
-     cacheTTLMs ='60000'
+     cacheTTLMs ='60000',
+     parallelism ='1',
+     partitionedJoin='false'
   );
 ```
 ## 2.支持版本
@@ -34,7 +36,7 @@
   
 ## 4.参数
 
-参数详细说明请看[参数详细说明]()
+参数详细说明请看[参数详细说明](./sideParams.md)
 
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
@@ -48,14 +50,9 @@
 | cache | 维表缓存策略(NONE/LRU/ALL)|否|NONE|
 | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
 --------------
-> 缓存策略
-  * NONE: 不做内存缓存
-  * LRU:
-    * cacheSize: 缓存的条目数量
-    * cacheTTLMs:缓存的过期时间(ms)
-  * ALL: 缓存全量表数据
 
 ## 5.样例
+### LRU维表示例
 ```
 CREATE TABLE MyRedis(
     id varchar,
@@ -70,10 +67,92 @@ CREATE TABLE MyRedis(
     redisType = '1',
     tableName = 'sideTable',
     cache = 'LRU',
-    cacheTTLMs='10000'
+    cacheSize ='10000',
+    cacheTTLMs ='60000',
+    parallelism ='1',
+    partitionedJoin='false'
+);
+```
+### ALL维表示例
+```
+CREATE TABLE MyRedis(
+    id varchar,
+    message varchar,
+    PRIMARY KEY(id),
+    PERIOD FOR SYSTEM_TIME
+)WITH(
+    type='redis',
+    url='172.16.10.79:6379',
+    password='abc123',
+    database='0',
+    redisType = '1',
+    tableName = 'sideTable',
+    cache = 'ALL',
+    cacheTTLMs ='60000',
+    parallelism ='1',
+    partitionedJoin='false'
+);
+```
+### redis异步维表关联完整案例
+```
+CREATE TABLE MyTable(
+        id varchar,
+        name varchar,
+        address varchar
+)WITH(
+        type = 'kafka10',
+        bootstrapServers = '172.16.101.224:9092',
+        zookeeperQuorm = '172.16.100.188:2181/kafka',
+        offsetReset = 'latest',
+        topic = 'tiezhu_test_in2',
+        groupId = 'flink_sql',
+        timezone = 'Asia/Shanghai',
+        topicIsPattern = 'false',
+        parallelism = '1'
 );
 
+CREATE TABLE MyRedis(
+		id varchar,
+		message varchar,
+		PRIMARY KEY(id),
+		PERIOD FOR SYSTEM_TIME
+)WITH(
+		type='redis',
+        url='172.16.10.79:6379',
+        password='abc123',
+        database='0',
+        redisType = '1',
+        tableName = 'sideTable',
+        cache = 'LRU',
+        cacheSize ='10000',
+        cacheTTLMs ='60000',
+        parallelism ='1',
+        partitionedJoin='false'
+);
+
+CREATE TABLE MyResult(
+		id varchar,
+		name varchar,
+		address varchar,
+		message varchar
+)WITH(
+		type = 'console'
+);
+
+insert into MyResult
+	select
+		t1.id AS id,
+		t1.name AS name,
+		t1.address AS address,
+		t2.message AS message
+	from
+	(
+	select id, name, address 
+	from MyTable
+	) t1 join MyRedis t2
+		 on t1.id  = t2.id;
 ```
+
 ## 6.redis的存储命名规则
 
 redis使用散列类型 hash 数据结构，key=tableName_primaryKey1_primaryKey2,value={column1=value1, column2=value2}
