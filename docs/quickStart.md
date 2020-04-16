@@ -65,7 +65,7 @@ sh submit.sh
 # sql: 本次任务执行sql脚本
 # localSqPluginPath: 本地插件包根目录地址
 # remoteSqlPluginPath: flink执行集群上的插件根目录地址
-# flinkconf: flink配置文件所在目录（单机模式下不需要）
+# flinkconf: flink配置文件所在目录（local模式下不需要）
 # yarnconf: Hadoop配置文件（包括hdfs和yarn）所在目录
 # flinkJarPath: yarnPer模式提交需要指定本地的flink jar存放路径
 # pluginLoadMode:yarnPer模式下的插件包加载方式
