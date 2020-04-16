@@ -76,12 +76,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private final static AtomicBoolean CONN_STATUS = new AtomicBoolean(true);
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
-
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
     }
-
 
     @Override
     protected void preInvoke(CRow input, ResultFuture<CRow> resultFuture){
@@ -93,7 +90,6 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
         AtomicLong networkLogCounter = new AtomicLong(0L);
         while (!CONN_STATUS.get()){//network is unhealth
-            //todo:统一计数
             if(networkLogCounter.getAndIncrement() % 1000 == 0){
                 LOG.info("network unhealth to block task");
             }
@@ -122,7 +118,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 try {
                     if(conn.failed()){
                         if(failCounter.getAndIncrement() % 1000 == 0){
-                            logger.error("getConnection error", conn.cause());
+                            LOG.error("getConnection error", conn.cause());
                         }
                         if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3L)){
                             dealFillDataError(input, resultFuture, conn.cause());
@@ -146,7 +142,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             try {
                 latch.wait();
             } catch (InterruptedException e) {
-                logger.error("", e);
+                LOG.error("", e);
             }
         }
 
