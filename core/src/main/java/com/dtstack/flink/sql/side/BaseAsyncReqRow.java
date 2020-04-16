@@ -51,7 +51,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * All interfaces inherit naming rules: type + "AsyncReqRow" such as == "MysqlAsyncReqRow
@@ -65,7 +64,6 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
     private RuntimeContext runtimeContext;
-    private final static AtomicLong FAIL_NUM = new AtomicLong(0);
     private static int TIMEOUT_LOG_FLUSH_NUM = 10;
     private int timeOutNum = 0;
     protected BaseSideInfo sideInfo;
@@ -258,9 +256,9 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     }
 
     protected void dealFillDataError(CRow input, ResultFuture<CRow> resultFuture, Throwable e) {
-        if(FAIL_NUM.incrementAndGet() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
+        parseErrorRecords.inc();
+        if(parseErrorRecords.getCount() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
             LOG.info("dealFillDataError", e);
-            parseErrorRecords.inc();
             resultFuture.completeExceptionally(e);
         } else {
             dealMissKey(input, resultFuture);
