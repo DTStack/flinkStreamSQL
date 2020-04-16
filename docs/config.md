@@ -73,7 +73,7 @@ sh submit.sh -key1 val1 -key2 val2
         * savePointPath：任务恢复点的路径（默认无）
         * allowNonRestoredState：指示保存点是否允许非还原状态的标志（默认false）
         * logLevel: 日志级别动态配置（默认info）
-        * [prometheus 相关参数](docs/prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
+        * [prometheus 相关参数](./prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	
 * **flinkconf**
