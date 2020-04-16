@@ -29,7 +29,7 @@
  
 ## 3.表结构定义
 
- [关系型数据库维表参数](docs/rdbSideParams.md)
+ [关系型数据库维表参数](docs/plugin/rdbSideParams.md)
  
 ## 4.样例
 
