@@ -88,6 +88,24 @@ CREATE TABLE sideTable (
 );
 ```
 
+## 6.hbase完整样例
+
+### 数据说明
+
+在hbase中，数据是以列簇的形式存储，其中rowKey作为主键，按字典排序。
+
+在样例中，wtz为列族名，message, info为列名，数据在hbase中的存储情况为：
+```
+hbase(main):002:0> scan 'testFlinkStreamSql'
+ROW     COLUMN+CELL                                                                                                                
+ 0      column=wtz:info, timestamp=1587089266719, value=hadoop                                                                     
+ 0      column=wtz:message, timestamp=1587089245780, value=hbase                                                                   
+ 1      column=wtz:info, timestamp=1587088818432, value=flink                                                                      
+ 1      column=wtz:message, timestamp=1587088796633, value=dtstack                                                                 
+ 2      column=wtz:info, timestamp=1587088858564, value=sql                                                                        
+ 2      column=wtz:message, timestamp=1587088840507, value=stream
+```
+
 ### hbase异步维表关联完整案例
 ```
 CREATE TABLE MyTable(
@@ -150,18 +168,3 @@ into
             on a.id=b.rowkey;
 ```
 
-## 6.hbase中数据存储形式
-
-在hbase中，数据是以列簇的形式存储，其中rowKey作为主键，按字典排序。
-
-在样例中，wtz为列族名，message, info为列名，数据在hbase中的存储情况为：
-```
-hbase(main):002:0> scan 'testFlinkStreamSql'
-ROW     COLUMN+CELL                                                                                                                
- 0      column=wtz:info, timestamp=1587089266719, value=hadoop                                                                     
- 0      column=wtz:message, timestamp=1587089245780, value=hbase                                                                   
- 1      column=wtz:info, timestamp=1587088818432, value=flink                                                                      
- 1      column=wtz:message, timestamp=1587088796633, value=dtstack                                                                 
- 2      column=wtz:info, timestamp=1587088858564, value=sql                                                                        
- 2      column=wtz:message, timestamp=1587088840507, value=stream
-```

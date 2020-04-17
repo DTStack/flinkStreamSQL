@@ -93,6 +93,25 @@ CREATE TABLE MyRedis(
     partitionedJoin='false'
 );
 ```
+
+## 6.redis完整样例
+
+### redis数据说明
+
+redis使用散列类型 hash 数据结构，key=tableName_primaryKey1_primaryKey2,value={column1=value1, column2=value2}
+如果以班级class表为例，id和name作为联合主键，那么redis的结构为 <class_1_john ,{id=1, name=john, age=12}>
+
+在样例中，tableName为sideTable，主键为id，column为id，message，所以对应的redis数据插入语句为<hset sideTable_5 id 5 message redis>
+
+数据在redis中对应的数据存储情况为：
+```
+192.168.80.105:6379> hgetall sideTable_5
+1) "id"
+2) "5"
+3) "message"
+4) "redis"
+```
+
 ### redis异步维表关联完整案例
 ```
 CREATE TABLE MyTable(
@@ -112,12 +131,12 @@ CREATE TABLE MyTable(
 );
 
 CREATE TABLE MyRedis(
-		id varchar,
-		message varchar,
-		PRIMARY KEY(id),
-		PERIOD FOR SYSTEM_TIME
+        id varchar,
+        message varchar,
+        PRIMARY KEY(id),
+        PERIOD FOR SYSTEM_TIME
 )WITH(
-		type='redis',
+        type='redis',
         url='172.16.10.79:6379',
         password='abc123',
         database='0',
@@ -131,42 +150,24 @@ CREATE TABLE MyRedis(
 );
 
 CREATE TABLE MyResult(
-		id varchar,
-		name varchar,
-		address varchar,
-		message varchar
+        id varchar,
+        name varchar,
+        address varchar,
+        message varchar
 )WITH(
-		type = 'console'
+        type = 'console'
 );
 
 insert into MyResult
-	select
-		t1.id AS id,
-		t1.name AS name,
-		t1.address AS address,
-		t2.message AS message
-	from
-	(
-	select id, name, address 
-	from MyTable
-	) t1 join MyRedis t2
-		 on t1.id  = t2.id;
+    select
+        t1.id AS id,
+        t1.name AS name,
+        t1.address AS address,
+        t2.message AS message
+    from(
+    select id, name, address 
+    from MyTable
+    ) t1 join MyRedis t2
+        on t1.id  = t2.id;
 ```
-
-## 6.redis的存储命名规则
-
-redis使用散列类型 hash 数据结构，key=tableName_primaryKey1_primaryKey2,value={column1=value1, column2=value2}
-如果以班级class表为例，id和name作为联合主键，那么redis的结构为 <class_1_john ,{id=1, name=john, age=12}>
-
-在样例中，tableName为sideTable，主键为id，column为id，message，所以对应的redis数据插入语句为<hset sideTable_5 id 5 message redis>
-
-数据在redis中对应的数据存储情况为：
-```
-192.168.80.105:6379> hgetall sideTable_5
-1) "id"
-2) "5"
-3) "message"
-4) "redis"
-```
-
 
