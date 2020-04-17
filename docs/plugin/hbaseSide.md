@@ -107,13 +107,13 @@ CREATE TABLE MyTable(
 );
 
 CREATE TABLE MyResult(
-		id varchar,
-		name varchar,
-		address varchar,
-		message varchar,
-		info varchar
+        id varchar,
+        name varchar,
+        address varchar,
+        message varchar,
+        info varchar
 )WITH(
-		type = 'console'
+        type = 'console'
  );
  
  CREATE TABLE sideTable (  
