@@ -47,6 +47,9 @@ public class HbaseConfigUtils {
     public final static String KEY_HBASE_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
     public final static String KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM = "zookeeper.znode.parent";
 
+    public final static String KEY_HBASE_CLIENT_KEYTAB_FILE = "hbase.client.keytab.file";
+    public final static String KEY_HBASE_CLIENT_KERBEROS_PRINCIPAL = "hbase.client.kerberos.principal";
+
 
     public static final String KEY_JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf";
     public static final String KEY_ZOOKEEPER_SASL_CLIENT = "zookeeper.sasl.client";

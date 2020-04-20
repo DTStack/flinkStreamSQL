@@ -105,6 +105,8 @@ public class HbaseOutputFormat extends MetricOutputFormat {
                 clientKeytabFile = System.getProperty("user.dir") + File.separator + clientKeytabFile;
                 clientPrincipal = !StringUtils.isEmpty(clientPrincipal) ? clientPrincipal : regionserverPrincipal;
 
+                conf.set(HbaseConfigUtils.KEY_HBASE_CLIENT_KEYTAB_FILE, clientKeytabFile);
+                conf.set(HbaseConfigUtils.KEY_HBASE_CLIENT_KERBEROS_PRINCIPAL, clientPrincipal);
 
                 UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, clientPrincipal, clientKeytabFile);
                 org.apache.hadoop.conf.Configuration finalConf = conf;
