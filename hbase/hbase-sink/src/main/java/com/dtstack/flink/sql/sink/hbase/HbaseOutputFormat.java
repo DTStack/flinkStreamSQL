@@ -27,7 +27,10 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
+import org.apache.hadoop.hbase.AuthUtil;
+import org.apache.hadoop.hbase.ChoreService;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.ScheduledChore;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -80,6 +83,9 @@ public class HbaseOutputFormat extends MetricOutputFormat {
     private static int rowLenth = 1000;
     private static int dirtyDataPrintFrequency = 1000;
 
+    private transient ChoreService choreService;
+
+
 
     @Override
     public void configure(Configuration parameters) {
@@ -106,6 +112,12 @@ public class HbaseOutputFormat extends MetricOutputFormat {
                     @Override
                     public Connection run() {
                         try {
+                            ScheduledChore authChore = AuthUtil.getAuthChore(finalConf);
+                            if (authChore != null) {
+                                ChoreService choreService = new ChoreService("hbaseKerberosSink");
+                                choreService.scheduleChore(authChore);
+                            }
+
                             return ConnectionFactory.createConnection(finalConf);
                         } catch (IOException e) {
                             LOG.error("Get connection fail with config:{}", finalConf);
@@ -213,6 +225,10 @@ public class HbaseOutputFormat extends MetricOutputFormat {
         if (conn != null) {
             conn.close();
             conn = null;
+        }
+
+        if (choreService != null) {
+            choreService.shutdown();
         }
     }
 
