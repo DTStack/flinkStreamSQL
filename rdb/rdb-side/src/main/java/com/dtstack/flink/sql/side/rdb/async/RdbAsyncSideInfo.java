@@ -18,8 +18,6 @@
 
 package com.dtstack.flink.sql.side.rdb.async;
 
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.PredicateInfo;
@@ -33,9 +31,11 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -86,6 +86,7 @@ public class RdbAsyncSideInfo extends SideInfo {
 
         SqlIdentifier left = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[0];
         SqlIdentifier right = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[1];
+        Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
@@ -94,7 +95,7 @@ public class RdbAsyncSideInfo extends SideInfo {
         String rightField = right.getComponent(1).getSimple();
 
         if (leftTableName.equalsIgnoreCase(sideTableName)) {
-            equalFieldList.add(leftField);
+            equalFieldList.add(physicalFields.get(leftField));
             int equalFieldIndex = -1;
             for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
@@ -110,7 +111,7 @@ public class RdbAsyncSideInfo extends SideInfo {
 
         } else if (rightTableName.equalsIgnoreCase(sideTableName)) {
 
-            equalFieldList.add(rightField);
+            equalFieldList.add(physicalFields.get(rightField));
             int equalFieldIndex = -1;
             for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
