@@ -160,6 +160,10 @@ public class FieldReplaceUtil {
                 SqlNode replaceNode = replaceSelectFieldName(sqlNode, oldTbName, newTbName, mappingField);
                 sqlCase.getThenOperands().set(i,replaceNode);
             }
+            if(sqlCase.getElseOperand() != null){
+                SqlNode replaceNode = replaceSelectFieldName(sqlCase.getElseOperand(), oldTbName, newTbName, mappingField);
+                sqlCase.setOperand(3, replaceNode);
+            }
             return sqlCase;
         } else {
             return groupNode;

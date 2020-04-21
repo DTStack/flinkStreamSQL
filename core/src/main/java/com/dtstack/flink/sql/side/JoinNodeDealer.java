@@ -233,7 +233,6 @@ public class JoinNodeDealer {
         Set<String> fieldFromJoinCondition = extractSelectFieldFromJoinCondition(joinFieldSet, fromTableNameSet, tableRef);
 
         Set<String> extractGroupByField = extractFieldFromGroupByList(parentGroupByList, fromTableNameSet, tableRef);
-
         extractSelectField.addAll(extractCondition);
         extractSelectField.addAll(fieldFromJoinCondition);
         extractSelectField.addAll(extractGroupByField);
@@ -575,6 +574,7 @@ public class JoinNodeDealer {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
         ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;

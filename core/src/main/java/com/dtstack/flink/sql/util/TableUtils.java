@@ -151,6 +151,7 @@ public class TableUtils {
                 || fieldNode.getKind() == TIMESTAMP_ADD
                 || fieldNode.getKind() == TIMESTAMP_DIFF
                 || fieldNode.getKind() == LIKE
+                || fieldNode.getKind() == COALESCE
                 ) {
             SqlBasicCall sqlBasicCall = (SqlBasicCall) fieldNode;
             for (int i = 0; i < sqlBasicCall.getOperands().length; i++) {
@@ -363,6 +364,7 @@ public class TableUtils {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
         ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
@@ -548,6 +550,7 @@ public class TableUtils {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
         ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
@@ -573,6 +576,7 @@ public class TableUtils {
 
             sqlCase.getWhenOperands().getList().forEach(sqlNode -> replaceConditionNode(sqlNode, oldTbName, newTbName, fieldReplaceRef));
             sqlCase.getThenOperands().getList().forEach(sqlNode -> replaceConditionNode(sqlNode, oldTbName, newTbName, fieldReplaceRef));
+            replaceConditionNode(sqlCase.getElseOperand(), oldTbName, newTbName, fieldReplaceRef);
         } else {
             throw new RuntimeException(String.format("not support node kind of %s to replace name now.", selectNode.getKind()));
         }
@@ -620,6 +624,7 @@ public class TableUtils {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
                 ) {
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
@@ -645,6 +650,7 @@ public class TableUtils {
 
             sqlCase.getWhenOperands().getList().forEach(sqlNode -> getConditionRefTable(sqlNode, fieldInfos));
             sqlCase.getThenOperands().getList().forEach(sqlNode -> getConditionRefTable(sqlNode, fieldInfos));
+            getConditionRefTable(sqlCase.getElseOperand(), fieldInfos);
         } else {
             throw new RuntimeException(String.format("not support node kind of %s to replace name now.", selectNode.getKind()));
         }
