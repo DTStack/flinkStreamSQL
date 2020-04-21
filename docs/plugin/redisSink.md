@@ -41,6 +41,11 @@ redis5.0
 | database | reids 的数据库地址|否||
 | tableName | redis 的表名称|是||
 | parallelism | 并行度设置|否|1|
+|timeout| 连接超时时间|否|10000|
+|maxTotal|最大连接数|否|8|
+|maxIdle|最大空闲连接数|否|8|
+|minIdle|最小空闲连接数|否||0|
+|masterName| 哨兵模式下的masterName|否||
       
   
 ## 5.样例：
