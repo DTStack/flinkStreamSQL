@@ -181,12 +181,12 @@ public class FieldReplaceUtil {
             return sqlIdentifier;
         }
 
+        sqlIdentifier = sqlIdentifier.setName(0, newTbName);
+
         String mappingFieldName = mappingField.get(fieldName);
         if(mappingFieldName == null){
             return sqlIdentifier;
         }
-
-        sqlIdentifier = sqlIdentifier.setName(0, newTbName);
         sqlIdentifier = sqlIdentifier.setName(1, mappingFieldName);
         return sqlIdentifier;
     }
