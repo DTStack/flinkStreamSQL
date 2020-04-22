@@ -116,7 +116,7 @@ public class HbaseOutputFormat extends MetricOutputFormat {
                         try {
                             ScheduledChore authChore = AuthUtil.getAuthChore(finalConf);
                             if (authChore != null) {
-                                ChoreService choreService = new ChoreService("hbaseKerberosSink");
+                                choreService = new ChoreService("hbaseKerberosSink");
                                 choreService.scheduleChore(authChore);
                             }
 
