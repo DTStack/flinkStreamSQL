@@ -1,6 +1,9 @@
-
 ## 1.格式：
-```
+
+通过建表语句中的` PERIOD FOR SYSTEM_TIME`将表标识为维表，其中`PRIMARY KEY(keyInfo)`中的keyInfo，表示用来和源表进行关联的字段，
+  维表JOIN的条件必须与`keyInfo`字段一致。
+
+```sql
  CREATE TABLE tableName(
      colName cloType,
      ...
@@ -21,65 +24,132 @@
 ```
 
 # 2.支持版本
+
  19.14.x、19.15.x、19.16.x
- 
+
 ## 3.表结构定义
-  
- |参数名称|含义|
- |----|---|
- | tableName | clickhouse表名称|
- | colName | 列名称|
- | colType | 列类型 [colType支持的类型](docs/colType.md)|
- | PERIOD FOR SYSTEM_TIME | 关键字表明该定义的表为维表信息|
- | PRIMARY KEY(keyInfo) | 维表主键定义;多个列之间用逗号隔开|
- 
-## 4.参数
 
-  |参数名称|含义|是否必填|默认值|
-  |----|---|---|----|
-  | type | 表明维表的类型 clickhouse |是||
-  | url | 连接clickhouse数据库 jdbcUrl |是||
-  | userName | clickhouse连接用户名 |是||
-  | password | clickhouse连接密码|是||
-  | tableName | clickhouse表名称|是||
-  | tableName | clickhouse 的表名称|是||
-  | cache | 维表缓存策略(NONE/LRU)|否|NONE|
-  | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
-  
-  ----------
-  > 缓存策略
-  * NONE: 不做内存缓存
-  * LRU:
-    * cacheSize: 缓存的条目数量
-    * cacheTTLMs:缓存的过期时间(ms)
-    * cacheMode: (unordered|ordered)异步加载是有序还是无序,默认有序。
-    * asyncCapacity:异步请求容量，默认1000
-    * asyncTimeout：异步请求超时时间，默认10000毫秒
+ [维表参数信息](docs/plugin/sideParams.md)
 
-## 5.样例
-```
-create table sideTable(
-    channel varchar,
-    xccount int,
-    PRIMARY KEY(channel),
+clinkhose独有的参数信息
+
+| 参数名称 | 含义                  | 是否必填 | 默认值 |
+| -------- | --------------------- | -------- | ------ |
+| type     | 维表类型， clinkhouse | 是       |        |
+| url      | 连接数据库 jdbcUrl    | 是       |        |
+| userName | 连接用户名            | 是       |        |
+| password | 连接密码              | 是       |        |
+
+## 4.样例
+
+------
+
+## ALL全量维表定义
+
+```sql
+// 定义全量维表
+CREATE TABLE sideTable(
+    id INT,
+    name VARCHAR,
+    PRIMARY KEY(id),
     PERIOD FOR SYSTEM_TIME
  )WITH(
-    type='clickhouse',
-    url='jdbc:clickhouse://172.16.8.104:3306/test?charset=utf8',
-    userName='dtstack',
-    password='abc123',
-    tableName='sidetest',
+    type ='clickhouse',
+    url ='jdbc:clickhouse://172.16.8.104:3306/zftest',
+    userName ='dtstack',
+    password ='abc123',
+    tableName ='all_test_clinkhousesql',
+    cache ='ALL',
+    cacheTTLMs ='60000',
+    parallelism ='1'
+ );
+```
+
+### LRU异步维表定义
+
+```
+CREATE TABLE sideTable(
+    id INT,
+    name VARCHAR,
+    PRIMARY KEY(id) ,
+    PERIOD FOR SYSTEM_TIME
+ )WITH(
+    type ='clickhousesql',
+    url ='jdbc:clickhousesql://172.16.8.104:3306/zftest',
+    userName ='dtstack',
+    password ='abc123',
+    tableName ='lru_test_clickhousesql',
+    partitionedJoin ='false',
     cache ='LRU',
     cacheSize ='10000',
     cacheTTLMs ='60000',
-    cacheMode='unordered',
-    asyncCapacity='1000',
-    asyncTimeout='10000'
-    parallelism ='1',
-    partitionedJoin='false'
+    asyncPoolSize ='3',
+    parallelism ='1'
  );
-
-
 ```
 
+### ClickHouseSQL异步维表关联
+
+```sql
+CREATE TABLE MyTable(
+    id int,
+    name varchar
+ )WITH(
+    type ='kafka11',
+    bootstrapServers ='172.16.8.107:9092',
+    zookeeperQuorum ='172.16.8.107:2181/kafka',
+    offsetReset ='latest',
+    topic ='cannan_zftest01',
+    timezone='Asia/Shanghai',
+    enableKeyPartitions ='false',
+    topicIsPattern ='false',
+    parallelism ='1'
+ );
+
+CREATE TABLE MyResult(
+    id INT,
+    name VARCHAR
+ )WITH(
+    type ='clickhousesql',
+    url ='jdbc:clickhousesql://172.16.8.104:3306/zftest',
+    userName ='dtstack',
+    password ='abc123',
+    tableName ='test_clickhouse_zf',
+    updateMode ='append',
+    parallelism ='1',
+    batchSize ='100',
+    batchWaitInterval ='1000'
+ );
+
+CREATE TABLE sideTable(
+    id INT,
+    name VARCHAR,
+    PRIMARY KEY(id) ,
+    PERIOD FOR SYSTEM_TIME
+ )WITH(
+    type ='clickhousesql',
+    url ='jdbc:clickhousesql://172.16.8.104:3306/zftest',
+    userName ='dtstack',
+    password ='abc123',
+    tableName ='test_clickhouse_10',
+    partitionedJoin ='false',
+    cache ='LRU',
+    cacheSize ='10000',
+    cacheTTLMs ='60000',
+    asyncPoolSize ='3',
+    parallelism ='1'
+ );
+
+insert   
+into
+    MyResult
+    select
+        m.id,
+        s.name     
+    from
+        MyTable  m    
+    join
+        sideTable s             
+            on m.id=s.id;
+```
 
