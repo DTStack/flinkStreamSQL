@@ -36,7 +36,7 @@ CREATE TABLE tableName(
 |password | mysql连接密码|是||
 |tableName | mysql表名称|是||
 |parallelism | 并行度设置|否|1|
-|batchNum | flush的大小|否|100|
+|batchSize | flush的大小|否|100|
 |batchWaitInterval | flush的时间间隔，单位ms|否|1000|
 |allReplace| true:新值替换旧值|否|false|
 |updateMode| APPEND：不回撤数据，只下发增量数据，UPSERT：先删除回撤数据，然后更新|否||
