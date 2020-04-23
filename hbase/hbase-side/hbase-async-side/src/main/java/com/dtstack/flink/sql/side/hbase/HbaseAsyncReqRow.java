@@ -146,7 +146,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.getField(conValIndex);
-            if(equalObj == null){
+            if(equalObj == null || "".equals(equalObj.toString())){
                 dealMissKey(input, resultFuture);
                 return;
             }
