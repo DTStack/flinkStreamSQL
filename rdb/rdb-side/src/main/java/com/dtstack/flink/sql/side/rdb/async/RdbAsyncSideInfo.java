@@ -87,7 +87,6 @@ public class RdbAsyncSideInfo extends SideInfo {
 
         SqlIdentifier left = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[0];
         SqlIdentifier right = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[1];
-        Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
@@ -96,7 +95,7 @@ public class RdbAsyncSideInfo extends SideInfo {
         String rightField = right.getComponent(1).getSimple();
 
         if (leftTableName.equalsIgnoreCase(sideTableName)) {
-            equalFieldList.add(physicalFields.get(leftField));
+            equalFieldList.add(leftField);
             int equalFieldIndex = -1;
             for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
@@ -112,7 +111,7 @@ public class RdbAsyncSideInfo extends SideInfo {
 
         } else if (rightTableName.equalsIgnoreCase(sideTableName)) {
 
-            equalFieldList.add(physicalFields.get(rightField));
+            equalFieldList.add(rightField);
             int equalFieldIndex = -1;
             for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
@@ -144,7 +143,7 @@ public class RdbAsyncSideInfo extends SideInfo {
                 .collect(Collectors.joining(", "));
 
         String whereClause = conditionFields.stream()
-                .map(f -> quoteIdentifier(f) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + wrapperPlaceholder(f))
+                .map(f -> quoteIdentifier(sideTableInfo.getPhysicalFields().getOrDefault(f, f)) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + wrapperPlaceholder(f))
                 .collect(Collectors.joining(" AND "));
 
         String predicateClause = predicateInfoes.stream()

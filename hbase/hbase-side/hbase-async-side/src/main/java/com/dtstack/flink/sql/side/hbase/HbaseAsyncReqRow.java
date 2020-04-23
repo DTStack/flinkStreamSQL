@@ -124,7 +124,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(), input.change());
+        CRow inputCopy = new CRow(Row.copy(input.row()), input.change());
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
