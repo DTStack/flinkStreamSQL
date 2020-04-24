@@ -101,6 +101,8 @@ public class SidePredicatesParser {
                 parseSql(unionLeft, sideTableMap, tabMapping);
                 parseSql(unionRight, sideTableMap, tabMapping);
                 break;
+            default:
+                break;
         }
     }
 
@@ -128,10 +130,10 @@ public class SidePredicatesParser {
 
             // 跳过函数
             if ((((SqlBasicCall) whereNode).getOperands()[0] instanceof SqlIdentifier)
-                    && (((SqlBasicCall) whereNode).getOperands()[1].getKind() != SqlKind.OTHER_FUNCTION)) {
+                    && (((SqlBasicCall) whereNode).getOperands()[1].getKind() == SqlKind.LITERAL)) {
                 fillPredicateInfoToList((SqlBasicCall) whereNode, predicatesInfoList, operatorName, operatorKind, 0, 1);
             } else if ((((SqlBasicCall) whereNode).getOperands()[1] instanceof SqlIdentifier)
-                    && (((SqlBasicCall) whereNode).getOperands()[0].getKind() != SqlKind.OTHER_FUNCTION)) {
+                    && (((SqlBasicCall) whereNode).getOperands()[0].getKind() == LITERAL)) {
                 fillPredicateInfoToList((SqlBasicCall) whereNode, predicatesInfoList, operatorName, operatorKind, 1, 0);
             }
         }
