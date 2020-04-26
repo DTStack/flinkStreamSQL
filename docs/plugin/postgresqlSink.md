@@ -43,7 +43,7 @@ CREATE TABLE tableName(
 |batchSize | flush的大小|否|100|
 |batchWaitInterval | flush的时间间隔，单位ms|否|1000|
 |allReplace| true:新值替换旧值|否|false|
-|updateMode| APPEND：不回撤数据，只下发增量数据，UPSERT：先删除回撤数据，然后更新|否||
+|updateMode| APPEND：不回撤数据，只下发增量数据，UPSERT：先删除回撤数据，然后更新|否|结果表设置主键则为UPSERT|
 
 ## 5.样例：
 
