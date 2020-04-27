@@ -49,8 +49,8 @@
   | database  | cassandra表名称|是||
   | cache | 维表缓存策略(NONE/LRU)|否|NONE|
   | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
-  | maxRequestsPerConnection | 每个连接最多允许64个并发请求|否|1|
-  | coreConnectionsPerHost   | Cassandra集群里的每个机器都最少连接数|否|8|
+  | maxRequestsPerConnection | 每个连接允许的并发请求数|否|1|
+  | coreConnectionsPerHost   | 每台主机连接的核心数|否|8|
   | maxConnectionsPerHost    | Cassandra集群里的每个机器都最多连接数|否|32768|
   | maxQueueSize             | Cassandra队列大小|否|100000|
   | readTimeoutMillis        | Cassandra读超时|否|60000|
