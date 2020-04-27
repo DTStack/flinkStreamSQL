@@ -88,7 +88,7 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow copyCrow = new CRow(input.row(), input.change());
+        CRow copyCrow = new CRow(Row.copy(input.row()), input.change());
         JsonArray inputParams = new JsonArray();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = copyCrow.row().getField(conValIndex);

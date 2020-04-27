@@ -100,6 +100,7 @@ public class HbaseSideParser extends AbsSideTableParser {
         sideTableInfo.addFieldClass(fieldClass);
         sideTableInfo.addFieldType(fieldType);
         sideTableInfo.putAliasNameRef(aliasStr, fieldName);
+        sideTableInfo.addPhysicalMappings(aliasStr, fieldName);
     }
 
 
