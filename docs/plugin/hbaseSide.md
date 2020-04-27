@@ -29,7 +29,7 @@
 | columnFamily:columnName | hbase中的列族名称和列名称 |
 | alias | hbase 中的列对应到flink中注册的列名称 |
 | PERIOD FOR SYSTEM_TIME | 关键字表明该定义的表为维表信息|
-| PRIMARY KEY(keyInfo) | 维表主键定义;hbase 维表rowkey的构造方式;可选择的构造包括 md5(alias + alias), '常量',也包括上述方式的自由组合 |
+| PRIMARY KEY(keyInfo) | 维表主键定义;hbase 维表rowkey的构造方式:可选择的构造包括 md5(alias + alias), '常量',也包括上述方式的自由组合 |
   
 ## 4.参数
 
@@ -105,7 +105,8 @@ ROW     COLUMN+CELL
  2      column=wtz:info, timestamp=1587088858564, value=sql                                                                        
  2      column=wtz:message, timestamp=1587088840507, value=stream
 ```
-
+在hbase中，rowKey是一个二进制码流，可以为任意字符串，flinkStreamSql读取rowKey并通过rowKey唯一确定数据，对rowKey没有任何限制,对rowKey可选择的构造包括 md5(alias + alias), '常量',也可以它们的自由组合。
+在本次案例中，rowKey为了简单，设置成了"0,1,2"这样的数值型字符，若有必要，也可以设计得更为复杂。
 ### hbase异步维表关联完整案例
 ```
 CREATE TABLE MyTable(
