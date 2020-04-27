@@ -98,7 +98,6 @@ create table sideTable(
     partitionedJoin='false'
  );
 
-
 ```
 
 ### MySQL异步维表关联
