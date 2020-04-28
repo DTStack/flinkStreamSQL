@@ -90,6 +90,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
         SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         Map<String, Object> hbaseConfig = hbaseSideTableInfo.getHbaseConfig();
