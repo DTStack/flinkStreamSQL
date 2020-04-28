@@ -105,9 +105,9 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
 
                     dealMissKey(input, resultFuture);
 
-                    if(openCache){
-                        sideCache.putCache(rowKeyStr, CacheMissVal.getMissKeyObj());
-                    }
+                    // if(openCache){
+                    //    sideCache.putCache(rowKeyStr, CacheMissVal.getMissKeyObj());
+                    // }
                 }
             }catch (Exception e){
                 resultFuture.completeExceptionally(e);
