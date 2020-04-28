@@ -94,7 +94,7 @@ public class RowKeyEqualModeDealer extends AbsRowKeyModeDealer {
 
                         Row row = fillData(input, sideVal);
                         if(openCache){
-                            sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
+                            sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, sideVal));
                         }
 
                         resultFuture.complete(Collections.singleton(row));
