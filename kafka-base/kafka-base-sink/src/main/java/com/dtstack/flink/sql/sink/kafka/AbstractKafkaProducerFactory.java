@@ -25,7 +25,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.formats.avro.AvroRowSerializationSchema;
 import org.apache.flink.formats.csv.CsvRowSerializationSchema;
-import org.apache.flink.formats.json.JsonRowSerializationSchema;
+import org.apache.flink.formats.json.DTJsonRowSerializationSchema;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.types.Row;
@@ -62,9 +62,9 @@ public abstract class AbstractKafkaProducerFactory {
         if (FormatType.JSON.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
 
             if (StringUtils.isNotBlank(kafkaSinkTableInfo.getSchemaString())) {
-                serializationSchema = new JsonRowSerializationSchema(kafkaSinkTableInfo.getSchemaString());
+                serializationSchema = new DTJsonRowSerializationSchema(kafkaSinkTableInfo.getSchemaString());
             } else if (typeInformation != null && typeInformation.getArity() != 0) {
-                serializationSchema = new JsonRowSerializationSchema(typeInformation);
+                serializationSchema = new DTJsonRowSerializationSchema(typeInformation);
             } else {
                 throw new IllegalArgumentException("sinkDataType:" + FormatType.JSON.name() + " must set schemaString（JSON Schema）or TypeInformation<Row>");
             }
