@@ -148,7 +148,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
                     return;
                 } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
-                        Row row = fillData(inputCopy.row(), val);
+                        Row row = fillData(inputCopy.row(), val.getContent());
                         resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
                     } catch (Exception e) {
                         dealFillDataError(resultFuture, e, inputCopy);

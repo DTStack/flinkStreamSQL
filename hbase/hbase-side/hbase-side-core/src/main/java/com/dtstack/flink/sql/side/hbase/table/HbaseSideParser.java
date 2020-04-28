@@ -61,6 +61,7 @@ public class HbaseSideParser extends AbsSideTableParser {
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         HbaseSideTableInfo hbaseTableInfo = new HbaseSideTableInfo();
         hbaseTableInfo.setName(tableName);
+        parseCacheProp(hbaseTableInfo, props);
         parseFieldsInfo(fieldsInfo, hbaseTableInfo);
         hbaseTableInfo.setTableName((String) props.get(TABLE_NAME_KEY.toLowerCase()));
         hbaseTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
