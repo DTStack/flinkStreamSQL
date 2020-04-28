@@ -89,6 +89,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
         SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
