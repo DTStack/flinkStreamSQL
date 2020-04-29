@@ -25,10 +25,10 @@
 <!--        <module>sqlserver</module>-->
 <!--        <module>oracle</module>-->
 <!--        <module>cassandra</module>-->
-<!--        <module>kudu</module>-->
+        <module>kudu</module>
 <!--        <module>postgresql</module>-->
 <!--        <module>serversocket</module>-->
-<!--        <module>console</module>-->
+        <module>console</module>
 <!--        <module>clickhouse</module>-->
 <!--        <module>impala</module>-->
 <!--        <module>db2</module>-->
