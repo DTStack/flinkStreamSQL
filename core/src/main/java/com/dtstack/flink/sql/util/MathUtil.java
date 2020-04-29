@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.util;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * Date: 2017/4/21
@@ -178,5 +179,21 @@ public class MathUtil {
         }
 
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Short.");
+    }
+
+    public static BigDecimal getBigDecimal(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof String) {
+            return new BigDecimal((String) obj);
+        } else if (obj instanceof BigDecimal) {
+            return (BigDecimal) obj;
+        } else if (obj instanceof BigInteger) {
+            return new BigDecimal((BigInteger) obj);
+        } else if (obj instanceof Number) {
+            return BigDecimal.valueOf(((Number) obj).doubleValue());
+        }
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to BigDecimal.");
     }
 }

@@ -68,6 +68,10 @@ public class HbaseUtils {
             case "double":
                 return MathUtil.getDoubleVal(data);
 
+            case "decimal":
+            case "decimalunsigned":
+                return MathUtil.getBigDecimal(data);
+
             default:
                 throw new RuntimeException("not support type of " + type);
         }
