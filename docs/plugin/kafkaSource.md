@@ -386,3 +386,38 @@ package com.XXXX;
          }                                                        
  }
  ```
+
+# 四、protobuf格式数据源
+根据protobuf的descriptor进行数据源解析，proto字段顺序和原表字段定义顺序必须一致！
+## 1.参数：
+ 
+|参数名称|含义|是否必填|默认值|
+|----|---|---|---|
+|type | kafka10 | 是||
+|bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
+|zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||
+|topic | 需要读取的 topic 名称|是||
+|offsetReset | 读取的topic 的offset初始位置[latest&#124;earliest]|否|latest|
+|parallelism | 并行度设置 |否|1|
+|sourcedatatype | 数据类型|是 |protobuf|
+|descriptorHttpGetUrl | protobuf descriptor获取的url | 是 | 例：http://localhost:8080/protobuf/descriptor
+**kafka相关参数可以自定义，使用kafka.开头即可。**
+
+## 2.样例：
+```
+CREATE TABLE MyTable(
+    name varchar,
+    channel varchar,
+    pv int,
+    xctime bigint
+ )WITH(
+    type ='kafka',
+    bootstrapServers ='localhost:9092',
+    zookeeperQuorum ='localhost:2181/kafka',
+    offsetReset ='latest',
+    topic ='source_test',
+    parallelism ='1',
+    sourceDataType ='protobuf',
+    descriptorHttpGetUrl ='http://localhost:8080/protobuf/descriptor'
+ );
+ ```

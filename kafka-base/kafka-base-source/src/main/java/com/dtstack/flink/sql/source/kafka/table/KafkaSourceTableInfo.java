@@ -20,13 +20,15 @@
 
 package com.dtstack.flink.sql.source.kafka.table;
 
-import com.dtstack.flink.sql.format.FormatType;
-import com.dtstack.flink.sql.table.SourceTableInfo;
-import com.google.common.base.Preconditions;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.dtstack.flink.sql.format.FormatType;
+import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.google.common.base.Preconditions;
 
 /**
  * Reason:
@@ -49,6 +51,17 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 
 	public static final String TOPICISPATTERN_KEY = "topicIsPattern";
 
+	public static final String SOURCE_DATA_TYPE_KEY = "sourceDataType";
+
+	// avro
+	public static final String SCHEMA_STRING_KEY = "schemaString";
+
+	// protobuf
+	public static final String DESCRIPTOR_HTTP_GET_URL_KEY = "descriptorHttpGetUrl";
+
+	// protobuf
+	public static final String MESSAGE_CLASS_STRING_KEY = "messageClassString";
+
 	private String bootstrapServers;
 
 	private String topic;
@@ -67,6 +80,10 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 	private String schemaString;
 
 	private String fieldDelimiter;
+
+	private String descriptorHttpGetUrl;
+
+	private String messageClassString;
 
 	public String getBootstrapServers() {
 		return bootstrapServers;
@@ -165,6 +182,33 @@ public class KafkaSourceTableInfo extends SourceTableInfo {
 		Preconditions.checkNotNull(getType(), "kafka of type is required");
 		Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
 		Preconditions.checkNotNull(topic, "kafka of topic is required");
+
+		if (FormatType.PROTOBUF.name().equalsIgnoreCase(getSourceDataType())) {
+			if (StringUtils.isBlank(getDescriptorHttpGetUrl()) && StringUtils.isBlank(getMessageClassString())) {
+				throw new RuntimeException("descriptor http get url and message class can not be null");
+			}
+		} else if (FormatType.AVRO.name().equalsIgnoreCase(getSourceDataType())) {
+			if (StringUtils.isBlank(getSchemaString())) {
+				throw new RuntimeException("schema string can not be null");
+			}
+		}
+
 		return false;
+	}
+
+	public String getDescriptorHttpGetUrl() {
+		return descriptorHttpGetUrl;
+	}
+
+	public void setDescriptorHttpGetUrl(String descriptorHttpGetUrl) {
+		this.descriptorHttpGetUrl = descriptorHttpGetUrl;
+	}
+
+	public String getMessageClassString() {
+		return messageClassString;
+	}
+
+	public void setMessageClassString(String messageClassString) {
+		this.messageClassString = messageClassString;
 	}
 }

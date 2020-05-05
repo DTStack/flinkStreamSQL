@@ -73,7 +73,7 @@ public class SqlTree {
         preDealTableMap.put(tableName, table);
     }
 
-    public void addTmplTableInfo(String tableName, CreateTmpTableParser.SqlParserResult table){
+    public void addTmpTableInfo(String tableName, CreateTmpTableParser.SqlParserResult table){
         tmpTableMap.put(tableName, table);
     }
 

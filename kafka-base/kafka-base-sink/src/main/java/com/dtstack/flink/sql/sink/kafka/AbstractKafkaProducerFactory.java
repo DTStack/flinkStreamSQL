@@ -17,9 +17,9 @@
  */
 package com.dtstack.flink.sql.sink.kafka;
 
-import com.dtstack.flink.sql.format.FormatType;
-import com.dtstack.flink.sql.format.SerializationMetricWrapper;
-import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
+import java.util.Optional;
+import java.util.Properties;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -30,8 +30,13 @@ import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.types.Row;
 
-import java.util.Optional;
-import java.util.Properties;
+import com.dtstack.flink.MoreSuppliers;
+import com.dtstack.flink.formats.protobuf.ProtobufRowFormatFactory;
+import com.dtstack.flink.formats.protobuf.ProtobufRowSerializationSchema;
+import com.dtstack.flink.sql.format.FormatType;
+import com.dtstack.flink.sql.format.SerializationMetricWrapper;
+import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
+import com.google.protobuf.GeneratedMessageV3;
 
 /**
  * 抽象的kafka producer 的工厂类
@@ -57,6 +62,7 @@ public abstract class AbstractKafkaProducerFactory {
         return new SerializationMetricWrapper(createSerializationSchema(kafkaSinkTableInfo, typeInformation));
     }
 
+    @SuppressWarnings("unchecked")
     private SerializationSchema<Row> createSerializationSchema(KafkaSinkTableInfo kafkaSinkTableInfo, TypeInformation<Row> typeInformation) {
         SerializationSchema<Row> serializationSchema = null;
         if (FormatType.JSON.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
@@ -87,6 +93,26 @@ public abstract class AbstractKafkaProducerFactory {
 
             serializationSchema = new AvroRowSerializationSchema(kafkaSinkTableInfo.getSchemaString());
 
+        } else if (FormatType.PROTOBUF.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
+
+            if (StringUtils.isNotBlank(kafkaSinkTableInfo.getDescriptorHttpGetUrl())) {
+                byte[] descriptorBytes = ProtobufRowFormatFactory.httpGetDescriptorBytes(kafkaSinkTableInfo.getDescriptorHttpGetUrl());
+
+                serializationSchema = new ProtobufRowSerializationSchema(descriptorBytes);
+            } else if (StringUtils.isNotBlank(kafkaSinkTableInfo.getMessageClassString())) {
+
+                Class<?> messageClazz = MoreSuppliers.throwing(() -> Class.forName(kafkaSinkTableInfo.getMessageClassString()));
+
+                if (!GeneratedMessageV3.class.isAssignableFrom(messageClazz)) {
+                    throw new RuntimeException("message class is not GeneratedMessageV3 type");
+                }
+
+                serializationSchema = new ProtobufRowSerializationSchema((Class<? extends GeneratedMessageV3>) messageClazz);
+
+            } else {
+
+                throw new IllegalArgumentException("sinkDataType:" + FormatType.PROTOBUF.name() + " must set descriptorHttpGetUrl or messageClassString");
+            }
         }
 
         if (null == serializationSchema) {

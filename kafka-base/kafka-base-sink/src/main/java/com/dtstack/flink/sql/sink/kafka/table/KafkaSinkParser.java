@@ -46,6 +46,16 @@ public class KafkaSinkParser extends AbsTableParser {
             kafkaSinkTableInfo.setSinkDataType(FormatType.JSON.name());
         }
 
+        if (FormatType.PROTOBUF.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
+            kafkaSinkTableInfo.setDescriptorHttpGetUrl((String) props.get(
+                    KafkaSinkTableInfo.DESCRIPTOR_HTTP_GET_URL_KEY.toLowerCase()));
+            kafkaSinkTableInfo.setMessageClassString((String) props.get(
+                    KafkaSinkTableInfo.MESSAGE_CLASS_STRING_KEY.toLowerCase()));
+        } else if (FormatType.AVRO.name().equalsIgnoreCase(kafkaSinkTableInfo.getSinkDataType())) {
+            kafkaSinkTableInfo.setSchemaString((String) props.get(
+                    KafkaSinkTableInfo.SCHEMA_STRING_KEY.toLowerCase()));
+        }
+
         kafkaSinkTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSinkTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
         kafkaSinkTableInfo.setTopic(MathUtil.getString(props.get(KafkaSinkTableInfo.TOPIC_KEY.toLowerCase())));
 
