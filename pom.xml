@@ -34,6 +34,7 @@
         <module>db2</module>
         <module>polardb</module>
         <module>elasticsearch6</module>
+        <module>flink-protobuf</module>
 
     </modules>
 

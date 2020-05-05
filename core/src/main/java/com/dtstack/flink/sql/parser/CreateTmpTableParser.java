@@ -86,7 +86,7 @@ public class CreateTmpTableParser implements IParser {
             String transformSelectSql = DtStringUtil.replaceIgnoreQuota(sqlNode.toString(), "`", "");
             sqlParseResult.setExecSql(transformSelectSql);
             sqlTree.addTmpSql(sqlParseResult);
-            sqlTree.addTmplTableInfo(tableName, sqlParseResult);
+            sqlTree.addTmpTableInfo(tableName, sqlParseResult);
         } else {
             if (EMPTYVIEW.matcher(sql).find())
             {
@@ -100,7 +100,7 @@ public class CreateTmpTableParser implements IParser {
                 CreateTmpTableParser.SqlParserResult sqlParseResult = new CreateTmpTableParser.SqlParserResult();
                 sqlParseResult.setFieldsInfoStr(fieldsInfoStr);
                 sqlParseResult.setTableName(tableName);
-                sqlTree.addTmplTableInfo(tableName, sqlParseResult);
+                sqlTree.addTmpTableInfo(tableName, sqlParseResult);
             }
 
         }

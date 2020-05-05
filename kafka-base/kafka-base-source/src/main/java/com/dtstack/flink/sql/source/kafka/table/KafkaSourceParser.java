@@ -19,11 +19,13 @@
 
 package com.dtstack.flink.sql.source.kafka.table;
 
+import java.util.Map;
+import java.util.Optional;
+
+import com.dtstack.flink.sql.format.FormatType;
 import com.dtstack.flink.sql.table.AbsSourceParser;
 import com.dtstack.flink.sql.table.TableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
-
-import java.util.Map;
 
 /**
  * Reason:
@@ -38,7 +40,23 @@ public class KafkaSourceParser extends AbsSourceParser {
 
         KafkaSourceTableInfo kafkaSourceTableInfo = new KafkaSourceTableInfo();
         kafkaSourceTableInfo.setName(tableName);
-        kafkaSourceTableInfo.setType(MathUtil.getString(props.get(KafkaSourceTableInfo.TYPE_KEY.toLowerCase())));
+
+        Optional.ofNullable(props.get(KafkaSourceTableInfo.TYPE_KEY.toLowerCase()))
+                .ifPresent((Object type) -> kafkaSourceTableInfo.setType((String) type));
+
+        Optional.ofNullable(props.get(KafkaSourceTableInfo.SOURCE_DATA_TYPE_KEY.toLowerCase()))
+                .ifPresent((Object sourceDataType) -> kafkaSourceTableInfo.setSourceDataType((String) sourceDataType));
+
+        if (FormatType.PROTOBUF.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
+            kafkaSourceTableInfo.setDescriptorHttpGetUrl(
+                    (String) props.get(KafkaSourceTableInfo.DESCRIPTOR_HTTP_GET_URL_KEY.toLowerCase()));
+            kafkaSourceTableInfo.setMessageClassString(
+                    (String) props.get(KafkaSourceTableInfo.MESSAGE_CLASS_STRING_KEY.toLowerCase()));
+        } else if (FormatType.AVRO.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
+            kafkaSourceTableInfo.setSchemaString(
+                    (String) props.get(KafkaSourceTableInfo.SCHEMA_STRING_KEY.toLowerCase()));
+        }
+
         parseFieldsInfo(fieldsInfo, kafkaSourceTableInfo);
 
         kafkaSourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));

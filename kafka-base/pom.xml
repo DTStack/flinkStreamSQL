@@ -78,6 +78,12 @@ under the License.
             <version>${flink.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>flink-protobuf</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
     </dependencies>
 
 
