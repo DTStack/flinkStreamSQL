@@ -89,6 +89,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
         SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
@@ -147,7 +148,7 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
                     return;
                 } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
-                        Row row = fillData(inputCopy.row(), val);
+                        Row row = fillData(inputCopy.row(), val.getContent());
                         resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
                     } catch (Exception e) {
                         dealFillDataError(resultFuture, e, inputCopy);
