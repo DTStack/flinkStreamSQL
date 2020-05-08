@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
- 
-
 package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
@@ -42,9 +40,7 @@ import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -73,9 +69,9 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
     private transient AbstractRowKeyModeDealer rowKeyMode;
 
-    private String tableName;
+    private final String tableName;
 
-    private String[] colNames;
+    private final String[] colNames;
 
     public HbaseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new HbaseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -131,7 +127,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
                 dealMissKey(inputCopy, resultFuture);
                 return;
             }
-            refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
+            refData.put(getAliasFieldsName(sideInfo.getEqualFieldList().get(i), sideInfo.getSideTableInfo().getPhysicalFields()), equalObj);
         }
 
         String rowKeyStr = ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
@@ -187,6 +183,23 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         }
 
         return row;
+    }
+
+    // 根据实际字段名获得对应的别名
+    public String getAliasFieldsName(String realFieldName, Map<String, String> physicalFields) {
+        Collection<String> values = physicalFields.values();
+        Set<String> keySet = physicalFields.keySet();
+        if (!values.contains(realFieldName)) {
+            // TODO Error ? or Warn ?
+            LOG.warn(realFieldName + "不存在别名");
+        } else {
+            for (String key : keySet) {
+                if (physicalFields.get(key).equals(realFieldName)) {
+                    return key;
+                }
+            }
+        }
+        return realFieldName;
     }
 
     @Override
