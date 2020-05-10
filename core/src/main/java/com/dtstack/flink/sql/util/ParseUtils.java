@@ -36,14 +36,13 @@
 
 package com.dtstack.flink.sql.util;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashBiMap;
 import org.apache.calcite.sql.*;
-import org.apache.calcite.sql.fun.SqlBetweenOperator;
-import org.apache.calcite.sql.fun.SqlCase;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
-import java.util.List;
-import java.util.Map;
+import org.apache.flink.api.java.tuple.Tuple2;
+
+import java.util.*;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -53,11 +52,11 @@ import static org.apache.calcite.sql.SqlKind.*;
  * @Description:
  */
 public class ParseUtils {
-    public static void parseAnd(SqlNode conditionNode, List<SqlNode> sqlNodeList){
-        if(conditionNode.getKind() == SqlKind.AND && ((SqlBasicCall)conditionNode).getOperandList().size()==2){
-            parseAnd(((SqlBasicCall)conditionNode).getOperands()[0], sqlNodeList);
-            sqlNodeList.add(((SqlBasicCall)conditionNode).getOperands()[1]);
-        }else{
+    public static void parseAnd(SqlNode conditionNode, List<SqlNode> sqlNodeList) {
+        if (conditionNode.getKind() == SqlKind.AND && ((SqlBasicCall) conditionNode).getOperandList().size() == 2) {
+            parseAnd(((SqlBasicCall) conditionNode).getOperands()[0], sqlNodeList);
+            sqlNodeList.add(((SqlBasicCall) conditionNode).getOperands()[1]);
+        } else {
             sqlNodeList.add(conditionNode);
         }
     }
@@ -76,180 +75,110 @@ public class ParseUtils {
     }
 
     public static String transformNotEqualsOperator(SqlKind sqlKind) {
-        if (StringUtils.equalsIgnoreCase(sqlKind.toString(), "NOT_EQUALS")){
+        if (StringUtils.equalsIgnoreCase(sqlKind.toString(), "NOT_EQUALS")) {
             return "!=";
         }
         return sqlKind.sql;
     }
 
-    public static SqlNode replaceJoinConditionTabName(SqlNode conditionNode, Map<String, String> mappingTable) {
-        SqlNode[] operands = ((SqlBasicCall) conditionNode).getOperands();
+    /**
+     *  parse multi join table name, child query RealTabName is null
+     * @param leftJoin
+     * @param aliasAndRealTabName
+     */
+    public static void parseLeftNodeTableName(SqlNode leftJoin, List<Tuple2<String, String>> aliasAndRealTabName, Set<String> sideTableSet) {
+        if (leftJoin.getKind() == IDENTIFIER) {
+            SqlIdentifier sqlIdentifier = (SqlIdentifier) leftJoin;
+            if (sqlIdentifier.names.size() == 1 && !sideTableSet.contains(sqlIdentifier.names.get(0))) {
+                aliasAndRealTabName.add(new Tuple2<>(sqlIdentifier.names.get(0), sqlIdentifier.names.get(0)));
+            }
+        } else if (leftJoin.getKind() == AS) {
+            SqlNode sqlNode = ((SqlBasicCall) leftJoin).getOperands()[0];
+            if (sideTableSet.contains(sqlNode.toString())) {
+                return;
+            }
+            if (sqlNode.getKind() == IDENTIFIER) {
+                aliasAndRealTabName.add(new Tuple2<>(((SqlBasicCall) leftJoin).getOperands()[1].toString(), sqlNode.toString()));
+            } else {
+                // child query
+                aliasAndRealTabName.add(new Tuple2<>(((SqlBasicCall) leftJoin).getOperands()[1].toString(), null));
+            }
+        } else if (leftJoin.getKind() == JOIN) {
+            parseLeftNodeTableName(((SqlJoin) leftJoin).getLeft(), aliasAndRealTabName, sideTableSet);
+            parseLeftNodeTableName(((SqlJoin) leftJoin).getRight(), aliasAndRealTabName, sideTableSet);
+        }
+    }
 
-        for (int i = 0; i < operands.length; i++) {
-            SqlNode sqlNode = operands[i];
-            SqlNode replaceNode = replaceNodeInfo(sqlNode, mappingTable);
-            operands[i] = replaceNode;
+    public static SqlNode replaceJoinConditionTabName(SqlNode conditionNode, HashBasedTable<String, String, String> mappingTable, String tabAlias) {
+        if (conditionNode.getKind() == SqlKind.AND && ((SqlBasicCall) conditionNode).getOperandList().size() == 2) {
+            SqlNode[] operands = ((SqlBasicCall) conditionNode).getOperands();
+            Arrays.stream(operands).forEach(op -> replaceJoinConditionTabName(op, mappingTable, tabAlias));
+        } else {
+            SqlNode[] operands = ((SqlBasicCall) conditionNode).getOperands();
+            for (int i = 0; i < operands.length; i++) {
+                SqlNode sqlNode = operands[i];
+                SqlNode replaceNode = replaceNodeInfo(sqlNode, mappingTable, tabAlias);
+                operands[i] = replaceNode;
+            }
         }
         return conditionNode;
     }
 
-    /**
-     *   m.id covert m_x_0.id
-     * @param selectNode
-     * @param mapTab
-     * @return
-     */
-    public static SqlNode replaceSelectFieldTabName(SqlNode selectNode, Map<String,String> mapTab) {
-        if (selectNode.getKind() == AS) {
-            SqlNode leftNode = ((SqlBasicCall) selectNode).getOperands()[0];
-            SqlNode replaceNode = replaceSelectFieldTabName(leftNode, mapTab);
-            if (replaceNode != null) {
-                ((SqlBasicCall) selectNode).getOperands()[0] = replaceNode;
-            }
-
-            return selectNode;
-        }else if(selectNode.getKind() == IDENTIFIER){
-            SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
-
-            if(sqlIdentifier.names.size() == 1){
-                return selectNode;
-            }
-
-            String newTableName = ParseUtils.getRootName(mapTab, sqlIdentifier.getComponent(0).getSimple());
-
-            if(newTableName == null){
-               return  selectNode;
-            }
-            sqlIdentifier = sqlIdentifier.setName(0, newTableName);
-            return sqlIdentifier;
-
-        }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
-            return selectNode;
-        }else if(  AGGREGATE.contains(selectNode.getKind())
-                || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
-                || COMPARISON.contains(selectNode.getKind())
-                || selectNode.getKind() == OTHER_FUNCTION
-                || selectNode.getKind() == DIVIDE
-                || selectNode.getKind() == CAST
-                || selectNode.getKind() == TRIM
-                || selectNode.getKind() == TIMES
-                || selectNode.getKind() == PLUS
-                || selectNode.getKind() == NOT_IN
-                || selectNode.getKind() == OR
-                || selectNode.getKind() == AND
-                || selectNode.getKind() == MINUS
-                || selectNode.getKind() == TUMBLE
-                || selectNode.getKind() == TUMBLE_START
-                || selectNode.getKind() == TUMBLE_END
-                || selectNode.getKind() == SESSION
-                || selectNode.getKind() == SESSION_START
-                || selectNode.getKind() == SESSION_END
-                || selectNode.getKind() == HOP
-                || selectNode.getKind() == HOP_START
-                || selectNode.getKind() == HOP_END
-                || selectNode.getKind() == BETWEEN
-                || selectNode.getKind() == IS_NULL
-                || selectNode.getKind() == IS_NOT_NULL
-                || selectNode.getKind() == CONTAINS
-                || selectNode.getKind() == TIMESTAMP_ADD
-                || selectNode.getKind() == TIMESTAMP_DIFF
-
-                ){
-            SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
-            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
-                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
-                if(sqlNode instanceof SqlLiteral){
-                    continue;
-                }
-
-                if(sqlNode instanceof SqlDataTypeSpec){
-                    continue;
-                }
-
-                SqlNode replaceNode = replaceSelectFieldTabName(sqlNode, mapTab);
-                if(replaceNode == null){
-                    continue;
-                }
-
-                sqlBasicCall.getOperands()[i] = replaceNode;
-            }
-
-            return selectNode;
-        }else if(selectNode.getKind() == CASE){
-            System.out.println("selectNode");
-            SqlCase sqlCase = (SqlCase) selectNode;
-            SqlNodeList whenOperands = sqlCase.getWhenOperands();
-            SqlNodeList thenOperands = sqlCase.getThenOperands();
-            SqlNode elseNode = sqlCase.getElseOperand();
-
-            replaceWhenOrThenSelectFieldTabName(mapTab, whenOperands);
-            replaceWhenOrThenSelectFieldTabName(mapTab, thenOperands);
-
-            ((SqlCase) selectNode).setOperand(3, replaceSelectFieldTabName(elseNode, mapTab));
-            return selectNode;
-        }else if(selectNode.getKind() == OTHER){
-            //不处理
-            return selectNode;
-        }else{
-            throw new RuntimeException(String.format("not support node kind of %s to replace name now.", selectNode.getKind()));
-        }
-    }
-
-    private static void replaceWhenOrThenSelectFieldTabName(Map<String, String> mapTab, SqlNodeList thenOperands) {
-        for(int i=0; i<thenOperands.size(); i++){
-            SqlNode oneOperand = thenOperands.get(i);
-            SqlNode replaceNode = replaceSelectFieldTabName(oneOperand, mapTab);
-            if (replaceNode != null) {
-                thenOperands.set(i, replaceNode);
-            }
-        }
-    }
-
-    public static SqlNode replaceNodeInfo(SqlNode parseNode, Map<String, String> mapTab) {
+    public static SqlNode replaceNodeInfo(SqlNode parseNode, HashBasedTable<String, String, String> mappingTable, String tabAlias) {
         if (parseNode.getKind() == IDENTIFIER) {
             SqlIdentifier sqlIdentifier = (SqlIdentifier) parseNode;
 
-            String newTableName = ParseUtils.getRootName(mapTab, sqlIdentifier.getComponent(0).getSimple());;
 
-            if (newTableName == null || sqlIdentifier.names.size() == 1) {
-                return sqlIdentifier;
-            }
-            sqlIdentifier = sqlIdentifier.setName(0, newTableName);
             return sqlIdentifier;
-        } else if (parseNode instanceof SqlBasicCall) {
-            SqlBasicCall sqlBasicCall = (SqlBasicCall) parseNode;
-            for (int i = 0; i < sqlBasicCall.getOperandList().size(); i++) {
-                SqlNode sqlNode = sqlBasicCall.getOperandList().get(i);
-                SqlNode replaceNode = replaceSelectFieldTabName(sqlNode, mapTab);
-                sqlBasicCall.getOperands()[i] = replaceNode;
-            }
-
-            return sqlBasicCall;
-        } else {
-            return parseNode;
         }
+        return parseNode;
     }
 
-
-    public static String getRootName(Map<String, String>  maps, String key) {
-        String res = null;
-        while (maps.get(key) !=null) {
-            res = maps.get(key);
-            key = res;
-        }
-        return res;
+    public static void fillFieldNameMapping(HashBasedTable<String, String, String> midTableMapping, String[] fieldNames, String tableAlias) {
+        Arrays.asList(fieldNames).forEach(fieldName -> {
+            String mappingTableName = dealDuplicateFieldName(midTableMapping, fieldName);
+            midTableMapping.put(tableAlias, fieldName, mappingTableName);
+        });
     }
 
-    public static void parseLeftNodeTableName(SqlNode leftJoin, List<String> tablesName) {
-        if (leftJoin.getKind() == IDENTIFIER) {
-            SqlIdentifier sqlIdentifier = (SqlIdentifier) leftJoin;
-            tablesName.add(sqlIdentifier.names.get(0));
-        } else if (leftJoin.getKind() == AS) {
-            SqlNode sqlNode = ((SqlBasicCall) leftJoin).getOperands()[1];
-            tablesName.add(sqlNode.toString());
-        } else if (leftJoin.getKind() == JOIN) {
-            parseLeftNodeTableName(((SqlJoin) leftJoin).getLeft(), tablesName);
-            parseLeftNodeTableName(((SqlJoin) leftJoin).getRight(), tablesName);
+    public static String dealDuplicateFieldName(HashBasedTable<String, String, String> mappingTable, String fieldName) {
+        String mappingFieldName = fieldName;
+        int index = 1;
+        while (!mappingTable.column(mappingFieldName).isEmpty()) {
+            mappingFieldName = suffixWithChar(fieldName, '0', index);
+            index++;
         }
+        return mappingFieldName;
+    }
+
+    public static String dealDuplicateFieldName(HashBiMap<String, String> refFieldMap, String fieldName) {
+        String mappingFieldName = fieldName;
+        int index = 1;
+        while (refFieldMap.inverse().get(mappingFieldName) != null ) {
+            mappingFieldName = suffixWithChar(fieldName, '0', index);
+            index++;
+        }
+
+        return mappingFieldName;
+    }
+
+    public static String dealDuplicateFieldName(Map<String, String> refFieldMap, String fieldName) {
+        String mappingFieldName = fieldName;
+        int index = 1;
+        while (refFieldMap.containsKey(mappingFieldName)){
+            mappingFieldName = suffixWithChar(fieldName, '0', index);
+            index++;
+        }
+
+        return mappingFieldName;
+    }
+
+    public static String suffixWithChar(String str, char padChar, int repeat){
+        StringBuilder stringBuilder = new StringBuilder(str);
+        for(int i=0; i<repeat; i++){
+            stringBuilder.append(padChar);
+        }
+
+        return stringBuilder.toString();
     }
 }

@@ -52,6 +52,8 @@ public class HbaseTableInfo extends TargetTableInfo {
 
     private String tableName;
 
+    private String updateMode;
+
     public HbaseTableInfo(){
         setType(CURR_TYPE);
     }
@@ -126,6 +128,14 @@ public class HbaseTableInfo extends TargetTableInfo {
 
     public void setColumnTypes(String[] columnTypes) {
         this.columnTypes = columnTypes;
+    }
+
+    public String getUpdateMode() {
+        return updateMode;
+    }
+
+    public void setUpdateMode(String updateMode) {
+        this.updateMode = updateMode;
     }
 
     @Override

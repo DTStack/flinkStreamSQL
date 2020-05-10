@@ -17,8 +17,12 @@
  */
 package com.dtstack.flink.sql.sink.rdb.table;
 
+import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.base.Preconditions;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.Arrays;
 
 /**
  * Reason:
@@ -49,6 +53,10 @@ public class RdbTableInfo extends TargetTableInfo {
 
     public static final String SCHEMA_KEY = "schema";
 
+    public static final String ALLREPLACE_KEY = "allReplace";
+
+    public static final String UPDATE_KEY = "updateMode";
+
     private String url;
 
     private String tableName;
@@ -66,6 +74,10 @@ public class RdbTableInfo extends TargetTableInfo {
     private String flushIntervalMs;
 
     private String schema;
+
+    private boolean allReplace;
+
+    private String updateMode;
 
     public String getUrl() {
         return url;
@@ -123,7 +135,6 @@ public class RdbTableInfo extends TargetTableInfo {
         this.flushIntervalMs = flushIntervalMs;
     }
 
-
     public Long getBatchWaitInterval() {
         return batchWaitInterval;
     }
@@ -140,6 +151,22 @@ public class RdbTableInfo extends TargetTableInfo {
         this.schema = schema;
     }
 
+    public boolean isAllReplace() {
+        return allReplace;
+    }
+
+    public void setAllReplace(boolean allReplace) {
+        this.allReplace = allReplace;
+    }
+
+    public String getUpdateMode() {
+        return updateMode;
+    }
+
+    public void setUpdateMode(String updateMode) {
+        this.updateMode = updateMode;
+    }
+
     @Override
     public boolean check() {
         Preconditions.checkNotNull(url, "rdb field of URL is required");
@@ -150,6 +177,20 @@ public class RdbTableInfo extends TargetTableInfo {
         if (null != batchSize) {
             Preconditions.checkArgument(batchSize <= MAX_BATCH_SIZE, "batchSize must be less than " + MAX_BATCH_SIZE);
         }
+
+        if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
+            Preconditions.checkArgument(null != getPrimaryKeys() && getPrimaryKeys().size() > 0, "updateMode  mode primary is required");
+        }
+
+        if (null != getPrimaryKeys()) {
+            getPrimaryKeys().forEach(pk -> {
+                Preconditions.checkArgument(getFieldList().contains(pk), "primary key " + pk + " not found in sink table field");
+            });
+        }
+
+
+        Preconditions.checkArgument(getFieldList().size() == getFieldExtraInfoList().size(),
+                "fields and fieldExtraInfoList attributes must be the same length");
         return true;
     }
 

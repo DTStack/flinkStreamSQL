@@ -18,6 +18,8 @@
 
 package com.dtstack.flink.sql.side.rdb.async;
 
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.PredicateInfo;
@@ -25,12 +27,12 @@ import com.dtstack.flink.sql.side.SideInfo;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -71,9 +73,9 @@ public class RdbAsyncSideInfo extends SideInfo {
             dealOneEqualCon(sqlNode, sideTableName);
         }
 
-        sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(sideSelectFields.split(",")),
+        sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(StringUtils.split(sideSelectFields, ",")),
                 equalFieldList, sqlJoinCompareOperate, sideTableInfo.getPredicateInfoes());
-        System.out.println("--------side sql query-------\n" + sqlCondition);
+        System.out.println("----------dimension sql query-----------\n" + sqlCondition);
     }
 
 
@@ -85,6 +87,7 @@ public class RdbAsyncSideInfo extends SideInfo {
 
         SqlIdentifier left = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[0];
         SqlIdentifier right = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[1];
+        Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
@@ -93,7 +96,7 @@ public class RdbAsyncSideInfo extends SideInfo {
         String rightField = right.getComponent(1).getSimple();
 
         if (leftTableName.equalsIgnoreCase(sideTableName)) {
-            equalFieldList.add(leftField);
+            equalFieldList.add(physicalFields.get(leftField));
             int equalFieldIndex = -1;
             for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
@@ -109,7 +112,7 @@ public class RdbAsyncSideInfo extends SideInfo {
 
         } else if (rightTableName.equalsIgnoreCase(sideTableName)) {
 
-            equalFieldList.add(rightField);
+            equalFieldList.add(physicalFields.get(rightField));
             int equalFieldIndex = -1;
             for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
@@ -136,14 +139,26 @@ public class RdbAsyncSideInfo extends SideInfo {
 
     public String getSelectFromStatement(String tableName, List<String> selectFields, List<String> conditionFields, List<String> sqlJoinCompareOperate,
                                          List<PredicateInfo> predicateInfoes) {
-        String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
-        String whereClause = conditionFields.stream().map(f -> quoteIdentifier(f) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + " ? ")
-                .collect(Collectors.joining(" AND "));
-        String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
+        String fromClause = selectFields.stream()
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
 
-        String sql = "SELECT " + fromClause + " FROM " + tableName + (conditionFields.size() > 0 ? " WHERE " + whereClause : "")
+        String whereClause = conditionFields.stream()
+                .map(f -> quoteIdentifier(f) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + wrapperPlaceholder(f))
+                .collect(Collectors.joining(" AND "));
+
+        String predicateClause = predicateInfoes.stream()
+                .map(this::buildFilterCondition)
+                .collect(Collectors.joining(" AND "));
+
+        String dimQuerySql = "SELECT " + fromClause + " FROM " + tableName + (conditionFields.size() > 0 ? " WHERE " + whereClause : "")
                 + (predicateInfoes.size() > 0 ? " AND " + predicateClause : "") + getAdditionalWhereClause();
-        return sql;
+
+        return dimQuerySql;
+    }
+
+    public String wrapperPlaceholder(String fieldName) {
+        return " ? ";
     }
 
     public String buildFilterCondition(PredicateInfo info) {

@@ -55,6 +55,8 @@ public abstract class SideInfo implements Serializable{
 
     protected String sideSelectFields = "";
 
+    protected Map<Integer, String> sideSelectFieldsType = Maps.newHashMap();
+
     protected JoinType joinType;
 
     //key:Returns the value of the position, value: the ref field index​in the input table
@@ -84,15 +86,17 @@ public abstract class SideInfo implements Serializable{
         String sideTableName = joinInfo.getSideTableName();
         String nonSideTableName = joinInfo.getNonSideTable();
         List<String> fields = Lists.newArrayList();
+        int sideTableFieldIndex = 0;
 
-        int sideIndex = 0;
         for( int i=0; i<outFieldInfoList.size(); i++){
             FieldInfo fieldInfo = outFieldInfoList.get(i);
             if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
-                fields.add(sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName()));
-                sideFieldIndex.put(i, sideIndex);
-                sideFieldNameIndex.put(i, fieldInfo.getFieldName());
-                sideIndex++;
+                String sideFieldName = sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName());
+                fields.add(sideFieldName);
+                sideSelectFieldsType.put(sideTableFieldIndex, getTargetFieldType(fieldInfo.getFieldName()));
+                sideFieldIndex.put(i, sideTableFieldIndex);
+                sideFieldNameIndex.put(i, sideFieldName);
+                sideTableFieldIndex++;
             }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
                 int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
                 inFieldIndex.put(i, nonSideIndex);
@@ -108,6 +112,16 @@ public abstract class SideInfo implements Serializable{
         sideSelectFields = String.join(",", fields);
     }
 
+    public String getTargetFieldType(String fieldName){
+        int fieldIndex = sideTableInfo.getFieldList().indexOf(fieldName);
+        if(fieldIndex == -1){
+            throw new RuntimeException(sideTableInfo.getName() + "can't find field: " + fieldName);
+        }
+
+        return sideTableInfo.getFieldTypes()[fieldIndex];
+    }
+
+
     public void dealOneEqualCon(SqlNode sqlNode, String sideTableName){
         if(!SqlKind.COMPARISON.contains(sqlNode.getKind())){
             throw new RuntimeException("not compare operator.");
@@ -118,12 +132,13 @@ public abstract class SideInfo implements Serializable{
 
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
+        Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
         String rightTableName = right.getComponent(0).getSimple();
         String rightField = right.getComponent(1).getSimple();
 
         if(leftTableName.equalsIgnoreCase(sideTableName)){
-            equalFieldList.add(leftField);
+            equalFieldList.add(physicalFields.get(leftField));
             int equalFieldIndex = -1;
             for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
                 String fieldName = rowTypeInfo.getFieldNames()[i];
@@ -139,7 +154,7 @@ public abstract class SideInfo implements Serializable{
 
         }else if(rightTableName.equalsIgnoreCase(sideTableName)){
 
-            equalFieldList.add(rightField);
+            equalFieldList.add(physicalFields.get(rightField));
             int equalFieldIndex = -1;
             for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
                 String fieldName = rowTypeInfo.getFieldNames()[i];
@@ -254,5 +269,17 @@ public abstract class SideInfo implements Serializable{
 
     public void setSideFieldNameIndex(Map<Integer, String> sideFieldNameIndex) {
         this.sideFieldNameIndex = sideFieldNameIndex;
+    }
+
+    public Map<Integer, String> getSideSelectFieldsType() {
+        return sideSelectFieldsType;
+    }
+
+    public void setSideSelectFieldsType(Map<Integer, String> sideSelectFieldsType) {
+        this.sideSelectFieldsType = sideSelectFieldsType;
+    }
+
+    public String getSelectSideFieldType(int index){
+        return sideSelectFieldsType.get(index);
     }
 }

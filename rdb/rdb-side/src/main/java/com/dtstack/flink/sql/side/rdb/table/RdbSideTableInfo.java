@@ -47,6 +47,8 @@ public class RdbSideTableInfo extends SideTableInfo {
         Preconditions.checkNotNull(tableName, "rdb of tableName is required");
         Preconditions.checkNotNull(userName, "rdb of userName is required");
         Preconditions.checkNotNull(password, "rdb of password is required");
+        Preconditions.checkArgument(getFieldList().size() == getFieldExtraInfoList().size(),
+                "fields and fieldExtraInfoList attributes must be the same length");
         return true;
     }
 
@@ -99,4 +101,16 @@ public class RdbSideTableInfo extends SideTableInfo {
     public void setPassword(String password) {
         this.password = password;
     }
+
+    @Override
+    public String toString() {
+        String cacheInfo = super.toString();
+        String connectionInfo = "Rdb Side Connection Info{" +
+                "url='" + url + '\'' +
+                ", tableName='" + tableName + '\'' +
+                ", schema='" + schema + '\'' +
+                '}';
+        return cacheInfo + " , " + connectionInfo;
+    }
+
 }

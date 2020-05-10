@@ -23,6 +23,8 @@ package com.dtstack.flink.sql.table;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.apache.flink.util.Preconditions;
+
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -107,6 +109,18 @@ public abstract class AbsSideTableParser extends AbsTableParser {
                     throw new RuntimeException("asyncTimeout size need > 0.");
                 }
                 sideTableInfo.setAsyncTimeout(asyncTimeout);
+            }
+            if(props.containsKey(SideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase())){
+                Integer asyncTimeoutNum = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_TIMEOUT_NUM_KEY.toLowerCase()));
+                if (asyncTimeoutNum > 0){
+                    sideTableInfo.setAsyncTimeoutNumLimit(asyncTimeoutNum);
+                }
+            }
+
+            if (props.containsKey(SideTableInfo.ASYNC_REQ_POOL_KEY.toLowerCase())) {
+                Integer asyncPoolSize = MathUtil.getIntegerVal(props.get(SideTableInfo.ASYNC_REQ_POOL_KEY.toLowerCase()));
+                Preconditions.checkArgument(asyncPoolSize > 0 && asyncPoolSize <= 20, "asyncPoolSize size limit (0,20]");
+                sideTableInfo.setAsyncPoolSize(asyncPoolSize);
             }
         }
     }

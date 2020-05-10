@@ -20,9 +20,10 @@
 
 package com.dtstack.flink.sql.side.hbase;
 
-import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
-
 import java.io.Serializable;
+import java.util.List;
+
+import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
 
 /**
  * Reason:
@@ -39,6 +40,8 @@ public class ReplaceInfo implements Serializable {
     private EReplaceType type;
 
     private String param;
+    
+    private List<ReplaceInfo> subReplaceInfos;
 
     public ReplaceInfo(EReplaceType type){
         this.type = type;
@@ -58,5 +61,13 @@ public class ReplaceInfo implements Serializable {
 
     public void setParam(String param) {
         this.param = param;
+    }
+    
+    public List<ReplaceInfo> getSubReplaceInfos() {
+        return subReplaceInfos;
+    }
+
+    public void setSubReplaceInfos(List<ReplaceInfo> subReplaceInfos) {
+        this.subReplaceInfos = subReplaceInfos;
     }
 }
