@@ -33,14 +33,18 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-
+/**
+ * Date: 2019/11/26
+ * Company: www.dtstack.com
+ * @author maqi
+ */
 public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(SqlserverAsyncReqRow.class);
 
     private final static String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
 
-    public SqlserverAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public SqlserverAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new SqlserverAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -67,6 +71,6 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
         vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, sqlserverClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, sqlserverClientConfig));
     }
 }

@@ -3,7 +3,7 @@ package com.dtstack.flink.sql.sink.kudu;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kudu.table.KuduTableInfo;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -39,7 +39,7 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
     private int parallelism = -1;
 
     @Override
-    public KuduSink genStreamSink(TargetTableInfo targetTableInfo) {
+    public KuduSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         KuduTableInfo kuduTableInfo = (KuduTableInfo) targetTableInfo;
         this.kuduMasters = kuduTableInfo.getKuduMasters();
         this.tableName = kuduTableInfo.getTableName();

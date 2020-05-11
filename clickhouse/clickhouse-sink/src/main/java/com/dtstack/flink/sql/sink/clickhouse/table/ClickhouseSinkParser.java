@@ -20,7 +20,7 @@
 package com.dtstack.flink.sql.sink.clickhouse.table;
 
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import ru.yandex.clickhouse.domain.ClickHouseDataType;
 
 import java.util.Map;
@@ -30,8 +30,8 @@ public class ClickhouseSinkParser extends RdbSinkParser {
     private static final String CURR_TYPE = "clickhouse";
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo clickhouseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        AbstractTableInfo clickhouseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         clickhouseTableInfo.setType(CURR_TYPE);
         return clickhouseTableInfo;
     }

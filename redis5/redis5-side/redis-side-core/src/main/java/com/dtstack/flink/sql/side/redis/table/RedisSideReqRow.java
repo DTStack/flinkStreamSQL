@@ -19,7 +19,7 @@
 package com.dtstack.flink.sql.side.redis.table;
 
 import com.dtstack.flink.sql.side.ISideReqRow;
-import com.dtstack.flink.sql.side.SideInfo;
+import com.dtstack.flink.sql.side.BaseSideInfo;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
@@ -40,9 +40,9 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
 
     private static final long serialVersionUID = 3751171828444748982L;
 
-    private SideInfo sideInfo;
+    private BaseSideInfo sideInfo;
 
-    public RedisSideReqRow(SideInfo sideInfo){
+    public RedisSideReqRow(BaseSideInfo sideInfo){
         this.sideInfo = sideInfo;
     }
 
@@ -72,7 +72,7 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
         return row;
     }
 
-    public void setRowField(Row row, Integer index, SideInfo sideInfo, String value) {
+    public void setRowField(Row row, Integer index, BaseSideInfo sideInfo, String value) {
         Integer keyIndex = sideInfo.getSideFieldIndex().get(index);
         String classType = sideInfo.getSideTableInfo().getFieldClassList().get(keyIndex).getName();
         switch (classType){

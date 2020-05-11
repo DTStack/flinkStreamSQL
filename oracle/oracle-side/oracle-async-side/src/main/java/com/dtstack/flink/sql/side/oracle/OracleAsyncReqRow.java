@@ -21,7 +21,7 @@ package com.dtstack.flink.sql.side.oracle;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import io.vertx.core.Vertx;
@@ -30,19 +30,14 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 
 public class OracleAsyncReqRow extends RdbAsyncReqRow {
-
-    private static final Logger LOG = LoggerFactory.getLogger(OracleAsyncReqRow.class);
-
     private static final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
 
-    public OracleAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public OracleAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new OracleAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -68,6 +63,6 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
         vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, oracleClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, oracleClientConfig));
     }
 }

@@ -66,6 +66,8 @@ public class HbaseUtils {
 
             case "double":
                 return Bytes.toDouble(hbaseData);
+            default:
+                break;
 
         }
 

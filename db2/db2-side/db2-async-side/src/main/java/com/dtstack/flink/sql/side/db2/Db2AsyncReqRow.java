@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.side.db2;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import io.vertx.core.Vertx;
@@ -45,7 +45,7 @@ public class Db2AsyncReqRow extends RdbAsyncReqRow {
 
     private final static String DB2_DRIVER = "com.ibm.db2.jcc.DB2Driver";
 
-    public Db2AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public Db2AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new Db2AsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -71,7 +71,7 @@ public class Db2AsyncReqRow extends RdbAsyncReqRow {
         vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, db2lientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, db2lientConfig));
     }
 
 }

@@ -191,6 +191,7 @@ public class KuduUtil {
                 return KuduPredicate.newIsNotNullPredicate(column);
             case "IS NULL":
                 return KuduPredicate.newIsNullPredicate(column);
+            default:
         }
         return null;
 

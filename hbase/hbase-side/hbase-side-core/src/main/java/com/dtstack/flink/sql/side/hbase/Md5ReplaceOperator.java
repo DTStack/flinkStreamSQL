@@ -30,7 +30,7 @@ import com.dtstack.flink.sql.util.MD5Utils;
  * @author xuchao
  */
 
-public class Md5ReplaceOperator extends ReplaceOperator{
+public class Md5ReplaceOperator extends AbstractReplaceOperator {
 
     public Md5ReplaceOperator(EReplaceOpType opType) {
         super(opType);

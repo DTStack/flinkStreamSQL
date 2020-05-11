@@ -26,8 +26,17 @@ package com.dtstack.flink.sql.enums;
  */
 public enum EDatabaseType {
 
+    /**
+     * mysql
+     */
     MYSQL,
+    /**
+     * sqlserver
+     */
     SQLSERVER,
+    /**
+     * oracle
+     */
     ORACLE,
 
 }

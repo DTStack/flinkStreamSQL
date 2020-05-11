@@ -20,7 +20,9 @@
 package com.dtstack.flink.sql.side.rdb.async;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
@@ -30,6 +32,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import com.google.common.collect.Lists;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -50,7 +53,7 @@ import java.util.Map;
  * @author maqi
  */
 
-public class RdbAsyncReqRow extends AsyncReqRow {
+public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = 2098635244857937720L;
 
@@ -72,18 +75,25 @@ public class RdbAsyncReqRow extends AsyncReqRow {
 
     public final static String PREFERRED_TEST_QUERY_SQL = "select 1 from dual";
 
-    private transient SQLClient rdbSQLClient;
+    private transient SQLClient rdbSqlClient;
 
-    public RdbAsyncReqRow(SideInfo sideInfo) {
+    public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
         init(sideInfo);
     }
 
-    protected void init(SideInfo sideInfo) {
+    protected void init(BaseSideInfo sideInfo) {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         int defaultAsyncPoolSize = Math.min(MAX_DB_CONN_POOL_SIZE_LIMIT, DEFAULT_DB_CONN_POOL_SIZE);
         int rdbPoolSize = rdbSideTableInfo.getAsyncPoolSize() > 0 ? rdbSideTableInfo.getAsyncPoolSize() : defaultAsyncPoolSize;
         rdbSideTableInfo.setAsyncPoolSize(rdbPoolSize);
+    }
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        LOG.info("rdb dim table config info: {} ", rdbSideTableInfo.toString());
     }
 
     @Override
@@ -238,8 +248,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        if (rdbSQLClient != null) {
-            rdbSQLClient.close();
+        if (rdbSqlClient != null) {
+            rdbSqlClient.close();
         }
 
     }
@@ -254,8 +264,8 @@ public class RdbAsyncReqRow extends AsyncReqRow {
         return sb.toString();
     }
 
-    public void setRdbSQLClient(SQLClient rdbSQLClient) {
-        this.rdbSQLClient = rdbSQLClient;
+    public void setRdbSqlClient(SQLClient rdbSqlClient) {
+        this.rdbSqlClient = rdbSqlClient;
     }
 
 }

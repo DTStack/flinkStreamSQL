@@ -18,13 +18,11 @@
 
 package com.dtstack.flink.sql.sink.kudu;
 
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
-
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
 import org.apache.kudu.client.AsyncKuduClient;
 import org.apache.kudu.client.AsyncKuduSession;
 import org.apache.kudu.client.KuduClient;
@@ -44,7 +42,7 @@ import java.util.Date;
  *  @author  gituser
  *  @modify  xiuzhu
  */
-public class KuduOutputFormat extends DtRichOutputFormat<Tuple2> {
+public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private static final long serialVersionUID = 1L;
 
@@ -125,7 +123,7 @@ public class KuduOutputFormat extends DtRichOutputFormat<Tuple2> {
         Row row = tupleTrans.getField(1);
         if (row.getArity() != fieldNames.length) {
             if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
-                LOG.error("record insert failed:{}", row.toString());
+                LOG.error("record insert failed ..{}", row.toString());
                 LOG.error("cause by row.getArity() != fieldNames.length");
             }
             outDirtyRecords.inc();

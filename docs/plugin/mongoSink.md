@@ -33,8 +33,6 @@ CREATE TABLE tableName(
 |----|----|----|----|
 |type |表明 输出表类型 mongo|是||
 |address | 连接mongo数据库 jdbcUrl |是||
-|userName | mongo连接用户名|否||
-|password | mongo连接密码|否||
 |tableName | mongo表名称|是||
 |database  | mongo表名称|是||
 |parallelism | 并行度设置|否|1|
@@ -46,9 +44,8 @@ CREATE TABLE MyResult(
     pv VARCHAR
  )WITH(
     type ='mongo',
-    address ='172.21.32.1:27017,172.21.32.1:27017',
-    userName ='dtstack',
-    password ='abc123',
+   //mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]]/[?options]]
+    address ='mongodb://172.21.32.1:27017,172.21.32.1:27017',
     database ='test',
     tableName ='pv',
     parallelism ='1'

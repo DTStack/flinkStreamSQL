@@ -17,8 +17,8 @@
  */
 package com.dtstack.flink.sql.source.serversocket.table;
 
-import com.dtstack.flink.sql.table.AbsSourceParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceParser;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
@@ -30,9 +30,9 @@ import java.util.Map;
  *
  * @author maqi
  */
-public class ServersocketSourceParser extends AbsSourceParser {
+public class ServersocketSourceParser extends AbstractSourceParser {
 	@Override
-	public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+	public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
 		ServersocketSourceTableInfo serversocketSourceTableInfo = new ServersocketSourceTableInfo();
 		serversocketSourceTableInfo.setName(tableName);
 		parseFieldsInfo(fieldsInfo, serversocketSourceTableInfo);

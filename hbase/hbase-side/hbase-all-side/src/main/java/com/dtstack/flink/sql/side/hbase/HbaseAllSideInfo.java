@@ -22,8 +22,8 @@ package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.BaseSideInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -31,16 +31,16 @@ import com.google.common.collect.Lists;
 
 import java.util.List;
 
-public class HbaseAllSideInfo extends SideInfo {
+public class HbaseAllSideInfo extends BaseSideInfo {
 
     private RowKeyBuilder rowKeyBuilder;
 
-    public HbaseAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public HbaseAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
     @Override
-    public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
+    public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
         rowKeyBuilder = new RowKeyBuilder();
         if(sideTableInfo.getPrimaryKeys().size() < 1){
             throw new RuntimeException("Primary key dimension table must be filled");

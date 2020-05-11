@@ -18,6 +18,10 @@
 
 package com.dtstack.flink.sql.side.redis;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.redis.enums.RedisType;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
@@ -29,22 +33,34 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Maps;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.*;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
-public class RedisAllReqRow extends AllReqRow{
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicReference;
+/**
+ * @author yanxi
+ */
+public class RedisAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = 7578879189085344807L;
 
@@ -62,7 +78,7 @@ public class RedisAllReqRow extends AllReqRow{
 
     private RedisSideReqRow redisSideReqRow;
 
-    public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         this.redisSideReqRow = new RedisSideReqRow(super.sideInfo);
     }
@@ -90,7 +106,7 @@ public class RedisAllReqRow extends AllReqRow{
         }
 
         cacheRef.set(newCache);
-        LOG.info("----- Redis all cacheRef reload end:{}", newCache.size());
+        LOG.info("----- Redis all cacheRef reload end:{}", Calendar.getInstance());
     }
 
     @Override
