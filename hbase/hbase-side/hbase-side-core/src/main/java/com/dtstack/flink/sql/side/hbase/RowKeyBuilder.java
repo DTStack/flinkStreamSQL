@@ -120,9 +120,10 @@ public class RowKeyBuilder implements Serializable{
     }
 
     private List<ReplaceInfo> makeFormula(String formula){
-        if(formula == null || formula.length() <= 0){
-            Lists.newArrayList();
+        if (formula == null || formula.length() <= 0) {
+            return Lists.newArrayList();
         }
+
         List<ReplaceInfo> result = Lists.newArrayList();
         for(String meta: splitIgnoreQuotaBrackets(formula, "\\+")){
             Matcher matcher = Md5Operator.matcher(meta.trim());

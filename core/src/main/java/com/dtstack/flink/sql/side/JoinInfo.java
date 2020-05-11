@@ -27,7 +27,6 @@ import org.apache.calcite.sql.SqlNode;
 import com.google.common.base.Strings;
 
 import java.io.Serializable;
-import java.util.Map;
 
 /**
  * Join信息

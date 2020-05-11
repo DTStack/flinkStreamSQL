@@ -37,8 +37,6 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -205,7 +203,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
                     try {
                         String connInfo = "url:" + tableInfo.getAddress() + ";userName:" + tableInfo.getUserName() + ",pwd:" + tableInfo.getPassword();
                         LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
-                        Thread.sleep(5 * 1000);
+                        Thread.sleep(LOAD_DATA_ERROR_SLEEP_TIME);
                     } catch (InterruptedException e1) {
                         LOG.error("", e1);
                     }
@@ -248,12 +246,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
         } catch (Exception e) {
             LOG.error("", e);
         } finally {
-            try {
-                if (mongoClient != null) {
-                    mongoClient.close();
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("[closeMongoDB]:" + e.getMessage());
+            if (mongoClient != null) {
+                mongoClient.close();
             }
         }
     }

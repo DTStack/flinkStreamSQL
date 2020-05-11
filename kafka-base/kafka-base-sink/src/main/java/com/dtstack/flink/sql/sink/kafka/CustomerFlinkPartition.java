@@ -20,6 +20,7 @@ public class CustomerFlinkPartition<T> extends FlinkKafkaPartitioner<T> {
     @Override
     public int partition(T record, byte[] key, byte[] value, String targetTopic, int[] partitions) {
         Preconditions.checkArgument(partitions != null && partitions.length > 0, "Partitions of the target topic is empty.");
+
         if(key == null){
             return partitions[this.parallelInstanceId % partitions.length];
         }

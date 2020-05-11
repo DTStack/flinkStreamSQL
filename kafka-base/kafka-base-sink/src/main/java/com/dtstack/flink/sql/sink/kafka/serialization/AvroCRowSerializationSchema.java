@@ -53,7 +53,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
@@ -287,6 +286,7 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 			case DOUBLE:
 			case BOOLEAN:
 				return object;
+			default:
 		}
 		throw new RuntimeException("Unsupported Avro type:" + schema);
 	}
