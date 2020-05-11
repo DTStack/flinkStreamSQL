@@ -13,8 +13,6 @@ CREATE TABLE tableName(
     tableName ='tableName',
     parallelism ='parllNum'
  );
-
-
 ```
 
 ## 2.支持版本
@@ -50,17 +48,64 @@ redis5.0
   
 ## 5.样例：
 ```
+ CREATE TABLE MyTable(
+     name varchar,
+     channel varchar
+  )WITH(
+     type ='kafka10',
+     bootstrapServers ='172.16.8.107:9092',
+     zookeeperQuorum ='172.16.8.107:2181/kafka',
+     offsetReset ='latest',
+     topic ='mqTest01',
+     timezone='Asia/Shanghai',
+     updateMode ='append',
+     enableKeyPartitions ='false',
+     topicIsPattern ='false',
+     parallelism ='1'
+  );
+ 
  CREATE TABLE MyResult(
-    channel varchar,
-    pv varchar,
-    PRIMARY KEY(channel)
- )WITH(
-    type='redis',
-    url='172.16.10.79:6379',
-    password='abc123',
-    database='0',
-    redisType='1',
-    tableName='sinktoredis'
- );
-
+     channel VARCHAR,
+     pv VARCHAR
+  )WITH(
+     type ='redis',
+     redisType ='1',
+     url ='172.16.8.109:6379',
+     tableName ='resultTable',
+     partitionedJoin ='false',
+     parallelism ='1',
+     database ='0',
+     timeout ='10000',
+     maxTotal ='60000',
+     maxIdle='8',
+     minIdle='0'
+  );
+ 
+ insert          
+ into
+     MyResult
+     select
+         channel,
+         name as pv                                             
+     from
+         MyTable a                                        
  ```
+
+## 6.redis完整样例
+### redis数据说明
+redis使用k-v格式存储，key的构建格式为tableName:privateKey:privateKeyValue:columnName, value=columnValue
+
+### 源表数据内容
+```
+{"name":"roc","channel":"daishu","age":2}
+```
+### redis实际数据内容
+```
+127.0.0.1:6379> keys *
+1) "resultTable:name:roc:name"
+2) "resultTable:name:roc:channel"
+127.0.0.1:6379> get "resultTable:name:roc:name"
+"roc"
+127.0.0.1:6379> get "resultTable:name:roc:channel"
+"daishu"
+```
