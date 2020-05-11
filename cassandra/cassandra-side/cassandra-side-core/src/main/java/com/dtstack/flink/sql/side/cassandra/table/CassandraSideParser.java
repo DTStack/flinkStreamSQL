@@ -99,6 +99,7 @@ public class CassandraSideParser extends AbsSideTableParser {
     private void dealSideSign(Matcher matcher, TableInfo tableInfo) {
     }
 
+    @Override
     public Class dbTypeConvertToJavaType(String fieldType) {
         switch (fieldType.toLowerCase()) {
             case "bigint":
