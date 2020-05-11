@@ -41,19 +41,51 @@ hbase2.0
   
 ## 5.样例：
 ```
- CREATE TABLE MyResult(
-    cf:info VARCHAR,
-    cf:name VARCHAR,
-    cf:channel varchar
+CREATE TABLE MyTable(
+    name varchar,
+    channel varchar,
+    age int
  )WITH(
-    type ='hbase',
-    zookeeperQuorum ='xx:2181',
-    zookeeperParent ='/hbase',
-    tableName ='workerinfo01',
-    rowKey ='channel'
+    type ='kafka10',
+    bootstrapServers ='172.16.8.107:9092',
+    zookeeperQuorum ='172.16.8.107:2181/kafka',
+    offsetReset ='latest',
+    topic ='mqTest01',
+    timezone='Asia/Shanghai',
+    updateMode ='append',
+    enableKeyPartitions ='false',
+    topicIsPattern ='false',
+    parallelism ='1'
  );
+
+CREATE TABLE MyResult(
+    cf:name varchar ,
+    cf:channel varchar 
+ )WITH(
+	type ='hbase',
+	zookeeperQuorum ='172.16.10.104:2181,172.16.10.224:2181,172.16.10.252:2181',
+	zookeeperParent ='/hbase',
+	tableName ='myresult',
+	partitionedJoin ='false',
+	parallelism ='1',
+	rowKey='name,channel'
+ );
+
+insert          
+into
+    MyResult
+    select
+        channel,
+        name                                            
+    from
+        MyTable a        
  ```
 
 ## 6.hbase数据
 ### 数据内容说明
+hbase的rowkey 构建规则：以描述的rowkey字段值作为key，多个字段以'-'连接
 ### 数据内容示例
+hbase(main):007:0> scan 'myresult'
+    ROW                   COLUMN+CELL                                               
+ roc-daishu           column=cf:channel, timestamp=1589183971724, value=daishu  
+ roc-daishu           column=cf:name, timestamp=1589183971724, value=roc 
