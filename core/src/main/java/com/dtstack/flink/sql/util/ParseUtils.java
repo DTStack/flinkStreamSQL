@@ -38,6 +38,7 @@ package com.dtstack.flink.sql.util;
 
 import com.google.common.collect.HashBasedTable;
 
+import com.google.common.collect.HashBiMap;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
@@ -48,6 +49,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.calcite.sql.SqlKind.AS;
