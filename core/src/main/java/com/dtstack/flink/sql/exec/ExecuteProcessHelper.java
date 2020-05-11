@@ -18,7 +18,6 @@
 
 package com.dtstack.flink.sql.exec;
 
-import com.aiweiergou.tool.logger.api.ChangeLogLevelProcess;
 import com.dtstack.flink.sql.parser.CreateFuncParser;
 import com.dtstack.flink.sql.parser.CreateTmpTableParser;
 import com.dtstack.flink.sql.parser.FlinkPlanner;
@@ -354,13 +353,4 @@ public class ExecuteProcessHelper {
         return env;
     }
 
-
-    public static void setLogLevel(ParamsInfo paramsInfo){
-        String logLevel = paramsInfo.getConfProp().getProperty(ConfigConstrant.LOG_LEVEL_KEY);
-        if(org.apache.commons.lang3.StringUtils.isBlank(logLevel)){
-            return;
-        }
-        ChangeLogLevelProcess logLevelProcess = new ChangeLogLevelProcess();
-        logLevelProcess.process(logLevel);
-    }
 }
