@@ -137,7 +137,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                         if(failCounter.getAndIncrement() % 1000 == 0){
                             LOG.error("getConnection error", conn.cause());
                         }
-                        if(failCounter.get() >= sideInfo.getSideTableInfo().getAsyncFailMaxNum(3L)){
+                        if(failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(3)){
                             dealFillDataError(input, resultFuture, conn.cause());
                             finishFlag.set(true);
                         }
