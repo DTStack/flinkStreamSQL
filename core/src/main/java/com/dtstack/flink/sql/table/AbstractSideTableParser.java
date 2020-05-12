@@ -110,10 +110,10 @@ public abstract class AbstractSideTableParser extends AbstractTableParser {
                 sideTableInfo.setAsyncTimeout(asyncTimeout);
             }
 
-            if(props.containsKey(AbstractSideTableInfo.ASYNC_FAIL_MAX_NUM_KEY.toLowerCase())){
-                Long asyncFailNum = MathUtil.getLongVal(props.get(AbstractSideTableInfo.ASYNC_FAIL_MAX_NUM_KEY.toLowerCase()));
-                if (asyncFailNum > 0){
-                    sideTableInfo.setAsyncFailMaxNum(asyncFailNum);
+            if(props.containsKey(AbstractSideTableInfo.CONNECT_RETRY_MAX_NUM_KEY.toLowerCase())){
+                Integer connectRetryMaxNum = MathUtil.getIntegerVal(props.get(AbstractSideTableInfo.CONNECT_RETRY_MAX_NUM_KEY.toLowerCase()));
+                if (connectRetryMaxNum > 0){
+                    sideTableInfo.setConnectRetryMaxNum(connectRetryMaxNum);
                 }
             }
         }
