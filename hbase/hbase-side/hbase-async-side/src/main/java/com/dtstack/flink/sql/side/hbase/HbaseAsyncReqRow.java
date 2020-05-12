@@ -123,55 +123,17 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(), input.change());
-        Map<String, Object> refData = Maps.newHashMap();
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.row().getField(conValIndex);
-            if(equalObj == null){
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
-        }
+    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        rowKeyMode.asyncGetData(tableName, buildCacheKey(inputParams), input, resultFuture, sideInfo.getSideCache());
+    }
 
-        String rowKeyStr = ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
-
-        //get from cache
-        if (openCache()) {
-            CacheObj val = getFromCache(rowKeyStr);
-            if (val != null) {
-                if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                } else if (ECacheContentType.SingleLine == val.getType()) {
-                    try {
-                        Row row = fillData(inputCopy.row(), val);
-                        resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    try {
-                        for (Object one : (List) val.getContent()) {
-                            Row row = fillData(inputCopy.row(), one);
-                            resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
-                        }
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                }
-                return;
-            }
-        }
-
-        rowKeyMode.asyncGetData(tableName, rowKeyStr, inputCopy, resultFuture, sideInfo.getSideCache());
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        return ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(inputParams);
     }
 
     @Override
     public Row fillData(Row input, Object sideInput){
-
         List<Object> sideInputList = (List<Object>) sideInput;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){

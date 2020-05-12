@@ -27,6 +27,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Reason:
@@ -53,15 +54,15 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     public static final String ASYNC_TIMEOUT_KEY = "asyncTimeout";
 
-    public static final String ASYNC_TIMEOUT_NUM_KEY = "asyncTimeoutNum";
-
+    public static final String ASYNC_FAIL_MAX_NUM_KEY = "asyncFailMaxNum";
+    
     public static final String ASYNC_REQ_POOL_KEY = "asyncPoolSize";
 
     private String cacheType = "none";
 
     private int cacheSize = 10000;
 
-    private long cacheTimeout = 60_000L;
+    private long cacheTimeout = 60 * 1000L;
 
     private int  asyncCapacity=100;
 
@@ -72,11 +73,11 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
      */
     private int asyncPoolSize = 0;
 
-    private int asyncTimeoutNumLimit = Integer.MAX_VALUE;
-
     private boolean partitionedJoin = false;
 
     private String cacheMode="ordered";
+
+    private Long asyncFailMaxNum;
 
     private List<PredicateInfo>  predicateInfoes = Lists.newArrayList();
 
@@ -155,12 +156,12 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         return predicateInfoes;
     }
 
-    public int getAsyncTimeoutNumLimit() {
-        return asyncTimeoutNumLimit;
+    public Long getAsyncFailMaxNum(Long defaultValue) {
+        return Objects.isNull(asyncFailMaxNum) ? defaultValue : asyncFailMaxNum;
     }
 
-    public void setAsyncTimeoutNumLimit(int asyncTimeoutNumLimit) {
-        this.asyncTimeoutNumLimit = asyncTimeoutNumLimit;
+    public void setAsyncFailMaxNum(Long asyncFailMaxNum) {
+        this.asyncFailMaxNum = asyncFailMaxNum;
     }
 
     public int getAsyncPoolSize() {
@@ -180,7 +181,7 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
                 ", asyncCapacity=" + asyncCapacity +
                 ", asyncTimeout=" + asyncTimeout +
                 ", asyncPoolSize=" + asyncPoolSize +
-                ", asyncTimeoutNumLimit=" + asyncTimeoutNumLimit +
+                ", asyncFailMaxNum=" + asyncFailMaxNum +
                 ", partitionedJoin=" + partitionedJoin +
                 ", cacheMode='" + cacheMode + '\'' +
                 '}';
