@@ -183,7 +183,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
             if(equalObj == null){
                 return inputParams;
             }
-            String columnName = sideInfo.getEqualFieldList().get(conValIndex);
+            String columnName = sideInfo.getEqualFieldList().get(i);
             inputParams.put(columnName, equalObj);
         }
         return inputParams;
