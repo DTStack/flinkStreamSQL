@@ -55,7 +55,9 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
     public static final String ASYNC_TIMEOUT_KEY = "asyncTimeout";
 
     public static final String ASYNC_FAIL_MAX_NUM_KEY = "asyncFailMaxNum";
-    
+
+    public static final String CONNECT_RETRY_MAX_NUM_KEY = "connectRetryMaxNum";
+
     public static final String ASYNC_REQ_POOL_KEY = "asyncPoolSize";
 
     private String cacheType = "none";
@@ -78,6 +80,8 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
     private String cacheMode="ordered";
 
     private Long asyncFailMaxNum;
+
+    private Integer connectRetryMaxNum;
 
     private List<PredicateInfo>  predicateInfoes = Lists.newArrayList();
 
@@ -164,6 +168,7 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         this.asyncFailMaxNum = asyncFailMaxNum;
     }
 
+
     public int getAsyncPoolSize() {
         return asyncPoolSize;
     }
@@ -172,6 +177,14 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         this.asyncPoolSize = asyncPoolSize;
     }
 
+
+    public Integer getConnectRetryMaxNum(Integer defaultValue) {
+        return Objects.isNull(connectRetryMaxNum) ? defaultValue : connectRetryMaxNum;
+    }
+
+    public void setConnectRetryMaxNum(Integer connectRetryMaxNum) {
+        this.connectRetryMaxNum = connectRetryMaxNum;
+    }
     @Override
     public String toString() {
         return "Cache Info{" +
