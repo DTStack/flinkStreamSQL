@@ -128,7 +128,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, input);
+                        dealFillDataError(input, resultFuture, e);
                     } finally {
                         if (tmpRhlClient != null) {
                             try {
