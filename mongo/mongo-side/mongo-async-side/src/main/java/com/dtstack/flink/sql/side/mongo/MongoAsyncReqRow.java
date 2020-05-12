@@ -95,19 +95,11 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
         CRow inputCopy = new CRow(input.row(), input.change());
         BasicDBObject basicDbObject = new BasicDBObject();
-        for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.row().getField(conValIndex);
-            if (equalObj == null) {
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            basicDbObject.put(sideInfo.getEqualFieldList().get(i), equalObj);
-        }
         try {
+            basicDbObject.putAll(inputParams);
             // 填充谓词
             sideInfo.getSideTableInfo().getPredicateInfoes().stream().map(info -> {
                 BasicDBObject filterCondition = MongoUtil.buildFilterObject(info);
@@ -120,27 +112,8 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
             LOG.info("add predicate infoes error ", e);
         }
 
-        String key = buildCacheKey(basicDbObject.values());
-        if (openCache()) {
-            CacheObj val = getFromCache(key);
-            if (val != null) {
+        String key = buildCacheKey(inputParams);
 
-                if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<CRow> rowList = Lists.newArrayList();
-                    for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(inputCopy.row(), jsonArray);
-                        rowList.add(new CRow(row, inputCopy.change()));
-                    }
-                    resultFuture.complete(rowList);
-                } else {
-                    throw new RuntimeException("not support cache obj type " + val.getType());
-                }
-                return;
-            }
-        }
         AtomicInteger atomicInteger = new AtomicInteger(0);
         MongoCollection dbCollection = db.getCollection(mongoSideTableInfo.getTableName(), Document.class);
         List<Document> cacheContent = Lists.newArrayList();
@@ -169,6 +142,17 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
             }
         };
         dbCollection.find(basicDbObject).forEach(printDocumentBlock, callbackWhenFinished);
+    }
+
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        StringBuilder sb = new StringBuilder();
+        for (Object ele : inputParams.values()) {
+            sb.append(ele.toString())
+                    .append("_");
+        }
+
+        return sb.toString();
     }
 
     @Override
@@ -207,16 +191,6 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
         } catch (Exception e) {
             throw new RuntimeException("[closeMongoDB]:" + e.getMessage());
         }
-    }
-
-    public String buildCacheKey(Collection collection) {
-        StringBuilder sb = new StringBuilder();
-        for (Object ele : collection) {
-            sb.append(ele.toString())
-                    .append("_");
-        }
-
-        return sb.toString();
     }
 
 }
