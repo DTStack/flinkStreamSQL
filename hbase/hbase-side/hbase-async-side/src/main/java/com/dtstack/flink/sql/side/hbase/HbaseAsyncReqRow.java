@@ -33,6 +33,7 @@ import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -83,12 +84,13 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         super(new HbaseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
 
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
-        colNames = ((HbaseSideTableInfo)sideTableInfo).getColumnRealNames();
+        colNames =  StringUtils.split(sideInfo.getSideSelectFields(), ",");
     }
 
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
