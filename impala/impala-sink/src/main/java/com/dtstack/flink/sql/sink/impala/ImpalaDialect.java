@@ -19,10 +19,12 @@
 package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -61,7 +63,7 @@ public class ImpalaDialect implements JDBCDialect {
 
         String schemaInfo = StringUtils.isEmpty(schema) ? "" : quoteIdentifier(schema) + ".";
 
-        List<String> partitionFieldsList = Arrays.asList(partitionFields);
+        List<String> partitionFieldsList = Objects.isNull(partitionFields) ? Lists.newArrayList() : Arrays.asList(partitionFields);
 
         String columns = Arrays.stream(fieldNames)
                 .filter(f -> !partitionFieldsList.contains(f))
@@ -72,7 +74,7 @@ public class ImpalaDialect implements JDBCDialect {
                 .map(f -> "?")
                 .collect(Collectors.joining(", "));
 
-        String partitionFieldStr = Arrays.stream(partitionFields)
+        String partitionFieldStr = partitionFieldsList.stream()
                 .map(field -> field.replaceAll("\"", "'"))
                 .collect(Collectors.joining(", "));
 
