@@ -137,8 +137,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                         if(failCounter.getAndIncrement() % 1000 == 0){
                             LOG.error("getConnection error", conn.cause());
                         }
-                        if(failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(3)){
-                            dealFillDataError(input, resultFuture, conn.cause());
+                        if(failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)){
+                            resultFuture.completeExceptionally(conn.cause());
                             finishFlag.set(true);
                         }
                         conn.result().close();
@@ -155,11 +155,17 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                     latch.countDown();
                 }
             });
-                        //主线程阻塞
             try {
                 latch.wait();
             } catch (InterruptedException e) {
                 LOG.error("", e);
+            }
+            if(!finishFlag.get()){
+                try {
+                    Thread.sleep(100);
+                } catch (Exception e){
+                    LOG.error("", e);
+                }
             }
         }
     }
