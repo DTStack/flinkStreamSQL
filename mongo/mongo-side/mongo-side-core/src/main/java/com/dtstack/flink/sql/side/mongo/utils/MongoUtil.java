@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.side.mongo.utils;
 import com.dtstack.flink.sql.side.PredicateInfo;
 import com.mongodb.BasicDBObject;
 import org.apache.commons.lang3.StringUtils;
+import org.bson.Document;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -32,25 +33,27 @@ import java.util.stream.Collectors;
  */
 public class MongoUtil {
     public static BasicDBObject buildFilterObject(PredicateInfo info) {
+
+        String value = info.getCondition().replaceAll("'", "");
         switch (info.getOperatorName()) {
             case "=":
-                return new BasicDBObject("$eq", info.getCondition());
+                return new BasicDBObject("$eq", value);
             case ">":
-                return new BasicDBObject("$gt", info.getCondition());
+                return new BasicDBObject("$gt", value);
             case ">=":
-                return new BasicDBObject("$gte", info.getCondition());
+                return new BasicDBObject("$gte", value);
             case "<":
-                return new BasicDBObject("$lt", info.getCondition());
+                return new BasicDBObject("$lt", value);
             case "<=":
-                return new BasicDBObject("$lte", info.getCondition());
+                return new BasicDBObject("$lte", value);
             case "<>":
-                return new BasicDBObject("$ne", info.getCondition());
+                return new BasicDBObject("$ne", value);
             case "IN":
-                Object[] values = Arrays.stream(StringUtils.split(info.getCondition(), ",")).map(String::trim)
+                Object[] values = Arrays.stream(StringUtils.split(value, ",")).map(String::trim)
                         .collect(Collectors.toList()).toArray();
                 return new BasicDBObject("$in", values);
             case "NOT IN":
-                return new BasicDBObject("$nin", StringUtils.split(info.getCondition(), ","));
+                return new BasicDBObject("$nin", StringUtils.split(value, ","));
             case "IS NOT NULL":
                 return new BasicDBObject("$exists", true);
             case "IS NULL":
