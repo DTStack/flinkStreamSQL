@@ -26,6 +26,7 @@ import com.dtstack.flink.sql.table.AbstractTableParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.MathUtil;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.LinkedHashMap;
@@ -98,14 +99,23 @@ public class HbaseSinkParser extends AbstractTableParser {
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
             Class fieldClass = dbTypeConvertToJavaType(fieldType);
             String[] columnFamily = StringUtils.split(fieldName.trim(), ":");
-            columnFamilies.put(fieldName.trim(),columnFamily[1]);
             tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
             tableInfo.addField(columnFamily[1]);
             tableInfo.addFieldClass(fieldClass);
             tableInfo.addFieldType(fieldType);
             tableInfo.addFieldExtraInfo(null);
         }
-        tableInfo.setColumnNameFamily(columnFamilies);
+        tableInfo.setColumnNameFamily(parseColumnFamily(tableInfo.getPhysicalFields()));
         tableInfo.finish();
+    }
+
+    private Map<String, String> parseColumnFamily(Map<String, String> physicalFieldMap){
+        Map<String, String> columnFamiles = Maps.newHashMap();
+        physicalFieldMap.values().forEach(x -> {
+            String[] columnFamily = StringUtils.split(x.trim(), ":");
+            columnFamiles.put(x, columnFamily[1]);
+        });
+
+        return columnFamiles;
     }
 }
