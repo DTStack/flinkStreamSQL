@@ -25,6 +25,7 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.UpdateResult;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -119,7 +120,8 @@ public class MongoOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     private void establishConnection() {
-        mongoClient = new MongoClient(new MongoClientURI(address));
+
+        mongoClient = new MongoClient(new MongoClientURI(getConnectionUrl()));
         db = mongoClient.getDatabase(database);
     }
 
@@ -197,5 +199,14 @@ public class MongoOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
     }
 
+    private String getConnectionUrl(){
+        if(address.startsWith("mongodb://") || address.startsWith("mongodb+srv://")){
+            return  address;
+        }
+        if (StringUtils.isNotBlank(userName) && StringUtils.isNotBlank(password)) {
+            return String.format("mongodb://%s:%s@%s", userName, password, address);
+        }
+        return String.format("mongodb://%s", address);
+    }
 
 }

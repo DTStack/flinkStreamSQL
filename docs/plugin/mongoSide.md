@@ -62,8 +62,7 @@ create table sideTable(
     PERIOD FOR SYSTEM_TIME
  )WITH(
     type ='mongo',
-    //mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]]/[?options]]
-    address ='mongodb://172.21.32.1:27017,172.21.32.1:27017',
+    address ='172.21.32.1:27017,172.21.32.1:27017',
     database ='test',
     tableName ='sidetest',
     cache ='LRU',
