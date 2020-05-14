@@ -96,7 +96,7 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(), input.change());
+        CRow inputCopy = new CRow(Row.copy(input.row()), input.change());
         BasicDBObject basicDbObject = new BasicDBObject();
         try {
             basicDbObject.putAll(inputParams);
