@@ -30,7 +30,7 @@
  |----|---|
  | tableName | 注册到flink的表名称(可选填;不填默认和hbase对应的表名称相同)|
  | colName | 列名称|
- | colType | 列类型 [colType支持的类型](colType.md)|
+ | colType | 列类型 [colType支持的类型](docs/colType.md)|
  | PERIOD FOR SYSTEM_TIME | 关键字表明该定义的表为维表信息|
  | PRIMARY KEY(keyInfo) | 维表主键定义;多个列之间用逗号隔开|
  
@@ -62,8 +62,7 @@ create table sideTable(
     PERIOD FOR SYSTEM_TIME
  )WITH(
     type ='mongo',
-    //mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]]/[?options]]
-    address ='mongodb://172.21.32.1:27017,172.21.32.1:27017',
+    address ='172.21.32.1:27017,172.21.32.1:27017',
     database ='test',
     tableName ='sidetest',
     cache ='LRU',

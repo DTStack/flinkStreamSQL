@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -84,9 +85,8 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
     }
 
     public void connMongoDb() throws Exception {
-        String address = mongoSideTableInfo.getAddress();
-        ConnectionString connectionString = new ConnectionString(address);
-
+        ConnectionString connectionString = new ConnectionString(getConnectionUrl(mongoSideTableInfo.getAddress(),
+                mongoSideTableInfo.getUserName(), mongoSideTableInfo.getPassword()));
         MongoClientSettings settings = MongoClientSettings.builder()
                 .applyConnectionString(connectionString)
                 .build();
@@ -191,6 +191,16 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
         } catch (Exception e) {
             throw new RuntimeException("[closeMongoDB]:" + e.getMessage());
         }
+    }
+
+    private String getConnectionUrl(String address, String userName, String password){
+        if(address.startsWith("mongodb://") || address.startsWith("mongodb+srv://")){
+            return  address;
+        }
+        if (StringUtils.isNotBlank(userName) && StringUtils.isNotBlank(password)) {
+            return String.format("mongodb://%s:%s@%s", userName, password, address);
+        }
+        return String.format("mongodb://%s", address);
     }
 
 }
