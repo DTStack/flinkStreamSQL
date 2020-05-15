@@ -144,7 +144,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                         dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
                         resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, input);
+                        dealFillDataError(input, resultFuture, e);
                     }
                 } else {
                     dealMissKey(input, resultFuture);
