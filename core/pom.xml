@@ -18,7 +18,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.package.name>core</project.package.name>
         <calcite.server.version>1.16.0</calcite.server.version>
-        <jackson.version>2.7.9</jackson.version>
+        <jackson.version>2.9.10.4</jackson.version>
         <guava.version>19.0</guava.version>
         <logback.version>1.1.7</logback.version>
     </properties>
