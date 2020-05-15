@@ -155,13 +155,13 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 }
             });
             try {
-                latch.wait();
+                latch.await();
             } catch (InterruptedException e) {
                 LOG.error("", e);
             }
             if(!finishFlag.get()){
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(3000);
                 } catch (Exception e){
                     LOG.error("", e);
                 }
