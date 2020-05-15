@@ -161,7 +161,8 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+    public void asyncInvoke(CRow row, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow input = new CRow(Row.copy(row.row()), row.change());
         preInvoke(input, resultFuture);
         Map<String, Object> inputParams = parseInputParam(input);
         if(MapUtils.isEmpty(inputParams)){
