@@ -82,7 +82,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private transient SQLClient rdbSqlClient;
 
-    private final static AtomicBoolean CONN_STATUS = new AtomicBoolean(true);
+    private AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
@@ -105,7 +105,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
 
         AtomicLong networkLogCounter = new AtomicLong(0L);
-        while (!CONN_STATUS.get()){//network is unhealth
+        while (!connectionStatus.get()){//network is unhealth
             if(networkLogCounter.getAndIncrement() % 1000 == 0){
                 LOG.info("network unhealth to block task");
             }
@@ -114,11 +114,11 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         Map<String, Object> params = formatInputParam(inputParams);
         rdbSqlClient.getConnection(conn -> {
             if(conn.failed()){
-                CONN_STATUS.set(false);
+                connectionStatus.set(false);
                 connectWithRetry(params, input, resultFuture, rdbSqlClient);
                 return;
             }
-            CONN_STATUS.set(true);
+            connectionStatus.set(true);
             ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
             cancelTimerWhenComplete(resultFuture, timerFuture);
             handleQuery(conn.result(), params, input, resultFuture);
@@ -141,10 +141,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                             resultFuture.completeExceptionally(conn.cause());
                             finishFlag.set(true);
                         }
-                        conn.result().close();
                         return;
                     }
-                    CONN_STATUS.set(true);
+                    connectionStatus.set(true);
                     ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
                     cancelTimerWhenComplete(resultFuture, timerFuture);
                     handleQuery(conn.result(), inputParams, input, resultFuture);
