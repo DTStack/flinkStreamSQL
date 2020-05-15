@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
@@ -66,6 +67,8 @@ public class JoinInfo implements Serializable {
 
     private JoinType joinType;
 
+    private String scope = "";
+
     /**
      * 左表需要查询的字段信息和output的时候对应的列名称
      */
@@ -96,12 +99,14 @@ public class JoinInfo implements Serializable {
         //兼容左边表是as 的情况
         String leftStr = leftTableName;
         leftStr = Strings.isNullOrEmpty(leftStr) ? leftTableAlias : leftStr;
-        return leftStr + "_" + rightTableName;
+        String newName =  leftStr + "_" + rightTableName;
+        return TableUtils.buildTableNameWithScope(newName, scope);
     }
 
 
     public String getNewTableAlias(){
-        return leftTableAlias + "_" + rightTableAlias;
+        String newName = leftTableAlias + "_" + rightTableAlias;
+        return TableUtils.buildTableNameWithScope(newName, scope);
     }
 
     public boolean isLeftIsSideTable() {
@@ -231,6 +236,14 @@ public class JoinInfo implements Serializable {
         });
 
         return mappingTable;
+    }
+
+    public String getScope() {
+        return scope;
+    }
+
+    public void setScope(String scope) {
+        this.scope = scope;
     }
 
     @Override
