@@ -20,6 +20,7 @@
 package com.dtstack.flink.sql.side.rdb.async;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.CacheMissVal;
@@ -46,8 +47,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -84,6 +84,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
+    private transient ThreadPoolExecutor executor;
+
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
         init(sideInfo);
@@ -112,18 +114,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             Thread.sleep(100);
         }
         Map<String, Object> params = formatInputParam(inputParams);
-        rdbSqlClient.getConnection(conn -> {
-            if(conn.failed()){
-                connectionStatus.set(false);
-                connectWithRetry(params, input, resultFuture, rdbSqlClient);
-                return;
-            }
-            connectionStatus.set(true);
-            ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
-            cancelTimerWhenComplete(resultFuture, timerFuture);
-            handleQuery(conn.result(), params, input, resultFuture);
-        });
-
+        executor.execute(() -> connectWithRetry(params, input, resultFuture, rdbSqlClient));
     }
 
     private void connectWithRetry(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture, SQLClient rdbSqlClient) {
@@ -134,6 +125,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             rdbSqlClient.getConnection(conn -> {
                 try {
                     if(conn.failed()){
+                        connectionStatus.set(false);
                         if(failCounter.getAndIncrement() % 1000 == 0){
                             LOG.error("getConnection error", conn.cause());
                         }
@@ -210,10 +202,18 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             rdbSqlClient.close();
         }
 
+        if(executor != null){
+            executor.shutdown();
+        }
+
     }
 
     public void setRdbSqlClient(SQLClient rdbSqlClient) {
         this.rdbSqlClient = rdbSqlClient;
+    }
+
+    public void setExecutor(ThreadPoolExecutor executor) {
+        this.executor = executor;
     }
 
     private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture){
