@@ -203,7 +203,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
                     return;
                 }else if(ECacheContentType.SingleLine == val.getType()){
                     try {
-                        Row row = fillData(input.row(), val);
+                        Row row = fillData(input.row(), val.getContent());
                         resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
