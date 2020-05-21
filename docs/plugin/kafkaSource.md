@@ -78,6 +78,11 @@ kafka.dual.commit.enabled
 kafka.partition.assignment.strategy
 kafka.socket.receive.buffer.bytes
 kafka.fetch.min.bytes
+
+###kerberos认证相关参数
+kafka.security.protocal
+kafka.sasl.mechanism
+kafka.sasl.kerberos.service.name
 ```
 
 ## 5.样例：

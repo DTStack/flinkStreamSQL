@@ -46,17 +46,81 @@ kudu 1.9.0+cdh6.2.0
   
 ## 5.样例：
 ```
-CREATE TABLE MyResult(
-    id int,
-    title VARCHAR,
-	amount decimal,
-	tablename1 VARCHAR
+CREATE TABLE MyTable(
+    channel varchar,
+    name varchar,
+    pv varchar,
+    a varchar,
+    b varchar
  )WITH(
-    type ='kudu',
-    kuduMasters ='localhost1,localhost2,localhost3',
-    tableName ='impala::default.test',
-	writeMode='upsert',
+    type ='kafka11',
+    bootstrapServers ='172.16.8.107:9092',
+    zookeeperQuorum ='172.16.8.107:2181/kafka',
+    offsetReset ='latest',
+    topic ='es_test',
+    timezone='Asia/Shanghai',
+    updateMode ='append',
+    enableKeyPartitions ='false',
+    topicIsPattern ='false',
     parallelism ='1'
  );
 
+CREATE TABLE MyResult(
+    a string,
+    b string,
+    c string,
+    d string
+ )WITH(
+    type ='kudu',
+    kuduMasters ='cdh03.cdhsite:7051',
+    tableName ='myresult',
+    writeMode='insert',
+    parallelism ='1'
+ );
+
+CREATE TABLE sideTable(
+    c string,
+    d string,
+    PRIMARY KEY(c) ,
+    PERIOD FOR SYSTEM_TIME
+ )WITH(
+    type ='kudu',
+    kuduMasters ='cdh03.cdhsite:7051',
+    tableName ='sidetest4',
+    partitionedJoin ='false',
+    cache ='LRU',
+    cacheSize ='10000',
+    cacheTTLMs ='60000',
+    parallelism ='1',
+    primaryKey ='c',
+    isFaultTolerant ='false'
+ );
+
+insert         
+into
+    MyResult
+    select
+        MyTable.a,
+        MyTable.b,
+        s.c,
+        s.d                                
+    from
+        MyTable                                    
+    join
+        sideTable s                                                                                            
+            on MyTable.a = s.c                                    
+    where
+        MyTable.a='2'                                                              
+        and s.d='2'
+
  ```
+
+## 6.数据示例
+### 输入数据
+```
+{"channel":"daishuyun","name":"roc","pv":"10","a":"2","b":"2"}
+```
+### 结果数据
+```
+{"a":"2","b":"2","c":"3","d":"4"}
+```

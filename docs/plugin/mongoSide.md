@@ -26,51 +26,123 @@
  
 ## 3.表结构定义
   
- |参数名称|含义|
- |----|---|
- | tableName | 注册到flink的表名称(可选填;不填默认和hbase对应的表名称相同)|
- | colName | 列名称|
- | colType | 列类型 [colType支持的类型](docs/colType.md)|
- | PERIOD FOR SYSTEM_TIME | 关键字表明该定义的表为维表信息|
- | PRIMARY KEY(keyInfo) | 维表主键定义;多个列之间用逗号隔开|
+ [通用维表参数信息](docs/plugin/sideParams.md)
  
-## 4.参数
+ 
+ mongo相关参数配置：
 
-  |参数名称|含义|是否必填|默认值|
-  |----|---|---|----|
-  | type |表明 输出表类型 mongo|是||
-  | address | 连接mongo数据库 jdbcUrl |是||
-  | tableName | mongo表名称|是||
-  | database  | mongo表名称|是||
-  | cache | 维表缓存策略(NONE/LRU)|否|NONE|
-  | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
-  
-  ----------
-  > 缓存策略
-  * NONE: 不做内存缓存
-  * LRU:
-    * cacheSize: 缓存的条目数量
-    * cacheTTLMs:缓存的过期时间(ms)
-  
+|参数名称|含义|是否必填|默认值|
+|----|---|---|----|
+| type |表明 输出表类型 mongo|是||
+| address | 连接mongo数据库 jdbcUrl |是||
+| userName | mongo连接用户名|否||
+| password | mongo连接密码|否||
+| tableName | mongo表名称|是||
+| database  | mongo表名称|是||
 
-## 5.样例
-```
-create table sideTable(
-    CHANNEL varchar,
-    XCCOUNT int,
-    PRIMARY KEY(channel),
+## 4.样例
+
+
+### 全量维表结构
+
+```aidl
+CREATE TABLE source2(
+    id int,
+    address VARCHAR,
     PERIOD FOR SYSTEM_TIME
- )WITH(
+)WITH(
     type ='mongo',
-    address ='172.21.32.1:27017,172.21.32.1:27017',
-    database ='test',
-    tableName ='sidetest',
+    address ='172.16.8.193:27017',
+    database ='dtstack',
+    tableName ='userInfo',
+    cache ='ALL',
+    parallelism ='1',
+    partitionedJoin='false'
+);
+```
+
+### 异步维表结构
+
+```aidl
+CREATE TABLE source2(
+    id int,
+    address VARCHAR,
+    PERIOD FOR SYSTEM_TIME
+)WITH(
+    type ='mongo',
+    address ='172.16.8.193:27017',
+    database ='dtstack',
+    tableName ='userInfo',
     cache ='LRU',
     parallelism ='1',
     partitionedJoin='false'
+);
+
+```
+
+### 异步维表关联样例
+
+```
+
+CREATE TABLE source1 (
+    id int,
+    name VARCHAR
+)WITH(
+    type ='kafka11',
+    bootstrapServers ='172.16.8.107:9092',
+    zookeeperQuorum ='172.16.8.107:2181/kafka',
+    offsetReset ='latest',
+    topic ='mqTest03',
+    timezone='Asia/Shanghai',
+    topicIsPattern ='false'
  );
 
 
+CREATE TABLE source2(
+    id int,
+    address VARCHAR,
+    PERIOD FOR SYSTEM_TIME
+)WITH(
+    type ='mongo',
+    address ='172.16.8.193:27017',
+    database ='dtstack',
+    tableName ='userInfo',
+    cache ='ALL',
+    parallelism ='1',
+    partitionedJoin='false'
+);
+
+
+CREATE TABLE MyResult(
+    id int,
+    name VARCHAR,
+    address VARCHAR,
+    primary key (id)
+)WITH(
+    type='console'
+);
+
+insert into MyResult
+select 
+	s1.id,
+	s1.name,
+	s2.address
+from 
+	source1 s1
+left join
+	source2 s2
+on 	
+	s1.id = s2.id
+
+
 ```
+
+
+维表数据：{"id": 1001,"address":"hz""}
+
+源表数据：{"name":"maqi","id":1001}
+
+
+输出结果： (1001,maqi,hz)
 
 
