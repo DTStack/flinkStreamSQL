@@ -24,7 +24,7 @@ hbase2.0
 |----|---|
 | tableName | 在 sql 中使用的名称;即注册到flink-table-env上的名称
 | colFamily:colName | hbase中的列族名称和列名称
-| colType | 列类型 [colType支持的类型](docs/colType.md)
+| colType | 列类型 [colType支持的类型](../colType.md)
 
 ## 4.参数：
   

@@ -27,7 +27,7 @@ CREATE TABLE tableName(
 |----|---|
 | tableName| 结果表名称|
 | colName | 列名称|
-| colType | 列类型 [colType支持的类型](docs/colType.md)|
+| colType | 列类型 [colType支持的类型](../colType.md)|
 
 ## 4.参数：
 
