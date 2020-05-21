@@ -29,7 +29,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 public class JDBCOptions {
 
-	private String dbURL;
+	private String dbUrl;
 	private String tableName;
 	private String driverName;
 	private String username;
@@ -37,9 +37,9 @@ public class JDBCOptions {
 	private String schema;
     private JDBCDialect dialect;
 
-    private JDBCOptions(String dbURL, String tableName, String driverName, String username,
+    private JDBCOptions(String dbUrl, String tableName, String driverName, String username,
                         String password, String schema, JDBCDialect dialect) {
-        this.dbURL = dbURL;
+        this.dbUrl = dbUrl;
         this.tableName = tableName;
         this.driverName = driverName;
         this.username = username;
@@ -48,8 +48,8 @@ public class JDBCOptions {
         this.dialect = dialect;
     }
 
-	public String getDbURL() {
-		return dbURL;
+	public String getDbUrl() {
+		return dbUrl;
 	}
 
 	public String getTableName() {
@@ -84,7 +84,7 @@ public class JDBCOptions {
     public boolean equals(Object o) {
         if (o instanceof JDBCOptions) {
             JDBCOptions options = (JDBCOptions) o;
-            return Objects.equals(dbURL, options.dbURL) &&
+            return Objects.equals(dbUrl, options.dbUrl) &&
                     Objects.equals(tableName, options.tableName) &&
                     Objects.equals(driverName, options.driverName) &&
                     Objects.equals(username, options.username) &&
@@ -100,7 +100,7 @@ public class JDBCOptions {
 	 * Builder of {@link JDBCOptions}.
 	 */
 	public static class Builder {
-		private String dbURL;
+		private String dbUrl;
 		private String tableName;
 		private String driverName;
 		private String username;
@@ -152,8 +152,8 @@ public class JDBCOptions {
 		/**
 		 * required, JDBC DB url.
 		 */
-		public Builder setDBUrl(String dbURL) {
-			this.dbURL = dbURL;
+		public Builder setDbUrl(String dbUrl) {
+			this.dbUrl = dbUrl;
 			return this;
 		}
 
@@ -163,7 +163,7 @@ public class JDBCOptions {
 		}
 
 		public JDBCOptions build() {
-			checkNotNull(dbURL, "No dbURL supplied.");
+			checkNotNull(dbUrl, "No dbURL supplied.");
 			checkNotNull(tableName, "No tableName supplied.");
 
 			if (this.driverName == null) {
@@ -173,7 +173,7 @@ public class JDBCOptions {
 				});
 			}
 
-            return new JDBCOptions(dbURL, tableName, driverName, username, password, schema, dialect);
+            return new JDBCOptions(dbUrl, tableName, driverName, username, password, schema, dialect);
 		}
 	}
 }

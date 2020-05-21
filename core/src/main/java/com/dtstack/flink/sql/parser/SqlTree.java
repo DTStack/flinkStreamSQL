@@ -21,7 +21,7 @@
 package com.dtstack.flink.sql.parser;
 
 
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Lists;
 
@@ -41,7 +41,7 @@ public class SqlTree {
 
     private Map<String, CreateTableParser.SqlParserResult> preDealTableMap = Maps.newHashMap();
 
-    private Map<String, TableInfo> tableInfoMap = Maps.newLinkedHashMap();
+    private Map<String, AbstractTableInfo> tableInfoMap = Maps.newLinkedHashMap();
 
     private List<InsertSqlParser.SqlParseResult> execSqlList = Lists.newArrayList();
 
@@ -89,11 +89,11 @@ public class SqlTree {
         return tmpSqlList;
     }
 
-    public Map<String, TableInfo> getTableInfoMap() {
+    public Map<String, AbstractTableInfo> getTableInfoMap() {
         return tableInfoMap;
     }
 
-    public void addTableInfo(String tableName, TableInfo tableInfo){
+    public void addTableInfo(String tableName, AbstractTableInfo tableInfo){
         tableInfoMap.put(tableName, tableInfo);
     }
 }

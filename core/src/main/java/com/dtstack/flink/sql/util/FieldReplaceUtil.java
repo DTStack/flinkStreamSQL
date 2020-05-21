@@ -146,7 +146,26 @@ public class FieldReplaceUtil {
             }
 
             return sqlBasicCall;
-        }else{
+        } else if (groupNode.getKind() == CASE) {
+            SqlCase sqlCase = (SqlCase) groupNode;
+
+            for (int i = 0; i < sqlCase.getWhenOperands().size(); i++) {
+                SqlNode sqlNode = sqlCase.getWhenOperands().getList().get(i);
+                SqlNode replaceNode = replaceSelectFieldName(sqlNode, oldTbName, newTbName, mappingField);
+                sqlCase.getWhenOperands().set(i,replaceNode);
+            }
+
+            for (int i = 0; i < sqlCase.getThenOperands().size(); i++) {
+                SqlNode sqlNode = sqlCase.getThenOperands().getList().get(i);
+                SqlNode replaceNode = replaceSelectFieldName(sqlNode, oldTbName, newTbName, mappingField);
+                sqlCase.getThenOperands().set(i,replaceNode);
+            }
+            if(sqlCase.getElseOperand() != null){
+                SqlNode replaceNode = replaceSelectFieldName(sqlCase.getElseOperand(), oldTbName, newTbName, mappingField);
+                sqlCase.setOperand(3, replaceNode);
+            }
+            return sqlCase;
+        } else {
             return groupNode;
         }
     }
@@ -166,12 +185,12 @@ public class FieldReplaceUtil {
             return sqlIdentifier;
         }
 
+        sqlIdentifier = sqlIdentifier.setName(0, newTbName);
+
         String mappingFieldName = mappingField.get(fieldName);
         if(mappingFieldName == null){
             return sqlIdentifier;
         }
-
-        sqlIdentifier = sqlIdentifier.setName(0, newTbName);
         sqlIdentifier = sqlIdentifier.setName(1, mappingFieldName);
         return sqlIdentifier;
     }
@@ -253,6 +272,7 @@ public class FieldReplaceUtil {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
         ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;

@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import java.util.List;
@@ -45,7 +46,7 @@ import static org.apache.calcite.sql.SqlKind.*;
  * @author maqi
  */
 public class SidePredicatesParser {
-    public void fillPredicatesForSideTable(String exeSql, Map<String, SideTableInfo> sideTableMap) throws SqlParseException {
+    public void fillPredicatesForSideTable(String exeSql, Map<String, AbstractSideTableInfo> sideTableMap) throws SqlParseException {
         FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
         SqlNode sqlNode = flinkPlanner.parse(exeSql);
         parseSql(sqlNode, sideTableMap, Maps.newHashMap());
@@ -57,7 +58,7 @@ public class SidePredicatesParser {
      * @param sideTableMap
      * @param tabMapping  谓词属性中别名对应的真实维表名称
      */
-    private void parseSql(SqlNode sqlNode, Map<String, SideTableInfo> sideTableMap, Map<String, String> tabMapping) {
+    private void parseSql(SqlNode sqlNode, Map<String, AbstractSideTableInfo> sideTableMap, Map<String, String> tabMapping) {
         SqlKind sqlKind = sqlNode.getKind();
         switch (sqlKind) {
             case INSERT:
@@ -100,10 +101,12 @@ public class SidePredicatesParser {
                 parseSql(unionLeft, sideTableMap, tabMapping);
                 parseSql(unionRight, sideTableMap, tabMapping);
                 break;
+            default:
+                break;
         }
     }
 
-    private void fillToSideTableInfo(Map<String, SideTableInfo> sideTableMap, Map<String, String> tabMapping, List<PredicateInfo> predicateInfoList) {
+    private void fillToSideTableInfo(Map<String, AbstractSideTableInfo> sideTableMap, Map<String, String> tabMapping, List<PredicateInfo> predicateInfoList) {
         predicateInfoList.stream().filter(info -> sideTableMap.containsKey(tabMapping.getOrDefault(info.getOwnerTable(), info.getOwnerTable())))
                 .map(info -> sideTableMap.get(tabMapping.getOrDefault(info.getOwnerTable(), info.getOwnerTable())).getPredicateInfoes().add(info))
                 .count();
@@ -127,10 +130,10 @@ public class SidePredicatesParser {
 
             // 跳过函数
             if ((((SqlBasicCall) whereNode).getOperands()[0] instanceof SqlIdentifier)
-                    && (((SqlBasicCall) whereNode).getOperands()[1].getKind() != SqlKind.OTHER_FUNCTION)) {
+                    && (((SqlBasicCall) whereNode).getOperands()[1].getKind() == SqlKind.LITERAL)) {
                 fillPredicateInfoToList((SqlBasicCall) whereNode, predicatesInfoList, operatorName, operatorKind, 0, 1);
             } else if ((((SqlBasicCall) whereNode).getOperands()[1] instanceof SqlIdentifier)
-                    && (((SqlBasicCall) whereNode).getOperands()[0].getKind() != SqlKind.OTHER_FUNCTION)) {
+                    && (((SqlBasicCall) whereNode).getOperands()[0].getKind() == LITERAL)) {
                 fillPredicateInfoToList((SqlBasicCall) whereNode, predicatesInfoList, operatorName, operatorKind, 1, 0);
             }
         }
@@ -138,16 +141,23 @@ public class SidePredicatesParser {
 
     private void fillPredicateInfoToList(SqlBasicCall whereNode, List<PredicateInfo> predicatesInfoList, String operatorName, SqlKind operatorKind,
                                          int fieldIndex, int conditionIndex) {
-        SqlIdentifier fieldFullPath = (SqlIdentifier) whereNode.getOperands()[fieldIndex];
-        if (fieldFullPath.names.size() == 2) {
-            String ownerTable = fieldFullPath.names.get(0);
-            String fieldName = fieldFullPath.names.get(1);
-            String content = (operatorKind == SqlKind.BETWEEN) ? whereNode.getOperands()[conditionIndex].toString() + " AND " +
-                    whereNode.getOperands()[2].toString() : whereNode.getOperands()[conditionIndex].toString();
+        SqlNode sqlNode = whereNode.getOperands()[fieldIndex];
+        if (sqlNode.getKind() == SqlKind.IDENTIFIER) {
+            SqlIdentifier fieldFullPath = (SqlIdentifier) sqlNode;
+            if (fieldFullPath.names.size() == 2) {
+                String ownerTable = fieldFullPath.names.get(0);
+                String fieldName = fieldFullPath.names.get(1);
+                String content = (operatorKind == SqlKind.BETWEEN) ? whereNode.getOperands()[conditionIndex].toString() + " AND " +
+                        whereNode.getOperands()[2].toString() : whereNode.getOperands()[conditionIndex].toString();
 
-            PredicateInfo predicateInfo = PredicateInfo.builder().setOperatorName(operatorName).setOperatorKind(operatorKind.toString())
-                    .setOwnerTable(ownerTable).setFieldName(fieldName).setCondition(content).build();
-            predicatesInfoList.add(predicateInfo);
+                if (StringUtils.containsIgnoreCase(content,SqlKind.CASE.toString())) {
+                    return;
+                }
+
+                PredicateInfo predicateInfo = PredicateInfo.builder().setOperatorName(operatorName).setOperatorKind(operatorKind.toString())
+                        .setOwnerTable(ownerTable).setFieldName(fieldName).setCondition(content).build();
+                predicatesInfoList.add(predicateInfo);
+            }
         }
     }
 

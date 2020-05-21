@@ -1,13 +1,10 @@
 package com.dtstack.flink.sql.sink.db;
 
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
-import com.dtstack.flink.sql.sink.rdb.RdbSink;
+import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
-import java.util.List;
-import java.util.Map;
-
-public class DbSink extends RdbSink {
+public class DbSink extends AbstractRdbSink {
 
     public DbSink() {
         super(new DbDialect());
@@ -15,10 +12,11 @@ public class DbSink extends RdbSink {
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDBUrl(dbURL)
+                .setDbUrl(dbUrl)
                 .setDialect(jdbcDialect)
                 .setUsername(userName)
                 .setPassword(password)
+                .setSchema(schema)
                 .setTableName(tableName)
                 .build();
 

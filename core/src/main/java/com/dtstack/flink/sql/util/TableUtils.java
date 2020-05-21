@@ -151,6 +151,7 @@ public class TableUtils {
                 || fieldNode.getKind() == TIMESTAMP_ADD
                 || fieldNode.getKind() == TIMESTAMP_DIFF
                 || fieldNode.getKind() == LIKE
+                || fieldNode.getKind() == COALESCE
                 ) {
             SqlBasicCall sqlBasicCall = (SqlBasicCall) fieldNode;
             for (int i = 0; i < sqlBasicCall.getOperands().length; i++) {
@@ -363,6 +364,7 @@ public class TableUtils {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
         ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
@@ -548,6 +550,7 @@ public class TableUtils {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
         ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
@@ -568,7 +571,13 @@ public class TableUtils {
         }else if(selectNode.getKind() == OTHER){
             //不处理
             return;
-        }else{
+        } else if (selectNode.getKind() == CASE) {
+            SqlCase sqlCase = (SqlCase) selectNode;
+
+            sqlCase.getWhenOperands().getList().forEach(sqlNode -> replaceConditionNode(sqlNode, oldTbName, newTbName, fieldReplaceRef));
+            sqlCase.getThenOperands().getList().forEach(sqlNode -> replaceConditionNode(sqlNode, oldTbName, newTbName, fieldReplaceRef));
+            replaceConditionNode(sqlCase.getElseOperand(), oldTbName, newTbName, fieldReplaceRef);
+        } else {
             throw new RuntimeException(String.format("not support node kind of %s to replace name now.", selectNode.getKind()));
         }
     }
@@ -579,14 +588,14 @@ public class TableUtils {
      * @param fieldInfos
      */
     public static void getConditionRefTable(SqlNode selectNode, Set<String> fieldInfos) {
-        if(selectNode.getKind() == IDENTIFIER){
+        if (selectNode.getKind() == IDENTIFIER) {
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
             fieldInfos.add(sqlIdentifier.toString());
             return;
-        }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
+        } else if (selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN) {//字面含义
             return;
-        }else if(  AGGREGATE.contains(selectNode.getKind())
+        } else if (AGGREGATE.contains(selectNode.getKind())
                 || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
                 || COMPARISON.contains(selectNode.getKind())
                 || selectNode.getKind() == OTHER_FUNCTION
@@ -615,16 +624,17 @@ public class TableUtils {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
-        ){
+                ) {
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
-            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+            for (int i = 0; i < sqlBasicCall.getOperands().length; i++) {
                 SqlNode sqlNode = sqlBasicCall.getOperands()[i];
-                if(sqlNode instanceof SqlLiteral){
+                if (sqlNode instanceof SqlLiteral) {
                     continue;
                 }
 
-                if(sqlNode instanceof SqlDataTypeSpec){
+                if (sqlNode instanceof SqlDataTypeSpec) {
                     continue;
                 }
 
@@ -632,10 +642,16 @@ public class TableUtils {
             }
 
             return;
-        }else if(selectNode.getKind() == OTHER){
+        } else if (selectNode.getKind() == OTHER) {
             //不处理
             return;
-        }else{
+        } else if (selectNode.getKind() == CASE) {
+            SqlCase sqlCase = (SqlCase) selectNode;
+
+            sqlCase.getWhenOperands().getList().forEach(sqlNode -> getConditionRefTable(sqlNode, fieldInfos));
+            sqlCase.getThenOperands().getList().forEach(sqlNode -> getConditionRefTable(sqlNode, fieldInfos));
+            getConditionRefTable(sqlCase.getElseOperand(), fieldInfos);
+        } else {
             throw new RuntimeException(String.format("not support node kind of %s to replace name now.", selectNode.getKind()));
         }
     }

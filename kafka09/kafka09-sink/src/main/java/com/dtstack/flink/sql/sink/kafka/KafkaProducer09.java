@@ -23,7 +23,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer09;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.runtime.types.CRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,7 @@ import java.util.Properties;
  *
  * @author maqi
  */
-public class KafkaProducer09 extends FlinkKafkaProducer09<Row> {
+public class KafkaProducer09 extends FlinkKafkaProducer09<CRow> {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaProducer09.class);
 
@@ -45,7 +45,7 @@ public class KafkaProducer09 extends FlinkKafkaProducer09<Row> {
 
     private SerializationMetricWrapper serializationMetricWrapper;
 
-    public KafkaProducer09(String topicId, SerializationSchema<Row> serializationSchema, Properties producerConfig, Optional<FlinkKafkaPartitioner<Row>> customPartitioner,String[] partitionKeys) {
+    public KafkaProducer09(String topicId, SerializationSchema<CRow> serializationSchema, Properties producerConfig, Optional<FlinkKafkaPartitioner<CRow>> customPartitioner, String[] partitionKeys) {
         super(topicId, new CustomerKeyedSerializationSchema((SerializationMetricWrapper)serializationSchema, partitionKeys), producerConfig, customPartitioner.orElse(null));
         this.serializationMetricWrapper = (SerializationMetricWrapper) serializationSchema;
     }

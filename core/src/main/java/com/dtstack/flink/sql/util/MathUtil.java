@@ -23,18 +23,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-
-
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
-import java.util.TimeZone;
-import java.util.regex.Pattern;
-
-import static java.time.format.DateTimeFormatter.ISO_INSTANT;
 
 /**
  * Convert val to specified numeric type
@@ -227,7 +215,7 @@ public class MathUtil {
         } else if (obj instanceof BigInteger) {
             return new BigDecimal((BigInteger) obj);
         } else if (obj instanceof Number) {
-            return new BigDecimal(((Number) obj).doubleValue());
+            return BigDecimal.valueOf(((Number) obj).doubleValue());
         }
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to BigDecimal.");
     }

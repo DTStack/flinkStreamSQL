@@ -78,6 +78,7 @@ public class SwitchUtil {
             case "timestamp":
             case "datetime":
                 return MathUtil.getTimestamp(obj);
+            default:
         }
         return obj;
     }

@@ -20,7 +20,7 @@
 
 package com.dtstack.flink.sql.watermarker;
 
-import com.dtstack.flink.sql.table.SourceTableInfo;
+import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.base.Strings;
@@ -29,8 +29,6 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import java.sql.Timestamp;
-import java.lang.Long;
-
 /**
  * define watermarker
  * Date: 2018/6/29
@@ -40,7 +38,7 @@ import java.lang.Long;
 
 public class WaterMarkerAssigner {
 
-    public boolean checkNeedAssignWaterMarker(SourceTableInfo tableInfo){
+    public boolean checkNeedAssignWaterMarker(AbstractSourceTableInfo tableInfo){
         if(Strings.isNullOrEmpty(tableInfo.getEventTimeField())){
             return false;
         }
@@ -48,7 +46,7 @@ public class WaterMarkerAssigner {
         return true;
     }
 
-    public DataStream assignWaterMarker(DataStream<Row> dataStream, RowTypeInfo typeInfo, SourceTableInfo sourceTableInfo){
+    public DataStream assignWaterMarker(DataStream<Row> dataStream, RowTypeInfo typeInfo, AbstractSourceTableInfo sourceTableInfo){
 
         String eventTimeFieldName = sourceTableInfo.getEventTimeField();
 
@@ -75,7 +73,7 @@ public class WaterMarkerAssigner {
 
         TypeInformation fieldType = fieldTypes[pos];
 
-        AbsCustomerWaterMarker waterMarker = null;
+        AbstractCustomerWaterMarker waterMarker = null;
         if(fieldType.getTypeClass().isAssignableFrom(Timestamp.class)){
             waterMarker = new CustomerWaterMarkerForTimeStamp(Time.milliseconds(maxOutOrderness), pos,timeZone);
         }else if(fieldType.getTypeClass().isAssignableFrom(Long.class)){

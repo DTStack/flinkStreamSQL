@@ -20,40 +20,37 @@ package com.dtstack.flink.sql.side.clickhouse;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
-import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
-import java.util.Map;
 
-public class ClickhouseAllReqRow extends RdbAllReqRow {
+public class ClickhouseAllReqRow extends AbstractRdbAllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickhouseAllReqRow.class);
 
     private static final String CLICKHOUSE_DRIVER = "ru.yandex.clickhouse.ClickHouseDriver";
 
-    public ClickhouseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public ClickhouseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new ClickhouseAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override
-    public Connection getConn(String dbURL, String userName, String passWord) {
+    public Connection getConn(String dbUrl, String userName, String passWord) {
         try {
             Connection connection ;
             JDBCUtils.forName(CLICKHOUSE_DRIVER, getClass().getClassLoader());
             // ClickHouseProperties contains all properties
             if (userName == null) {
-                connection = DriverManager.getConnection(dbURL);
+                connection = DriverManager.getConnection(dbUrl);
             } else {
-                connection = DriverManager.getConnection(dbURL, userName, passWord);
+                connection = DriverManager.getConnection(dbUrl, userName, passWord);
             }
             return connection;
         } catch (Exception e) {

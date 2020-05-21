@@ -18,8 +18,20 @@
 
 package com.dtstack.flink.sql.side.redis;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import io.lettuce.core.KeyValue;
+import io.lettuce.core.api.async.RedisStringAsyncCommands;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.types.Row;
+
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.redis.enums.RedisType;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
@@ -29,24 +41,20 @@ import io.lettuce.core.RedisFuture;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisHashAsyncCommands;
 import io.lettuce.core.api.async.RedisKeyAsyncCommands;
-import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.types.Row;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-
-public class RedisAsyncReqRow extends AsyncReqRow {
+/**
+ * @author yanxi
+ */
+public class RedisAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = -2079908694523987738L;
 
@@ -64,7 +72,7 @@ public class RedisAsyncReqRow extends AsyncReqRow {
 
     private RedisSideReqRow redisSideReqRow;
 
-    public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         redisSideReqRow = new RedisSideReqRow(super.sideInfo);
     }
@@ -121,44 +129,11 @@ public class RedisAsyncReqRow extends AsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(), input.change());
-        Map<String, Object> refData = Maps.newHashMap();
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.row().getField(conValIndex);
-            if(equalObj == null){
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
-        }
-
-        String key = buildCacheKey(refData);
+    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+        String key = buildCacheKey(inputParams);
         if(StringUtils.isBlank(key)){
             return;
         }
-        if(openCache()){
-            CacheObj val = getFromCache(key);
-            if(val != null){
-                if(ECacheContentType.MissVal == val.getType()){
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                }else if(ECacheContentType.MultiLine == val.getType()){
-                    try {
-                        Row row = fillData(input.row(), val.getContent());
-                        resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                }else{
-                    RuntimeException exception = new RuntimeException("not support cache obj type " + val.getType());
-                    resultFuture.completeExceptionally(exception);
-                }
-                return;
-            }
-        }
-
         RedisFuture<Map<String, String>> future = ((RedisHashAsyncCommands) async).hgetall(key);
         future.thenAccept(new Consumer<Map<String, String>>() {
             @Override
@@ -167,19 +142,20 @@ public class RedisAsyncReqRow extends AsyncReqRow {
                     try {
                         Row row = fillData(input.row(), values);
                         dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
-                        resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
+                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
+                        dealFillDataError(input, resultFuture, e);
                     }
                 } else {
-                    dealMissKey(inputCopy, resultFuture);
+                    dealMissKey(input, resultFuture);
                     dealCacheData(key,CacheMissVal.getMissKeyObj());
                 }
             }
         });
     }
 
-    private String buildCacheKey(Map<String, Object> refData) {
+    @Override
+    public String buildCacheKey(Map<String, Object> refData) {
         StringBuilder keyBuilder = new StringBuilder(redisSideTableInfo.getTableName());
         List<String> primaryKeys = redisSideTableInfo.getPrimaryKeys();
         for(String primaryKey : primaryKeys){

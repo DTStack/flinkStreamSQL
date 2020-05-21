@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.launcher;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
+import com.esotericsoftware.minlog.Log;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.client.program.ClusterClient;
@@ -105,7 +106,7 @@ public class ClusterClientFactory {
             try {
                 boolean isHighAvailability;
 
-                config.setString(ConfigConstants.PATH_HADOOP_CONFIG, yarnConfDir);
+                config.setString("fs.hdfs.hadoopconf", yarnConfDir);
                 FileSystem.initialize(config);
 
                 YarnConfiguration yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
@@ -185,7 +186,7 @@ public class ClusterClientFactory {
 
         }
 
-        if (applicationId == null || StringUtils.isEmpty(applicationId.toString())) {
+        if (null == applicationId || StringUtils.isEmpty(applicationId.toString())) {
             throw new RuntimeException("No flink session found on yarn cluster.");
         }
         return applicationId;

@@ -219,14 +219,14 @@ public class DtStringUtil {
         return preStr + "?" + sb.toString();
     }
 
-    public  static boolean isJosn(String str){
+    public static boolean isJson(String str) {
         boolean flag = false;
-        if(StringUtils.isNotBlank(str)){
+        if (StringUtils.isNotBlank(str)) {
             try {
-                objectMapper.readValue(str,Map.class);
+                objectMapper.readValue(str, Map.class);
                 flag = true;
             } catch (Throwable e) {
-                flag=false;
+                flag = false;
             }
         }
         return flag;
@@ -261,14 +261,43 @@ public class DtStringUtil {
     }
 
     public static String getTableFullPath(String schema, String tableName) {
+        String[] tableInfoSplit = StringUtils.split(tableName, ".");
+        //表明表信息带了schema
+        if(tableInfoSplit.length == 2){
+            schema = tableInfoSplit[0];
+            tableName = tableInfoSplit[1];
+        }
+
+        //清理首个字符" 和最后字符 "
+        schema = rmStrQuote(schema);
+        tableName = rmStrQuote(tableName);
+
         if (StringUtils.isEmpty(schema)){
             return addQuoteForStr(tableName);
         }
+
         String schemaAndTabName = addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
         return schemaAndTabName;
     }
 
+    /**
+     * 清理首个字符" 和最后字符 "
+     */
+    public static String rmStrQuote(String str){
+        if(StringUtils.isEmpty(str)){
+            return str;
+        }
 
+        if(str.startsWith("\"")){
+            str = str.substring(1);
+        }
+
+        if(str.endsWith("\"")){
+            str = str.substring(0, str.length()-1);
+        }
+
+        return str;
+    }
 
     public static String addQuoteForStr(String column) {
         return getStartQuote() + column + getEndQuote();

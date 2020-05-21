@@ -19,7 +19,7 @@
 package com.dtstack.flink.sql.side.db2.table;
 
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 
 import java.util.Map;
 
@@ -36,8 +36,8 @@ public class Db2SideParser extends RdbSideParser {
     private static final String CURR_TYPE = "db2";
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo tableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        AbstractTableInfo tableInfo = super.getTableInfo(tableName, fieldsInfo, props);
 
         tableInfo.setType(CURR_TYPE);
         return tableInfo;

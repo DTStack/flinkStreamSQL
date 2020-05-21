@@ -40,16 +40,58 @@ CREATE TABLE tableName(
   
 ## 5.样例：
 ```
+CREATE TABLE MyTable(
+    channel varchar,
+    pv varchar
+ )WITH(
+    type ='kafka11',
+    bootstrapServers ='172.16.8.107:9092',
+    zookeeperQuorum ='172.16.8.107:2181/kafka',
+    offsetReset ='latest',
+    topic ='es_test',
+    timezone='Asia/Shanghai',
+    updateMode ='append',
+    enableKeyPartitions ='false',
+    topicIsPattern ='false',
+    parallelism ='1'
+ );
+
 CREATE TABLE MyResult(
-    aa INT,
-    bb INT
+    pv varchar,
+    channel varchar
  )WITH(
     type ='elasticsearch',
-    address ='172.16.10.47:9500',
-    cluster='es_47_menghan',
-    estype ='type1',
-    index ='xc_es_test',
-    id ='0,1',
+    address ='172.16.8.193:9200',
+    authMesh='true',
+    username='elastic',
+    password='abc123',
+    estype ='external',
+    cluster ='docker-cluster',
+    index ='myresult',
+    id ='1',
+    updateMode ='append',
     parallelism ='1'
- )
+ );
+
+
+insert   
+into
+    MyResult
+    select
+        s.pv as pv,
+        s.channel as channel      
+    from
+        MyTable  s   
+
  ```
+
+## 6.结果示例
+### 输入数据示例
+```
+{"channel":"xc26","pv":"10","xctime":1232312}
+```
+### 输出数据示例
+```
+http://172.16.8.193:9200/myresult/_search
+{"_index":"myresult","_type":"external","_id":"8aX_DHIBn3B7OBuqFl-i","_score":1.0,"_source":{"pv":"10","channel":"xc26"}}
+```
