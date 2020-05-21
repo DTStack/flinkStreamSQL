@@ -24,7 +24,7 @@ CREATE TABLE tableName(
 |----|---|
 | tableName| 在 sql 中使用的名称;即注册到flink-table-env上的名称|
 | colName | 列名称|
-| colType | 列类型 [colType支持的类型](docs/plugin/impalaColType.md)|
+| colType | 列类型 [colType支持的类型](impalaColType.md)|
 
 ## 4.参数：
 

@@ -27,7 +27,7 @@ kudu 1.9.0+cdh6.2.0
 |----|---|
 | tableName | 在 sql 中使用的名称;即注册到flink-table-env上的名称
 | colName | 列名称，redis中存储为 表名:主键名:主键值:列名]|
-| colType | 列类型 [colType支持的类型](docs/colType.md)|
+| colType | 列类型 [colType支持的类型](../colType.md)|
 
 
 ## 4.参数：

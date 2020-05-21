@@ -29,7 +29,7 @@
  
 ## 3.表结构定义
 
- [维表参数信息](docs/plugin/sideParams.md)
+ [维表参数信息](sideParams.md)
  
   mysql独有的参数配置：
 

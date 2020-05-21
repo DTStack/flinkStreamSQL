@@ -33,7 +33,7 @@
   
 ## 4.参数
 
-参数详细说明请看[参数详细说明](./sideParams.md)
+参数详细说明请看[参数详细说明](sideParams.md)
 
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
@@ -138,7 +138,7 @@ CREATE TABLE MyResult(
  CREATE TABLE sideTable (  
         wtz:message varchar as message,
         wtz:info varchar as info , 
-        PRIMARY KEY (rowkey),
+        PRIMARY KEY (md5(key1) + key2),
          PERIOD FOR SYSTEM_TIME
 ) WITH (
         type = 'hbase',
@@ -166,6 +166,6 @@ into
         MyTable a
     left join
         sideTable b
-            on a.id=b.rowkey;
+            on a.id=b.key1 and a.xx = b.key2;
 ```
 

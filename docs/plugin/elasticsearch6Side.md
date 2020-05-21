@@ -32,7 +32,7 @@
  |----|---|
  | tableName | elasticsearch表名称|
  | colName | 列名称|
- | colType | 列类型 [colType支持的类型](docs/colType.md)|
+ | colType | 列类型 [colType支持的类型](../colType.md)|
  | PERIOD FOR SYSTEM_TIME | 关键字表明该定义的表为维表信息|
  | PRIMARY KEY(keyInfo) | 维表主键定义;多个列之间用逗号隔开|
  

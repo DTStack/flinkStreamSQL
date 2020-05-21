@@ -31,7 +31,7 @@
  10g 11g
  
 ## 3. 表结构定义
-   [维表参数](docs/plugin/sideParams.md)
+   [维表参数](sideParams.md)
    
    
   oracle独有的参数配置：
