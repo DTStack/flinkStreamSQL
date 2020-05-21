@@ -25,7 +25,6 @@ redis5.0
 | tableName | 在 sql 中使用的名称;即注册到flink-table-env上的名称
 | colName | 列名称，redis中存储为 表名:主键名:主键值:列名]|
 | colType | 列类型，当前只支持varchar|
-| PRIMARY KEY(keyInfo) | 结果表主键定义;多个列之间用逗号隔开|
 
 ## 4.参数：
   
@@ -44,6 +43,7 @@ redis5.0
 |maxIdle|最大空闲连接数|否|8|
 |minIdle|最小空闲连接数|否||0|
 |masterName| 哨兵模式下的masterName|否||
+|primarykeys|主键字段，多个字段以逗号分割|是||
       
   
 ## 5.样例：
@@ -69,6 +69,7 @@ redis5.0
      pv VARCHAR
   )WITH(
      type ='redis',
+     primarykeys='name',
      redisType ='1',
      url ='172.16.8.109:6379',
      tableName ='resultTable',
