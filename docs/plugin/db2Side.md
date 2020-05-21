@@ -28,7 +28,7 @@
 ## 3.表结构定义
   
   
- [维表参数信息](docs/plugin/sideParams.md)
+ [维表参数信息](sideParams.md)
  db2独有的参数配置：
   
  |参数名称|含义|

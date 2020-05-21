@@ -25,7 +25,7 @@ CREATE TABLE tableName(
 |----|---|
 | tableName| sqlserver表名称|
 | colName | 列名称|
-| colType | 列类型 [colType支持的类型](docs/colType.md)|
+| colType | 列类型 [colType支持的类型](../colType.md)|
 | primary key | updateMode为UPSERT时，需要指定的主键信息|
 
 ## 4.参数：

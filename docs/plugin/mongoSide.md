@@ -26,7 +26,7 @@
  
 ## 3.表结构定义
   
- [通用维表参数信息](docs/plugin/sideParams.md)
+ [通用维表参数信息](sideParams.md)
  
  
  mongo相关参数配置：
