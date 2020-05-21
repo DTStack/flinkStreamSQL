@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.sink.impala;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,6 +38,12 @@ public class ImpalaDialect implements JDBCDialect {
     private static final long serialVersionUID = 1L;
 
     private static final String IMPALA_PARTITION_KEYWORD = "partition";
+
+    private TypeInformation[] fieldTypes;
+
+    public ImpalaDialect(TypeInformation[] fieldTypes){
+        this.fieldTypes = fieldTypes;
+    }
 
     @Override
     public boolean canHandle(String url) {
@@ -70,8 +77,13 @@ public class ImpalaDialect implements JDBCDialect {
                 .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
 
-        String placeholders = Arrays.stream(fieldNames)
-                .map(f -> "?")
+        String placeholders = Arrays.stream(fieldTypes)
+                .map(f -> {
+                    if(String.class.getName().equals(f.getTypeClass().getName())){
+                        return "cast( ? as string)";
+                    }
+                    return "?";
+                })
                 .collect(Collectors.joining(", "));
 
         String partitionFieldStr = partitionFieldsList.stream()
