@@ -71,6 +71,10 @@ public class HbaseAllReqRow extends BaseAllReqRow {
     private Map<String, String> aliasNameInversion;
 
     private AtomicReference<Map<String, Map<String, Object>>> cacheRef = new AtomicReference<>();
+    private Connection conn = null;
+    private Table table = null;
+    private ResultScanner resultScanner = null;
+    private Configuration conf = null;
 
     public HbaseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new HbaseAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));

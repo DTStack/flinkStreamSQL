@@ -32,6 +32,7 @@ import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
+import com.dtstack.flink.sql.util.AuthUtil;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
 import org.apache.commons.lang3.StringUtils;
