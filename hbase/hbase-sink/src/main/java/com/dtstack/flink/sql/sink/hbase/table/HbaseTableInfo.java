@@ -23,6 +23,8 @@ package com.dtstack.flink.sql.sink.hbase.table;
 
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+
 import java.util.Map;
 
 /**
@@ -53,6 +55,18 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
     private String tableName;
 
     private String updateMode;
+
+    private boolean kerberosAuthEnable;
+
+    private String regionserverKeytabFile;
+
+    private String regionserverPrincipal;
+
+    private String securityKrb5Conf;
+
+    private String zookeeperSaslClient;
+
+    private Map<String,Object> hbaseConfig = Maps.newHashMap();
 
     public HbaseTableInfo(){
         setType(CURR_TYPE);
@@ -147,6 +161,55 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
     @Override
     public String getType() {
         return super.getType().toLowerCase();
+    }
+
+
+    public Map<String, Object> getHbaseConfig() {
+        return hbaseConfig;
+    }
+
+    public void setHbaseConfig(Map<String, Object> hbaseConfig) {
+        this.hbaseConfig = hbaseConfig;
+    }
+
+    public boolean isKerberosAuthEnable() {
+        return kerberosAuthEnable;
+    }
+
+    public void setKerberosAuthEnable(boolean kerberosAuthEnable) {
+        this.kerberosAuthEnable = kerberosAuthEnable;
+    }
+
+    public String getRegionserverKeytabFile() {
+        return regionserverKeytabFile;
+    }
+
+    public void setRegionserverKeytabFile(String regionserverKeytabFile) {
+        this.regionserverKeytabFile = regionserverKeytabFile;
+    }
+
+    public String getRegionserverPrincipal() {
+        return regionserverPrincipal;
+    }
+
+    public void setRegionserverPrincipal(String regionserverPrincipal) {
+        this.regionserverPrincipal = regionserverPrincipal;
+    }
+
+    public String getSecurityKrb5Conf() {
+        return securityKrb5Conf;
+    }
+
+    public void setSecurityKrb5Conf(String securityKrb5Conf) {
+        this.securityKrb5Conf = securityKrb5Conf;
+    }
+
+    public String getZookeeperSaslClient() {
+        return zookeeperSaslClient;
+    }
+
+    public void setZookeeperSaslClient(String zookeeperSaslClient) {
+        this.zookeeperSaslClient = zookeeperSaslClient;
     }
 
 }
