@@ -55,6 +55,12 @@ public class HbaseSinkParser extends AbstractTableParser {
 
     public static final String UPDATE_KEY = "updateMode";
 
+    public static final String KERBEROS_AUTH_ENABLE_KEY = "kerberosAuthEnable";
+    public static final String REGIONSERVER_KEYTAB_FILE_KEY = "regionserverKeytabFile";
+    public static final String REGIONSERVER_PRINCIPAL_KEY = "regionserverPrincipal";
+    public static final String SECURITY_KRB5_CONF_KEY = "securityKrb5Conf";
+    public static final String ZOOKEEPER_SASL_CLINT_KEY = "zookeeperSaslClient";
+
     @Override
     protected boolean fieldNameNeedsUpperCase() {
         return false;
@@ -73,6 +79,12 @@ public class HbaseSinkParser extends AbstractTableParser {
         hbaseTableInfo.setRowkey(rk);
         String updateMode = (String) props.getOrDefault(UPDATE_KEY, EUpdateMode.APPEND.name());
         hbaseTableInfo.setUpdateMode(updateMode);
+
+        hbaseTableInfo.setKerberosAuthEnable(MathUtil.getBoolean(props.get(KERBEROS_AUTH_ENABLE_KEY.toLowerCase()), false));
+        hbaseTableInfo.setRegionserverKeytabFile((String) props.get(REGIONSERVER_KEYTAB_FILE_KEY.toLowerCase()));
+        hbaseTableInfo.setRegionserverPrincipal((String) props.get(REGIONSERVER_PRINCIPAL_KEY.toLowerCase()));
+        hbaseTableInfo.setSecurityKrb5Conf((String) props.get(SECURITY_KRB5_CONF_KEY.toLowerCase()));
+        hbaseTableInfo.setZookeeperSaslClient((String) props.get(ZOOKEEPER_SASL_CLINT_KEY.toLowerCase()));
         return hbaseTableInfo;
     }
 
