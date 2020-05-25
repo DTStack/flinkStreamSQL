@@ -31,6 +31,7 @@ import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
+import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
 import org.apache.commons.lang3.StringUtils;
@@ -40,10 +41,13 @@ import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
+import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
@@ -93,11 +97,19 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         super.open(parameters);
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
+
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-aysnc"));
 
-        hBaseClient = new HBaseClient(hbaseSideTableInfo.getHost(), hbaseSideTableInfo.getParent(), executorService);
+        Config config = new Config();
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM_ASYNC, hbaseSideTableInfo.getParent());
+
+        if (hbaseSideTableInfo.isKerberosAuthEnable()) {
+            fillAsyncKerberosConfig(config, hbaseSideTableInfo);
+        }
+        hBaseClient = new HBaseClient(config, executorService);
 
         try {
             Deferred deferred = hBaseClient.ensureTableExists(tableName)
@@ -164,6 +176,32 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     public void close() throws Exception {
         super.close();
         hBaseClient.shutdown();
+    }
+
+    private void fillAsyncKerberosConfig(Config config, HbaseSideTableInfo hbaseSideTableInfo) throws IOException {
+        AuthUtil.JAASConfig jaasConfig = HbaseConfigUtils.buildJaasConfig(hbaseSideTableInfo);
+        LOG.info("jaasConfig file:\n {}", jaasConfig.toString());
+        String jaasFilePath = AuthUtil.creatJaasFile("JAAS", ".conf", jaasConfig);
+        config.overrideConfig(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_SECURITY_AUTH_ENABLE, "true");
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_SASL_CLIENTCONFIG, "Client");
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_SECURITY_AUTHENTICATION, "kerberos");
+
+        String regionserverPrincipal = hbaseSideTableInfo.getRegionserverPrincipal();
+        if (StringUtils.isEmpty(regionserverPrincipal)) {
+            throw new IllegalArgumentException("Must provide regionserverPrincipal when authentication is Kerberos");
+        }
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL, regionserverPrincipal);
+
+        if (!StringUtils.isEmpty(hbaseSideTableInfo.getZookeeperSaslClient())) {
+            System.setProperty(HbaseConfigUtils.KEY_ZOOKEEPER_SASL_CLIENT, hbaseSideTableInfo.getZookeeperSaslClient());
+        }
+
+        if (!StringUtils.isEmpty(hbaseSideTableInfo.getSecurityKrb5Conf())) {
+            String krb5ConfPath = System.getProperty("user.dir") + File.separator + hbaseSideTableInfo.getSecurityKrb5Conf();
+            LOG.info("krb5ConfPath:{}", krb5ConfPath);
+            System.setProperty(HbaseConfigUtils.KEY_JAVA_SECURITY_KRB5_CONF, krb5ConfPath);
+        }
     }
 
 
