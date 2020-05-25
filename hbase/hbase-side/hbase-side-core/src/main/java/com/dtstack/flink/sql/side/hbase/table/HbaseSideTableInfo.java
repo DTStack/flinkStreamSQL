@@ -52,6 +52,18 @@ public class HbaseSideTableInfo extends AbstractSideTableInfo {
 
     private String tableName;
 
+    private boolean kerberosAuthEnable;
+
+    private String regionserverKeytabFile;
+
+    private String regionserverPrincipal;
+
+    private String jaasPrincipal;
+
+    private String securityKrb5Conf;
+
+    private String zookeeperSaslClient;
+
     private String[] columnRealNames;
 
     private List<String> columnRealNameList = Lists.newArrayList();
