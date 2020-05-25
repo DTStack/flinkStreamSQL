@@ -62,6 +62,12 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private String[] columnTypes;
     private Map<String, String> columnNameFamily;
 
+    private boolean kerberosAuthEnable;
+    private String regionserverKeytabFile;
+    private String regionserverPrincipal;
+    private String securityKrb5Conf;
+    private String zookeeperSaslClient;
+
     private String[] families;
     private String[] qualifiers;
 
@@ -252,6 +258,31 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             format.columnNameFamily = columnNameFamily;
             return this;
         }
+        public HbaseOutputFormatBuilder setKerberosAuthEnable(boolean kerberosAuthEnable) {
+            format.kerberosAuthEnable = kerberosAuthEnable;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setRegionserverKeytabFile(String regionserverKeytabFile) {
+            format.regionserverKeytabFile = regionserverKeytabFile;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setRegionserverPrincipal(String regionserverPrincipal) {
+            format.regionserverPrincipal = regionserverPrincipal;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setSecurityKrb5Conf(String securityKrb5Conf) {
+            format.securityKrb5Conf = securityKrb5Conf;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setZookeeperSaslClient(String zookeeperSaslClient) {
+            format.zookeeperSaslClient = zookeeperSaslClient;
+            return this;
+        }
+
 
         public HbaseOutputFormat finish() {
             Preconditions.checkNotNull(format.host, "zookeeperQuorum should be specified");
@@ -267,7 +298,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
                 String[] columns = keySet.toArray(new String[keySet.size()]);
                 for (int i = 0; i < columns.length; ++i) {
                     String col = columns[i];
-                    String[] part = StringUtils.split(col, ":");
+                    String[] part = col.split(":");
                     families[i] = part[0];
                     qualifiers[i] = part[1];
                 }
