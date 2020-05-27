@@ -98,6 +98,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         super.open(parameters);
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
+        Map<String, Object> hbaseConfig = hbaseSideTableInfo.getHbaseConfig();
 
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
                 0L, TimeUnit.MILLISECONDS,
@@ -105,11 +106,18 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
         Config config = new Config();
         config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
-        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM_ASYNC, hbaseSideTableInfo.getParent());
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
+        HbaseConfigUtils.loadKrb5Conf(hbaseConfig);
+        hbaseConfig.entrySet().forEach(entity -> {
+            config.overrideConfig(entity.getKey(), (String) entity.getValue());
+        });
 
-        if (hbaseSideTableInfo.isKerberosAuthEnable()) {
-            fillAsyncKerberosConfig(config, hbaseSideTableInfo);
+        if (HbaseConfigUtils.asyncOpenKerberos(hbaseConfig)) {
+            String jaasStr = HbaseConfigUtils.buildJaasStr(hbaseConfig);
+            String jaasFilePath = HbaseConfigUtils.creatJassFile(jaasStr);
+            config.overrideConfig(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
         }
+
         hBaseClient = new HBaseClient(config, executorService);
 
         try {
