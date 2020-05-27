@@ -50,6 +50,8 @@ public class HbaseSideTableInfo extends AbstractSideTableInfo {
 
     private Map<String, String> columnNameFamily;
 
+    private Map<String, Object> hbaseConfig = Maps.newHashMap();
+
     private String tableName;
 
     private boolean kerberosAuthEnable;
@@ -207,6 +209,15 @@ public class HbaseSideTableInfo extends AbstractSideTableInfo {
     public void setZookeeperSaslClient(String zookeeperSaslClient) {
         this.zookeeperSaslClient = zookeeperSaslClient;
     }
+
+    public Map<String, Object> getHbaseConfig() {
+        return hbaseConfig;
+    }
+
+    public void setHbaseConfig(Map<String, Object> hbaseConfig) {
+        this.hbaseConfig = hbaseConfig;
+    }
+
 
     @Override
     public void finish(){

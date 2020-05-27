@@ -187,33 +187,6 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         hBaseClient.shutdown();
     }
 
-    private void fillAsyncKerberosConfig(Config config, HbaseSideTableInfo hbaseSideTableInfo) throws IOException {
-        AuthUtil.JAASConfig jaasConfig = HbaseConfigUtils.buildJaasConfig(hbaseSideTableInfo);
-        LOG.info("jaasConfig file:\n {}", jaasConfig.toString());
-        String jaasFilePath = AuthUtil.creatJaasFile("JAAS", ".conf", jaasConfig);
-        config.overrideConfig(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
-        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_SECURITY_AUTH_ENABLE, "true");
-        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_SASL_CLIENTCONFIG, "Client");
-        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_SECURITY_AUTHENTICATION, "kerberos");
-
-        String regionserverPrincipal = hbaseSideTableInfo.getRegionserverPrincipal();
-        if (StringUtils.isEmpty(regionserverPrincipal)) {
-            throw new IllegalArgumentException("Must provide regionserverPrincipal when authentication is Kerberos");
-        }
-        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL, regionserverPrincipal);
-
-        if (!StringUtils.isEmpty(hbaseSideTableInfo.getZookeeperSaslClient())) {
-            System.setProperty(HbaseConfigUtils.KEY_ZOOKEEPER_SASL_CLIENT, hbaseSideTableInfo.getZookeeperSaslClient());
-        }
-
-        if (!StringUtils.isEmpty(hbaseSideTableInfo.getSecurityKrb5Conf())) {
-            String krb5ConfPath = System.getProperty("user.dir") + File.separator + hbaseSideTableInfo.getSecurityKrb5Conf();
-            LOG.info("krb5ConfPath:{}", krb5ConfPath);
-            System.setProperty(HbaseConfigUtils.KEY_JAVA_SECURITY_KRB5_CONF, krb5ConfPath);
-        }
-    }
-
-
     class CheckResult{
 
         private boolean connect;

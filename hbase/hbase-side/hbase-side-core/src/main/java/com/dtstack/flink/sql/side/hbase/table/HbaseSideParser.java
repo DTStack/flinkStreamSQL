@@ -53,13 +53,6 @@ public class HbaseSideParser extends AbstractSideTableParser {
 
     public static final String CACHE = "cache";
 
-    public static final String KERBEROS_AUTH_ENABLE_KEY = "kerberosAuthEnable";
-    public static final String REGIONSERVER_KEYTAB_FILE_KEY = "regionserverKeytabFile";
-    public static final String REGIONSERVER_PRINCIPAL_KEY = "regionserverPrincipal";
-    public static final String JAAS_PRINCIPAL_KEY = "jaasPrincipal";
-    public static final String SECURITY_KRB5_CONF_KEY = "securityKrb5Conf";
-    public static final String ZOOKEEPER_SASL_CLINT_KEY = "zookeeperSaslClient";
-
     public HbaseSideParser() {
         addParserHandler(FIELD_KEY, FIELD_PATTERN, this::dealField);
     }
@@ -76,13 +69,10 @@ public class HbaseSideParser extends AbstractSideTableParser {
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         hbaseTableInfo.setPreRowKey(MathUtil.getBoolean(props.get(PRE_ROW_KEY.toLowerCase()), false));
         hbaseTableInfo.setCacheType((String) props.get(CACHE));
-
-        hbaseTableInfo.setKerberosAuthEnable(MathUtil.getBoolean(props.get(KERBEROS_AUTH_ENABLE_KEY.toLowerCase()), false));
-        hbaseTableInfo.setRegionserverKeytabFile((String) props.get(REGIONSERVER_KEYTAB_FILE_KEY.toLowerCase()));
-        hbaseTableInfo.setRegionserverPrincipal((String) props.get(REGIONSERVER_PRINCIPAL_KEY.toLowerCase()));
-        hbaseTableInfo.setJaasPrincipal((String) props.get(JAAS_PRINCIPAL_KEY.toLowerCase()));
-        hbaseTableInfo.setSecurityKrb5Conf((String) props.get(SECURITY_KRB5_CONF_KEY.toLowerCase()));
-        hbaseTableInfo.setZookeeperSaslClient((String) props.get(ZOOKEEPER_SASL_CLINT_KEY.toLowerCase()));
+        props.entrySet().stream()
+                .filter(entity -> entity.getKey().contains("."))
+                .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), String.valueOf(entity.getValue())))
+                .count();
         return hbaseTableInfo;
     }
 

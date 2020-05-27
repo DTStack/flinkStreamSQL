@@ -179,22 +179,14 @@ public class HbaseAllReqRow extends BaseAllReqRow {
         boolean openKerberos = hbaseSideTableInfo.isKerberosAuthEnable();
         int loadDataCount = 0;
         try {
-            conf = HBaseConfiguration.create();
             if (openKerberos) {
+                conf = HbaseConfigUtils.getHadoopConfiguration(hbaseSideTableInfo.getHbaseConfig());
                 conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
-                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM_SYNC, hbaseSideTableInfo.getParent());
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
+                String principal = HbaseConfigUtils.getPrincipal(hbaseSideTableInfo.getHbaseConfig());
+                String keytab = HbaseConfigUtils.getKeytab(hbaseSideTableInfo.getHbaseConfig());
 
-                fillSyncKerberosConfig(conf,hbaseSideTableInfo);
-                LOG.info("hbase.security.authentication:{}", conf.get("hbase.security.authentication"));
-                LOG.info("hbase.security.authorization:{}", conf.get("hbase.security.authorization"));
-                LOG.info("hbase.master.keytab.file:{}", conf.get("hbase.master.keytab.file"));
-                LOG.info("hbase.master.kerberos.principal:{}", conf.get("hbase.master.kerberos.principal"));
-                LOG.info("hbase.regionserver.keytab.file:{}", conf.get("hbase.regionserver.keytab.file"));
-                LOG.info("hbase.regionserver.kerberos.principal:{}", conf.get("hbase.regionserver.kerberos.principal"));
-
-                UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, hbaseSideTableInfo.getRegionserverPrincipal(),
-                        hbaseSideTableInfo.getRegionserverKeytabFile());
-
+                UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, principal, keytab);
                 Configuration finalConf = conf;
                 conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
                     @Override
@@ -209,8 +201,9 @@ public class HbaseAllReqRow extends BaseAllReqRow {
                 });
 
             } else {
+                conf = HbaseConfigUtils.getConfig(hbaseSideTableInfo.getHbaseConfig());
                 conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
-                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM_SYNC, hbaseSideTableInfo.getParent());
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
                 conn = ConnectionFactory.createConnection(conf);
             }
 
@@ -253,33 +246,4 @@ public class HbaseAllReqRow extends BaseAllReqRow {
         }
     }
 
-    private void fillSyncKerberosConfig(Configuration config, HbaseSideTableInfo hbaseSideTableInfo) throws IOException {
-        String regionserverKeytabFile = hbaseSideTableInfo.getRegionserverKeytabFile();
-        if (StringUtils.isEmpty(regionserverKeytabFile)) {
-            throw new IllegalArgumentException("Must provide regionserverKeytabFile when authentication is Kerberos");
-        }
-        String regionserverKeytabFilePath = System.getProperty("user.dir") + File.separator + regionserverKeytabFile;
-        LOG.info("regionserverKeytabFilePath:{}", regionserverKeytabFilePath);
-        config.set(HbaseConfigUtils.KEY_HBASE_MASTER_KEYTAB_FILE, regionserverKeytabFilePath);
-        config.set(HbaseConfigUtils.KEY_HBASE_REGIONSERVER_KEYTAB_FILE, regionserverKeytabFilePath);
-
-        String regionserverPrincipal = hbaseSideTableInfo.getRegionserverPrincipal();
-        if (StringUtils.isEmpty(regionserverPrincipal)) {
-            throw new IllegalArgumentException("Must provide regionserverPrincipal when authentication is Kerberos");
-        }
-        config.set(HbaseConfigUtils.KEY_HBASE_MASTER_KERBEROS_PRINCIPAL, regionserverPrincipal);
-        config.set(HbaseConfigUtils.KEY_HBASE_REGIONSERVER_KERBEROS_PRINCIPAL, regionserverPrincipal);
-        config.set(HbaseConfigUtils.KEY_HBASE_SECURITY_AUTHORIZATION, "true");
-        config.set(HbaseConfigUtils.KEY_HBASE_SECURITY_AUTHENTICATION, "kerberos");
-
-        if (!StringUtils.isEmpty(hbaseSideTableInfo.getZookeeperSaslClient())) {
-            System.setProperty(HbaseConfigUtils.KEY_ZOOKEEPER_SASL_CLIENT, hbaseSideTableInfo.getZookeeperSaslClient());
-        }
-
-        if (!StringUtils.isEmpty(hbaseSideTableInfo.getSecurityKrb5Conf())) {
-            String krb5ConfPath = System.getProperty("user.dir") + File.separator + hbaseSideTableInfo.getSecurityKrb5Conf();
-            LOG.info("krb5ConfPath:{}", krb5ConfPath);
-            System.setProperty(HbaseConfigUtils.KEY_JAVA_SECURITY_KRB5_CONF, krb5ConfPath);
-        }
-    }
 }
