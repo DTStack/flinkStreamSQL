@@ -37,10 +37,13 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -91,6 +94,29 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         LOG.warn("---open---");
         conn = ConnectionFactory.createConnection(conf);
         table = conn.getTable(TableName.valueOf(tableName));
+        if (kerberosAuthEnable) {
+            conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
+            conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
+            fillSyncKerberosConfig(conf, regionserverKeytabFile, regionserverPrincipal, zookeeperSaslClient, securityKrb5Conf);
+
+            UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, regionserverPrincipal, regionserverKeytabFile);
+            org.apache.hadoop.conf.Configuration finalConf = conf;
+            conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
+                @Override
+                public Connection run() {
+                    try {
+                        return ConnectionFactory.createConnection(finalConf);
+                    } catch (IOException e) {
+                        LOG.error("Get connection fail with config:{}", finalConf);
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+        } else {
+            conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
+            conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
+            conn = ConnectionFactory.createConnection(conf);
+        }
         LOG.warn("---open end(get table from hbase) ---");
         initMetric();
     }
@@ -309,6 +335,36 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return format;
         }
 
+    }
+
+    private void fillSyncKerberosConfig( org.apache.hadoop.conf.Configuration config, String regionserverKeytabFile, String regionserverPrincipal,
+                                        String zookeeperSaslClient, String securityKrb5Conf) throws IOException {
+        if (StringUtils.isEmpty(regionserverKeytabFile)) {
+            throw new IllegalArgumentException("Must provide regionserverKeytabFile when authentication is Kerberos");
+        }
+        String regionserverKeytabFilePath = System.getProperty("user.dir") + File.separator + regionserverKeytabFile;
+        LOG.info("regionserverKeytabFilePath:{}",regionserverKeytabFilePath);
+        config.set(HbaseConfigUtils.KEY_HBASE_MASTER_KEYTAB_FILE, regionserverKeytabFilePath);
+        config.set(HbaseConfigUtils.KEY_HBASE_REGIONSERVER_KEYTAB_FILE, regionserverKeytabFilePath);
+
+        if (StringUtils.isEmpty(regionserverPrincipal)) {
+            throw new IllegalArgumentException("Must provide regionserverPrincipal when authentication is Kerberos");
+        }
+        config.set(HbaseConfigUtils.KEY_HBASE_MASTER_KERBEROS_PRINCIPAL, regionserverPrincipal);
+        config.set(HbaseConfigUtils.KEY_HBASE_REGIONSERVER_KERBEROS_PRINCIPAL, regionserverPrincipal);
+        config.set(HbaseConfigUtils.KEY_HBASE_SECURITY_AUTHORIZATION, "true");
+        config.set(HbaseConfigUtils.KEY_HBASE_SECURITY_AUTHENTICATION, "kerberos");
+
+
+        if (!StringUtils.isEmpty(zookeeperSaslClient)) {
+            System.setProperty(HbaseConfigUtils.KEY_ZOOKEEPER_SASL_CLIENT, zookeeperSaslClient);
+        }
+
+        if (!StringUtils.isEmpty(securityKrb5Conf)) {
+            String krb5ConfPath = System.getProperty("user.dir") + File.separator + securityKrb5Conf;
+            LOG.info("krb5ConfPath:{}", krb5ConfPath);
+            System.setProperty(HbaseConfigUtils.KEY_JAVA_SECURITY_KRB5_CONF, krb5ConfPath);
+        }
     }
 
 
