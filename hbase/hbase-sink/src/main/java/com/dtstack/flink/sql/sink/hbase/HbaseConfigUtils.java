@@ -18,19 +18,12 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  *
@@ -52,13 +45,18 @@ public class HbaseConfigUtils {
     public final static String KEY_HBASE_REGIONSERVER_KERBEROS_PRINCIPAL = "hbase.regionserver.kerberos.principal";
 
     public final static String KEY_HBASE_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
-    public final static String KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM = "hbase.zookeeper.znode.parent";
+    public final static String KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM = "zookeeper.znode.parent";
+
+    public final static String KEY_HBASE_CLIENT_KEYTAB_FILE = "hbase.client.keytab.file";
+    public final static String KEY_HBASE_CLIENT_KERBEROS_PRINCIPAL = "hbase.client.kerberos.principal";
 
 
     public static final String KEY_JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf";
     public static final String KEY_ZOOKEEPER_SASL_CLIENT = "zookeeper.sasl.client";
 
     public static UserGroupInformation loginAndReturnUGI(Configuration conf, String principal, String keytab) throws IOException {
+        LOG.info("loginAndReturnUGI principal {}",principal);
+        LOG.info("loginAndReturnUGI keytab {}",keytab);
         if (conf == null) {
             throw new IllegalArgumentException("kerberos conf can not be null");
         }

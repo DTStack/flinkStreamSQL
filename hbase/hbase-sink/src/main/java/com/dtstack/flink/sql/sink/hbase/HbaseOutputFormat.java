@@ -29,8 +29,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
@@ -70,6 +69,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private String regionserverPrincipal;
     private String securityKrb5Conf;
     private String zookeeperSaslClient;
+    private String clientPrincipal;
+    private String clientKeytabFile;
 
     private String[] families;
     private String[] qualifiers;
@@ -78,47 +79,77 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private transient Connection conn;
     private transient Table table;
 
+    private transient ChoreService choreService;
+
     @Override
     public void configure(Configuration parameters) {
         LOG.warn("---configure---");
         conf = HBaseConfiguration.create();
-        conf.set("hbase.zookeeper.quorum", host);
-        if (zkParent != null && !"".equals(zkParent)) {
-            conf.set("zookeeper.znode.parent", zkParent);
-        }
-        LOG.warn("---configure end ---");
     }
 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         LOG.warn("---open---");
-        if (kerberosAuthEnable) {
-            conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
-            conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
-            fillSyncKerberosConfig(conf, regionserverKeytabFile, regionserverPrincipal, zookeeperSaslClient, securityKrb5Conf);
-
-            UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, regionserverPrincipal, regionserverKeytabFile);
-            org.apache.hadoop.conf.Configuration finalConf = conf;
-            conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
-                @Override
-                public Connection run() {
-                    try {
-                        return ConnectionFactory.createConnection(finalConf);
-                    } catch (IOException e) {
-                        LOG.error("Get connection fail with config:{}", finalConf);
-                        throw new RuntimeException(e);
-                    }
-                }
-            });
-        } else {
-            conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
-            conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
-            conn = ConnectionFactory.createConnection(conf);
-        }
+        openConn();
         table = conn.getTable(TableName.valueOf(tableName));
         LOG.warn("---open end(get table from hbase) ---");
         initMetric();
     }
+
+    private void openConn(){
+        try{
+            if (kerberosAuthEnable) {
+                LOG.info("open kerberos conn");
+                openKerberosConn();
+            } else {
+                LOG.info("open conn");
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
+                conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
+                conn = ConnectionFactory.createConnection(conf);
+            }
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
+
+    }
+    private void openKerberosConn() throws IOException {
+        conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
+        conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
+
+        LOG.info("kerberos config:{}", this.toString());
+        Preconditions.checkArgument(!StringUtils.isEmpty(clientPrincipal), " clientPrincipal not null!");
+        Preconditions.checkArgument(!StringUtils.isEmpty(clientKeytabFile), " clientKeytabFile not null!");
+
+        fillSyncKerberosConfig(conf, regionserverPrincipal, zookeeperSaslClient, securityKrb5Conf);
+
+        clientKeytabFile = System.getProperty("user.dir") + File.separator + clientKeytabFile;
+        clientPrincipal = !StringUtils.isEmpty(clientPrincipal) ? clientPrincipal : regionserverPrincipal;
+
+        conf.set(HbaseConfigUtils.KEY_HBASE_CLIENT_KEYTAB_FILE, clientKeytabFile);
+        conf.set(HbaseConfigUtils.KEY_HBASE_CLIENT_KERBEROS_PRINCIPAL, clientPrincipal);
+
+        UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, clientPrincipal, clientKeytabFile);
+        org.apache.hadoop.conf.Configuration finalConf = conf;
+        conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
+            @Override
+            public Connection run() {
+                try {
+                    ScheduledChore authChore = AuthUtil.getAuthChore(finalConf);
+                    if (authChore != null) {
+                        choreService = new ChoreService("hbaseKerberosSink");
+                        choreService.scheduleChore(authChore);
+                    }
+
+                    return ConnectionFactory.createConnection(finalConf);
+                } catch (IOException e) {
+                    LOG.error("Get connection fail with config:{}", finalConf);
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
+
 
     @Override
     public void writeRecord(Tuple2 tuple2) {
@@ -227,7 +258,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             conn = null;
         }
     }
-
     private HbaseOutputFormat() {
     }
 
@@ -264,11 +294,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
-        public HbaseOutputFormatBuilder setUpdateMode(String updateMode) {
-            format.updateMode = updateMode;
-            return this;
-        }
-
         public HbaseOutputFormatBuilder setColumnNames(String[] columnNames) {
             format.columnNames = columnNames;
             return this;
@@ -283,6 +308,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             format.columnNameFamily = columnNameFamily;
             return this;
         }
+
         public HbaseOutputFormatBuilder setKerberosAuthEnable(boolean kerberosAuthEnable) {
             format.kerberosAuthEnable = kerberosAuthEnable;
             return this;
@@ -308,6 +334,16 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
+        public HbaseOutputFormatBuilder setClientPrincipal(String clientPrincipal) {
+            format.clientPrincipal = clientPrincipal;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setClientKeytabFile(String clientKeytabFile) {
+            format.clientKeytabFile = clientKeytabFile;
+            return this;
+        }
+
 
         public HbaseOutputFormat finish() {
             Preconditions.checkNotNull(format.host, "zookeeperQuorum should be specified");
@@ -323,7 +359,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
                 String[] columns = keySet.toArray(new String[keySet.size()]);
                 for (int i = 0; i < columns.length; ++i) {
                     String col = columns[i];
-                    String[] part = StringUtils.split(col, ":");;
+                    String[] part = col.split(":");
                     families[i] = part[0];
                     qualifiers[i] = part[1];
                 }
@@ -336,16 +372,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     }
 
-    private void fillSyncKerberosConfig( org.apache.hadoop.conf.Configuration config, String regionserverKeytabFile, String regionserverPrincipal,
+    private void fillSyncKerberosConfig(org.apache.hadoop.conf.Configuration config, String regionserverPrincipal,
                                         String zookeeperSaslClient, String securityKrb5Conf) throws IOException {
-        if (StringUtils.isEmpty(regionserverKeytabFile)) {
-            throw new IllegalArgumentException("Must provide regionserverKeytabFile when authentication is Kerberos");
-        }
-        String regionserverKeytabFilePath = System.getProperty("user.dir") + File.separator + regionserverKeytabFile;
-        LOG.info("regionserverKeytabFilePath:{}",regionserverKeytabFilePath);
-        config.set(HbaseConfigUtils.KEY_HBASE_MASTER_KEYTAB_FILE, regionserverKeytabFilePath);
-        config.set(HbaseConfigUtils.KEY_HBASE_REGIONSERVER_KEYTAB_FILE, regionserverKeytabFilePath);
-
         if (StringUtils.isEmpty(regionserverPrincipal)) {
             throw new IllegalArgumentException("Must provide regionserverPrincipal when authentication is Kerberos");
         }
@@ -366,5 +394,17 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
     }
 
+    @Override
+    public String toString() {
+        return "HbaseOutputFormat kerberos{" +
+                "kerberosAuthEnable=" + kerberosAuthEnable +
+                ", regionserverKeytabFile='" + regionserverKeytabFile + '\'' +
+                ", regionserverPrincipal='" + regionserverPrincipal + '\'' +
+                ", securityKrb5Conf='" + securityKrb5Conf + '\'' +
+                ", zookeeperSaslClient='" + zookeeperSaslClient + '\'' +
+                ", clientPrincipal='" + clientPrincipal + '\'' +
+                ", clientKeytabFile='" + clientKeytabFile + '\'' +
+                '}';
+    }
 
 }

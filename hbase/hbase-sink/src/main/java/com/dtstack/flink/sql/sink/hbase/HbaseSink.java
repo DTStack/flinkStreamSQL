@@ -59,6 +59,9 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String regionserverPrincipal;
     protected String securityKrb5Conf;
     protected String zookeeperSaslClient;
+
+    private String clientPrincipal;
+    private String clientKeytabFile;
     private int parallelism = -1;
 
 
@@ -83,6 +86,9 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.securityKrb5Conf = hbaseTableInfo.getSecurityKrb5Conf();
         this.zookeeperSaslClient = hbaseTableInfo.getZookeeperSaslClient();
 
+        this.clientKeytabFile = hbaseTableInfo.getClientKeytabFile();
+        this.clientPrincipal = hbaseTableInfo.getClientPrincipal();
+
         Integer tmpSinkParallelism = hbaseTableInfo.getParallelism();
         if (tmpSinkParallelism != null) {
             this.parallelism = tmpSinkParallelism;
@@ -103,6 +109,9 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         builder.setRegionserverPrincipal(regionserverPrincipal);
         builder.setSecurityKrb5Conf(securityKrb5Conf);
         builder.setZookeeperSaslClient(zookeeperSaslClient);
+
+        builder.setClientPrincipal(clientPrincipal);
+        builder.setClientKeytabFile(clientKeytabFile);
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
