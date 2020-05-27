@@ -92,8 +92,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         LOG.warn("---open---");
-        conn = ConnectionFactory.createConnection(conf);
-        table = conn.getTable(TableName.valueOf(tableName));
         if (kerberosAuthEnable) {
             conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
             conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
@@ -117,6 +115,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
             conn = ConnectionFactory.createConnection(conf);
         }
+        table = conn.getTable(TableName.valueOf(tableName));
         LOG.warn("---open end(get table from hbase) ---");
         initMetric();
     }
