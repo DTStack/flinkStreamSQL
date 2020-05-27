@@ -512,10 +512,53 @@ public class JoinNodeDealer {
         }
 
         SqlKind joinKind = condition.getKind();
-        if( joinKind == AND || joinKind == EQUALS ){
-            extractJoinField(((SqlBasicCall)condition).operands[0], joinFieldSet);
-            extractJoinField(((SqlBasicCall)condition).operands[1], joinFieldSet);
-        }else{
+        if (  AGGREGATE.contains(condition.getKind())
+                || AVG_AGG_FUNCTIONS.contains(joinKind)
+                || COMPARISON.contains(joinKind)
+                || joinKind == OTHER_FUNCTION
+                || joinKind == DIVIDE
+                || joinKind == CAST
+                || joinKind == TRIM
+                || joinKind == TIMES
+                || joinKind == PLUS
+                || joinKind == NOT_IN
+                || joinKind == OR
+                || joinKind == AND
+                || joinKind == MINUS
+                || joinKind == TUMBLE
+                || joinKind == TUMBLE_START
+                || joinKind == TUMBLE_END
+                || joinKind == SESSION
+                || joinKind == SESSION_START
+                || joinKind == SESSION_END
+                || joinKind == HOP
+                || joinKind == HOP_START
+                || joinKind == HOP_END
+                || joinKind == BETWEEN
+                || joinKind == IS_NULL
+                || joinKind == IS_NOT_NULL
+                || joinKind == CONTAINS
+                || joinKind == TIMESTAMP_ADD
+                || joinKind == TIMESTAMP_DIFF
+                || joinKind == LIKE
+                || joinKind == COALESCE
+                || joinKind == EQUALS ){
+
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) condition;
+            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if(sqlNode instanceof SqlLiteral){
+                    continue;
+                }
+
+                if(sqlNode instanceof SqlDataTypeSpec){
+                    continue;
+                }
+
+                extractJoinField(sqlNode, joinFieldSet);
+            }
+
+        } else if (condition.getKind() == IDENTIFIER){
             Preconditions.checkState(((SqlIdentifier)condition).names.size() == 2, "join condition must be format table.field");
             Tuple2<String, String> tuple2 = Tuple2.of(((SqlIdentifier)condition).names.get(0), ((SqlIdentifier)condition).names.get(1));
             joinFieldSet.add(tuple2);
@@ -822,20 +865,57 @@ public class JoinNodeDealer {
     private SqlIdentifier checkAndReplaceJoinCondition(SqlNode node, Map<String, String> tableMap){
 
         SqlKind joinKind = node.getKind();
-        if( joinKind == AND || joinKind == EQUALS ){
-            SqlIdentifier leftNode = checkAndReplaceJoinCondition(((SqlBasicCall)node).operands[0], tableMap);
-            SqlIdentifier rightNode = checkAndReplaceJoinCondition(((SqlBasicCall)node).operands[1], tableMap);
+        if(   AGGREGATE.contains(joinKind)
+                || AVG_AGG_FUNCTIONS.contains(joinKind)
+                || COMPARISON.contains(joinKind)
+                || joinKind == OTHER_FUNCTION
+                || joinKind == DIVIDE
+                || joinKind == CAST
+                || joinKind == TRIM
+                || joinKind == TIMES
+                || joinKind == PLUS
+                || joinKind == NOT_IN
+                || joinKind == OR
+                || joinKind == AND
+                || joinKind == MINUS
+                || joinKind == TUMBLE
+                || joinKind == TUMBLE_START
+                || joinKind == TUMBLE_END
+                || joinKind == SESSION
+                || joinKind == SESSION_START
+                || joinKind == SESSION_END
+                || joinKind == HOP
+                || joinKind == HOP_START
+                || joinKind == HOP_END
+                || joinKind == BETWEEN
+                || joinKind == IS_NULL
+                || joinKind == IS_NOT_NULL
+                || joinKind == CONTAINS
+                || joinKind == TIMESTAMP_ADD
+                || joinKind == TIMESTAMP_DIFF
+                || joinKind == LIKE
+                || joinKind == COALESCE
+                || joinKind == EQUALS ){
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) node;
+            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if(sqlNode instanceof SqlLiteral){
+                    continue;
+                }
 
-            if(leftNode != null){
-                ((SqlBasicCall)node).setOperand(0, leftNode);
-            }
+                if(sqlNode instanceof SqlDataTypeSpec){
+                    continue;
+                }
 
-            if(rightNode != null){
-                ((SqlBasicCall)node).setOperand(1, leftNode);
+                SqlIdentifier replaceNode = checkAndReplaceJoinCondition(sqlNode, tableMap);
+                if(replaceNode != null){
+                    ((SqlBasicCall)node).setOperand(i, replaceNode);
+                }
+
             }
 
             return null;
-        } else {
+        } else if (node.getKind() == IDENTIFIER) {
             //replace table
             Preconditions.checkState(((SqlIdentifier)node).names.size() == 2, "join condition must be format table.field");
             String tbName = ((SqlIdentifier) node).names.get(0);
@@ -846,6 +926,8 @@ public class JoinNodeDealer {
 
             return null;
         }
+
+        return null;
     }
 
     /**
