@@ -20,15 +20,15 @@
 
 package com.dtstack.flink.sql.side.hbase.table;
 
-import com.dtstack.flink.sql.table.AbsSideTableParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractSideTableParser;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
 
 /**
  * hbase field information must include the definition of an alias -> sql which does not allow ":"
@@ -37,7 +37,7 @@ import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
  * @author xuchao
  */
 
-public class HbaseSideParser extends AbsSideTableParser {
+public class HbaseSideParser extends AbstractSideTableParser {
 
     private final static String FIELD_KEY = "fieldKey";
 
@@ -58,9 +58,10 @@ public class HbaseSideParser extends AbsSideTableParser {
     }
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         HbaseSideTableInfo hbaseTableInfo = new HbaseSideTableInfo();
         hbaseTableInfo.setName(tableName);
+        parseCacheProp(hbaseTableInfo, props);
         parseFieldsInfo(fieldsInfo, hbaseTableInfo);
         hbaseTableInfo.setTableName((String) props.get(TABLE_NAME_KEY.toLowerCase()));
         hbaseTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
@@ -77,7 +78,7 @@ public class HbaseSideParser extends AbsSideTableParser {
      * @param matcher
      * @param tableInfo
      */
-    private void dealField(Matcher matcher, TableInfo tableInfo){
+    private void dealField(Matcher matcher, AbstractTableInfo tableInfo){
 
         HbaseSideTableInfo sideTableInfo = (HbaseSideTableInfo) tableInfo;
         String filedDefineStr = matcher.group(1);
@@ -100,6 +101,7 @@ public class HbaseSideParser extends AbsSideTableParser {
         sideTableInfo.addFieldClass(fieldClass);
         sideTableInfo.addFieldType(fieldType);
         sideTableInfo.putAliasNameRef(aliasStr, fieldName);
+        sideTableInfo.addPhysicalMappings(aliasStr, fieldName);
     }
 
 

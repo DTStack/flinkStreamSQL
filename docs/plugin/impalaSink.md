@@ -24,7 +24,7 @@ CREATE TABLE tableName(
 |----|---|
 | tableName| 在 sql 中使用的名称;即注册到flink-table-env上的名称|
 | colName | 列名称|
-| colType | 列类型 [colType支持的类型](docs/colType.md)|
+| colType | 列类型 [colType支持的类型](impalaColType.md)|
 
 ## 4.参数：
 
@@ -45,6 +45,8 @@ CREATE TABLE tableName(
 | enablePartition | 是否支持分区 |否|false|
 | partitionFields | 分区字段名|否，enablePartition='true'时为必填||
 | parallelism | 并行度设置|否|1|
+| parallelism | 并行度设置|否|1|
+|updateMode| 只支持APPEND模式，过滤掉回撤数据|||
 
 
 ## 5.样例：

@@ -18,6 +18,12 @@
 
 package com.dtstack.flink.sql.side.elasticsearch6;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -26,7 +32,6 @@ import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.util.Es6Util;
@@ -57,14 +62,14 @@ import java.util.Map;
  * @author yinxi
  * @date 2020/2/13 - 13:10
  */
-public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializable {
+public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch6AsyncReqRow.class);
     private transient RestHighLevelClient rhlClient;
     private SearchRequest searchRequest;
     private List<String> sqlJoinCompareOperate = Lists.newArrayList();
 
-    public Elasticsearch6AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public Elasticsearch6AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new Elasticsearch6AsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         SqlNode conditionNode = joinInfo.getCondition();
         ParseUtils.parseJoinCompareOperate(conditionNode, sqlJoinCompareOperate);
@@ -81,39 +86,8 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
 
 
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow copyCrow = new CRow(input.row(), input.change());
-        List<Object> inputParams = Lists.newArrayList();
-        for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = copyCrow.row().getField(conValIndex);
-            if (equalObj == null) {
-                dealMissKey(copyCrow, resultFuture);
-                return;
-            }
-            inputParams.add(equalObj);
-        }
-
+    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
         String key = buildCacheKey(inputParams);
-        if (openCache()) {
-            CacheObj val = getFromCache(key);
-            if (val != null) {
-                if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(copyCrow, resultFuture);
-                    return;
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    try {
-                        List<CRow> rowList = getRows(copyCrow, null, (List) val.getContent());
-                        resultFuture.complete(rowList);
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, copyCrow);
-                    }
-                } else {
-                    resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
-                }
-                return;
-            }
-        }
-
         BoolQueryBuilder boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
         boolQueryBuilder = setInputParams(inputParams, boolQueryBuilder);
         SearchSourceBuilder searchSourceBuilder = initConfiguration();
@@ -135,7 +109,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
                     RestHighLevelClient tmpRhlClient = null;
                     try {
                         while (true) {
-                            loadDataToCache(searchHits, rowList, cacheContent, copyCrow);
+                            loadDataToCache(searchHits, rowList, cacheContent, input);
                             // determine if all results haven been ferched
                             if (searchHits.length < getFetchSize()) {
                                 break;
@@ -154,7 +128,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, copyCrow);
+                        dealFillDataError(input, resultFuture, e);
                     } finally {
                         if (tmpRhlClient != null) {
                             try {
@@ -165,7 +139,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
                         }
                     }
                 } else {
-                    dealMissKey(copyCrow, resultFuture);
+                    dealMissKey(input, resultFuture);
                     dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
             }
@@ -177,7 +151,17 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
                 resultFuture.completeExceptionally(new RuntimeException("Response failed!"));
             }
         });
+    }
 
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        StringBuilder sb = new StringBuilder();
+        for (Object ele : inputParams.values()) {
+            sb.append(ele.toString())
+                    .append("_");
+        }
+
+        return sb.toString();
     }
 
     private void loadDataToCache(SearchHit[] searchHits, List<CRow> rowList, List<Object> cacheContent, CRow copyCrow) {
@@ -238,16 +222,6 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
 
     }
 
-    public String buildCacheKey(List equalValList) {
-        StringBuilder sb = new StringBuilder();
-        for (Object ele : equalValList) {
-            sb.append(ele.toString())
-                    .append("_");
-        }
-
-        return sb.toString();
-    }
-
     private SearchSourceBuilder initConfiguration() {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.size(getFetchSize());
@@ -258,7 +232,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
         return searchSourceBuilder;
     }
 
-    private BoolQueryBuilder setInputParams(List<Object> inputParams, BoolQueryBuilder boolQueryBuilder) {
+    private BoolQueryBuilder setInputParams(Map<String, Object> inputParams, BoolQueryBuilder boolQueryBuilder) {
         if (boolQueryBuilder == null) {
             boolQueryBuilder = new BoolQueryBuilder();
         }
@@ -266,7 +240,7 @@ public class Elasticsearch6AsyncReqRow extends AsyncReqRow implements Serializab
         for (int i = 0; i < sqlJoinCompareOperate.size(); i++) {
             String fieldName = sideInfo.getEqualFieldList().get(i);
             String operatorKind = sqlJoinCompareOperate.get(sideInfo.getEqualFieldList().indexOf(fieldName));
-            String condition = String.valueOf(inputParams.get(i));
+            String condition = String.valueOf(inputParams.get(fieldName));
             boolQueryBuilder = Es6Util.buildFilterCondition(boolQueryBuilder, new PredicateInfo(null, operatorKind, null, fieldName, condition), sideInfo);
         }
 

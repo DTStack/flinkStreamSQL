@@ -20,7 +20,6 @@ package com.dtstack.flink.sql.sink.postgresql;
 
 
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
-import com.dtstack.flink.sql.util.DtStringUtil;
 
 import java.util.Arrays;
 import java.util.Optional;

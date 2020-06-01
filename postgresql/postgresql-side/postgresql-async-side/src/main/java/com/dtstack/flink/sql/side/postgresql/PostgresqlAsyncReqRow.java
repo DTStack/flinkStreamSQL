@@ -19,9 +19,10 @@
 
 package com.dtstack.flink.sql.side.postgresql;
 
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import io.vertx.core.Vertx;
@@ -34,6 +35,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Date: 2019-08-11
@@ -48,7 +52,7 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
 
     private final static String POSTGRESQL_DRIVER = "org.postgresql.Driver";
 
-    public PostgresqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public PostgresqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new PostgresqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -71,7 +75,9 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, pgClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, pgClientConfig));
+        setExecutor(new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(10), new DTThreadFactory("postgresqlAsyncExec")));
     }
 
 }

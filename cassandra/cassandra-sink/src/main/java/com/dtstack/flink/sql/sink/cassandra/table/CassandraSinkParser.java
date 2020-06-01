@@ -19,13 +19,13 @@
 
 package com.dtstack.flink.sql.sink.cassandra.table;
 
-import com.dtstack.flink.sql.table.AbsTableParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableParser;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 
-import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
 
 /**
  * Reason:
@@ -33,7 +33,7 @@ import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
  *
  * @author xuqianjin
  */
-public class CassandraSinkParser extends AbsTableParser {
+public class CassandraSinkParser extends AbstractTableParser {
 
     public static final String ADDRESS_KEY = "address";
 
@@ -60,7 +60,7 @@ public class CassandraSinkParser extends AbsTableParser {
     public static final String POOL_TIMEOUT_MILLIS_KEY = "poolTimeoutMillis";
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         CassandraTableInfo cassandraTableInfo = new CassandraTableInfo();
         cassandraTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, cassandraTableInfo);

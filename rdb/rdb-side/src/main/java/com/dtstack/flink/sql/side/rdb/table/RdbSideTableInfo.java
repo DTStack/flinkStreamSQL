@@ -17,7 +17,7 @@
  */
 package com.dtstack.flink.sql.side.rdb.table;
 
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.google.common.base.Preconditions;
 
 /**
@@ -27,7 +27,7 @@ import com.google.common.base.Preconditions;
  *
  * @author maqi
  */
-public class RdbSideTableInfo extends SideTableInfo {
+public class RdbSideTableInfo extends AbstractSideTableInfo {
 
     private static final long serialVersionUID = -1L;
 

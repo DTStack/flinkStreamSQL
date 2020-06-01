@@ -1,20 +1,12 @@
 package com.dtstack.flink.sql.side.kudu;
 
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
-import org.apache.flink.util.Preconditions;
-
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.AsyncReqRow;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.PredicateInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
@@ -24,6 +16,13 @@ import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import io.vertx.core.json.JsonArray;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
+import org.apache.flink.util.Preconditions;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.AsyncKuduClient;
@@ -42,7 +41,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class KuduAsyncReqRow extends AsyncReqRow {
+public class KuduAsyncReqRow extends BaseAsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(KuduAsyncReqRow.class);
     /**
@@ -65,7 +64,7 @@ public class KuduAsyncReqRow extends AsyncReqRow {
 
     private AsyncKuduScanner.AsyncKuduScannerBuilder scannerBuilder;
 
-    public KuduAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public KuduAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new KuduAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -94,9 +93,6 @@ public class KuduAsyncReqRow extends AsyncReqRow {
             AsyncKuduClient.AsyncKuduClientBuilder asyncKuduClientBuilder = new AsyncKuduClient.AsyncKuduClientBuilder(kuduMasters);
             if (null != workerCount) {
                 asyncKuduClientBuilder.workerCount(workerCount);
-            }
-            if (null != defaultSocketReadTimeoutMs) {
-                asyncKuduClientBuilder.defaultSocketReadTimeoutMs(defaultSocketReadTimeoutMs);
             }
 
             if (null != defaultOperationTimeoutMs) {
@@ -132,26 +128,18 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         scannerBuilder.setProjectedColumnNames(projectColumns);
     }
 
-
     @Override
-    public void asyncInvoke(CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
         CRow inputCopy = new CRow(input.row(), input.change());
-        //scannerBuilder 设置为null重新加载过滤条件
+        //scannerBuilder 设置为null重新加载过滤条件,然后connkudu重新赋值
+        //todo:代码需要优化
         scannerBuilder = null;
         connKuDu();
-        JsonArray inputParams = new JsonArray();
         Schema schema = table.getSchema();
         //  @wenbaoup fix bug
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Object equalObj = inputCopy.row().getField(sideInfo.getEqualValIndex().get(i));
-            if (equalObj == null) {
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            //增加过滤条件
-            scannerBuilder.addPredicate(KuduPredicate.newInListPredicate(schema.getColumn(sideInfo.getEqualFieldList().get(i)), Collections.singletonList(equalObj)));
-            inputParams.add(equalObj);
-        }
+        inputParams.entrySet().forEach(e ->{
+            scannerBuilder.addPredicate(KuduPredicate.newInListPredicate(schema.getColumn(e.getKey()), Collections.singletonList(e.getValue())));
+        });
 
         //  填充谓词信息
         List<PredicateInfo> predicateInfoes = sideInfo.getSideTableInfo().getPredicateInfoes();
@@ -165,46 +153,23 @@ public class KuduAsyncReqRow extends AsyncReqRow {
             }).count();
         }
 
-
-        String key = buildCacheKey(inputParams);
-
-        if (openCache()) {
-            //判断数据是否已经加载到缓存中
-            CacheObj val = getFromCache(key);
-            if (val != null) {
-                if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                } else if (ECacheContentType.SingleLine == val.getType()) {
-                    try {
-                        Row row = fillData(inputCopy.row(), val);
-                        resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    try {
-                        List<CRow> rowList = Lists.newArrayList();
-                        for (Object jsonArray : (List) val.getContent()) {
-                            Row row = fillData(inputCopy.row(), jsonArray);
-                            rowList.add(new CRow(row, inputCopy.change()));
-                        }
-                        resultFuture.complete(rowList);
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                } else {
-                    resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
-                }
-                return;
-            }
-        }
         List<Map<String, Object>> cacheContent = Lists.newArrayList();
         AsyncKuduScanner asyncKuduScanner = scannerBuilder.build();
         List<CRow> rowList = Lists.newArrayList();
         Deferred<RowResultIterator> data = asyncKuduScanner.nextRows();
         //从之前的同步修改为调用异步的Callback
-        data.addCallbackDeferring(new GetListRowCB(inputCopy, cacheContent, rowList, asyncKuduScanner, resultFuture, key));
+        data.addCallbackDeferring(new GetListRowCB(inputCopy, cacheContent, rowList, asyncKuduScanner, resultFuture, buildCacheKey(inputParams)));
+    }
+
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        StringBuilder sb = new StringBuilder();
+        for (Object ele : inputParams.values()) {
+            sb.append(ele.toString())
+                    .append("_");
+        }
+
+        return sb.toString();
     }
 
 
@@ -232,16 +197,6 @@ public class KuduAsyncReqRow extends AsyncReqRow {
         }
 
         return row;
-    }
-
-    public String buildCacheKey(JsonArray jsonArray) {
-        StringBuilder sb = new StringBuilder();
-        for (Object ele : jsonArray.getList()) {
-            sb.append(ele.toString())
-                    .append("_");
-        }
-
-        return sb.toString();
     }
 
     @Override

@@ -19,9 +19,10 @@
 
 package com.dtstack.flink.sql.side.clickhouse;
 
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import io.vertx.core.Vertx;
@@ -32,12 +33,15 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 public class ClickhouseAsyncReqRow extends RdbAsyncReqRow {
     private static final String CLICKHOUSE_DRIVER = "ru.yandex.clickhouse.ClickHouseDriver";
 
-    public ClickhouseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public ClickhouseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new ClickhouseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -62,7 +66,9 @@ public class ClickhouseAsyncReqRow extends RdbAsyncReqRow {
         vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, clickhouseClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, clickhouseClientConfig));
+        setExecutor(new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(10), new DTThreadFactory("clickhouseAsyncExec")));
     }
 
 }

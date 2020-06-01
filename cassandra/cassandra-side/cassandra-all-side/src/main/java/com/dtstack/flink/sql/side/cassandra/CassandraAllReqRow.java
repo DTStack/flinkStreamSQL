@@ -34,10 +34,10 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
-import com.dtstack.flink.sql.side.AllReqRow;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -62,13 +62,11 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author xuqianjin
  */
-public class CassandraAllReqRow extends AllReqRow {
+public class CassandraAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = 54015343561288219L;
 
     private static final Logger LOG = LoggerFactory.getLogger(CassandraAllReqRow.class);
-
-    private static final String cassandra_DRIVER = "com.cassandra.jdbc.Driver";
 
     private static final int CONN_RETRY_NUM = 3;
 
@@ -79,7 +77,7 @@ public class CassandraAllReqRow extends AllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
-    public CassandraAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public CassandraAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new com.dtstack.flink.sql.side.cassandra.CassandraAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -269,7 +267,7 @@ public class CassandraAllReqRow extends AllReqRow {
                         String connInfo = "address:" + tableInfo.getAddress() + ";userName:" + tableInfo.getUserName()
                                 + ",pwd:" + tableInfo.getPassword();
                         LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
-                        Thread.sleep(5 * 1000);
+                        Thread.sleep(LOAD_DATA_ERROR_SLEEP_TIME);
                     } catch (InterruptedException e1) {
                         LOG.error("", e1);
                     }
