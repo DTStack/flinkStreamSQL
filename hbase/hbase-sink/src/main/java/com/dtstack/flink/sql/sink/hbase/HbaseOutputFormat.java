@@ -166,12 +166,13 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     protected void dealInsert(Row record) {
         Put put = getPutByRow(record);
         if (put == null || put.isEmpty()) {
+            outDirtyRecords.inc();
             return;
         }
 
         try {
             table.put(put);
-        } catch (IOException e) {
+        } catch (Exception e) {
             if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
                 LOG.error("record insert failed ..{}", record.toString());
                 LOG.error("", e);
