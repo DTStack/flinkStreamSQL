@@ -165,7 +165,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     protected void dealInsert(Row record) {
         Put put = getPutByRow(record);
-        if (put.isEmpty()) {
+        if (put == null || put.isEmpty()) {
             return;
         }
 
