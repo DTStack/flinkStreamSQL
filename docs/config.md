@@ -46,6 +46,11 @@ sh submit.sh -key1 val1 -key2 val2
     * 描述：扩展jar路径,当前主要是UDF定义的jar；
     * 必选：否
     * 默认值：无
+
+* **addShipfile**
+    * 描述：扩展上传的文件，比如开启；Kerberos认证需要的keytab文件和krb5.conf文件    
+    * 必选：否
+    * 默认值：无
     
 * **confProp**
     * 描述：一些参数设置
