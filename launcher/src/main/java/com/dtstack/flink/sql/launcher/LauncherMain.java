@@ -41,6 +41,8 @@ import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.util.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,6 +59,8 @@ import java.util.Properties;
  */
 
 public class LauncherMain {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LauncherMain.class);
     private static final String CORE_JAR = "core";
 
     private static String SP = File.separator;
@@ -68,9 +72,13 @@ public class LauncherMain {
     }
 
     public static void main(String[] args) throws Exception {
+
+        LOG.info("----start----");
+
         if (args.length == 1 && args[0].endsWith(".json")){
             args = parseJson(args);
         }
+
         OptionParser optionParser = new OptionParser(args);
         Options launcherOptions = optionParser.getOptions();
         String mode = launcherOptions.getMode();

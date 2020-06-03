@@ -25,7 +25,7 @@ CREATE TABLE tableName(
 |----|---|
 |tableName|在 sql 中使用的名称;即注册到flink-table-env上的名称|  
 |colName|列名称|
-|colType|列类型 [colType支持的类型](docs/colType.md)|
+|colType|列类型 [colType支持的类型](../colType.md)|
    
 ## 4.参数：
 |参数名称|含义|是否必填|默认值|
@@ -42,21 +42,85 @@ CREATE TABLE tableName(
 |password | 密码 | 否，authMesh='true'时为必填 ||
 |parallelism | 并行度设置|否|1|
   
-## 5.样例：
+## 5.完整样例：
 ```
+CREATE TABLE MyTable(
+    channel varchar,
+    pv INT,
+    xctime bigint
+ )WITH(
+    type ='kafka11',
+    bootstrapServers ='172.16.8.107:9092',
+    zookeeperQuorum ='172.16.8.107:2181/kafka',
+    offsetReset ='latest',
+    topic ='es_test',
+    timezone='Asia/Shanghai',
+    updateMode ='append',
+    enableKeyPartitions ='false',
+    topicIsPattern ='false',
+    parallelism ='1'
+ );
+
 CREATE TABLE MyResult(
-    aa INT,
-    bb INT
+    pv varchar,
+    channel varchar
  )WITH(
     type ='elasticsearch6',
-    address ='172.16.10.47:9500',
-    cluster='es_47_menghan',
-    esType ='type1',
-    index ='xc_es_test',
-    authMesh = 'true',
-    userName = 'elastic',
-    password = 'abc123',
-    id ='0,1',
+    address ='172.16.8.193:9200',
+    authMesh='true',
+    username='elastic',
+    password='abc123',
+    estype ='external',
+    cluster ='docker-cluster',
+    index ='myresult',
+    id ='1',
+    updateMode ='append',
     parallelism ='1'
- )
+ );
+
+CREATE TABLE sideTable(
+    a varchar,
+    b varchar,
+    PRIMARY KEY(a) ,
+    PERIOD FOR SYSTEM_TIME
+ )WITH(
+    type ='elasticsearch6',
+    address ='172.16.8.193:9200',
+    estype ='external',
+    cluster ='docker-cluster',
+    index ='sidetest',
+    authMesh='true',
+    username='elastic',
+    password='abc123',
+    cache ='LRU',
+    cacheSize ='10000',
+    cacheTTLMs ='60000',
+    partitionedJoin ='false',
+    parallelism ='1'
+ );
+
+insert   
+into
+    MyResult
+    select
+        w.b as pv,
+        s.channel as channel      
+    from
+        MyTable  s     
+    join
+        sideTable  w                        
+            on s.pv = w.a           
+    where
+        w.a = '10'                   
+        and s.channel='xc';
  ```
+## 6.结果数据
+### 输入数据
+```
+{"channel":"xc26","pv":10,"xctime":1232312}
+```
+### 输出数据
+```
+http://172.16.8.193:9200/myresult/_search
+{"_index":"myresult","_type":"external","_id":"8aX_DHIBn3B7OBuqFl-i","_score":1.0,"_source":{"pv":"10","channel":"xc26"}}
+```

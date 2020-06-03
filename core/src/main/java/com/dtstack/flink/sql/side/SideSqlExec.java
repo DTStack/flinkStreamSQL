@@ -93,7 +93,8 @@ public class SideSqlExec {
                      StreamTableEnvironment tableEnv,
                      Map<String, Table> tableCache,
                      StreamQueryConfig queryConfig,
-                     CreateTmpTableParser.SqlParserResult createView) throws Exception {
+                     CreateTmpTableParser.SqlParserResult createView,
+                     String scope) throws Exception {
         if(localSqlPluginPath == null){
             throw new RuntimeException("need to set localSqlPluginPath");
         }
@@ -113,7 +114,7 @@ public class SideSqlExec {
 
         SideSQLParser sideSQLParser = new SideSQLParser();
         sideSQLParser.setLocalTableCache(localTableCache);
-        Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
+        Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet(), scope);
         Object pollObj = null;
 
         while((pollObj = exeQueue.poll()) != null){
@@ -437,9 +438,9 @@ public class SideSqlExec {
         replaceInfo.setTargetTableName(targetTableName);
         replaceInfo.setTargetTableAlias(targetTableAlias);
 
-        if (!tableEnv.isRegistered(joinInfo.getNewTableName())){
+        if (!tableEnv.isRegistered(targetTableName)){
             Table joinTable = tableEnv.fromDataStream(dsOut);
-            tableEnv.registerTable(joinInfo.getNewTableName(), joinTable);
+            tableEnv.registerTable(targetTableName, joinTable);
             localTableCache.put(joinInfo.getNewTableName(), joinTable);
         }
     }

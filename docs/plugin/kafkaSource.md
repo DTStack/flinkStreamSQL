@@ -29,7 +29,7 @@ CREATE TABLE tableName(
 |----|---|
 | tableName | 在 sql 中使用的名称;即注册到flink-table-env上的名称|
 | colName | 列名称|
-| colType | 列类型 [colType支持的类型](docs/colType.md)|
+| colType | 列类型 [colType支持的类型](../colType.md)|
 | function(colNameX) as aliasName | 支持在定义列信息的时候根据已有列类型生成新的列(函数可以使用系统函数和已经注册的UDF)|
 | WATERMARK FOR colName AS withOffset( colName , delayTime ) | 标识输入流生的watermake生成规则,根据指定的colName(当前支持列的类型为Long &#124; Timestamp) 和delayTime生成waterMark 同时会在注册表的使用附带上rowtime字段(如果未指定则默认添加proctime字段);注意：添加该标识的使用必须设置系统参数 time.characteristic:EventTime; delayTime: 数据最大延迟时间(ms)|
 
@@ -48,7 +48,7 @@ CREATE TABLE tableName(
 |sourcedatatype | 数据类型,avro,csv,json,dt_nest。dt_nest为默认JSON解析器，能够解析嵌套JSON数据类型，其他仅支持非嵌套格式|否|dt_nest|
 |schemaInfo | avro类型使用的schema信息|否||
 |fieldDelimiter |csv类型使用的数据分隔符|否| | |
-|timezone|时区设置[timezone支持的参数](timeZone.md)|否|'Asia/Shanghai'
+|timezone|时区设置[timezone支持的参数](../timeZone.md)|否|'Asia/Shanghai'
 **kafka相关参数可以自定义，使用kafka.开头即可。**
 ```
 kafka.consumer.id
@@ -78,6 +78,11 @@ kafka.dual.commit.enabled
 kafka.partition.assignment.strategy
 kafka.socket.receive.buffer.bytes
 kafka.fetch.min.bytes
+
+###kerberos认证相关参数
+kafka.security.protocal
+kafka.sasl.mechanism
+kafka.sasl.kerberos.service.name
 ```
 
 ## 5.样例：
