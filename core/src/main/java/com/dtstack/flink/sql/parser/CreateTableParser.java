@@ -77,7 +77,7 @@ public class CreateTableParser implements IParser {
         for(int i=0; i<strs.length; i++){
             List<String> ss = DtStringUtil.splitIgnoreQuota(strs[i], '=');
             String key = ss.get(0).trim();
-            String value = extractValue(ss.get(1));
+            String value = extractValue(ss.get(1).trim());
             propMap.put(key, value);
         }
 
