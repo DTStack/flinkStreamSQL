@@ -106,6 +106,13 @@ public class PerJobClusterClientBuilder {
         } else {
             throw new RuntimeException("The Flink jar path is null");
         }
+        // add  user customized file to shipfile
+        if (!StringUtils.isBlank(launcherOptions.getAddShipfile())) {
+            List<String> paths = ConfigParseUtil.parsePathFromStr(launcherOptions.getAddShipfile());
+            paths.forEach(path -> {
+                shipFiles.add(new File(path));
+            });
+        }
         // classpath , all node need contain plugin jar
         String pluginLoadMode = launcherOptions.getPluginLoadMode();
         if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
