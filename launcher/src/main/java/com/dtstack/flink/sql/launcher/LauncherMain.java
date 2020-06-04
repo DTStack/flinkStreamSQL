@@ -63,8 +63,6 @@ public class LauncherMain {
     private static final Logger LOG = LoggerFactory.getLogger(LauncherMain.class);
     private static final String CORE_JAR = "core";
 
-    private static final Logger LOG = LoggerFactory.getLogger(LauncherMain.class);
-
     private static String SP = File.separator;
 
     private static String getLocalCoreJarPath(String localSqlRootJar) throws Exception {
