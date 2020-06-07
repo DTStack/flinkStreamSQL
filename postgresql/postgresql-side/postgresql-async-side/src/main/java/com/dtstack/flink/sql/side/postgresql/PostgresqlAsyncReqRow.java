@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import com.dtstack.flink.sql.util.VertxUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -52,6 +53,8 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
 
     private final static String POSTGRESQL_DRIVER = "org.postgresql.Driver";
 
+    private Vertx vertx;
+
     public PostgresqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new PostgresqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
@@ -74,10 +77,15 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
-        Vertx vertx = Vertx.vertx(vo);
+        vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, pgClientConfig));
         setExecutor(new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(10), new DTThreadFactory("postgresqlAsyncExec")));
     }
 
+    @Override
+    public void close() throws Exception {
+        super.close();
+        VertxUtils.synClose(vertx);
+    }
 }

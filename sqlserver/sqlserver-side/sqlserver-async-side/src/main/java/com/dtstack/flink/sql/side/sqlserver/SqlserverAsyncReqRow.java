@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import com.dtstack.flink.sql.util.VertxUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -49,6 +50,8 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
     private static final Logger LOG = LoggerFactory.getLogger(SqlserverAsyncReqRow.class);
 
     private final static String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
+
+    private Vertx vertx;
 
     public SqlserverAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new SqlserverAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -76,9 +79,15 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
-        Vertx vertx = Vertx.vertx(vo);
+        vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, sqlserverClientConfig));
         setExecutor(new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(10), new DTThreadFactory("sqlServerAsyncExec")));
+    }
+
+    @Override
+    public void close() throws Exception {
+        super.close();
+        VertxUtils.synClose(vertx);
     }
 }
