@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -82,7 +83,7 @@ public class PerJobClusterClientBuilder {
     }
 
     public AbstractYarnClusterDescriptor createPerJobClusterDescriptor(String flinkJarPath, Options launcherOptions, JobGraph jobGraph)
-            throws MalformedURLException {
+            throws MalformedURLException, UnsupportedEncodingException {
 
         String flinkConf = StringUtils.isEmpty(launcherOptions.getFlinkconf()) ? DEFAULT_CONF_DIR : launcherOptions.getFlinkconf();
         AbstractYarnClusterDescriptor clusterDescriptor = getClusterDescriptor(flinkConfig, yarnConf, flinkConf);
@@ -106,6 +107,7 @@ public class PerJobClusterClientBuilder {
         } else {
             throw new RuntimeException("The Flink jar path is null");
         }
+
         // classpath , all node need contain plugin jar
         String pluginLoadMode = launcherOptions.getPluginLoadMode();
         if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
@@ -116,6 +118,14 @@ public class PerJobClusterClientBuilder {
         } else {
             throw new IllegalArgumentException("Unsupported plugin loading mode " + pluginLoadMode
                     + " Currently only classpath and shipfile are supported.");
+        }
+
+        // add  user customized file to shipfile
+        if (!StringUtils.isBlank(launcherOptions.getAddShipfile())) {
+            List<String> paths = ConfigParseUtil.parsePathFromStr(launcherOptions.getAddShipfile());
+            paths.forEach(path -> {
+                shipFiles.add(new File(path));
+            });
         }
 
         clusterDescriptor.addShipFiles(shipFiles);
