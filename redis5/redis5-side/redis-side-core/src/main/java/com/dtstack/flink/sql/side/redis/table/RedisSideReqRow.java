@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * redis fill row data
@@ -39,6 +40,8 @@ import java.util.Map;
 public class RedisSideReqRow implements ISideReqRow, Serializable {
 
     private static final long serialVersionUID = 3751171828444748982L;
+
+    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     private BaseSideInfo sideInfo;
 
@@ -55,7 +58,8 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
-                obj = ((Timestamp)obj).getTime();
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
             row.setField(entry.getKey(), obj);
         }
