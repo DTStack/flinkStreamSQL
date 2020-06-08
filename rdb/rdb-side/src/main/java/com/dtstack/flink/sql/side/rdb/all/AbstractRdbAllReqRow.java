@@ -43,10 +43,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -161,7 +158,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     protected Object dealTimeAttributeType(Class<? extends TypeInformation> entry, Object obj) {
         boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
         if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-            obj = ((Timestamp) obj).getTime();
+            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
         }
         return obj;
     }
