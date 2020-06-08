@@ -90,7 +90,8 @@ public class JoinNodeDealer {
                                  SqlNodeList parentGroupByList,
                                  Set<Tuple2<String, String>> joinFieldSet,
                                  Map<String, String> tableRef,
-                                 Map<String, String> fieldRef) {
+                                 Map<String, String> fieldRef,
+                                 String scope) {
 
         SqlNode leftNode = joinNode.getLeft();
         SqlNode rightNode = joinNode.getRight();
@@ -106,13 +107,14 @@ public class JoinNodeDealer {
 
         if (leftNode.getKind() == JOIN) {
             //处理连续join
-            dealNestJoin(joinNode, sideTableSet,
-                    queueInfo, parentWhere, parentSelectList, parentGroupByList, joinFieldSet, tableRef, fieldRef);
+            dealNestJoin(joinNode, sideTableSet, queueInfo, parentWhere, parentSelectList,
+                    parentGroupByList, joinFieldSet, tableRef, fieldRef, scope);
             leftNode = joinNode.getLeft();
         }
 
         if (leftNode.getKind() == AS) {
-            AliasInfo aliasInfo = (AliasInfo) sideSQLParser.parseSql(leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
+            AliasInfo aliasInfo = (AliasInfo) sideSQLParser.parseSql(leftNode, sideTableSet, queueInfo,
+                    parentWhere, parentSelectList, parentGroupByList, scope);
             leftTbName = aliasInfo.getName();
             leftTbAlias = aliasInfo.getAlias();
         } else if(leftNode.getKind() == IDENTIFIER){
@@ -123,7 +125,8 @@ public class JoinNodeDealer {
         boolean leftIsSide = checkIsSideTable(leftTbName, sideTableSet);
         Preconditions.checkState(!leftIsSide, "side-table must be at the right of join operator");
 
-        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo,
+                parentWhere, parentSelectList, parentGroupByList, scope);
         rightTableName = rightTableNameAndAlias.f0;
         rightTableAlias = rightTableNameAndAlias.f1;
 
@@ -146,6 +149,8 @@ public class JoinNodeDealer {
         tableInfo.setRightNode(rightNode);
         tableInfo.setJoinType(joinType);
         tableInfo.setCondition(joinNode.getCondition());
+        tableInfo.setScope(scope);
+
         TableUtils.replaceJoinFieldRefTableName(joinNode.getCondition(), fieldRef);
 
         //extract 需要查询的字段信息
@@ -256,16 +261,21 @@ public class JoinNodeDealer {
                                   SqlNodeList parentGroupByList,
                                   Set<Tuple2<String, String>> joinFieldSet,
                                   Map<String, String> tableRef,
-                                  Map<String, String> fieldRef){
+                                  Map<String, String> fieldRef,
+                                  String scope){
 
         SqlJoin leftJoinNode = (SqlJoin) joinNode.getLeft();
         SqlNode parentRightJoinNode = joinNode.getRight();
         SqlNode rightNode = leftJoinNode.getRight();
-        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
-        Tuple2<String, String> parentRightJoinInfo = parseRightNode(parentRightJoinNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
+
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo,
+                parentWhere, parentSelectList, parentGroupByList, scope);
+        Tuple2<String, String> parentRightJoinInfo = parseRightNode(parentRightJoinNode, sideTableSet,
+                queueInfo, parentWhere, parentSelectList, parentGroupByList, scope);
         boolean parentRightIsSide = checkIsSideTable(parentRightJoinInfo.f0, sideTableSet);
 
-        JoinInfo joinInfo = dealJoinNode(leftJoinNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, joinFieldSet, tableRef, fieldRef);
+        JoinInfo joinInfo = dealJoinNode(leftJoinNode, sideTableSet, queueInfo, parentWhere, parentSelectList,
+                parentGroupByList, joinFieldSet, tableRef, fieldRef, scope);
 
         String rightTableName = rightTableNameAndAlias.f0;
         boolean rightIsSide = checkIsSideTable(rightTableName, sideTableSet);
@@ -659,12 +669,13 @@ public class JoinNodeDealer {
 
 
     private Tuple2<String, String> parseRightNode(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo,
-                                                  SqlNode parentWhere, SqlNodeList selectList, SqlNodeList parentGroupByList) {
+                                                  SqlNode parentWhere, SqlNodeList selectList, SqlNodeList parentGroupByList,
+                                                  String scope) {
         Tuple2<String, String> tabName = new Tuple2<>("", "");
         if(sqlNode.getKind() == IDENTIFIER){
             tabName.f0 = sqlNode.toString();
         }else{
-            AliasInfo aliasInfo = (AliasInfo)sideSQLParser.parseSql(sqlNode, sideTableSet, queueInfo, parentWhere, selectList, parentGroupByList);
+            AliasInfo aliasInfo = (AliasInfo)sideSQLParser.parseSql(sqlNode, sideTableSet, queueInfo, parentWhere, selectList, parentGroupByList, scope);
             tabName.f0 = aliasInfo.getName();
             tabName.f1 = aliasInfo.getAlias();
         }

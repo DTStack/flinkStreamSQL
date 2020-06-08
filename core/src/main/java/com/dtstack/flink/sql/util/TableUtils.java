@@ -198,11 +198,9 @@ public class TableUtils {
         SqlOperator operator = new SqlAsOperator();
 
         SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
-        String joinLeftTableName = joinInfo.getLeftTableName();
-        String joinLeftTableAlias = joinInfo.getLeftTableAlias();
-        joinLeftTableName = Strings.isNullOrEmpty(joinLeftTableName) ? joinLeftTableAlias : joinLeftTableName;
-        String newTableName = buildInternalTableName(joinLeftTableName, SPLIT, joinInfo.getRightTableName());
+        String newTableName = joinInfo.getNewTableName();
         String lefTbAlias = joinInfo.getLeftTableAlias();
+
         if(Strings.isNullOrEmpty(lefTbAlias)){
             Set<String> fromTableSet = Sets.newHashSet();
             TableUtils.getFromTableInfo(joinInfo.getLeftNode(), fromTableSet);
@@ -703,5 +701,13 @@ public class TableUtils {
         return String.format("%s.%s", tableName, fieldName);
     }
 
+
+    public static String buildTableNameWithScope(String tableName, String scope){
+        if(StringUtils.isEmpty(scope)){
+            return tableName;
+        }
+
+        return tableName + "_" + scope;
+    }
 
 }
