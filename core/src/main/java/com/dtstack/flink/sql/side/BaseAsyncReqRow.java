@@ -29,12 +29,16 @@ import com.dtstack.flink.sql.side.cache.LRUSideCache;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
+import org.apache.commons.collections.MapUtils;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
-import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
+import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
+import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
+import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -165,14 +169,14 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         resultFuture.complete(null);
     }
 
-    protected void preInvoke(CRow input, ResultFuture<CRow> resultFuture){
+    protected void preInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
         ScheduledFuture<?> timeFuture = registerTimer(input, resultFuture);
         cancelTimerWhenComplete(resultFuture, timeFuture);
     }
 
     @Override
-    public void asyncInvoke(CRow row, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow input = new CRow(Row.copy(row.row()), row.change());
+    public void asyncInvoke(Tuple2<Boolean,Row> row, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        Tuple2<Boolean,Row> input = Tuple2.of(row.f0, Row.copy(row.f1));
         preInvoke(input, resultFuture);
         Map<String, Object> inputParams = parseInputParam(input);
         if(MapUtils.isEmpty(inputParams)){
@@ -186,11 +190,11 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         handleAsyncInvoke(inputParams, input, resultFuture);
     }
 
-    private Map<String, Object> parseInputParam(CRow input){
+    private Map<String, Object> parseInputParam(Tuple2<Boolean,Row> input){
         Map<String, Object> inputParams = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.row().getField(conValIndex);
+            Object equalObj = input.f1.getField(conValIndex);
             if(equalObj == null){
                 return inputParams;
             }
@@ -213,8 +217,8 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
                     return;
                 }else if(ECacheContentType.SingleLine == val.getType()){
                     try {
-                        Row row = fillData(input.f0, val.getContent());
-                        resultFuture.complete(Collections.singleton(new Tuple2<Boolean,Row>(row, input.change())));
+                        Row row = fillData(input.f1, val.getContent());
+                        resultFuture.complete(Collections.singleton(Tuple2.of(input.f0, row)));
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }
@@ -222,8 +226,8 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
                     try {
                         List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
                         for (Object one : (List) val.getContent()) {
-                            Row row = fillData(input.row(), one);
-                            rowList.add(new Tuple2<Boolean,Row>(row, input.change()));
+                            Row row = fillData(input.f1, one);
+                            rowList.add(Tuple2.of(input.f0, row));
                         }
                         resultFuture.complete(rowList);
                     } catch (Exception e) {

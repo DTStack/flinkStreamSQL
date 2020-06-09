@@ -91,7 +91,6 @@ public class SideSqlExec {
                      Map<String, AbstractSideTableInfo> sideTableMap,
                      StreamTableEnvironment tableEnv,
                      Map<String, Table> tableCache,
-                     StreamQueryConfig queryConfig,
                      CreateTmpTableParser.SqlParserResult createView,
                      String scope) throws Exception {
         if(localSqlPluginPath == null){
@@ -123,7 +122,7 @@ public class SideSqlExec {
 
 
                 if(pollSqlNode.getKind() == INSERT){
-                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString(), queryConfig);
+                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
                     if(LOG.isInfoEnabled()){
                         LOG.info("----------real exec sql-----------\n{}", pollSqlNode.toString());
                     }
