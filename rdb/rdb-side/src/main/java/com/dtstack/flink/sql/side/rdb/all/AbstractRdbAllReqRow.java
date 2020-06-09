@@ -23,6 +23,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
+import org.apache.flink.util.Collector;
 
 
 import com.dtstack.flink.sql.side.BaseAllReqRow;
@@ -81,7 +82,6 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         LOG.info("rdb dim table config info: {} ", tableInfo.toString());
     }
-
 
     @Override
     protected void initCache() throws SQLException {
@@ -153,8 +153,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     }
 
     /**
-     *  covert flink time attribute.Type information for indicating event or processing time.
-     *  However, it behaves like a regular SQL timestamp but is serialized as Long.
+     * covert flink time attribute.Type information for indicating event or processing time.
+     * However, it behaves like a regular SQL timestamp but is serialized as Long.
      *
      * @param entry
      * @param obj

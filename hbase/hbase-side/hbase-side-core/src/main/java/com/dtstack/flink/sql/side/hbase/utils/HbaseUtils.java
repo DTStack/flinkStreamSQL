@@ -66,11 +66,12 @@ public class HbaseUtils {
 
             case "double":
                 return Bytes.toDouble(hbaseData);
+            case "decimal":
+                return Bytes.toBigDecimal(hbaseData);
             default:
-                break;
-
+                throw new RuntimeException("not support type of " + type);
         }
-
-        throw new RuntimeException("not support type of " + type);
     }
+
+
 }

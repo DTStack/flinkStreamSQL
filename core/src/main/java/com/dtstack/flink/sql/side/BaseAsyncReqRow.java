@@ -20,17 +20,21 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
+import org.apache.flink.streaming.api.operators.async.queue.StreamRecordQueueEntry;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -39,6 +43,12 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * All interfaces inherit naming rules: type + "AsyncReqRow" such as == "MysqlAsyncReqRow
@@ -51,22 +61,26 @@ import java.util.Collections;
 public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,Row>, Tuple2<Boolean,Row>> implements ISideReqRow {
     private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
-
+    private RuntimeContext runtimeContext;
     private static int TIMEOUT_LOG_FLUSH_NUM = 10;
     private int timeOutNum = 0;
-
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
 
     public BaseAsyncReqRow(BaseSideInfo sideInfo){
         this.sideInfo = sideInfo;
     }
-
+    @Override
+    public void setRuntimeContext(RuntimeContext runtimeContext) {
+        super.setRuntimeContext(runtimeContext);
+        this.runtimeContext = runtimeContext;
+    }
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         initCache();
         initMetric();
+        LOG.info("async dim table config info: {} ", sideInfo.getSideTableInfo().toString());
     }
 
     private void initCache(){
@@ -120,7 +134,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
                 Row row = fillData(input.f1, null);
                 resultFuture.complete(Collections.singleton(new Tuple2<>(input.f0, row)));
             } catch (Exception e) {
-                dealFillDataError(resultFuture, e, input);
+                dealFillDataError(input, resultFuture, e);
             }
         }else{
             resultFuture.complete(null);
@@ -139,21 +153,128 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         if(timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0){
             LOG.info("Async function call has timed out. input:{}, timeOutNum:{}",input.toString(), timeOutNum);
         }
-
         timeOutNum ++;
-        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncTimeoutNumLimit()){
-            resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
-        } else {
+        if(sideInfo.getJoinType() == JoinType.LEFT){
             resultFuture.complete(null);
+            return;
+        }
+        if(timeOutNum > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
+            resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
+            return;
+        }
+        resultFuture.complete(null);
+    }
+
+    protected void preInvoke(CRow input, ResultFuture<CRow> resultFuture){
+        ScheduledFuture<?> timeFuture = registerTimer(input, resultFuture);
+        cancelTimerWhenComplete(resultFuture, timeFuture);
+    }
+
+    @Override
+    public void asyncInvoke(CRow row, ResultFuture<CRow> resultFuture) throws Exception {
+        CRow input = new CRow(Row.copy(row.row()), row.change());
+        preInvoke(input, resultFuture);
+        Map<String, Object> inputParams = parseInputParam(input);
+        if(MapUtils.isEmpty(inputParams)){
+            dealMissKey(input, resultFuture);
+            return;
+        }
+        if(isUseCache(inputParams)){
+            invokeWithCache(inputParams, input, resultFuture);
+            return;
+        }
+        handleAsyncInvoke(inputParams, input, resultFuture);
+    }
+
+    private Map<String, Object> parseInputParam(CRow input){
+        Map<String, Object> inputParams = Maps.newHashMap();
+        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
+            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
+            Object equalObj = input.row().getField(conValIndex);
+            if(equalObj == null){
+                return inputParams;
+            }
+            String columnName = sideInfo.getEqualFieldList().get(i);
+            inputParams.put(columnName, equalObj);
+        }
+        return inputParams;
+    }
+
+    protected boolean isUseCache(Map<String, Object> inputParams){
+        return openCache() && getFromCache(buildCacheKey(inputParams)) != null;
+    }
+
+    private void invokeWithCache(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
+        if (openCache()) {
+            CacheObj val = getFromCache(buildCacheKey(inputParams));
+            if (val != null) {
+                if (ECacheContentType.MissVal == val.getType()) {
+                    dealMissKey(input, resultFuture);
+                    return;
+                }else if(ECacheContentType.SingleLine == val.getType()){
+                    try {
+                        Row row = fillData(input.f0, val.getContent());
+                        resultFuture.complete(Collections.singleton(new Tuple2<Boolean,Row>(row, input.change())));
+                    } catch (Exception e) {
+                        dealFillDataError(input, resultFuture, e);
+                    }
+                } else if (ECacheContentType.MultiLine == val.getType()) {
+                    try {
+                        List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
+                        for (Object one : (List) val.getContent()) {
+                            Row row = fillData(input.row(), one);
+                            rowList.add(new Tuple2<Boolean,Row>(row, input.change()));
+                        }
+                        resultFuture.complete(rowList);
+                    } catch (Exception e) {
+                        dealFillDataError(input, resultFuture, e);
+                    }
+                } else {
+                    resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
+                }
+                return;
+            }
         }
     }
 
+    public abstract void handleAsyncInvoke(Map<String, Object>  inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception;
 
-    protected void dealFillDataError(ResultFuture<Tuple2<Boolean,Row>> resultFuture, Exception e, Object sourceData) {
-        LOG.debug("source data {} join side table error ", sourceData);
-        LOG.debug("async buid row error..{}", e);
+    public abstract String buildCacheKey(Map<String, Object> inputParams);
+
+    private ProcessingTimeService getProcessingTimeService(){
+        return ((StreamingRuntimeContext)this.runtimeContext).getProcessingTimeService();
+    }
+
+    protected ScheduledFuture<?> registerTimer(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
+        long timeoutTimestamp = sideInfo.getSideTableInfo().getAsyncTimeout() + getProcessingTimeService().getCurrentProcessingTime();
+        return getProcessingTimeService().registerTimer(
+                timeoutTimestamp,
+                new ProcessingTimeCallback() {
+                    @Override
+                    public void onProcessingTime(long timestamp) throws Exception {
+                        timeout(input, resultFuture);
+                    }
+                });
+    }
+
+    protected void cancelTimerWhenComplete(ResultFuture<Tuple2<Boolean,Row>> resultFuture, ScheduledFuture<?> timerFuture){
+        ThreadPoolExecutor executors = new ThreadPoolExecutor(1, 1,0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        if(resultFuture instanceof StreamRecordQueueEntry){
+            StreamRecordQueueEntry streamRecordBufferEntry = (StreamRecordQueueEntry) resultFuture;
+            streamRecordBufferEntry.onComplete((Object value) -> {
+                timerFuture.cancel(true);
+            },executors);
+        }
+    }
+
+    protected void dealFillDataError(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture, Throwable e) {
         parseErrorRecords.inc();
-        resultFuture.complete(Collections.emptyList());
+        if(parseErrorRecords.getCount() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
+            LOG.info("dealFillDataError", e);
+            resultFuture.completeExceptionally(e);
+        } else {
+            dealMissKey(input, resultFuture);
+        }
     }
 
     @Override

@@ -194,6 +194,18 @@ public abstract class AbstractTableInfo implements Serializable {
          * default false：allow field is null
          */
         boolean notNull = false;
+        /**
+         *  field length,eg.char(4)
+         */
+        int length;
+
+        public int getLength() {
+            return length;
+        }
+
+        public void setLength(int length) {
+            this.length = length;
+        }
 
         public boolean getNotNull() {
             return notNull;
@@ -201,6 +213,14 @@ public abstract class AbstractTableInfo implements Serializable {
 
         public void setNotNull(boolean notNull) {
             this.notNull = notNull;
+        }
+
+        @Override
+        public String toString() {
+            return "FieldExtraInfo{" +
+                    "notNull=" + notNull +
+                    ", length=" + length +
+                    '}';
         }
     }
 }

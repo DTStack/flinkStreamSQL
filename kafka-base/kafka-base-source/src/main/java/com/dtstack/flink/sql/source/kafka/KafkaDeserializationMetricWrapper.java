@@ -53,7 +53,6 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
     private static final Logger LOG = LoggerFactory.getLogger(KafkaDeserializationMetricWrapper.class);
 
     private AbstractFetcher<Row, ?> fetcher;
-    private TypeInformation<Row> typeInfo;
 
     private AtomicBoolean firstMsg = new AtomicBoolean(true);
 
@@ -77,7 +76,6 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
     }
 
     protected void registerPtMetric(AbstractFetcher<Row, ?> fetcher) throws Exception {
-
         Field consumerThreadField = getConsumerThreadField(fetcher);
         consumerThreadField.setAccessible(true);
         KafkaConsumerThread consumerThread = (KafkaConsumerThread) consumerThreadField.get(fetcher);
@@ -116,20 +114,15 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
         }
     }
 
-    private Field getConsumerThreadField(AbstractFetcher<Row, ?> fetcher) throws NoSuchFieldException {
+    public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
+        this.fetcher = fetcher;
+    }
+
+    private Field getConsumerThreadField(AbstractFetcher fetcher) throws NoSuchFieldException {
         try {
             return fetcher.getClass().getDeclaredField("consumerThread");
         } catch (Exception e) {
             return fetcher.getClass().getSuperclass().getDeclaredField("consumerThread");
         }
-    }
-
-    public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
-        this.fetcher = fetcher;
-    }
-
-    @Override
-    public TypeInformation<Row> getProducedType() {
-        return typeInfo;
     }
 }

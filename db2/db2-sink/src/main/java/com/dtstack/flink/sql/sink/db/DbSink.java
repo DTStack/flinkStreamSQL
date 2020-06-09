@@ -16,6 +16,7 @@ public class DbSink extends AbstractRdbSink {
                 .setDialect(jdbcDialect)
                 .setUsername(userName)
                 .setPassword(password)
+                .setSchema(schema)
                 .setTableName(tableName)
                 .build();
 

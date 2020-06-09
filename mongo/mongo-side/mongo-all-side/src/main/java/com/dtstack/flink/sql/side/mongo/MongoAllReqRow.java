@@ -169,9 +169,10 @@ public class MongoAllReqRow extends BaseAllReqRow {
         return sb.toString();
     }
 
-    private MongoCollection getConn(String address, String database, String tableName) {
+    private MongoCollection getConn(String host, String userName, String password, String database, String tableName) {
+
         MongoCollection dbCollection;
-        mongoClient = new MongoClient(new MongoClientURI(address));
+        mongoClient = new MongoClient(new MongoClientURI(getConnectionUrl(host, userName, password)));
         db = mongoClient.getDatabase(database);
         dbCollection = db.getCollection(tableName, Document.class);
         return dbCollection;
@@ -185,7 +186,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
         try {
             for (int i = 0; i < CONN_RETRY_NUM; i++) {
                 try {
-                    dbCollection = getConn(tableInfo.getAddress(), tableInfo.getDatabase(), tableInfo.getTableName());
+                    dbCollection = getConn(tableInfo.getAddress(), tableInfo.getUserName(), tableInfo.getPassword(),
+                            tableInfo.getDatabase(), tableInfo.getTableName());
                     break;
                 } catch (Exception e) {
                     if (i == CONN_RETRY_NUM - 1) {
@@ -243,4 +245,14 @@ public class MongoAllReqRow extends BaseAllReqRow {
             }
         }
     }
+    private String getConnectionUrl(String address, String userName, String password){
+        if(address.startsWith("mongodb://") || address.startsWith("mongodb+srv://")){
+            return  address;
+        }
+        if (StringUtils.isNotBlank(userName) && StringUtils.isNotBlank(password)) {
+            return String.format("mongodb://%s:%s@%s", userName, password, address);
+        }
+        return String.format("mongodb://%s", address);
+    }
+
 }

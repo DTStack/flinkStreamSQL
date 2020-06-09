@@ -161,60 +161,13 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
-        Tuple2<Boolean, Row> inputCopy = Tuple2.of(input.f0, input.f1);
-        JsonArray inputParams = new JsonArray();
-        StringBuffer stringBuffer = new StringBuffer();
-        String sqlWhere = " where ";
-
-        for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.f1.getField(conValIndex);
-            if (equalObj == null) {
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            inputParams.add(equalObj);
-            StringBuffer sqlTemp = stringBuffer.append(sideInfo.getEqualFieldList().get(i))
-                    .append(" = ");
-            if (equalObj instanceof String) {
-                sqlTemp.append("'" + equalObj + "'")
-                        .append(" and ");
-            } else {
-                sqlTemp.append(equalObj)
-                        .append(" and ");
-            }
-
-        }
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
 
         String key = buildCacheKey(inputParams);
-        sqlWhere = sqlWhere + stringBuffer.toString().substring(0, stringBuffer.lastIndexOf(" and "));
-
-        if (openCache()) {
-            CacheObj val = getFromCache(key);
-            if (val != null) {
-
-                if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
-                    for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(inputCopy.f1, jsonArray);
-                        rowList.add(Tuple2.of(inputCopy.f0, row));
-                    }
-                    resultFuture.complete(rowList);
-                } else {
-                    throw new RuntimeException("not support cache obj type " + val.getType());
-                }
-                return;
-            }
-        }
-
         //connect Cassandra
         connCassandraDB(cassandraSideTableInfo);
 
-        String sqlCondition = sideInfo.getSqlCondition() + " " + sqlWhere + "  ALLOW FILTERING ";
+        String sqlCondition = sideInfo.getSqlCondition() + " " + buildWhereCondition(inputParams) + "  ALLOW FILTERING ";
         LOG.info("sqlCondition:{}" + sqlCondition);
 
         ListenableFuture<ResultSet> resultSet = Futures.transformAsync(session,
@@ -241,18 +194,18 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                     List<com.datastax.driver.core.Row> cacheContent = Lists.newArrayList();
                     List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
                     for (com.datastax.driver.core.Row line : rows) {
-                        Row row = fillData(inputCopy.f1, line);
+                        Row row = fillData(input.f1, line);
                         if (openCache()) {
                             cacheContent.add(line);
                         }
-                        rowList.add(Tuple2.of(inputCopy.f0,row));
+                        rowList.add(Tuple2.of(input.f0,row));
                     }
                     resultFuture.complete(rowList);
                     if (openCache()) {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }
                 } else {
-                    dealMissKey(inputCopy, resultFuture);
+                    dealMissKey(input, resultFuture);
                     if (openCache()) {
                         putCache(key, CacheMissVal.getMissKeyObj());
                     }
@@ -268,6 +221,24 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                 resultFuture.completeExceptionally(t);
             }
         });
+    }
+
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        StringBuilder sb = new StringBuilder();
+        for (Object ele : inputParams.values()) {
+            sb.append(ele.toString()).append("_");
+        }
+        return sb.toString();
+    }
+
+    private String buildWhereCondition(Map<String, Object> inputParams){
+        StringBuilder sb = new StringBuilder(" where ");
+        for(Map.Entry<String, Object> entry : inputParams.entrySet()){
+            Object value = entry.getValue() instanceof String ? "'" + entry.getValue() + "'" : entry.getValue();
+            sb.append(String.format("%s = %s", entry.getKey(), value));
+        }
+        return sb.toString();
     }
 
     @Override
@@ -298,15 +269,5 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
             cluster.close();
             cluster = null;
         }
-    }
-
-    public String buildCacheKey(JsonArray jsonArray) {
-        StringBuilder sb = new StringBuilder();
-        for (Object ele : jsonArray.getList()) {
-            sb.append(ele.toString())
-                    .append("_");
-        }
-
-        return sb.toString();
     }
 }

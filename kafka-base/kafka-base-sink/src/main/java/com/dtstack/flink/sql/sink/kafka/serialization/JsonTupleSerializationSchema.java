@@ -159,34 +159,34 @@ public class JsonTupleSerializationSchema implements SerializationSchema<Tuple2<
     }
 
     private JsonNode convert(ContainerNode<?> container, JsonNode reuse, TypeInformation<?> info, Object object) {
-        if (info == Types.VOID || object == null) {
+        if (info.equals(Types.VOID) || object == null) {
             return container.nullNode();
-        } else if (info == Types.BOOLEAN) {
+        } else if (info.equals(Types.BOOLEAN)) {
             return container.booleanNode((Boolean) object);
-        } else if (info == Types.STRING) {
+        } else if (info.equals(Types.STRING)) {
             return container.textNode((String) object);
-        } else if (info == Types.BIG_DEC) {
+        } else if (info.equals(Types.BIG_DEC)) {
             // convert decimal if necessary
             if (object instanceof BigDecimal) {
                 return container.numberNode((BigDecimal) object);
             }
             return container.numberNode(BigDecimal.valueOf(((Number) object).doubleValue()));
-        } else if (info == Types.BIG_INT) {
+        } else if (info.equals(Types.BIG_INT)) {
             // convert integer if necessary
             if (object instanceof BigInteger) {
                 return container.numberNode((BigInteger) object);
             }
             return container.numberNode(BigInteger.valueOf(((Number) object).longValue()));
-        } else if (info == Types.SQL_DATE) {
+        } else if (info.equals(Types.SQL_DATE)) {
             return container.textNode(object.toString());
-        } else if (info == Types.SQL_TIME) {
+        } else if (info.equals(Types.SQL_TIME)) {
             final Time time = (Time) object;
             // strip milliseconds if possible
             if (time.getTime() % 1000 > 0) {
                 return container.textNode(timeFormatWithMillis.format(time));
             }
             return container.textNode(timeFormat.format(time));
-        } else if (info == Types.SQL_TIMESTAMP) {
+        } else if (info.equals(Types.SQL_TIMESTAMP)) {
             return container.textNode(timestampFormat.format((Timestamp) object));
         } else if (info instanceof RowTypeInfo) {
             if (reuse != null && reuse instanceof ObjectNode) {

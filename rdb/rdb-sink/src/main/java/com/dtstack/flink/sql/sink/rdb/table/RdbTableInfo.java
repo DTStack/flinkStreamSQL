@@ -181,6 +181,8 @@ public class RdbTableInfo extends AbstractTargetTableInfo {
         }
 
 
+        Preconditions.checkArgument(getFieldList().size() == getFieldExtraInfoList().size(),
+                "fields and fieldExtraInfoList attributes must be the same length");
         return true;
     }
 

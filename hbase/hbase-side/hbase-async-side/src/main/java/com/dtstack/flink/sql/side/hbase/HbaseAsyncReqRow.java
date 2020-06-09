@@ -34,6 +34,7 @@ import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -81,12 +82,13 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         super(new HbaseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
 
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
-        colNames = ((HbaseSideTableInfo)sideTableInfo).getColumnRealNames();
+        colNames =  StringUtils.split(sideInfo.getSideSelectFields(), ",");
     }
 
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
@@ -121,55 +123,17 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
-        Tuple2<Boolean,Row> inputCopy = Tuple2.of(input.f0,input.f1);
-        Map<String, Object> refData = Maps.newHashMap();
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.f1.getField(conValIndex);
-            if(equalObj == null){
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
-        }
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+        rowKeyMode.asyncGetData(tableName, buildCacheKey(inputParams), input, resultFuture, sideInfo.getSideCache());
+    }
 
-        String rowKeyStr = ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
-
-        //get from cache
-        if (openCache()) {
-            CacheObj val = getFromCache(rowKeyStr);
-            if (val != null) {
-                if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                } else if (ECacheContentType.SingleLine == val.getType()) {
-                    try {
-                        Row row = fillData(inputCopy.f1, val);
-                        resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0,row)));
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    try {
-                        for (Object one : (List) val.getContent()) {
-                            Row row = fillData(inputCopy.f1, one);
-                            resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0,row)));
-                        }
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                }
-                return;
-            }
-        }
-
-        rowKeyMode.asyncGetData(tableName, rowKeyStr, inputCopy, resultFuture, sideInfo.getSideCache());
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        return ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(inputParams);
     }
 
     @Override
     public Row fillData(Row input, Object sideInput){
-
         List<Object> sideInputList = (List<Object>) sideInput;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
