@@ -60,7 +60,7 @@ public class MongoSinkParser extends AbstractTableParser {
         mongoTableInfo.setDatabase(MathUtil.getString(props.get(DATABASE_KEY.toLowerCase())));
         mongoTableInfo.setUserName(MathUtil.getString(props.get(USER_NAME_KEY.toLowerCase())));
         mongoTableInfo.setPassword(MathUtil.getString(props.get(PASSWORD_KEY.toLowerCase())));
-
+        mongoTableInfo.check();
         return mongoTableInfo;
     }
 }
