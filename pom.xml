@@ -35,6 +35,7 @@
         <module>db2</module>
         <module>polardb</module>
         <module>oceanbase</module>
+        <module>tidb</module>
 
     </modules>
 
