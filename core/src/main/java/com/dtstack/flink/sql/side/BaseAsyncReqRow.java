@@ -26,6 +26,7 @@ import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
+import com.dtstack.flink.sql.util.ReflectionUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
@@ -37,6 +38,7 @@ import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
+import org.apache.flink.streaming.api.operators.async.AsyncWaitOperator;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -44,6 +46,8 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -169,9 +173,9 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         resultFuture.complete(null);
     }
 
-    protected void preInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
-        ScheduledFuture<?> timeFuture = registerTimer(input, resultFuture);
-        cancelTimerWhenComplete(resultFuture, timeFuture);
+    protected void preInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture)
+            throws InvocationTargetException, IllegalAccessException {
+        registerTimerAndAddToHandler(input, resultFuture);
     }
 
     @Override
@@ -261,15 +265,14 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
                 });
     }
 
-    protected void cancelTimerWhenComplete(ResultFuture<Tuple2<Boolean,Row>> resultFuture, ScheduledFuture<?> timerFuture){
-        ThreadPoolExecutor executors = new ThreadPoolExecutor(1, 1,0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
-        if(resultFuture instanceof StreamRecordQueueEntry){
-            StreamRecordQueueEntry streamRecordBufferEntry = (StreamRecordQueueEntry) resultFuture;
-            streamRecordBufferEntry.onComplete((Object value) -> {
-                timerFuture.cancel(true);
-            },executors);
-        }
+    protected void registerTimerAndAddToHandler(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture)
+            throws InvocationTargetException, IllegalAccessException {
+        ScheduledFuture<?> timeFuture = registerTimer(input, resultFuture);
+        // resultFuture 是ResultHandler 的实例
+        Method setTimeoutTimer = ReflectionUtils.getDeclaredMethod(resultFuture, "setTimeoutTimer", ScheduledFuture.class);
+        setTimeoutTimer.invoke(resultFuture, timeFuture);
     }
+
 
     protected void dealFillDataError(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture, Throwable e) {
         parseErrorRecords.inc();

@@ -31,6 +31,7 @@ import com.dtstack.flink.sql.util.DateUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +40,9 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -131,8 +135,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                         return;
                     }
                     connectionStatus.set(true);
-                    ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
-                    cancelTimerWhenComplete(resultFuture, timerFuture);
+                    registerTimerAndAddToHandler(input, resultFuture);
+
                     handleQuery(conn.result(), inputParams, input, resultFuture);
                     finishFlag.set(true);
                 } catch (Exception e) {
@@ -243,7 +247,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         this.executor = executor;
     }
 
-    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, Tuple2<Boolean, Row> input, ResultFuture<CRow> resultFuture){
+    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
         String key = buildCacheKey(inputParams);
         JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
         connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {

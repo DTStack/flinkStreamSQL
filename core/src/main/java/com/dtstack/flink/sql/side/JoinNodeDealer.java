@@ -39,11 +39,11 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import java.util.List;
 import java.util.Map;
@@ -66,6 +66,8 @@ public class JoinNodeDealer {
     private static final String SELECT_TEMP_SQL = "select %s from %s %s";
 
     private SideSQLParser sideSQLParser;
+
+    private FlinkPlanner flinkPlanner = new FlinkPlanner();
 
     public JoinNodeDealer(SideSQLParser sideSQLParser){
         this.sideSQLParser = sideSQLParser;
@@ -426,8 +428,7 @@ public class JoinNodeDealer {
                     node.toString(),
                     extractConditionStr);
 
-            FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
-            SqlNode sqlNode = flinkPlanner.parse(tmpSelectSql);
+            SqlNode sqlNode = flinkPlanner.getParser().parse(tmpSelectSql);
 
             SqlBasicCall sqlBasicCall = buildAsSqlNode(tableAlias, sqlNode);
             queueInfo.offer(sqlBasicCall);

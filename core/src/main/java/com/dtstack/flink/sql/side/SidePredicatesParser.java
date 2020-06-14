@@ -31,7 +31,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import java.util.List;
 import java.util.Map;
@@ -46,9 +45,12 @@ import static org.apache.calcite.sql.SqlKind.*;
  * @author maqi
  */
 public class SidePredicatesParser {
+
+    private FlinkPlanner flinkPlanner = new FlinkPlanner();
+
     public void fillPredicatesForSideTable(String exeSql, Map<String, AbstractSideTableInfo> sideTableMap) throws SqlParseException {
-        FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
-        SqlNode sqlNode = flinkPlanner.parse(exeSql);
+
+        SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(exeSql).parseStmt();
         parseSql(sqlNode, sideTableMap, Maps.newHashMap());
     }
 

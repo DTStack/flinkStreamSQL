@@ -37,9 +37,10 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.table.api.Table;
-import org.apache.flink.table.calcite.FlinkPlannerImpl;
+import org.apache.flink.table.planner.calcite.FlinkPlannerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,14 +63,15 @@ public class SideSQLParser {
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
+    private FlinkPlanner flinkPlanner = new FlinkPlanner();
+
     public Queue<Object> getExeQueue(String exeSql, Set<String> sideTableSet, String scope) throws SqlParseException {
 
         LOG.info("----------exec original Sql----------");
         LOG.info(exeSql);
 
         Queue<Object> queueInfo = Queues.newLinkedBlockingQueue();
-        FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
-        SqlNode sqlNode = flinkPlanner.parse(exeSql);
+        SqlNode sqlNode = flinkPlanner.getParser().parse(exeSql);
 
         parseSql(sqlNode, sideTableSet, queueInfo, null, null, null, scope);
         queueInfo.offer(sqlNode);

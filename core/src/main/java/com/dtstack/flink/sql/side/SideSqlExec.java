@@ -26,9 +26,13 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.api.java.internal.StreamTableEnvironmentImpl;
+import org.apache.flink.table.catalog.CatalogManager;
+import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
@@ -433,9 +437,15 @@ public class SideSqlExec {
         replaceInfo.setTargetTableName(targetTableName);
         replaceInfo.setTargetTableAlias(targetTableAlias);
 
-        if (!tableEnv.isRegistered(targetTableName)){
+        ObjectIdentifier objectIdentifier = ObjectIdentifier.of(
+                EnvironmentSettings.DEFAULT_BUILTIN_CATALOG,
+                EnvironmentSettings.DEFAULT_BUILTIN_DATABASE,
+                targetTableName);
+        boolean tableExists = tableEnv.getCatalog(EnvironmentSettings.DEFAULT_BUILTIN_CATALOG).get().tableExists(objectIdentifier.toObjectPath());
+
+        if (!tableExists){
             Table joinTable = tableEnv.fromDataStream(dsOut);
-            tableEnv.registerTable(targetTableName, joinTable);
+            tableEnv.createTemporaryView(targetTableName, joinTable);
             localTableCache.put(joinInfo.getNewTableName(), joinTable);
         }
     }
