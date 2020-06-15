@@ -38,10 +38,9 @@ import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.api.operators.async.AsyncWaitOperator;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,10 +52,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * All interfaces inherit naming rules: type + "AsyncReqRow" such as == "MysqlAsyncReqRow
@@ -114,7 +110,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
 
 
     protected Object convertTimeIndictorTypeInfo(Integer index, Object obj) {
-        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(index).getClass());
+        boolean isTimeIndicatorTypeInfo = DataTypes.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(index).getClass());
 
         //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
         if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
@@ -257,12 +253,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         long timeoutTimestamp = sideInfo.getSideTableInfo().getAsyncTimeout() + getProcessingTimeService().getCurrentProcessingTime();
         return getProcessingTimeService().registerTimer(
                 timeoutTimestamp,
-                new ProcessingTimeCallback() {
-                    @Override
-                    public void onProcessingTime(long timestamp) throws Exception {
-                        timeout(input, resultFuture);
-                    }
-                });
+                timestamp -> timeout(input, resultFuture));
     }
 
     protected void registerTimerAndAddToHandler(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture)
@@ -270,6 +261,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         ScheduledFuture<?> timeFuture = registerTimer(input, resultFuture);
         // resultFuture 是ResultHandler 的实例
         Method setTimeoutTimer = ReflectionUtils.getDeclaredMethod(resultFuture, "setTimeoutTimer", ScheduledFuture.class);
+        setTimeoutTimer.setAccessible(true);
         setTimeoutTimer.invoke(resultFuture, timeFuture);
     }
 
