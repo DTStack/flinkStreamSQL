@@ -60,6 +60,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Reason:
@@ -72,6 +73,8 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
     private static final long serialVersionUID = 6631584128079864735L;
 
     private static final Logger LOG = LoggerFactory.getLogger(CassandraAsyncReqRow.class);
+
+    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     private final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 10;
 
@@ -251,7 +254,8 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                obj = ((Timestamp) obj).getTime();
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
 
             row.setField(entry.getKey(), obj);
