@@ -64,4 +64,9 @@ public class HbaseUtil {
 
     }
 
+    public static byte[] toByte(Object value){
+        if()
+        return new byte[];
+    }
+
 }

@@ -92,13 +92,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     @Override
     public void writeRecord(Tuple2 tuple2) {
         Tuple2<Boolean, Row> tupleTrans = tuple2;
-        Boolean retract = tupleTrans.f0;
         Row row = tupleTrans.f1;
-        if (retract) {
-            dealInsert(row);
-        } else if (!retract && StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
-            dealDelete(row);
-        }
+        dealInsert(row);
     }
 
     protected void dealInsert(Row record) {
@@ -121,26 +116,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             LOG.info(record.toString());
         }
         outRecords.inc();
-    }
-
-    protected void dealDelete(Row record) {
-        String rowKey = buildRowKey(record);
-        if (!StringUtils.isEmpty(rowKey)) {
-            Delete delete = new Delete(Bytes.toBytes(rowKey));
-            try {
-                table.delete(delete);
-            } catch (IOException e) {
-                if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                    LOG.error("record insert failed ..{}", record.toString());
-                    LOG.error("", e);
-                }
-                outDirtyRecords.inc();
-            }
-            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-                LOG.info(record.toString());
-            }
-            outRecords.inc();
-        }
     }
 
     private Put getPutByRow(Row record) {
