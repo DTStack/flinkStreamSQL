@@ -115,6 +115,7 @@ public class RetractJDBCOutputFormat extends MetricOutputFormat {
                     insertQuery = dbSink.buildUpdateSql(schema , tableName, Arrays.asList(dbSink.getFieldNames()), realIndexes, fullField);
                 }
                 upload = dbConn.prepareStatement(insertQuery);
+                LOG.info("sink sql is {} ", insertQuery);
             } else {
                 throw new SQLException("Table " + tableName + " doesn't exist");
             }
