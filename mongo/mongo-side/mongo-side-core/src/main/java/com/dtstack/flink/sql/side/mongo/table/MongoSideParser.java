@@ -59,7 +59,7 @@ public class MongoSideParser extends AbstractSideTableParser {
         mongoSideTableInfo.setDatabase(MathUtil.getString(props.get(DATABASE_KEY.toLowerCase())));
         mongoSideTableInfo.setUserName(MathUtil.getString(props.get(USER_NAME_KEY.toLowerCase())));
         mongoSideTableInfo.setPassword(MathUtil.getString(props.get(PASSWORD_KEY.toLowerCase())));
-
+        mongoSideTableInfo.check();
         return mongoSideTableInfo;
     }
 }
