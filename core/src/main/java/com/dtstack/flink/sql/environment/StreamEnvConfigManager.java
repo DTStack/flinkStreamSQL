@@ -91,6 +91,8 @@ public final class StreamEnvConfigManager {
             ((Configuration) exeConfig.getGlobalJobParameters()).addAll(globalJobParameters);
         }
 
+        disableChainOperator(streamEnv, globalJobParameters);
+
         getEnvParallelism(confProperties).ifPresent(streamEnv::setParallelism);
         getMaxEnvParallelism(confProperties).ifPresent(streamEnv::setMaxParallelism);
         getBufferTimeoutMillis(confProperties).ifPresent(streamEnv::setBufferTimeout);
@@ -350,5 +352,10 @@ public final class StreamEnvConfigManager {
         }
     }
 
-
+    private static StreamExecutionEnvironment disableChainOperator(StreamExecutionEnvironment env, Configuration configuration) {
+        if(configuration.getBoolean("disableChainOperator", false)) {
+            env.disableOperatorChaining();
+        }
+        return env;
+    }
 }
