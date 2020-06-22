@@ -50,6 +50,9 @@ import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 
 public class InsertSqlParser implements IParser {
 
+    // 用来标识当前解析节点的上一层节点是否为 insert 节点
+    private static Boolean parentIsInsert = false;
+
     @Override
     public boolean verify(String sql) {
         return StringUtils.isNotBlank(sql) && sql.trim().toLowerCase().startsWith("insert");
@@ -79,24 +82,19 @@ public class InsertSqlParser implements IParser {
                 SqlNode sqlTarget = ((SqlInsert)sqlNode).getTargetTable();
                 SqlNode sqlSource = ((SqlInsert)sqlNode).getSource();
                 sqlParseResult.addTargetTable(sqlTarget.toString());
+                parentIsInsert = true;
                 parseNode(sqlSource, sqlParseResult);
                 break;
             case SELECT:
                 SqlSelect sqlSelect = (SqlSelect) sqlNode;
-                SqlNodeList selectList = sqlSelect.getSelectList();
-                SqlNodeList sqlNodes = new SqlNodeList(selectList.getParserPosition());
-                for (int index = 0; index < selectList.size(); index++) {
-                    if (selectList.get(index).getKind().equals(SqlKind.AS)) {
-                        sqlNodes.add(selectList.get(index));
-                        continue;
-                    }
-                    sqlNodes.add(transformToSqlBasicCall(selectList.get(index)));
+                if (parentIsInsert) {
+                    rebuildSelectNode(sqlSelect.getSelectList(), sqlSelect);
                 }
-                sqlSelect.setSelectList(sqlNodes);
                 SqlNode sqlFrom = ((SqlSelect) sqlNode).getFrom();
                 if (sqlFrom.getKind() == IDENTIFIER) {
                     sqlParseResult.addSourceTable(sqlFrom.toString());
                 } else {
+                    parentIsInsert = false;
                     parseNode(sqlFrom, sqlParseResult);
                 }
                 break;
@@ -153,8 +151,30 @@ public class InsertSqlParser implements IParser {
         }
     }
 
-    // 将 sqlNode 转换为 SqlBasicCall
-    public static SqlBasicCall transformToSqlBasicCall(SqlNode sqlNode) {
+    /**
+     * 将第一层 select 中的 sqlNode 转化为 AsNode，解决字段名冲突问题
+     * @param selectList select Node 的 select 字段
+     * @param sqlSelect 第一层解析出来的 selectNode
+     */
+    private static void rebuildSelectNode(SqlNodeList selectList, SqlSelect sqlSelect) {
+        SqlNodeList sqlNodes = new SqlNodeList(selectList.getParserPosition());
+
+        for (int index = 0; index < selectList.size(); index++) {
+            if (selectList.get(index).getKind().equals(SqlKind.AS)) {
+                sqlNodes.add(selectList.get(index));
+                continue;
+            }
+            sqlNodes.add(transformToAsNode(selectList.get(index)));
+        }
+        sqlSelect.setSelectList(sqlNodes);
+    }
+
+    /**
+     * 将 sqlNode 转化为 AsNode
+     * @param sqlNode 需要转化的 sqlNode
+     * @return 重新构造的 AsNode
+     */
+    public static SqlBasicCall transformToAsNode(SqlNode sqlNode) {
         String asName = "";
         SqlParserPos pos = new SqlParserPos(sqlNode.getParserPosition().getLineNum(),
                                             sqlNode.getParserPosition().getEndColumnNum());
