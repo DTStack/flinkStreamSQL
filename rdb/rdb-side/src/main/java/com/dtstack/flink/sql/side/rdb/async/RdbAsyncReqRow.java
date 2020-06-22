@@ -121,35 +121,41 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         AtomicLong failCounter = new AtomicLong(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while(!finishFlag.get()){
-            CountDownLatch latch = new CountDownLatch(1);
-            rdbSqlClient.getConnection(conn -> {
-                try {
-                    if(conn.failed()){
-                        connectionStatus.set(false);
-                        if(failCounter.getAndIncrement() % 1000 == 0){
-                            LOG.error("getConnection error", conn.cause());
+            try{
+                CountDownLatch latch = new CountDownLatch(1);
+                rdbSqlClient.getConnection(conn -> {
+                    try {
+                        if(conn.failed()){
+                            connectionStatus.set(false);
+                            if(failCounter.getAndIncrement() % 1000 == 0){
+                                LOG.error("getConnection error", conn.cause());
+                            }
+                            if(failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)){
+                                resultFuture.completeExceptionally(conn.cause());
+                                finishFlag.set(true);
+                            }
+                            return;
                         }
-                        if(failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)){
-                            resultFuture.completeExceptionally(conn.cause());
-                            finishFlag.set(true);
-                        }
-                        return;
+                        connectionStatus.set(true);
+                        ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
+                        cancelTimerWhenComplete(resultFuture, timerFuture);
+                        handleQuery(conn.result(), inputParams, input, resultFuture);
+                        finishFlag.set(true);
+                    } catch (Exception e) {
+                        dealFillDataError(input, resultFuture, e);
+                    } finally {
+                        latch.countDown();
                     }
-                    connectionStatus.set(true);
-                    ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
-                    cancelTimerWhenComplete(resultFuture, timerFuture);
-                    handleQuery(conn.result(), inputParams, input, resultFuture);
-                    finishFlag.set(true);
-                } catch (Exception e) {
-                    dealFillDataError(input, resultFuture, e);
-                } finally {
-                    latch.countDown();
+                });
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    LOG.error("", e);
                 }
-            });
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                LOG.error("", e);
+
+            } catch (Exception e){
+                //数据源队列溢出情况
+                connectionStatus.set(false);
             }
             if(!finishFlag.get()){
                 try {
