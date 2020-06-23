@@ -41,14 +41,14 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
     private ImpalaTableInfo impalaTableInfo;
 
     public ImpalaSink() {
-        super(new ImpalaDialect());
+        super(null);
     }
 
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
                 .setDbUrl(getImpalaJdbcUrl())
-                .setDialect(jdbcDialect)
+                .setDialect(new ImpalaDialect(getFieldTypes()))
                 .setUsername(userName)
                 .setPassword(password)
                 .setTableName(tableName)

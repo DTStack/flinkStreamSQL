@@ -76,8 +76,6 @@ public class MysqlAsyncReqRow extends RdbAsyncReqRow {
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, mysqlClientConfig));
-        setExecutor(new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(10), new DTThreadFactory("mysqlAsyncExec")));
     }
 
 }

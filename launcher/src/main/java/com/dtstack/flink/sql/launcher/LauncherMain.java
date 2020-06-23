@@ -41,6 +41,8 @@ import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.util.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,10 +55,13 @@ import java.util.Properties;
 /**
  * Date: 2017/2/20
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
 public class LauncherMain {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LauncherMain.class);
     private static final String CORE_JAR = "core";
 
     private static String SP = File.separator;
@@ -67,9 +72,10 @@ public class LauncherMain {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length == 1 && args[0].endsWith(".json")){
+        if (args.length == 1 && args[0].endsWith(".json")) {
             args = parseJson(args);
         }
+
         OptionParser optionParser = new OptionParser(args);
         Options launcherOptions = optionParser.getOptions();
         String mode = launcherOptions.getMode();
@@ -79,29 +85,33 @@ public class LauncherMain {
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
 
-        if(mode.equals(ClusterMode.local.name())) {
-            String[] localArgs = argList.toArray(new String[argList.size()]);
+        LOG.info("current job mode is {}", mode);
+
+        if (mode.equals(ClusterMode.local.name())) {
+            String[] localArgs = argList.toArray(new String[0]);
             Main.main(localArgs);
             return;
         }
 
         String pluginRoot = launcherOptions.getLocalSqlPluginPath();
         File jarFile = new File(getLocalCoreJarPath(pluginRoot));
-        String[] remoteArgs = argList.toArray(new String[argList.size()]);
+        String[] remoteArgs = argList.toArray(new String[0]);
         PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
 
         String savePointPath = confProperties.getProperty(ConfigConstrant.SAVE_POINT_PATH_KEY);
-        if(StringUtils.isNotBlank(savePointPath)){
+        if (StringUtils.isNotBlank(savePointPath)) {
             String allowNonRestoredState = confProperties.getOrDefault(ConfigConstrant.ALLOW_NON_RESTORED_STATE_KEY, "false").toString();
             program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(savePointPath, BooleanUtils.toBoolean(allowNonRestoredState)));
         }
 
-        if(mode.equals(ClusterMode.yarnPer.name())){
+        if (mode.equals(ClusterMode.yarnPer.name())) {
             String flinkConfDir = launcherOptions.getFlinkconf();
             Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
             JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1);
 
-            PerJobSubmitter.submit(launcherOptions, jobGraph, config);
+            LOG.info("current jobID is {}", jobGraph.getJobID());
+
+            LOG.info("submit applicationId is {}", PerJobSubmitter.submit(launcherOptions, jobGraph, config));
         } else {
             ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
             clusterClient.run(program, 1);

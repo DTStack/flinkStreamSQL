@@ -54,6 +54,7 @@ public class ImpalaSinkParser extends RdbSinkParser {
         impalaTableInfo.setBufferSize(MathUtil.getString(props.get(ImpalaTableInfo.BUFFER_SIZE_KEY.toLowerCase())));
         impalaTableInfo.setFlushIntervalMs(MathUtil.getString(props.get(ImpalaTableInfo.FLUSH_INTERVALMS_KEY.toLowerCase())));
         impalaTableInfo.setSchema(MathUtil.getString(props.get(ImpalaTableInfo.SCHEMA_KEY.toLowerCase())));
+        impalaTableInfo.setUpdateMode(MathUtil.getString(props.get(ImpalaTableInfo.UPDATE_KEY.toLowerCase())));
 
         Integer authMech = MathUtil.getIntegerVal(props.get(ImpalaTableInfo.AUTHMECH_KEY.toLowerCase()));
         authMech = authMech == null ? 0 : authMech;

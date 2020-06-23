@@ -198,11 +198,9 @@ public class TableUtils {
         SqlOperator operator = new SqlAsOperator();
 
         SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
-        String joinLeftTableName = joinInfo.getLeftTableName();
-        String joinLeftTableAlias = joinInfo.getLeftTableAlias();
-        joinLeftTableName = Strings.isNullOrEmpty(joinLeftTableName) ? joinLeftTableAlias : joinLeftTableName;
-        String newTableName = buildInternalTableName(joinLeftTableName, SPLIT, joinInfo.getRightTableName());
+        String newTableName = joinInfo.getNewTableName();
         String lefTbAlias = joinInfo.getLeftTableAlias();
+
         if(Strings.isNullOrEmpty(lefTbAlias)){
             Set<String> fromTableSet = Sets.newHashSet();
             TableUtils.getFromTableInfo(joinInfo.getLeftNode(), fromTableSet);
@@ -441,10 +439,53 @@ public class TableUtils {
             return;
         }
         SqlKind joinKind = condition.getKind();
-        if( joinKind == AND || joinKind == EQUALS ){
-            replaceJoinFieldRefTableName(((SqlBasicCall)condition).operands[0], oldTabFieldRefNew);
-            replaceJoinFieldRefTableName(((SqlBasicCall)condition).operands[1], oldTabFieldRefNew);
-        }else{
+        if( AGGREGATE.contains(joinKind)
+                || AVG_AGG_FUNCTIONS.contains(joinKind)
+                || COMPARISON.contains(joinKind)
+                || joinKind == OTHER_FUNCTION
+                || joinKind == DIVIDE
+                || joinKind == CAST
+                || joinKind == TRIM
+                || joinKind == TIMES
+                || joinKind == PLUS
+                || joinKind == NOT_IN
+                || joinKind == OR
+                || joinKind == AND
+                || joinKind == MINUS
+                || joinKind == TUMBLE
+                || joinKind == TUMBLE_START
+                || joinKind == TUMBLE_END
+                || joinKind == SESSION
+                || joinKind == SESSION_START
+                || joinKind == SESSION_END
+                || joinKind == HOP
+                || joinKind == HOP_START
+                || joinKind == HOP_END
+                || joinKind == BETWEEN
+                || joinKind == IS_NULL
+                || joinKind == IS_NOT_NULL
+                || joinKind == CONTAINS
+                || joinKind == TIMESTAMP_ADD
+                || joinKind == TIMESTAMP_DIFF
+                || joinKind == LIKE
+                || joinKind == COALESCE
+                || joinKind == EQUALS ){
+
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) condition;
+            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if(sqlNode instanceof SqlLiteral){
+                    continue;
+                }
+
+                if(sqlNode instanceof SqlDataTypeSpec){
+                    continue;
+                }
+
+                replaceJoinFieldRefTableName(sqlNode, oldTabFieldRefNew);
+            }
+
+        } else if (condition.getKind() == IDENTIFIER) {
             Preconditions.checkState(((SqlIdentifier)condition).names.size() == 2, "join condition must be format table.field");
             String fieldRefTable = ((SqlIdentifier)condition).names.get(0);
 
@@ -660,5 +701,13 @@ public class TableUtils {
         return String.format("%s.%s", tableName, fieldName);
     }
 
+
+    public static String buildTableNameWithScope(String tableName, String scope){
+        if(StringUtils.isEmpty(scope)){
+            return tableName;
+        }
+
+        return tableName + "_" + scope;
+    }
 
 }
