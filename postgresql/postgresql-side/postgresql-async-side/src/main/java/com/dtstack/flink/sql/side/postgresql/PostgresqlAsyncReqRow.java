@@ -76,8 +76,6 @@ public class PostgresqlAsyncReqRow extends RdbAsyncReqRow {
         vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         Vertx vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, pgClientConfig));
-        setExecutor(new ThreadPoolExecutor(50, 50, 0, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(10000), new DTThreadFactory("postgresqlAsyncExec"), new ThreadPoolExecutor.CallerRunsPolicy()));
     }
 
 }
