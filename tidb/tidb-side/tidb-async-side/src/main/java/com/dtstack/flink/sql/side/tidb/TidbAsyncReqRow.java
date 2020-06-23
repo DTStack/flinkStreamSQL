@@ -72,7 +72,5 @@ public class TidbAsyncReqRow extends RdbAsyncReqRow {
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, tidbClientConfig));
-        setExecutor(new ThreadPoolExecutor(50, 50, 0, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(10000), new DTThreadFactory("TidbAsyncExec"), new ThreadPoolExecutor.CallerRunsPolicy()));
     }
 }
