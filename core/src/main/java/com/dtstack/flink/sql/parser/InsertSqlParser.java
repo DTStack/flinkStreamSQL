@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.parser;
 
@@ -153,6 +152,7 @@ public class InsertSqlParser implements IParser {
 
     /**
      * 将第一层 select 中的 sqlNode 转化为 AsNode，解决字段名冲突问题
+     * 仅对 table.xx 这种类型的字段进行替换
      * @param selectList select Node 的 select 字段
      * @param sqlSelect 第一层解析出来的 selectNode
      */
@@ -160,7 +160,8 @@ public class InsertSqlParser implements IParser {
         SqlNodeList sqlNodes = new SqlNodeList(selectList.getParserPosition());
 
         for (int index = 0; index < selectList.size(); index++) {
-            if (selectList.get(index).getKind().equals(SqlKind.AS)) {
+            if (selectList.get(index).getKind().equals(SqlKind.AS)
+                    || ((SqlIdentifier) selectList.get(index)).names.size() == 1) {
                 sqlNodes.add(selectList.get(index));
                 continue;
             }
