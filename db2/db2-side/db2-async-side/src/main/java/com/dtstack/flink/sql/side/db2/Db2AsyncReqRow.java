@@ -76,9 +76,6 @@ public class Db2AsyncReqRow extends RdbAsyncReqRow {
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, db2lientConfig));
-        setExecutor(new ThreadPoolExecutor(50, 50, 0, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(10000), new DTThreadFactory("dbAsyncExec"), new ThreadPoolExecutor.CallerRunsPolicy()));
-
     }
 
 }
