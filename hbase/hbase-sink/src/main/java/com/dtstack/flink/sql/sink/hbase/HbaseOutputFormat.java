@@ -129,7 +129,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             if (fieldVal == null) {
                 continue;
             }
-            byte[] val = fieldVal.toString().getBytes();
+            byte[] val = HbaseUtil.toByte(fieldVal);
             byte[] cf = families[i].getBytes();
             byte[] qualifier = qualifiers[i].getBytes();
 

@@ -22,9 +22,15 @@ package com.dtstack.flink.sql.sink.hbase;
 
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.ByteWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import scala.tools.nsc.Global;
+
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.util.Objects;
 
 /**
  * Created by softfly on 17/6/30.
@@ -64,9 +70,30 @@ public class HbaseUtil {
 
     }
 
-    public static byte[] toByte(Object value){
-        if()
-        return new byte[];
+    public static byte[] toByte(Object value) {
+        if (Objects.isNull(value)) {
+            return new byte[]{};
+        }
+        if (value instanceof Integer) {
+            return Bytes.toBytes((Integer) value);
+        } else if (value instanceof Boolean) {
+            return Bytes.toBytes((Boolean) value);
+        } else if (value instanceof ByteBuffer) {
+            return Bytes.toBytes((ByteBuffer) value);
+        } else if (value instanceof Double) {
+            return Bytes.toBytes((Double) value);
+        } else if (value instanceof Float) {
+            return Bytes.toBytes((Float) value);
+        } else if (value instanceof Long) {
+            return Bytes.toBytes((Long) value);
+        } else if (value instanceof Short) {
+            return Bytes.toBytes((Short) value);
+        } else if (value instanceof String) {
+            return Bytes.toBytes(String.valueOf(value));
+        } else if (value instanceof BigDecimal) {
+            return Bytes.toBytes((BigDecimal) value);
+        }
+        throw new RuntimeException("unkown dateType[" + value.toString() + "]");
     }
 
 }
