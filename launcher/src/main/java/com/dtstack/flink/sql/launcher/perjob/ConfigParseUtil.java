@@ -16,31 +16,27 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.clickhouse;
+package com.dtstack.flink.sql.launcher.perjob;
 
-import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
+import org.apache.commons.io.Charsets;
 
-import java.util.Optional;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * Date: 2020/1/15
+ * Date: 2019/12/28
  * Company: www.dtstack.com
  * @author maqi
  */
-public class ClickhouseDialect implements JDBCDialect {
+public class ConfigParseUtil {
 
-    @Override
-    public boolean canHandle(String url) {
-        return url.startsWith("jdbc:clickhouse:");
-    }
-
-    @Override
-    public Optional<String> defaultDriverName() {
-        return Optional.of("ru.yandex.clickhouse.ClickHouseDriver");
-    }
-
-    @Override
-    public String getUpdateStatement(String tableName, String[] fieldNames, String[] conditionFields) {
-        throw new RuntimeException("Clickhouse does not support update sql, please remove primary key or use append mode");
+    public static List<String> parsePathFromStr(String pathStr) throws UnsupportedEncodingException {
+        String addjarPath = URLDecoder.decode(pathStr, Charsets.UTF_8.toString());
+        if (addjarPath.length() > 2) {
+            addjarPath = addjarPath.substring(1,addjarPath.length()-1).replace("\"","");
+        }
+        return Arrays.asList(addjarPath.split(","));
     }
 }
