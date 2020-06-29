@@ -19,10 +19,12 @@
 package com.dtstack.flink.sql.sink.hbase;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.exceptions.IllegalArgumentIOException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -67,6 +69,10 @@ public class HbaseConfigUtils {
 
         if (org.apache.commons.lang.StringUtils.isEmpty(keytab)) {
             throw new IllegalArgumentException("keytab can not be null");
+        }
+
+        if (!new File(keytab).exists()){
+            throw new IllegalArgumentIOException("keytab ["+ keytab + "] not exist");
         }
 
         conf.set("hadoop.security.authentication", "Kerberos");
