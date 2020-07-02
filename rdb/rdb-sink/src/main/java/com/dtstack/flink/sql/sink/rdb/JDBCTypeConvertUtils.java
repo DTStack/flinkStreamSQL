@@ -106,7 +106,7 @@ public class JDBCTypeConvertUtils {
 						break;
 					case java.sql.Types.FLOAT:
 					case java.sql.Types.DOUBLE:
-						upload.setDouble(index + 1, (double) field);
+						upload.setDouble(index + 1, Double.parseDouble(field.toString()));
 						break;
 					case java.sql.Types.DECIMAL:
 					case java.sql.Types.NUMERIC:
