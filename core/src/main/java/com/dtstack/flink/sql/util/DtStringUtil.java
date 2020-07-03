@@ -106,6 +106,57 @@ public class DtStringUtil {
         return str.replaceAll(splitPatternStr, replaceStr);
     }
 
+    /**
+     * 处理 sql 中 "--" 注释，而不删除引号内的内容
+     *
+     * @param sql 解析出来的 sql
+     * @return 返回无注释内容的 sql
+     */
+    public static String dealSqlComment(String sql) {
+        boolean inQuotes = false;
+        boolean inSingleQuotes = false;
+        int bracketLeftNum = 0;
+        StringBuilder b = new StringBuilder(sql.length());
+        char[] chars = sql.toCharArray();
+        for (int index = 0; index < chars.length; index ++) {
+            if (index == chars.length) {
+                return b.toString();
+            }
+            StringBuilder tempSb = new StringBuilder(2);
+            if (index > 1) {
+                tempSb.append(chars[index - 1]);
+                tempSb.append(chars[index]);
+            }
+
+            if (tempSb.toString().equals("--")) {
+                if (inQuotes) {
+                    b.append(chars[index]);
+                } else if (inSingleQuotes) {
+                    b.append(chars[index]);
+                } else if (bracketLeftNum > 0) {
+                    b.append(chars[index]);
+                } else {
+                    b.deleteCharAt(b.length() - 1);
+                    while (chars[index] != '\n') {
+                        // 判断注释内容是不是行尾或者 sql 的最后一行
+                        if (index == chars.length - 1) {
+                            break;
+                        }
+                        index++;
+                    }
+                }
+            } else if (chars[index] == '\"' && '\\' != chars[index] && !inSingleQuotes) {
+                inQuotes = !inQuotes;
+                b.append(chars[index]);
+            } else if (chars[index] == '\'' && '\\' != chars[index] && !inQuotes) {
+                inSingleQuotes = !inSingleQuotes;
+                b.append(chars[index]);
+            } else {
+                b.append(chars[index]);
+            }
+        }
+        return b.toString();
+    }
 
     public static String col2string(Object column, String type) {
         String rowData = column.toString();

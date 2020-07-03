@@ -90,7 +90,8 @@ public class JoinNodeDealer {
                                  SqlNodeList parentGroupByList,
                                  Set<Tuple2<String, String>> joinFieldSet,
                                  Map<String, String> tableRef,
-                                 Map<String, String> fieldRef) {
+                                 Map<String, String> fieldRef,
+                                 String scope) {
 
         SqlNode leftNode = joinNode.getLeft();
         SqlNode rightNode = joinNode.getRight();
@@ -106,13 +107,14 @@ public class JoinNodeDealer {
 
         if (leftNode.getKind() == JOIN) {
             //处理连续join
-            dealNestJoin(joinNode, sideTableSet,
-                    queueInfo, parentWhere, parentSelectList, parentGroupByList, joinFieldSet, tableRef, fieldRef);
+            dealNestJoin(joinNode, sideTableSet, queueInfo, parentWhere, parentSelectList,
+                    parentGroupByList, joinFieldSet, tableRef, fieldRef, scope);
             leftNode = joinNode.getLeft();
         }
 
         if (leftNode.getKind() == AS) {
-            AliasInfo aliasInfo = (AliasInfo) sideSQLParser.parseSql(leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
+            AliasInfo aliasInfo = (AliasInfo) sideSQLParser.parseSql(leftNode, sideTableSet, queueInfo,
+                    parentWhere, parentSelectList, parentGroupByList, scope);
             leftTbName = aliasInfo.getName();
             leftTbAlias = aliasInfo.getAlias();
         } else if(leftNode.getKind() == IDENTIFIER){
@@ -123,7 +125,8 @@ public class JoinNodeDealer {
         boolean leftIsSide = checkIsSideTable(leftTbName, sideTableSet);
         Preconditions.checkState(!leftIsSide, "side-table must be at the right of join operator");
 
-        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo,
+                parentWhere, parentSelectList, parentGroupByList, scope);
         rightTableName = rightTableNameAndAlias.f0;
         rightTableAlias = rightTableNameAndAlias.f1;
 
@@ -146,6 +149,8 @@ public class JoinNodeDealer {
         tableInfo.setRightNode(rightNode);
         tableInfo.setJoinType(joinType);
         tableInfo.setCondition(joinNode.getCondition());
+        tableInfo.setScope(scope);
+
         TableUtils.replaceJoinFieldRefTableName(joinNode.getCondition(), fieldRef);
 
         //extract 需要查询的字段信息
@@ -256,16 +261,21 @@ public class JoinNodeDealer {
                                   SqlNodeList parentGroupByList,
                                   Set<Tuple2<String, String>> joinFieldSet,
                                   Map<String, String> tableRef,
-                                  Map<String, String> fieldRef){
+                                  Map<String, String> fieldRef,
+                                  String scope){
 
         SqlJoin leftJoinNode = (SqlJoin) joinNode.getLeft();
         SqlNode parentRightJoinNode = joinNode.getRight();
         SqlNode rightNode = leftJoinNode.getRight();
-        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
-        Tuple2<String, String> parentRightJoinInfo = parseRightNode(parentRightJoinNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList);
+
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo,
+                parentWhere, parentSelectList, parentGroupByList, scope);
+        Tuple2<String, String> parentRightJoinInfo = parseRightNode(parentRightJoinNode, sideTableSet,
+                queueInfo, parentWhere, parentSelectList, parentGroupByList, scope);
         boolean parentRightIsSide = checkIsSideTable(parentRightJoinInfo.f0, sideTableSet);
 
-        JoinInfo joinInfo = dealJoinNode(leftJoinNode, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, joinFieldSet, tableRef, fieldRef);
+        JoinInfo joinInfo = dealJoinNode(leftJoinNode, sideTableSet, queueInfo, parentWhere, parentSelectList,
+                parentGroupByList, joinFieldSet, tableRef, fieldRef, scope);
 
         String rightTableName = rightTableNameAndAlias.f0;
         boolean rightIsSide = checkIsSideTable(rightTableName, sideTableSet);
@@ -512,10 +522,53 @@ public class JoinNodeDealer {
         }
 
         SqlKind joinKind = condition.getKind();
-        if( joinKind == AND || joinKind == EQUALS ){
-            extractJoinField(((SqlBasicCall)condition).operands[0], joinFieldSet);
-            extractJoinField(((SqlBasicCall)condition).operands[1], joinFieldSet);
-        }else{
+        if (  AGGREGATE.contains(condition.getKind())
+                || AVG_AGG_FUNCTIONS.contains(joinKind)
+                || COMPARISON.contains(joinKind)
+                || joinKind == OTHER_FUNCTION
+                || joinKind == DIVIDE
+                || joinKind == CAST
+                || joinKind == TRIM
+                || joinKind == TIMES
+                || joinKind == PLUS
+                || joinKind == NOT_IN
+                || joinKind == OR
+                || joinKind == AND
+                || joinKind == MINUS
+                || joinKind == TUMBLE
+                || joinKind == TUMBLE_START
+                || joinKind == TUMBLE_END
+                || joinKind == SESSION
+                || joinKind == SESSION_START
+                || joinKind == SESSION_END
+                || joinKind == HOP
+                || joinKind == HOP_START
+                || joinKind == HOP_END
+                || joinKind == BETWEEN
+                || joinKind == IS_NULL
+                || joinKind == IS_NOT_NULL
+                || joinKind == CONTAINS
+                || joinKind == TIMESTAMP_ADD
+                || joinKind == TIMESTAMP_DIFF
+                || joinKind == LIKE
+                || joinKind == COALESCE
+                || joinKind == EQUALS ){
+
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) condition;
+            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if(sqlNode instanceof SqlLiteral){
+                    continue;
+                }
+
+                if(sqlNode instanceof SqlDataTypeSpec){
+                    continue;
+                }
+
+                extractJoinField(sqlNode, joinFieldSet);
+            }
+
+        } else if (condition.getKind() == IDENTIFIER){
             Preconditions.checkState(((SqlIdentifier)condition).names.size() == 2, "join condition must be format table.field");
             Tuple2<String, String> tuple2 = Tuple2.of(((SqlIdentifier)condition).names.get(0), ((SqlIdentifier)condition).names.get(1));
             joinFieldSet.add(tuple2);
@@ -616,12 +669,13 @@ public class JoinNodeDealer {
 
 
     private Tuple2<String, String> parseRightNode(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo,
-                                                  SqlNode parentWhere, SqlNodeList selectList, SqlNodeList parentGroupByList) {
+                                                  SqlNode parentWhere, SqlNodeList selectList, SqlNodeList parentGroupByList,
+                                                  String scope) {
         Tuple2<String, String> tabName = new Tuple2<>("", "");
         if(sqlNode.getKind() == IDENTIFIER){
             tabName.f0 = sqlNode.toString();
         }else{
-            AliasInfo aliasInfo = (AliasInfo)sideSQLParser.parseSql(sqlNode, sideTableSet, queueInfo, parentWhere, selectList, parentGroupByList);
+            AliasInfo aliasInfo = (AliasInfo)sideSQLParser.parseSql(sqlNode, sideTableSet, queueInfo, parentWhere, selectList, parentGroupByList, scope);
             tabName.f0 = aliasInfo.getName();
             tabName.f1 = aliasInfo.getAlias();
         }
@@ -822,20 +876,57 @@ public class JoinNodeDealer {
     private SqlIdentifier checkAndReplaceJoinCondition(SqlNode node, Map<String, String> tableMap){
 
         SqlKind joinKind = node.getKind();
-        if( joinKind == AND || joinKind == EQUALS ){
-            SqlIdentifier leftNode = checkAndReplaceJoinCondition(((SqlBasicCall)node).operands[0], tableMap);
-            SqlIdentifier rightNode = checkAndReplaceJoinCondition(((SqlBasicCall)node).operands[1], tableMap);
+        if(   AGGREGATE.contains(joinKind)
+                || AVG_AGG_FUNCTIONS.contains(joinKind)
+                || COMPARISON.contains(joinKind)
+                || joinKind == OTHER_FUNCTION
+                || joinKind == DIVIDE
+                || joinKind == CAST
+                || joinKind == TRIM
+                || joinKind == TIMES
+                || joinKind == PLUS
+                || joinKind == NOT_IN
+                || joinKind == OR
+                || joinKind == AND
+                || joinKind == MINUS
+                || joinKind == TUMBLE
+                || joinKind == TUMBLE_START
+                || joinKind == TUMBLE_END
+                || joinKind == SESSION
+                || joinKind == SESSION_START
+                || joinKind == SESSION_END
+                || joinKind == HOP
+                || joinKind == HOP_START
+                || joinKind == HOP_END
+                || joinKind == BETWEEN
+                || joinKind == IS_NULL
+                || joinKind == IS_NOT_NULL
+                || joinKind == CONTAINS
+                || joinKind == TIMESTAMP_ADD
+                || joinKind == TIMESTAMP_DIFF
+                || joinKind == LIKE
+                || joinKind == COALESCE
+                || joinKind == EQUALS ){
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) node;
+            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if(sqlNode instanceof SqlLiteral){
+                    continue;
+                }
 
-            if(leftNode != null){
-                ((SqlBasicCall)node).setOperand(0, leftNode);
-            }
+                if(sqlNode instanceof SqlDataTypeSpec){
+                    continue;
+                }
 
-            if(rightNode != null){
-                ((SqlBasicCall)node).setOperand(1, leftNode);
+                SqlIdentifier replaceNode = checkAndReplaceJoinCondition(sqlNode, tableMap);
+                if(replaceNode != null){
+                    ((SqlBasicCall)node).setOperand(i, replaceNode);
+                }
+
             }
 
             return null;
-        } else {
+        } else if (node.getKind() == IDENTIFIER) {
             //replace table
             Preconditions.checkState(((SqlIdentifier)node).names.size() == 2, "join condition must be format table.field");
             String tbName = ((SqlIdentifier) node).names.get(0);
@@ -846,6 +937,8 @@ public class JoinNodeDealer {
 
             return null;
         }
+
+        return null;
     }
 
     /**

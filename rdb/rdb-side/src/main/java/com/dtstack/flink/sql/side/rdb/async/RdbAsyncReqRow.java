@@ -35,6 +35,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -78,13 +79,22 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public final static String DT_PROVIDER_CLASS = "com.dtstack.flink.sql.side.rdb.provider.DTC3P0DataSourceProvider";
 
-    public final static String PREFERRED_TEST_QUERY_SQL = "select 1 from dual";
+    public final static String PREFERRED_TEST_QUERY_SQL = "select 1";
 
     private transient SQLClient rdbSqlClient;
 
     private AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
     private transient ThreadPoolExecutor executor;
+
+    private final static int MAX_TASK_QUEUE_SIZE = 100000;
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        executor = new ThreadPoolExecutor(MAX_DB_CONN_POOL_SIZE_LIMIT, MAX_DB_CONN_POOL_SIZE_LIMIT, 0, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE), new DTThreadFactory("rdbAsyncExec"), new ThreadPoolExecutor.CallerRunsPolicy());
+    }
 
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
@@ -246,10 +256,6 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public void setRdbSqlClient(SQLClient rdbSqlClient) {
         this.rdbSqlClient = rdbSqlClient;
-    }
-
-    public void setExecutor(ThreadPoolExecutor executor) {
-        this.executor = executor;
     }
 
     private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture){
