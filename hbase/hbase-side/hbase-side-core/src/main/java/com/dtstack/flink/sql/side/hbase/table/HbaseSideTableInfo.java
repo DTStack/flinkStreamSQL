@@ -50,7 +50,21 @@ public class HbaseSideTableInfo extends AbstractSideTableInfo {
 
     private Map<String, String> columnNameFamily;
 
+    private Map<String, Object> hbaseConfig = Maps.newHashMap();
+
     private String tableName;
+
+    private boolean kerberosAuthEnable;
+
+    private String regionserverKeytabFile;
+
+    private String regionserverPrincipal;
+
+    private String jaasPrincipal;
+
+    private String securityKrb5Conf;
+
+    private String zookeeperSaslClient;
 
     private String[] columnRealNames;
 
@@ -147,6 +161,63 @@ public class HbaseSideTableInfo extends AbstractSideTableInfo {
     public void setPreRowKey(boolean preRowKey) {
         this.preRowKey = preRowKey;
     }
+
+    public boolean isKerberosAuthEnable() {
+        return kerberosAuthEnable;
+    }
+
+    public void setKerberosAuthEnable(boolean kerberosAuthEnable) {
+        this.kerberosAuthEnable = kerberosAuthEnable;
+    }
+
+    public String getRegionserverKeytabFile() {
+        return regionserverKeytabFile;
+    }
+
+    public void setRegionserverKeytabFile(String regionserverKeytabFile) {
+        this.regionserverKeytabFile = regionserverKeytabFile;
+    }
+
+    public String getRegionserverPrincipal() {
+        return regionserverPrincipal;
+    }
+
+    public void setRegionserverPrincipal(String regionserverPrincipal) {
+        this.regionserverPrincipal = regionserverPrincipal;
+    }
+
+    public String getJaasPrincipal() {
+        return jaasPrincipal;
+    }
+
+    public void setJaasPrincipal(String jaasPrincipal) {
+        this.jaasPrincipal = jaasPrincipal;
+    }
+
+    public String getSecurityKrb5Conf() {
+        return securityKrb5Conf;
+    }
+
+    public void setSecurityKrb5Conf(String securityKrb5Conf) {
+        this.securityKrb5Conf = securityKrb5Conf;
+    }
+
+    public String getZookeeperSaslClient() {
+        return zookeeperSaslClient;
+    }
+
+    public void setZookeeperSaslClient(String zookeeperSaslClient) {
+        this.zookeeperSaslClient = zookeeperSaslClient;
+    }
+
+    public Map<String, Object> getHbaseConfig() {
+        return hbaseConfig;
+    }
+
+    public void setHbaseConfig(Map<String, Object> hbaseConfig) {
+        this.hbaseConfig = hbaseConfig;
+    }
+
 
     @Override
     public void finish(){

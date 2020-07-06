@@ -35,6 +35,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -77,13 +78,22 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public final static String DT_PROVIDER_CLASS = "com.dtstack.flink.sql.side.rdb.provider.DTC3P0DataSourceProvider";
 
-    public final static String PREFERRED_TEST_QUERY_SQL = "select 1 from dual";
+    public final static String PREFERRED_TEST_QUERY_SQL = "select 1";
 
     private transient SQLClient rdbSqlClient;
 
     private AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
     private transient ThreadPoolExecutor executor;
+
+    private final static int MAX_TASK_QUEUE_SIZE = 100000;
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        executor = new ThreadPoolExecutor(MAX_DB_CONN_POOL_SIZE_LIMIT, MAX_DB_CONN_POOL_SIZE_LIMIT, 0, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE), new DTThreadFactory("rdbAsyncExec"), new ThreadPoolExecutor.CallerRunsPolicy());
+    }
 
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
@@ -120,35 +130,41 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         AtomicLong failCounter = new AtomicLong(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while(!finishFlag.get()){
-            CountDownLatch latch = new CountDownLatch(1);
-            rdbSqlClient.getConnection(conn -> {
-                try {
-                    if(conn.failed()){
-                        connectionStatus.set(false);
-                        if(failCounter.getAndIncrement() % 1000 == 0){
-                            LOG.error("getConnection error", conn.cause());
+            try{
+                CountDownLatch latch = new CountDownLatch(1);
+                rdbSqlClient.getConnection(conn -> {
+                    try {
+                        if(conn.failed()){
+                            connectionStatus.set(false);
+                            if(failCounter.getAndIncrement() % 1000 == 0){
+                                LOG.error("getConnection error", conn.cause());
+                            }
+                            if(failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)){
+                                resultFuture.completeExceptionally(conn.cause());
+                                finishFlag.set(true);
+                            }
+                            return;
                         }
-                        if(failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)){
-                            resultFuture.completeExceptionally(conn.cause());
-                            finishFlag.set(true);
-                        }
-                        return;
-                    }
-                    connectionStatus.set(true);
-                    registerTimerAndAddToHandler(input, resultFuture);
+                        connectionStatus.set(true);
+                        registerTimerAndAddToHandler(input, resultFuture);
 
-                    handleQuery(conn.result(), inputParams, input, resultFuture);
-                    finishFlag.set(true);
-                } catch (Exception e) {
-                    dealFillDataError(input, resultFuture, e);
-                } finally {
-                    latch.countDown();
+                        handleQuery(conn.result(), inputParams, input, resultFuture);
+                        finishFlag.set(true);
+                    } catch (Exception e) {
+                        dealFillDataError(input, resultFuture, e);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    LOG.error("", e);
                 }
-            });
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                LOG.error("", e);
+
+            } catch (Exception e){
+                //数据源队列溢出情况
+                connectionStatus.set(false);
             }
             if(!finishFlag.get()){
                 try {
@@ -243,11 +259,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         this.rdbSqlClient = rdbSqlClient;
     }
 
-    public void setExecutor(ThreadPoolExecutor executor) {
-        this.executor = executor;
-    }
-
-    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
+    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, Row>> resultFuture){
         String key = buildCacheKey(inputParams);
         JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
         connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {

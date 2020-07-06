@@ -16,31 +16,28 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.sink.clickhouse;
+package com.dtstack.flink.sql.side.tidb;
 
-import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.rdb.all.RdbAllSideInfo;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
-import java.util.Optional;
+import java.util.List;
 
 /**
- * Date: 2020/1/15
- * Company: www.dtstack.com
- * @author maqi
+ * @author tiezhu
+ * Date 2020/6/1
+ * company www.dtstack.com
  */
-public class ClickhouseDialect implements JDBCDialect {
-
-    @Override
-    public boolean canHandle(String url) {
-        return url.startsWith("jdbc:clickhouse:");
+public class TidbAllSideInfo extends RdbAllSideInfo {
+    public TidbAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
+        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
     @Override
-    public Optional<String> defaultDriverName() {
-        return Optional.of("ru.yandex.clickhouse.ClickHouseDriver");
-    }
-
-    @Override
-    public String getUpdateStatement(String tableName, String[] fieldNames, String[] conditionFields) {
-        throw new RuntimeException("Clickhouse does not support update sql, please remove primary key or use append mode");
+    public String quoteIdentifier(String identifier) {
+        return "`" + identifier + "`";
     }
 }

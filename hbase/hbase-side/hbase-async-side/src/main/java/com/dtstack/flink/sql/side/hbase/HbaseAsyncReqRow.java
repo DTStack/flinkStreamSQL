@@ -31,6 +31,8 @@ import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
+import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
+import com.dtstack.flink.sql.util.AuthUtil;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -39,10 +41,14 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.types.Row;
+import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -91,11 +97,27 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         super.open(parameters);
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
+        Map<String, Object> hbaseConfig = hbaseSideTableInfo.getHbaseConfig();
+
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-aysnc"));
 
-        hBaseClient = new HBaseClient(hbaseSideTableInfo.getHost(), hbaseSideTableInfo.getParent(), executorService);
+        Config config = new Config();
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
+        HbaseConfigUtils.loadKrb5Conf(hbaseConfig);
+        hbaseConfig.entrySet().forEach(entity -> {
+            config.overrideConfig(entity.getKey(), (String) entity.getValue());
+        });
+
+        if (HbaseConfigUtils.asyncOpenKerberos(hbaseConfig)) {
+            String jaasStr = HbaseConfigUtils.buildJaasStr(hbaseConfig);
+            String jaasFilePath = HbaseConfigUtils.creatJassFile(jaasStr);
+            config.overrideConfig(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
+        }
+
+        hBaseClient = new HBaseClient(config, executorService);
 
         try {
             Deferred deferred = hBaseClient.ensureTableExists(tableName)
@@ -158,7 +180,6 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         super.close();
         hBaseClient.shutdown();
     }
-
 
     class CheckResult{
 

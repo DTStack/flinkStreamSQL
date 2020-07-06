@@ -33,7 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -44,6 +46,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * An upsert OutputFormat for JDBC.
+ *
  * @author maqi
  */
 public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Boolean, Row>> {
@@ -103,7 +106,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
      *
      * @param taskNumber The number of the parallel instance.
      * @throws IOException Thrown, if the output could not be opened due to an
-     * I/O problem.
+     *                     I/O problem.
      */
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
@@ -167,7 +170,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     private void checkConnectionOpen() {
         try {
-            if (connection.isClosed()) {
+            if (!connection.isValid(10)) {
                 LOG.info("db connection reconnect..");
                 establishConnection();
                 jdbcWriter.prepareStatement(connection);
@@ -270,7 +273,8 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         }
 
         /**
-         *   optional, partition Fields
+         * optional, partition Fields
+         *
          * @param partitionFields
          * @return
          */
