@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
@@ -38,6 +39,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.bson.Document;
@@ -119,14 +121,14 @@ public class MongoAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean,Row>> out) throws Exception {
+    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean, BaseRow>> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = input.f1.getField(conValIndex);
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
                     Row data = fillData(input.f1, null);
-                    out.collect(Tuple2.of(input.f0, data));
+                    RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, data));
                 }
                 return;
             }
@@ -138,7 +140,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
                 Row row = fillData(input.f1, null);
-                out.collect(Tuple2.of(input.f0, row));
+                RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, row));
             } else {
                 return;
             }
@@ -147,7 +149,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(Tuple2.of(input.f0, fillData(input.f1, one)));
+            Row row = fillData(input.f1, one);
+            RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, row));
         }
     }
 

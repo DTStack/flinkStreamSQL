@@ -26,12 +26,14 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -138,7 +140,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean,Row>> out) throws Exception {
+    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean, BaseRow>> out) throws Exception {
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
@@ -146,7 +148,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
                     Row data = fillData(input.f1, null);
-                    out.collect(Tuple2.of(input.f0, data));
+                    RowDataComplete.collectTupleRow(out, new Tuple2<>(input.f0, data));
                 }
                 return;
             }
@@ -164,13 +166,13 @@ public class HbaseAllReqRow extends BaseAllReqRow {
                 if (entry.getKey().startsWith(rowKeyStr)) {
                     cacheList = cacheRef.get().get(entry.getKey());
                     Row row = fillData(input.f1, cacheList);
-                    out.collect(Tuple2.of(input.f0, row));
+                    RowDataComplete.collectTupleRow(out, new Tuple2<>(input.f0, row));
                 }
             }
         } else {
             cacheList = cacheRef.get().get(rowKeyStr);
             Row row = fillData(input.f1, cacheList);
-            out.collect(Tuple2.of(input.f0, row));
+            RowDataComplete.collectTupleRow(out, new Tuple2<>(input.f0, row));
         }
 
     }

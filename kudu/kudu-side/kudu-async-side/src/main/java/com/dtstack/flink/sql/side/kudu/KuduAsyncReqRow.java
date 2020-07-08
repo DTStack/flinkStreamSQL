@@ -10,6 +10,7 @@ import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Callback;
@@ -20,6 +21,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import org.apache.kudu.ColumnSchema;
@@ -127,7 +129,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception {
         Tuple2<Boolean,Row> inputCopy = Tuple2.of(input.f0, Row.copy(input.f1));
         //scannerBuilder 设置为null重新加载过滤条件,然后connkudu重新赋值
         //todo:代码需要优化
@@ -209,7 +211,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         private List<Map<String, Object>> cacheContent;
         private List<Tuple2<Boolean,Row>> rowList;
         private AsyncKuduScanner asyncKuduScanner;
-        private ResultFuture<Tuple2<Boolean,Row>> resultFuture;
+        private ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture;
         private String key;
 
 
@@ -217,7 +219,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         }
 
         GetListRowCB(Tuple2<Boolean,Row> input, List<Map<String, Object>> cacheContent, List<Tuple2<Boolean,Row>> rowList,
-                     AsyncKuduScanner asyncKuduScanner, ResultFuture<Tuple2<Boolean,Row>> resultFuture, String key) {
+                     AsyncKuduScanner asyncKuduScanner, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture, String key) {
             this.input = input;
             this.cacheContent = cacheContent;
             this.rowList = rowList;
@@ -251,7 +253,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                 if (openCache()) {
                     putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                 }
-                resultFuture.complete(rowList);
+                RowDataComplete.completeTupleRows(resultFuture, rowList);
             } else {
                 dealMissKey(input, resultFuture);
                 if (openCache()) {

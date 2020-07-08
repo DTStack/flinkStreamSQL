@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.side.rdb.all;
 
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.dtstack.flink.sql.util.RowDataConvert;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -114,7 +115,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
-            out.collect(Tuple2.of(value.f0, RowDataConvert.convertToBaseRow(fillData(value.f1, null))));
+            Row row = fillData(value.f1, null);
+            RowDataComplete.collectTupleRow(out, Tuple2.of(value.f0, row));
             return;
         }
 

@@ -28,7 +28,7 @@ import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import com.dtstack.flink.sql.util.DateUtil;
-import com.dtstack.flink.sql.util.RowDataConvert;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.vertx.core.json.JsonArray;
@@ -275,22 +275,21 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
             int resultSize = rs.result().getResults().size();
             if (resultSize > 0) {
-                List<Tuple2<Boolean, BaseRow>> rowList = Lists.newArrayList();
+                List<Tuple2<Boolean, Row>> rowList = Lists.newArrayList();
 
                 for (JsonArray line : rs.result().getResults()) {
                     Row row = fillData(input.f1, line);
-                    BaseRow baseRow = RowDataConvert.convertToBaseRow(row);
                     if (openCache()) {
                         cacheContent.add(line);
                     }
-                    rowList.add(new Tuple2<Boolean, BaseRow>(input.f0, baseRow));
+                    rowList.add(new Tuple2<Boolean, Row>(input.f0, row));
                 }
 
                 if (openCache()) {
                     putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                 }
 
-                resultFuture.complete(rowList);
+                RowDataComplete.completeTupleRows(resultFuture, rowList);
             } else {
                 dealMissKey(input, resultFuture);
                 if (openCache()) {

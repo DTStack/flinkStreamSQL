@@ -40,6 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
@@ -145,7 +146,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception {
         rowKeyMode.asyncGetData(tableName, buildCacheKey(inputParams), input, resultFuture, sideInfo.getSideCache());
     }
 
