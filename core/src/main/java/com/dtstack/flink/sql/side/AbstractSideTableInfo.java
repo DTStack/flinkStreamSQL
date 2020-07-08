@@ -24,6 +24,9 @@ import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.types.logical.LogicalType;
+import org.apache.flink.table.types.utils.TypeConversions;
 
 import java.io.Serializable;
 import java.util.List;
@@ -94,6 +97,17 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         }
 
         return new RowTypeInfo(types, fieldNames);
+    }
+
+    public BaseRowTypeInfo getBaseRowTypeInfo(){
+        String[] fieldNames = getFields();
+        Class[] fieldClass = getFieldClasses();
+        LogicalType[] logicalTypes = new LogicalType[fieldClass.length];
+        for (int i = 0; i < fieldClass.length; i++) {
+            logicalTypes[i] = TypeConversions.fromLegacyInfoToDataType(TypeInformation.of(fieldClass[i])).getLogicalType();
+        }
+
+        return new BaseRowTypeInfo(logicalTypes, fieldNames);
     }
 
     public String getCacheType() {

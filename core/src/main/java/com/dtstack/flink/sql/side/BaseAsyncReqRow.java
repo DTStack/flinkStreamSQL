@@ -26,6 +26,7 @@ import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
+import com.dtstack.flink.sql.util.RowDataConvert;
 import com.dtstack.flink.sql.util.ReflectionUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -37,8 +38,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.types.Row;
@@ -62,7 +63,7 @@ import java.util.concurrent.ScheduledFuture;
  * @author xuchao
  */
 
-public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,Row>, Tuple2<Boolean,Row>> implements ISideReqRow {
+public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,Row>, Tuple2<Boolean,BaseRow>> implements ISideReqRow {
     private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
     private RuntimeContext runtimeContext;
@@ -131,12 +132,13 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         return sideInfo.getSideCache() != null;
     }
 
-    protected void dealMissKey(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
+    protected void dealMissKey(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture){
         if(sideInfo.getJoinType() == JoinType.LEFT){
             //Reserved left table data
             try {
                 Row row = fillData(input.f1, null);
-                resultFuture.complete(Collections.singleton(new Tuple2<>(input.f0, row)));
+                BaseRow baseRow = RowDataConvert.convertToBaseRow(row);
+                resultFuture.complete(Collections.singleton(new Tuple2<>(input.f0, baseRow)));
             } catch (Exception e) {
                 dealFillDataError(input, resultFuture, e);
             }
@@ -152,7 +154,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
     }
 
     @Override
-    public void timeout(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+    public void timeout(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture) throws Exception {
 
         if(timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0){
             LOG.info("Async function call has timed out. input:{}, timeOutNum:{}",input.toString(), timeOutNum);
@@ -169,13 +171,13 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         resultFuture.complete(null);
     }
 
-    protected void preInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture)
+    protected void preInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture)
             throws InvocationTargetException, IllegalAccessException {
         registerTimerAndAddToHandler(input, resultFuture);
     }
 
     @Override
-    public void asyncInvoke(Tuple2<Boolean,Row> row, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
+    public void asyncInvoke(Tuple2<Boolean,Row> row, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture) throws Exception {
         Tuple2<Boolean,Row> input = Tuple2.of(row.f0, Row.copy(row.f1));
         preInvoke(input, resultFuture);
         Map<String, Object> inputParams = parseInputParam(input);
@@ -208,7 +210,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         return openCache() && getFromCache(buildCacheKey(inputParams)) != null;
     }
 
-    private void invokeWithCache(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
+    private void invokeWithCache(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture){
         if (openCache()) {
             CacheObj val = getFromCache(buildCacheKey(inputParams));
             if (val != null) {
@@ -218,16 +220,18 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
                 }else if(ECacheContentType.SingleLine == val.getType()){
                     try {
                         Row row = fillData(input.f1, val.getContent());
-                        resultFuture.complete(Collections.singleton(Tuple2.of(input.f0, row)));
+                        BaseRow baseRow = RowDataConvert.convertToBaseRow(row);
+                        resultFuture.complete(Collections.singleton(Tuple2.of(input.f0, baseRow)));
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
+                        List<Tuple2<Boolean,BaseRow>> rowList = Lists.newArrayList();
                         for (Object one : (List) val.getContent()) {
                             Row row = fillData(input.f1, one);
-                            rowList.add(Tuple2.of(input.f0, row));
+                            BaseRow baseRow = RowDataConvert.convertToBaseRow(row);
+                            rowList.add(Tuple2.of(input.f0, baseRow));
                         }
                         resultFuture.complete(rowList);
                     } catch (Exception e) {
@@ -241,7 +245,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         }
     }
 
-    public abstract void handleAsyncInvoke(Map<String, Object>  inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception;
+    public abstract void handleAsyncInvoke(Map<String, Object>  inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture) throws Exception;
 
     public abstract String buildCacheKey(Map<String, Object> inputParams);
 
@@ -249,14 +253,14 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
         return ((StreamingRuntimeContext)this.runtimeContext).getProcessingTimeService();
     }
 
-    protected ScheduledFuture<?> registerTimer(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture){
+    protected ScheduledFuture<?> registerTimer(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture){
         long timeoutTimestamp = sideInfo.getSideTableInfo().getAsyncTimeout() + getProcessingTimeService().getCurrentProcessingTime();
         return getProcessingTimeService().registerTimer(
                 timeoutTimestamp,
                 timestamp -> timeout(input, resultFuture));
     }
 
-    protected void registerTimerAndAddToHandler(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture)
+    protected void registerTimerAndAddToHandler(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture)
             throws InvocationTargetException, IllegalAccessException {
         ScheduledFuture<?> timeFuture = registerTimer(input, resultFuture);
         // resultFuture 是ResultHandler 的实例
@@ -266,7 +270,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean,R
     }
 
 
-    protected void dealFillDataError(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture, Throwable e) {
+    protected void dealFillDataError(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture, Throwable e) {
         parseErrorRecords.inc();
         if(parseErrorRecords.getCount() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)){
             LOG.info("dealFillDataError", e);

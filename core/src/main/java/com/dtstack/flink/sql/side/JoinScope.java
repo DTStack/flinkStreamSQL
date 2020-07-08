@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.side;
 
@@ -29,10 +28,15 @@ import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.types.logical.LogicalType;
+
+
 /**
  * Reason:
  * Date: 2018/7/20
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -42,12 +46,12 @@ public class JoinScope {
 
     private Map<String, ScopeChild> aliasMap = Maps.newHashMap();
 
-    public void addScope(ScopeChild scopeChild){
+    public void addScope(ScopeChild scopeChild) {
         children.add(scopeChild);
         aliasMap.put(scopeChild.getAlias(), scopeChild);
     }
 
-    public ScopeChild getScope(String tableAlias){
+    public ScopeChild getScope(String tableAlias) {
         return aliasMap.get(tableAlias);
     }
 
@@ -55,28 +59,45 @@ public class JoinScope {
         return children;
     }
 
-    public TypeInformation getFieldType(String tableName, String fieldName){
+    public TypeInformation getFieldType(String tableName, String fieldName) {
         ScopeChild scopeChild = aliasMap.get(tableName);
-        if(scopeChild == null){
+        if (scopeChild == null) {
             throw new RuntimeException("can't find ");
         }
 
         RowTypeInfo rowTypeInfo = scopeChild.getRowTypeInfo();
         int index = rowTypeInfo.getFieldIndex(fieldName);
-        if(index == -1){
+        if (index == -1) {
             throw new RuntimeException("can't find field: " + fieldName);
         }
 
         return rowTypeInfo.getTypeAt(index);
     }
 
-    public static class ScopeChild{
+    public LogicalType getLogicalType(String tableName, String fieldName) {
+        ScopeChild scopeChild = aliasMap.get(tableName);
+        if (scopeChild == null) {
+            throw new RuntimeException("can't find ");
+        }
+
+        BaseRowTypeInfo rowTypeInfo = scopeChild.getBaseRowTypeInfo();
+        int index = rowTypeInfo.getFieldIndex(fieldName);
+        if (index == -1) {
+            throw new RuntimeException("can't find field: " + fieldName);
+        }
+
+        return rowTypeInfo.getLogicalTypes()[index];
+    }
+
+    public static class ScopeChild {
 
         private String alias;
 
         private String tableName;
 
         private RowTypeInfo rowTypeInfo;
+
+        private BaseRowTypeInfo baseRowTypeInfo;
 
         public String getAlias() {
             return alias;
@@ -100,6 +121,14 @@ public class JoinScope {
 
         public void setRowTypeInfo(RowTypeInfo rowTypeInfo) {
             this.rowTypeInfo = rowTypeInfo;
+        }
+
+        public BaseRowTypeInfo getBaseRowTypeInfo() {
+            return baseRowTypeInfo;
+        }
+
+        public void setBaseRowTypeInfo(BaseRowTypeInfo baseRowTypeInfo) {
+            this.baseRowTypeInfo = baseRowTypeInfo;
         }
     }
 }
