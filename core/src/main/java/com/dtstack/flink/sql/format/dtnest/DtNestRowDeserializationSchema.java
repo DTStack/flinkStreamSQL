@@ -43,7 +43,7 @@ import java.util.Map;
 
 /**
  * source data parse to json format
- *
+ * <p>
  * Date: 2019/12/12
  * Company: www.dtstack.com
  *
@@ -58,9 +58,12 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
 
     private final String[] fieldNames;
     private final TypeInformation<?>[] fieldTypes;
-    private List<TableInfo.FieldExtraInfo> fieldExtraInfos;
+    private List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos;
+    private String charsetName;
 
-    public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
+    public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping,
+                                          List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos,
+                                          String charsetName) {
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
         this.rowAndFieldMapping = rowAndFieldMapping;
@@ -99,7 +102,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         }
     }
 
-    private void parseTree(JsonNode jsonNode, String prefix){
+    private void parseTree(JsonNode jsonNode, String prefix) {
         if (jsonNode.isArray()) {
             ArrayNode array = (ArrayNode) jsonNode;
             for (int i = 0; i < array.size(); i++) {
@@ -118,15 +121,15 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
             return;
         }
         Iterator<String> iterator = jsonNode.fieldNames();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             String next = iterator.next();
             JsonNode child = jsonNode.get(next);
             String nodeKey = getNodeKey(prefix, next);
 
             nodeAndJsonNodeMapping.put(nodeKey, child);
-            if(child.isArray()){
+            if (child.isArray()) {
                 parseTree(child, nodeKey);
-            }else {
+            } else {
                 parseTree(child, nodeKey);
             }
         }
@@ -137,8 +140,8 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         return nodeAndJsonNodeMapping.get(nodeMappingKey);
     }
 
-    private String getNodeKey(String prefix, String nodeName){
-        if(Strings.isNullOrEmpty(prefix)){
+    private String getNodeKey(String prefix, String nodeName) {
+        if (Strings.isNullOrEmpty(prefix)) {
             return nodeName;
         }
         return prefix + "." + nodeName;
@@ -162,7 +165,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
             } else {
                 return node.asText();
             }
-        }  else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
+        } else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
             return Date.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
             // local zone
@@ -170,7 +173,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         } else if (info.getTypeClass().equals(Types.SQL_TIMESTAMP.getTypeClass())) {
             // local zone
             return Timestamp.valueOf(node.asText());
-        }  else {
+        } else {
             // for types that were specified without JSON schema
             // e.g. POJOs
             try {
