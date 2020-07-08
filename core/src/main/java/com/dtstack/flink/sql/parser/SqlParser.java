@@ -64,10 +64,6 @@ public class SqlParser {
             throw new RuntimeException("sql is not null");
         }
 
-        if(LOCAL_SQL_PLUGIN_ROOT == null){
-            throw new RuntimeException("need to set local sql plugin root");
-        }
-
         sql = DtStringUtil.dealSqlComment(sql)
                 .replaceAll("\r\n", " ")
                 .replaceAll("\n", " ")
