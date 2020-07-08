@@ -20,7 +20,7 @@
 package com.dtstack.flink.sql.sink.mysql.table;
 
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 
 import java.util.Map;
 
@@ -36,8 +36,8 @@ public class MysqlSinkParser extends RdbSinkParser {
     private static final String CURR_TYPE = "mysql";
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        TableInfo mysqlTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        AbstractTableInfo mysqlTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         mysqlTableInfo.setType(CURR_TYPE);
         return mysqlTableInfo;
     }

@@ -18,11 +18,9 @@
 package com.dtstack.flink.sql.sink.rdb.table;
 
 import com.dtstack.flink.sql.enums.EUpdateMode;
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.StringUtils;
-
-import java.util.Arrays;
 
 /**
  * Reason:
@@ -31,7 +29,9 @@ import java.util.Arrays;
  *
  * @author maqi
  */
-public class RdbTableInfo extends TargetTableInfo {
+public class RdbTableInfo extends AbstractTargetTableInfo {
+
+    public static final int MAX_BATCH_SIZE = 10000;
 
     public static final String URL_KEY = "url";
 
@@ -172,6 +172,10 @@ public class RdbTableInfo extends TargetTableInfo {
         Preconditions.checkNotNull(userName, "rdb field of userName is required");
         Preconditions.checkNotNull(password, "rdb field of password is required");
 
+        if (null != batchSize) {
+            Preconditions.checkArgument(batchSize <= MAX_BATCH_SIZE, "batchSize must be less than " + MAX_BATCH_SIZE);
+        }
+
         if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
             Preconditions.checkArgument(null != getPrimaryKeys() && getPrimaryKeys().size() > 0, "updateMode  mode primary is required");
         }
@@ -183,6 +187,8 @@ public class RdbTableInfo extends TargetTableInfo {
         }
 
 
+        Preconditions.checkArgument(getFieldList().size() == getFieldExtraInfoList().size(),
+                "fields and fieldExtraInfoList attributes must be the same length");
         return true;
     }
 

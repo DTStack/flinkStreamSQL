@@ -48,8 +48,22 @@ public class PluginLoadModeTest {
         LauncherMain.main(sql);
     }
 
+
+    public static void testRocSql() throws Exception{
+        String[] sql = new String[]{"-mode", "local", "-sql", "/Users/roc/Documents/flink_sql/sql/impala_sink.sql", "-name", "roc",
+                "-localSqlPluginPath", "/Users/roc/workspace/git_code/flinkStreamSQL/plugins",
+                "-remoteSqlPluginPath", "/Users/roc/workspace/git_code/flinkStreamSQL/plugins",
+                "-flinkconf", "/Users/roc/Documents/flink_sql/flinkconf",
+                "-confProp", "{\"sql.checkpoint.cleanup.mode\":\"false\",\"sql.checkpoint.interval\":10000,\"time.characteristic\":\"EventTime\"}",
+                "-yarnconf", "/Users/roc/Documents/flink_sql/yarnconf",
+                "-flinkJarPath", "/Users/roc/Documents/flink_sql/flinkJarPath", "-queue", "c", "-pluginLoadMode", "classpath"};
+        System.setProperty("HADOOP_USER_NAME", "admin");
+        LauncherMain.main(sql);
+    }
+
     public static void main(String[] args) throws Exception {
-        testShipfileMode();
+        testRocSql();
+//        testShipfileMode();
 //        testClasspathMode();
     }
 }

@@ -106,6 +106,57 @@ public class DtStringUtil {
         return str.replaceAll(splitPatternStr, replaceStr);
     }
 
+    /**
+     * 处理 sql 中 "--" 注释，而不删除引号内的内容
+     *
+     * @param sql 解析出来的 sql
+     * @return 返回无注释内容的 sql
+     */
+    public static String dealSqlComment(String sql) {
+        boolean inQuotes = false;
+        boolean inSingleQuotes = false;
+        int bracketLeftNum = 0;
+        StringBuilder b = new StringBuilder(sql.length());
+        char[] chars = sql.toCharArray();
+        for (int index = 0; index < chars.length; index ++) {
+            if (index == chars.length) {
+                return b.toString();
+            }
+            StringBuilder tempSb = new StringBuilder(2);
+            if (index > 1) {
+                tempSb.append(chars[index - 1]);
+                tempSb.append(chars[index]);
+            }
+
+            if (tempSb.toString().equals("--")) {
+                if (inQuotes) {
+                    b.append(chars[index]);
+                } else if (inSingleQuotes) {
+                    b.append(chars[index]);
+                } else if (bracketLeftNum > 0) {
+                    b.append(chars[index]);
+                } else {
+                    b.deleteCharAt(b.length() - 1);
+                    while (chars[index] != '\n') {
+                        // 判断注释内容是不是行尾或者 sql 的最后一行
+                        if (index == chars.length - 1) {
+                            break;
+                        }
+                        index++;
+                    }
+                }
+            } else if (chars[index] == '\"' && '\\' != chars[index] && !inSingleQuotes) {
+                inQuotes = !inQuotes;
+                b.append(chars[index]);
+            } else if (chars[index] == '\'' && '\\' != chars[index] && !inQuotes) {
+                inSingleQuotes = !inSingleQuotes;
+                b.append(chars[index]);
+            } else {
+                b.append(chars[index]);
+            }
+        }
+        return b.toString();
+    }
 
     public static String col2string(Object column, String type) {
         String rowData = column.toString();
@@ -219,14 +270,14 @@ public class DtStringUtil {
         return preStr + "?" + sb.toString();
     }
 
-    public  static boolean isJosn(String str){
+    public static boolean isJson(String str) {
         boolean flag = false;
-        if(StringUtils.isNotBlank(str)){
+        if (StringUtils.isNotBlank(str)) {
             try {
-                objectMapper.readValue(str,Map.class);
+                objectMapper.readValue(str, Map.class);
                 flag = true;
             } catch (Throwable e) {
-                flag=false;
+                flag = false;
             }
         }
         return flag;
@@ -261,14 +312,43 @@ public class DtStringUtil {
     }
 
     public static String getTableFullPath(String schema, String tableName) {
+        String[] tableInfoSplit = StringUtils.split(tableName, ".");
+        //表明表信息带了schema
+        if(tableInfoSplit.length == 2){
+            schema = tableInfoSplit[0];
+            tableName = tableInfoSplit[1];
+        }
+
+        //清理首个字符" 和最后字符 "
+        schema = rmStrQuote(schema);
+        tableName = rmStrQuote(tableName);
+
         if (StringUtils.isEmpty(schema)){
             return addQuoteForStr(tableName);
         }
+
         String schemaAndTabName = addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
         return schemaAndTabName;
     }
 
+    /**
+     * 清理首个字符" 和最后字符 "
+     */
+    public static String rmStrQuote(String str){
+        if(StringUtils.isEmpty(str)){
+            return str;
+        }
 
+        if(str.startsWith("\"")){
+            str = str.substring(1);
+        }
+
+        if(str.endsWith("\"")){
+            str = str.substring(0, str.length()-1);
+        }
+
+        return str;
+    }
 
     public static String addQuoteForStr(String column) {
         return getStartQuote() + column + getEndQuote();

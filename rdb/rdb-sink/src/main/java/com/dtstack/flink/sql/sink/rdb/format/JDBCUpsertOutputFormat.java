@@ -25,7 +25,7 @@ import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import com.dtstack.flink.sql.sink.rdb.writer.AppendOnlyWriter;
 import com.dtstack.flink.sql.sink.rdb.writer.JDBCWriter;
-import com.dtstack.flink.sql.sink.rdb.writer.UpsertWriter;
+import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
@@ -33,7 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -44,6 +46,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * An upsert OutputFormat for JDBC.
+ *
+ * @author maqi
  */
 public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Boolean, Row>> {
 
@@ -83,7 +87,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             long flushIntervalMills,
             boolean allReplace,
             String updateMode) {
-        super(options.getUsername(), options.getPassword(), options.getDriverName(), options.getDbURL());
+        super(options.getUsername(), options.getPassword(), options.getDriverName(), options.getDbUrl());
         this.schema = options.getSchema();
         this.tableName = options.getTableName();
         this.dialect = options.getDialect();
@@ -102,7 +106,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
      *
      * @param taskNumber The number of the parallel instance.
      * @throws IOException Thrown, if the output could not be opened due to an
-     * I/O problem.
+     *                     I/O problem.
      */
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
@@ -111,12 +115,11 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             initMetric();
 
             if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || keyFields == null || keyFields.length == 0) {
-                String insertSQL = dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields);
-                LOG.info("execute insert sql： {}", insertSQL);
-                System.out.println("execute insert sql :" + insertSQL);
-                jdbcWriter = new AppendOnlyWriter(insertSQL, fieldTypes, this);
+                String insertSql = dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields);
+                LOG.info("execute insert sql： {}", insertSql);
+                jdbcWriter = new AppendOnlyWriter(insertSql, fieldTypes, this);
             } else {
-                jdbcWriter = UpsertWriter.create(
+                jdbcWriter = AbstractUpsertWriter.create(
                         dialect, schema, tableName, fieldNames, fieldTypes, keyFields, partitionFields,
                         getRuntimeContext().getExecutionConfig().isObjectReuseEnabled(), allReplace, this);
             }
@@ -167,7 +170,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     private void checkConnectionOpen() {
         try {
-            if (connection.isClosed()) {
+            if (!connection.isValid(10)) {
                 LOG.info("db connection reconnect..");
                 establishConnection();
                 jdbcWriter.prepareStatement(connection);
@@ -270,7 +273,8 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         }
 
         /**
-         *   optional, partition Fields
+         * optional, partition Fields
+         *
          * @param partitionFields
          * @return
          */

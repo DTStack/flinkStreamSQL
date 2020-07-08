@@ -21,8 +21,10 @@
 package com.dtstack.flink.sql.sink.hbase.table;
 
 
-import com.dtstack.flink.sql.table.TargetTableInfo;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+
 import java.util.Map;
 
 /**
@@ -30,7 +32,7 @@ import java.util.Map;
  * Company: www.dtstack.com
  * @author sishu.yss
  */
-public class HbaseTableInfo extends TargetTableInfo {
+public class HbaseTableInfo extends AbstractTargetTableInfo {
 
     private static final String CURR_TYPE = "hbase";
 
@@ -40,7 +42,7 @@ public class HbaseTableInfo extends TargetTableInfo {
 
     private String parent;
 
-    private String[] rowkey;
+    private String rowkey;
 
     private Map<String, String> columnNameFamily;
 
@@ -53,6 +55,22 @@ public class HbaseTableInfo extends TargetTableInfo {
     private String tableName;
 
     private String updateMode;
+
+    private boolean kerberosAuthEnable;
+
+    private String regionserverKeytabFile;
+
+    private String regionserverPrincipal;
+
+    private String securityKrb5Conf;
+
+    private String zookeeperSaslClient;
+
+    private String clientPrincipal;
+
+    private String clientKeytabFile;
+
+    private Map<String,Object> hbaseConfig = Maps.newHashMap();
 
     public HbaseTableInfo(){
         setType(CURR_TYPE);
@@ -90,11 +108,11 @@ public class HbaseTableInfo extends TargetTableInfo {
         this.parent = parent;
     }
 
-    public String[] getRowkey() {
+    public String getRowkey() {
         return rowkey;
     }
 
-    public void setRowkey(String[] rowkey) {
+    public void setRowkey(String rowkey) {
         this.rowkey = rowkey;
     }
 
@@ -147,6 +165,71 @@ public class HbaseTableInfo extends TargetTableInfo {
     @Override
     public String getType() {
         return super.getType().toLowerCase();
+    }
+
+
+    public Map<String, Object> getHbaseConfig() {
+        return hbaseConfig;
+    }
+
+    public void setHbaseConfig(Map<String, Object> hbaseConfig) {
+        this.hbaseConfig = hbaseConfig;
+    }
+
+    public boolean isKerberosAuthEnable() {
+        return kerberosAuthEnable;
+    }
+
+    public void setKerberosAuthEnable(boolean kerberosAuthEnable) {
+        this.kerberosAuthEnable = kerberosAuthEnable;
+    }
+
+    public String getRegionserverKeytabFile() {
+        return regionserverKeytabFile;
+    }
+
+    public void setRegionserverKeytabFile(String regionserverKeytabFile) {
+        this.regionserverKeytabFile = regionserverKeytabFile;
+    }
+
+    public String getRegionserverPrincipal() {
+        return regionserverPrincipal;
+    }
+
+    public void setRegionserverPrincipal(String regionserverPrincipal) {
+        this.regionserverPrincipal = regionserverPrincipal;
+    }
+
+    public String getSecurityKrb5Conf() {
+        return securityKrb5Conf;
+    }
+
+    public void setSecurityKrb5Conf(String securityKrb5Conf) {
+        this.securityKrb5Conf = securityKrb5Conf;
+    }
+
+    public String getZookeeperSaslClient() {
+        return zookeeperSaslClient;
+    }
+
+    public void setZookeeperSaslClient(String zookeeperSaslClient) {
+        this.zookeeperSaslClient = zookeeperSaslClient;
+    }
+
+    public String getClientPrincipal() {
+        return clientPrincipal;
+    }
+
+    public void setClientPrincipal(String clientPrincipal) {
+        this.clientPrincipal = clientPrincipal;
+    }
+
+    public String getClientKeytabFile() {
+        return clientKeytabFile;
+    }
+
+    public void setClientKeytabFile(String clientKeytabFile) {
+        this.clientKeytabFile = clientKeytabFile;
     }
 
 }

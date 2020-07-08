@@ -19,13 +19,13 @@
 
 package com.dtstack.flink.sql.sink.mongo.table;
 
-import com.dtstack.flink.sql.table.AbsTableParser;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableParser;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.util.Map;
 
-import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
+import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
 
 /**
  * Reason:
@@ -34,7 +34,7 @@ import static com.dtstack.flink.sql.table.TableInfo.PARALLELISM_KEY;
  * @author xuqianjin
  */
 
-public class MongoSinkParser extends AbsTableParser {
+public class MongoSinkParser extends AbstractTableParser {
 
     private static final String CURR_TYPE = "mongo";
 
@@ -49,7 +49,7 @@ public class MongoSinkParser extends AbsTableParser {
     public static final String DATABASE_KEY = "database";
 
     @Override
-    public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         MongoTableInfo mongoTableInfo = new MongoTableInfo();
         mongoTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, mongoTableInfo);
@@ -60,7 +60,7 @@ public class MongoSinkParser extends AbsTableParser {
         mongoTableInfo.setDatabase(MathUtil.getString(props.get(DATABASE_KEY.toLowerCase())));
         mongoTableInfo.setUserName(MathUtil.getString(props.get(USER_NAME_KEY.toLowerCase())));
         mongoTableInfo.setPassword(MathUtil.getString(props.get(PASSWORD_KEY.toLowerCase())));
-
+        mongoTableInfo.check();
         return mongoTableInfo;
     }
 }

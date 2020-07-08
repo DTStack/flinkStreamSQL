@@ -18,14 +18,13 @@
 
 package com.dtstack.flink.sql.sink.redis;
 
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
-
-import com.dtstack.flink.sql.outputformat.DtRichOutputFormat;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.HostAndPort;
@@ -42,7 +41,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-public class RedisOutputFormat extends DtRichOutputFormat<Tuple2> {
+/**
+ * @author yanxi
+ */
+public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
 
     private String url;
@@ -140,7 +142,8 @@ public class RedisOutputFormat extends DtRichOutputFormat<Tuple2> {
                 break;
             //集群
             case 3:
-                jedis = new JedisCluster(addresses, timeout, timeout,10, password, poolConfig);
+                jedis = new JedisCluster(addresses, timeout, timeout, 10, password, poolConfig);
+            default:
         }
     }
 
@@ -156,10 +159,10 @@ public class RedisOutputFormat extends DtRichOutputFormat<Tuple2> {
             return;
         }
 
-        HashMap<String, Integer> map = new HashMap<>();
-        for (String primaryKey : primaryKeys){
-            for (int i=0; i<fieldNames.length; i++){
-                if (fieldNames[i].equals(primaryKey)){
+        HashMap<String, Integer> map = new HashMap<>(8);
+        for (String primaryKey : primaryKeys) {
+            for (int i = 0; i < fieldNames.length; i++) {
+                if (fieldNames[i].equals(primaryKey)) {
                     map.put(primaryKey, i);
                 }
             }
@@ -167,10 +170,10 @@ public class RedisOutputFormat extends DtRichOutputFormat<Tuple2> {
 
         List<String> kvList = new LinkedList<>();
         for (String primaryKey : primaryKeys){
-            StringBuilder primaryKV = new StringBuilder();
+            StringBuilder primaryKv = new StringBuilder();
             int index = map.get(primaryKey).intValue();
-            primaryKV.append(primaryKey).append(":").append(row.getField(index));
-            kvList.add(primaryKV.toString());
+            primaryKv.append(primaryKey).append(":").append(row.getField(index));
+            kvList.add(primaryKv.toString());
         }
 
         String perKey = String.join(":", kvList);

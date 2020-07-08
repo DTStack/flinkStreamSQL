@@ -27,7 +27,7 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.formats.avro.AvroRowDeserializationSchema;
 import org.apache.flink.formats.csv.CsvRowDeserializationSchema;
-import org.apache.flink.formats.json.JsonRowDeserializationSchema;
+import org.apache.flink.formats.json.DTJsonRowDeserializationSchema;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.types.Row;
 
@@ -61,9 +61,9 @@ public abstract class AbstractKafkaConsumerFactory {
         } else if (FormatType.JSON.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
 
             if (StringUtils.isNotBlank(kafkaSourceTableInfo.getSchemaString())) {
-                deserializationSchema = new JsonRowDeserializationSchema(kafkaSourceTableInfo.getSchemaString());
+                deserializationSchema = new DTJsonRowDeserializationSchema(kafkaSourceTableInfo.getSchemaString());
             } else if (typeInformation != null && typeInformation.getArity() != 0) {
-                deserializationSchema = new JsonRowDeserializationSchema(typeInformation);
+                deserializationSchema = new DTJsonRowDeserializationSchema(typeInformation);
             } else {
                 throw new IllegalArgumentException("sourceDataType:" + FormatType.JSON.name() + " must set schemaString（JSON Schema）or TypeInformation<Row>");
             }

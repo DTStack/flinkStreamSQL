@@ -20,8 +20,8 @@ package com.dtstack.flink.sql.side.oracle;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllReqRow;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
@@ -36,22 +36,22 @@ import java.util.Map;
 /**
  * side operator with cache for all(period reload)
  */
-public class OracleAllReqRow extends RdbAllReqRow {
+public class OracleAllReqRow extends AbstractRdbAllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(OracleAllReqRow.class);
 
     private static final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
 
-    public OracleAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public OracleAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new OracleAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
     @Override
-    public Connection getConn(String dbURL, String userName, String password) {
+    public Connection getConn(String dbUrl, String userName, String password) {
         try {
             Class.forName(ORACLE_DRIVER);
             Map<String, String> addParams = Maps.newHashMap();
-            String targetDbUrl = DtStringUtil.addJdbcParam(dbURL, addParams, true);
+            String targetDbUrl = DtStringUtil.addJdbcParam(dbUrl, addParams, true);
             return DriverManager.getConnection(targetDbUrl, userName, password);
         } catch (Exception e) {
             LOG.error("", e);

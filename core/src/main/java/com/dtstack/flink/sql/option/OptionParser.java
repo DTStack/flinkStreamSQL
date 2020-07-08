@@ -26,12 +26,14 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang.StringUtils;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.io.File;
-import java.io.FileInputStream;
 import java.net.URLEncoder;
+
 import org.apache.commons.codec.Charsets;
+import org.apache.flink.util.FileUtils;
 
 
 /**
@@ -92,29 +94,21 @@ public class OptionParser {
     }
 
     public List<String> getProgramExeArgList() throws Exception {
-        Map<String,Object> mapConf = PluginUtil.ObjectToMap(properties);
+        Map<String, Object> mapConf = PluginUtil.objectToMap(properties);
         List<String> args = Lists.newArrayList();
-        for(Map.Entry<String, Object> one : mapConf.entrySet()){
+        for (Map.Entry<String, Object> one : mapConf.entrySet()) {
             String key = one.getKey();
             Object value = one.getValue();
-            if(value == null){
+            if (value == null) {
                 continue;
-            }else if(OPTION_SQL.equalsIgnoreCase(key)){
+            } else if (OPTION_SQL.equalsIgnoreCase(key)) {
                 File file = new File(value.toString());
-                FileInputStream in = new FileInputStream(file);
-                byte[] filecontent = new byte[(int) file.length()];
-                in.read(filecontent);
-                String content = new String(filecontent, Charsets.UTF_8.name());
-                value = URLEncoder.encode(content, Charsets.UTF_8.name());
+                String content = FileUtils.readFile(file, StandardCharsets.UTF_8.name());
+                value = URLEncoder.encode(content, StandardCharsets.UTF_8.name());
             }
             args.add("-" + key);
             args.add(value.toString());
         }
         return args;
-    }
-
-    public static void main(String[] args) throws Exception {
-        OptionParser OptionParser = new OptionParser(args);
-        System.out.println(OptionParser.getOptions());
     }
 }

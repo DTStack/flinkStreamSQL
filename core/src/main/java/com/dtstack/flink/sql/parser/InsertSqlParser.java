@@ -16,16 +16,24 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.parser;
 
-import org.apache.calcite.config.Lex;
-import org.apache.calcite.sql.*;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlMatchRecognize;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlAsOperator;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
+import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import java.util.List;
 
@@ -41,6 +49,9 @@ import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 
 public class InsertSqlParser implements IParser {
 
+    // 用来标识当前解析节点的上一层节点是否为 insert 节点
+    private static Boolean parentIsInsert = false;
+
     @Override
     public boolean verify(String sql) {
         return StringUtils.isNotBlank(sql) && sql.trim().toLowerCase().startsWith("insert");
@@ -53,17 +64,9 @@ public class InsertSqlParser implements IParser {
 
     @Override
     public void parseSql(String sql, SqlTree sqlTree) {
-        SqlParser.Config config = SqlParser
-                .configBuilder()
-                .setLex(Lex.MYSQL)
-                .build();
-        SqlParser sqlParser = SqlParser.create(sql,config);
-        SqlNode sqlNode = null;
-        try {
-            sqlNode = sqlParser.parseStmt();
-        } catch (SqlParseException e) {
-            throw new RuntimeException("", e);
-        }
+
+        FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
+        SqlNode sqlNode = flinkPlanner.parse(sql);
 
         SqlParseResult sqlParseResult = new SqlParseResult();
         parseNode(sqlNode, sqlParseResult);
@@ -78,13 +81,19 @@ public class InsertSqlParser implements IParser {
                 SqlNode sqlTarget = ((SqlInsert)sqlNode).getTargetTable();
                 SqlNode sqlSource = ((SqlInsert)sqlNode).getSource();
                 sqlParseResult.addTargetTable(sqlTarget.toString());
+                parentIsInsert = true;
                 parseNode(sqlSource, sqlParseResult);
                 break;
             case SELECT:
-                SqlNode sqlFrom = ((SqlSelect)sqlNode).getFrom();
-                if(sqlFrom.getKind() == IDENTIFIER){
+                SqlSelect sqlSelect = (SqlSelect) sqlNode;
+                if (parentIsInsert) {
+                    rebuildSelectNode(sqlSelect.getSelectList(), sqlSelect);
+                }
+                SqlNode sqlFrom = ((SqlSelect) sqlNode).getFrom();
+                if (sqlFrom.getKind() == IDENTIFIER) {
                     sqlParseResult.addSourceTable(sqlFrom.toString());
-                }else{
+                } else {
+                    parentIsInsert = false;
                     parseNode(sqlFrom, sqlParseResult);
                 }
                 break;
@@ -139,6 +148,44 @@ public class InsertSqlParser implements IParser {
                 //do nothing
                 break;
         }
+    }
+
+    /**
+     * 将第一层 select 中的 sqlNode 转化为 AsNode，解决字段名冲突问题
+     * 仅对 table.xx 这种类型的字段进行替换
+     * @param selectList select Node 的 select 字段
+     * @param sqlSelect 第一层解析出来的 selectNode
+     */
+    private static void rebuildSelectNode(SqlNodeList selectList, SqlSelect sqlSelect) {
+        SqlNodeList sqlNodes = new SqlNodeList(selectList.getParserPosition());
+
+        for (int index = 0; index < selectList.size(); index++) {
+            if (selectList.get(index).getKind().equals(SqlKind.AS)
+                    || ((SqlIdentifier) selectList.get(index)).names.size() == 1) {
+                sqlNodes.add(selectList.get(index));
+                continue;
+            }
+            sqlNodes.add(transformToAsNode(selectList.get(index)));
+        }
+        sqlSelect.setSelectList(sqlNodes);
+    }
+
+    /**
+     * 将 sqlNode 转化为 AsNode
+     * @param sqlNode 需要转化的 sqlNode
+     * @return 重新构造的 AsNode
+     */
+    public static SqlBasicCall transformToAsNode(SqlNode sqlNode) {
+        String asName = "";
+        SqlParserPos pos = new SqlParserPos(sqlNode.getParserPosition().getLineNum(),
+                                            sqlNode.getParserPosition().getEndColumnNum());
+        if (sqlNode.getKind().equals(SqlKind.IDENTIFIER)) {
+            asName = ((SqlIdentifier) sqlNode).names.get(1);
+        }
+        SqlNode[] operands = new SqlNode[2];
+        operands[0] = sqlNode;
+        operands[1] = new SqlIdentifier(asName, null, pos);
+        return new SqlBasicCall(new SqlAsOperator(), operands, pos);
     }
 
     public static class SqlParseResult {

@@ -20,6 +20,9 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.util.TableUtils;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlNode;
 import com.google.common.base.Strings;
@@ -31,7 +34,6 @@ import java.util.Map;
  * Join信息
  * Date: 2018/7/24
  * Company: www.dtstack.com
- *
  * @author xuchao
  */
 
@@ -40,9 +42,7 @@ public class JoinInfo implements Serializable {
     private static final long serialVersionUID = -1L;
 
     //左表是否是维表
-    private boolean leftIsSideTable;
-
-    private boolean leftIsTmpTable = false;
+    private boolean leftIsSideTable = false;
 
     //右表是否是维表
     private boolean rightIsSideTable;
@@ -67,6 +67,18 @@ public class JoinInfo implements Serializable {
 
     private JoinType joinType;
 
+    private String scope = "";
+
+    /**
+     * 左表需要查询的字段信息和output的时候对应的列名称
+     */
+    private Map<String, String> leftSelectFieldInfo = Maps.newHashMap();
+
+    /**
+     * 右表需要查询的字段信息和output的时候对应的列名称
+     */
+    private Map<String, String> rightSelectFieldInfo = Maps.newHashMap();
+
     public String getSideTableName(){
         if(leftIsSideTable){
             return leftTableAlias;
@@ -87,12 +99,14 @@ public class JoinInfo implements Serializable {
         //兼容左边表是as 的情况
         String leftStr = leftTableName;
         leftStr = Strings.isNullOrEmpty(leftStr) ? leftTableAlias : leftStr;
-        return leftStr + "_" + rightTableName;
+        String newName =  leftStr + "_" + rightTableName;
+        return TableUtils.buildTableNameWithScope(newName, scope);
     }
 
 
     public String getNewTableAlias(){
-        return leftTableAlias + "_" + rightTableAlias;
+        String newName = leftTableAlias + "_" + rightTableAlias;
+        return TableUtils.buildTableNameWithScope(newName, scope);
     }
 
     public boolean isLeftIsSideTable() {
@@ -195,19 +209,47 @@ public class JoinInfo implements Serializable {
         this.joinType = joinType;
     }
 
-    public boolean isLeftIsTmpTable() {
-        return leftIsTmpTable;
+    public Map<String, String> getLeftSelectFieldInfo() {
+        return leftSelectFieldInfo;
     }
 
-    public void setLeftIsTmpTable(boolean leftIsTmpTable) {
-        this.leftIsTmpTable = leftIsTmpTable;
+    public void setLeftSelectFieldInfo(Map<String, String> leftSelectFieldInfo) {
+        this.leftSelectFieldInfo = leftSelectFieldInfo;
+    }
+
+    public Map<String, String> getRightSelectFieldInfo() {
+        return rightSelectFieldInfo;
+    }
+
+    public void setRightSelectFieldInfo(Map<String, String> rightSelectFieldInfo) {
+        this.rightSelectFieldInfo = rightSelectFieldInfo;
+    }
+
+    public HashBasedTable<String, String, String> getTableFieldRef(){
+        HashBasedTable<String, String, String> mappingTable = HashBasedTable.create();
+        getLeftSelectFieldInfo().forEach((key, value) -> {
+            mappingTable.put(getLeftTableAlias(), key, value);
+        });
+
+        getRightSelectFieldInfo().forEach((key, value) -> {
+            mappingTable.put(getRightTableAlias(), key, value);
+        });
+
+        return mappingTable;
+    }
+
+    public String getScope() {
+        return scope;
+    }
+
+    public void setScope(String scope) {
+        this.scope = scope;
     }
 
     @Override
     public String toString() {
         return "JoinInfo{" +
                 "leftIsSideTable=" + leftIsSideTable +
-                ", leftIsTmpTable=" + leftIsTmpTable +
                 ", rightIsSideTable=" + rightIsSideTable +
                 ", leftTableName='" + leftTableName + '\'' +
                 ", leftTableAlias='" + leftTableAlias + '\'' +

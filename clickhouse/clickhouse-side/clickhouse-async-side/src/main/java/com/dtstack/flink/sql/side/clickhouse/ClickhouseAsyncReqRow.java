@@ -19,9 +19,10 @@
 
 package com.dtstack.flink.sql.side.clickhouse;
 
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import io.vertx.core.Vertx;
@@ -32,12 +33,15 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 public class ClickhouseAsyncReqRow extends RdbAsyncReqRow {
     private static final String CLICKHOUSE_DRIVER = "ru.yandex.clickhouse.ClickHouseDriver";
 
-    public ClickhouseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public ClickhouseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new ClickhouseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
@@ -48,17 +52,21 @@ public class ClickhouseAsyncReqRow extends RdbAsyncReqRow {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         clickhouseClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", CLICKHOUSE_DRIVER)
-                .put("max_pool_size", DEFAULT_MAX_DB_CONN_POOL_SIZE)
+                .put("max_pool_size", rdbSideTableInfo.getAsyncPoolSize())
                 .put("user", rdbSideTableInfo.getUserName())
                 .put("password", rdbSideTableInfo.getPassword())
-                .put("provider_class", DT_PROVIDER_CLASS);
+                .put("provider_class", DT_PROVIDER_CLASS)
+                .put("preferred_test_query", PREFERRED_TEST_QUERY_SQL)
+                .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
+                .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
+
         System.setProperty("vertx.disableFileCPResolving", "true");
         VertxOptions vo = new VertxOptions();
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(DEFAULT_VERTX_WORKER_POOL_SIZE);
+        vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
         Vertx vertx = Vertx.vertx(vo);
-        setRdbSQLClient(JDBCClient.createNonShared(vertx, clickhouseClientConfig));
+        setRdbSqlClient(JDBCClient.createNonShared(vertx, clickhouseClientConfig));
     }
 
 }

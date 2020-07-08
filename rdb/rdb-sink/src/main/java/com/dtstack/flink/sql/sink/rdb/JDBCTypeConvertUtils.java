@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -107,7 +106,7 @@ public class JDBCTypeConvertUtils {
 						break;
 					case java.sql.Types.FLOAT:
 					case java.sql.Types.DOUBLE:
-						upload.setDouble(index + 1, (double) field);
+						upload.setDouble(index + 1, Double.parseDouble(field.toString()));
 						break;
 					case java.sql.Types.DECIMAL:
 					case java.sql.Types.NUMERIC:

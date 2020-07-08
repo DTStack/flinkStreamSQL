@@ -20,8 +20,10 @@ package com.dtstack.flink.sql.side.db2;
 
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.SideTableInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.util.List;
@@ -35,7 +37,13 @@ import java.util.List;
  */
 
 public class Db2AsyncSideInfo extends RdbAsyncSideInfo {
-    public Db2AsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
+    public Db2AsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
+
+    @Override
+    public String getTableName(RdbSideTableInfo rdbSideTableInfo) {
+        return DtStringUtil.getTableFullPath(rdbSideTableInfo.getSchema(), rdbSideTableInfo.getTableName());
+    }
+
 }

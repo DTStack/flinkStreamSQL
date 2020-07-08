@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.source.serversocket;
 import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.source.serversocket.table.ServersocketSourceTableInfo;
-import com.dtstack.flink.sql.table.TableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.types.Row;
@@ -71,7 +71,7 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 
 
 	public CustomerSocketTextStreamFunction(ServersocketSourceTableInfo tableInfo, TypeInformation<Row> typeInfo,
-											Map<String, String> rowAndFieldMapping, List<TableInfo.FieldExtraInfo> fieldExtraInfos) {
+											Map<String, String> rowAndFieldMapping, List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos) {
 		this.tableInfo = tableInfo;
 		this.deserializationSchema = new DtNestRowDeserializationSchema(typeInfo, rowAndFieldMapping, fieldExtraInfos, CHARSET_NAME);
 		this.deserializationMetricWrapper = new DeserializationMetricWrapper(typeInfo, deserializationSchema);
@@ -98,7 +98,7 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 						while (buffer.length() >= delimiter.length() && (delimPos = buffer.indexOf(delimiter)) != -1) {
 							String record = buffer.substring(0, delimPos);
 							// truncate trailing carriage return
-							if (delimiter.equals("\n") && record.endsWith("\r")) {
+							if ("\n".equals(delimiter) && "\r".endsWith(record)) {
 								record = record.substring(0, record.length() - 1);
 							}
 							try {
