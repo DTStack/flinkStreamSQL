@@ -53,13 +53,13 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private Map<String, String> rowAndFieldMapping;
-    private Map<String, JsonNode> nodeAndJsonNodeMapping = Maps.newHashMap();
+    private final Map<String, String> rowAndFieldMapping;
+    private final Map<String, JsonNode> nodeAndJsonNodeMapping = Maps.newHashMap();
 
     private final String[] fieldNames;
     private final TypeInformation<?>[] fieldTypes;
-    private List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos;
-    private String charsetName;
+    private final List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos;
+    private final String charsetName;
 
     public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping,
                                           List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos,

@@ -54,6 +54,8 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     public static final String SOURCE_DATA_TYPE_KEY = "sourceDataType";
 
+    public static final String CHARSET_NAME_KEY = "charsetName";
+
     private String bootstrapServers;
 
     private String topic;
