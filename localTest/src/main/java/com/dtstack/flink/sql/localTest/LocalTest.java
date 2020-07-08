@@ -33,13 +33,13 @@ public class LocalTest {
 
         //其他参数配置
         properties.put("time.characteristic", "eventTime");
-        
+
         // 任务配置参数
         conf.put("-sql", URLEncoder.encode(readSQL(sqlPath), StandardCharsets.UTF_8.name()));
         conf.put("-mode", "local");
         conf.put("-name", "flinkStreamSQLLocalTest");
         conf.put("-confProp", properties.toString());
-        conf.put("-pluginLoadMode", "CLASSPATH");
+        conf.put("-pluginLoadMode", "LocalTest");
 
         for (Map.Entry<String, Object> keyValue : conf.entrySet()) {
             propertiesList.add(keyValue.getKey());
