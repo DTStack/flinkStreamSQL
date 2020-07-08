@@ -97,10 +97,6 @@ public class SideSqlExec {
                      Map<String, Table> tableCache,
                      CreateTmpTableParser.SqlParserResult createView,
                      String scope) throws Exception {
-        if(localSqlPluginPath == null){
-            throw new RuntimeException("need to set localSqlPluginPath");
-        }
-
         localTableCache.putAll(tableCache);
         try {
             sidePredicatesParser.fillPredicatesForSideTable(sql, sideTableMap);

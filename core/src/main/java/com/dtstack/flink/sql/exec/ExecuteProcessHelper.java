@@ -25,19 +25,15 @@ import com.dtstack.flink.sql.parser.InsertSqlParser;
 import com.dtstack.flink.sql.parser.SqlParser;
 import com.dtstack.flink.sql.parser.SqlTree;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.*;
-import org.apache.flink.table.api.internal.TableEnvironmentImpl;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.api.java.internal.StreamTableEnvironmentImpl;
 import org.apache.flink.table.sinks.TableSink;
-import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
-import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
@@ -108,7 +104,6 @@ public class ExecuteProcessHelper {
         String remoteSqlPluginPath = options.getRemoteSqlPluginPath();
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
-        String logLevel = options.getLogLevel();
 
         Preconditions.checkArgument(checkRemoteSqlPluginPath(remoteSqlPluginPath, deployMode, pluginLoadMode),
                 "Non-local mode or shipfile deployment mode, remoteSqlPluginPath is required");
@@ -324,6 +319,9 @@ public class ExecuteProcessHelper {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
         }
+        if (localSqlPluginPath == null || localSqlPluginPath.isEmpty()) {
+            return Sets.newHashSet();
+        }
         return pluginClassPathSets;
     }
 
@@ -351,7 +349,7 @@ public class ExecuteProcessHelper {
     }
 
 
-    private static StreamTableEnvironment getStreamTableEnv(StreamExecutionEnvironment env, Properties confProperties) {
+    public static StreamTableEnvironment getStreamTableEnv(StreamExecutionEnvironment env, Properties confProperties) {
         // use blink and streammode
         EnvironmentSettings settings = EnvironmentSettings.newInstance()
                 .useBlinkPlanner()

@@ -74,22 +74,15 @@ public class PluginUtil {
         String jarPath = sqlRootDir + SP + type;
         File jarFile = new File(jarPath);
 
-        if(!jarFile.exists()){
-            throw new RuntimeException(String.format("path %s not exists!!!", jarPath));
-        }
+//        if(!jarFile.exists()){
+//            throw new RuntimeException(String.format("path %s not exists!!!", jarPath));
+//        }
 
         return jarPath;
     }
 
     public static String getSideJarFileDirPath(String pluginType, String sideOperator, String tableType, String sqlRootDir) throws MalformedURLException {
-        String dirName = sqlRootDir + SP + pluginType + sideOperator + tableType.toLowerCase();
-        File jarFile = new File(dirName);
-
-        if(!jarFile.exists()){
-            throw new RuntimeException(String.format("path %s not exists!!!", dirName));
-        }
-
-        return dirName;
+        return sqlRootDir + SP + pluginType + sideOperator + tableType.toLowerCase();
     }
 
     public static String getGenerClassName(String pluginTypeName, String type) throws IOException {
@@ -181,40 +174,31 @@ public class PluginUtil {
     public static URL[] getPluginJarUrls(String pluginDir) throws MalformedURLException {
         List<URL> urlList = new ArrayList<>();
         File dirFile = new File(pluginDir);
-        if(!dirFile.exists() || !dirFile.isDirectory()){
-            throw new RuntimeException("plugin path:" + pluginDir + "is not exist.");
-        }
 
         File[] files = dirFile.listFiles(tmpFile -> tmpFile.isFile() && tmpFile.getName().endsWith(JAR_SUFFIX));
-        if(files == null || files.length == 0){
-            throw new RuntimeException("plugin path:" + pluginDir + " is null.");
+
+        if (files == null || files.length == 0) {
+            return urlList.toArray(new URL[0]);
         }
 
         for(File file : files){
             URL pluginJarUrl = file.toURI().toURL();
             urlList.add(pluginJarUrl);
         }
-        return urlList.toArray(new URL[urlList.size()]);
+
+        return urlList.toArray(new URL[0]);
     }
 
     public static String getCoreJarFileName (String path, String prefix) throws Exception {
         String coreJarFileName = null;
         File pluginDir = new File(path);
         if (pluginDir.exists() && pluginDir.isDirectory()){
-            File[] jarFiles = pluginDir.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.toLowerCase().startsWith(prefix) && name.toLowerCase().endsWith(".jar");
-                }
-            });
+            File[] jarFiles = pluginDir.listFiles((dir, name) ->
+                    name.toLowerCase().startsWith(prefix) && name.toLowerCase().endsWith(".jar"));
 
             if (jarFiles != null && jarFiles.length > 0){
                 coreJarFileName = jarFiles[0].getName();
             }
-        }
-
-        if (StringUtils.isEmpty(coreJarFileName)){
-            throw new Exception("Can not find core jar file in path:" + path);
         }
 
         return coreJarFileName;

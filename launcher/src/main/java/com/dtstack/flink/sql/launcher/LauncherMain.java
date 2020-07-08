@@ -37,6 +37,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class LauncherMain {
         OptionParser optionParser = new OptionParser(args);
         Options launcherOptions = optionParser.getOptions();
         List<String> programExeArgList = optionParser.getProgramExeArgList();
-        String[] execArgs = programExeArgList.toArray(new String[programExeArgList.size()]);
+        String[] execArgs = programExeArgList.toArray(new String[0]);
 
         String name = launcherOptions.getName();
         String mode = launcherOptions.getMode();
@@ -95,14 +96,14 @@ public class LauncherMain {
 
     private static String[] parseJson(String[] args) {
         BufferedReader reader = null;
-        String lastStr = "";
+        StringBuilder lastStr = new StringBuilder();
         try {
             FileInputStream fileInputStream = new FileInputStream(args[0]);
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, StandardCharsets.UTF_8);
             reader = new BufferedReader(inputStreamReader);
-            String tempString = null;
+            String tempString;
             while ((tempString = reader.readLine()) != null) {
-                lastStr += tempString;
+                lastStr.append(tempString);
             }
             reader.close();
         } catch (IOException e) {
@@ -116,7 +117,7 @@ public class LauncherMain {
                 }
             }
         }
-        Map<String, Object> map = JSON.parseObject(lastStr, new TypeReference<Map<String, Object>>() {
+        Map<String, Object> map = JSON.parseObject(lastStr.toString(), new TypeReference<Map<String, Object>>() {
         });
         List<String> list = new LinkedList<>();
 
@@ -124,8 +125,7 @@ public class LauncherMain {
             list.add("-" + entry.getKey());
             list.add(entry.getValue().toString());
         }
-        String[] array = list.toArray(new String[list.size()]);
-        return array;
+        return list.toArray(new String[0]);
     }
 
 
