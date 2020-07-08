@@ -120,7 +120,18 @@ public class ParserJoinField {
             }
 
             resolved = (JoinScope.ScopeChild)prefixId.next();
-            field = resolved.getRowTypeInfo();
+            int fieldTypeLength = resolved.getRowTypeInfo().getFieldTypes().length;
+            if(fieldTypeLength == 2
+                    && resolved.getRowTypeInfo().getFieldTypes()[1].getClass().equals(RowTypeInfo.class)){
+                field = (RowTypeInfo) resolved.getRowTypeInfo().getFieldTypes()[1];
+            } else if(fieldTypeLength ==1
+                    && resolved.getRowTypeInfo().getFieldTypes()[0].getClass().equals(RowTypeInfo.class)){
+                field = (RowTypeInfo) resolved.getRowTypeInfo().getFieldTypes()[0];
+            }else{
+                field = resolved.getRowTypeInfo();
+            }
+
+
             String[] fieldNames = field.getFieldNames();
             TypeInformation<?>[] types = field.getFieldTypes();
             for(int i=0; i< field.getTotalFields(); i++){
