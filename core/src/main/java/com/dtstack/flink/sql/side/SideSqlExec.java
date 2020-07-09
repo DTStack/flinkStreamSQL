@@ -87,6 +87,8 @@ public class SideSqlExec {
 
     private String tmpFields = null;
 
+    private String pluginLoadMode = null;
+
     private SidePredicatesParser sidePredicatesParser = new SidePredicatesParser();
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
@@ -254,13 +256,12 @@ public class SideSqlExec {
         return typeInformation;
     }
 
-
-
-
-
-
     public void setLocalSqlPluginPath(String localSqlPluginPath) {
         this.localSqlPluginPath = localSqlPluginPath;
+    }
+
+    public void setPluginLoadMode(String pluginLoadMode) {
+        this.pluginLoadMode = pluginLoadMode;
     }
 
     private Table getTableFromCache(Map<String, Table> localTableCache, String tableAlias, String tableName){
@@ -415,9 +416,9 @@ public class SideSqlExec {
 
         DataStream<Tuple2<Boolean, Row>> dsOut = null;
         if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
-            dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
+            dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo, pluginLoadMode);
         }else{
-            dsOut = SideAsyncOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo);
+            dsOut = SideAsyncOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo, pluginLoadMode);
         }
 
         RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);

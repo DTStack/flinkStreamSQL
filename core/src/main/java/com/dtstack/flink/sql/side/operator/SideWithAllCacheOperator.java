@@ -46,10 +46,10 @@ public class SideWithAllCacheOperator {
 
     private static BaseAllReqRow loadFlatMap(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,
                                              JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
-                                             AbstractSideTableInfo sideTableInfo) throws Exception {
+                                             AbstractSideTableInfo sideTableInfo, String pluginLoadMode) throws Exception {
 
         String pathOfType = String.format(PATH_FORMAT, sideType);
-        String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir);
+        String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir, pluginLoadMode);
         String className = PluginUtil.getSqlSideClassName(sideType, "side", OPERATOR_TYPE);
 
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> cl.loadClass(className).asSubclass(BaseAllReqRow.class)
@@ -58,8 +58,8 @@ public class SideWithAllCacheOperator {
     }
 
     public static DataStream getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo, JoinInfo joinInfo,
-                                                   List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) throws Exception {
-        BaseAllReqRow allReqRow = loadFlatMap(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+                                                   List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo, String pluginLoadMode) throws Exception {
+        BaseAllReqRow allReqRow = loadFlatMap(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo, pluginLoadMode);
         return inputStream.flatMap(allReqRow);
     }
 }

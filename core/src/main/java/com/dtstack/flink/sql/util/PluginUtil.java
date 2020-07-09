@@ -82,18 +82,6 @@ public class PluginUtil {
         return jarPath;
     }
 
-    public static String getJarFileDirPath(String type, String sqlRootDir) {
-        String jarPath = sqlRootDir + SP + type;
-
-        File jarFile = new File(jarPath);
-
-        if(!jarFile.exists()){
-            throw new RuntimeException(String.format("path %s not exists!!!", jarPath));
-        }
-
-        return jarPath;
-    }
-
     public static String getSideJarFileDirPath(String pluginType, String sideOperator, String tableType, String sqlRootDir, String pluginLoadMode) throws MalformedURLException {
         String dirName = sqlRootDir + SP + pluginType + sideOperator + tableType.toLowerCase();
 

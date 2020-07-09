@@ -160,7 +160,7 @@ public class ExecuteProcessHelper {
         // cache classPathSets
         ExecuteProcessHelper.registerPluginUrlToCachedFile(env, classPathSets);
 
-        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), tableEnv, sqlTree, sideTableMap, registerTableCache);
+        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), paramsInfo.getPluginLoadMode(),tableEnv, sqlTree, sideTableMap, registerTableCache);
 
         if (env instanceof MyLocalStreamEnvironment) {
             ((MyLocalStreamEnvironment) env).setClasspaths(ClassLoaderManager.getClassPath());
@@ -184,12 +184,14 @@ public class ExecuteProcessHelper {
     }
 
     private static void sqlTranslation(String localSqlPluginPath,
+                                       String pluginLoadMode,
                                        StreamTableEnvironment tableEnv,
                                        SqlTree sqlTree,Map<String, AbstractSideTableInfo> sideTableMap,
                                        Map<String, Table> registerTableCache) throws Exception {
 
         SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
+        sideSqlExec.setPluginLoadMode(pluginLoadMode);
 
         int scope = 0;
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
