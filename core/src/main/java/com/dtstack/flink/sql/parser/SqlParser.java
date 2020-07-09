@@ -58,7 +58,7 @@ public class SqlParser {
      * insert into tb1 select * from tb2;
      * @param sql
      */
-    public static SqlTree parseSql(String sql) throws Exception {
+    public static SqlTree parseSql(String sql, String pluginLoadMode) throws Exception {
 
         if(StringUtils.isBlank(sql)){
             throw new RuntimeException("sql is not null");
@@ -110,7 +110,7 @@ public class SqlParser {
                     }
 
                     AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
-                            createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                            createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode);
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }
             }
@@ -123,7 +123,7 @@ public class SqlParser {
                     }
 
                     AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SINK.getType(),
-                            createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                            createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode);
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }
             }
@@ -141,7 +141,7 @@ public class SqlParser {
                         }
                     } else {
                         AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
-                                createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                                createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode);
                         sqlTree.addTableInfo(tableName, tableInfo);
                     }
                 }

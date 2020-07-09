@@ -43,9 +43,9 @@ public class StreamSourceFactory {
 
     private static final String DIR_NAME_FORMAT = "%ssource";
 
-    public static AbstractSourceParser getSqlParser(String pluginType, String sqlRootDir) throws Exception {
+    public static AbstractSourceParser getSqlParser(String pluginType, String sqlRootDir, String pluginLoadMode) throws Exception {
 
-        String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), sqlRootDir);
+        String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), sqlRootDir, pluginLoadMode);
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
         String className = PluginUtil.getSqlParserClassName(typeNoVersion, CURR_TYPE);
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {
@@ -63,11 +63,11 @@ public class StreamSourceFactory {
      * @return
      */
     public static Table getStreamSource(AbstractSourceTableInfo sourceTableInfo, StreamExecutionEnvironment env,
-                                        StreamTableEnvironment tableEnv, String sqlRootDir) throws Exception {
+                                        StreamTableEnvironment tableEnv, String sqlRootDir, String pluginLoadMode) throws Exception {
 
         String sourceTypeStr = sourceTableInfo.getType();
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(sourceTypeStr);
-        String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, sourceTypeStr), sqlRootDir);
+        String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, sourceTypeStr), sqlRootDir, pluginLoadMode);
         String className = PluginUtil.getGenerClassName(typeNoVersion, CURR_TYPE);
 
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {

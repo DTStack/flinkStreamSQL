@@ -74,32 +74,49 @@ public class PluginUtil {
         return getLocalSideJarFilePath(type, operator, suffix, localSqlPluginPath, pluginLoadMode);
     }
 
-    public static String getJarFileDirPath(String type, String sqlRootDir){
+    public static String getJarFileDirPath(String type, String sqlRootDir, String pluginLoadMode){
         String jarPath = sqlRootDir + SP + type;
 
-        checkJarFileDirPath(sqlRootDir, jarPath);
+        checkJarFileDirPath(sqlRootDir, jarPath, pluginLoadMode);
 
         return jarPath;
     }
 
-    public static String getSideJarFileDirPath(String pluginType, String sideOperator, String tableType, String sqlRootDir) throws MalformedURLException {
+    public static String getJarFileDirPath(String type, String sqlRootDir) {
+        String jarPath = sqlRootDir + SP + type;
+
+        File jarFile = new File(jarPath);
+
+        if(!jarFile.exists()){
+            throw new RuntimeException(String.format("path %s not exists!!!", jarPath));
+        }
+
+        return jarPath;
+    }
+
+    public static String getSideJarFileDirPath(String pluginType, String sideOperator, String tableType, String sqlRootDir, String pluginLoadMode) throws MalformedURLException {
         String dirName = sqlRootDir + SP + pluginType + sideOperator + tableType.toLowerCase();
 
-        checkJarFileDirPath(sqlRootDir, dirName);
+        checkJarFileDirPath(sqlRootDir, dirName, pluginLoadMode);
 
         return dirName;
     }
 
-    private static void checkJarFileDirPath(String sqlRootDir, String dirName) {
-        if (sqlRootDir == null || sqlRootDir.isEmpty()) {
-            LOG.warn("be sure you are not in LocalTest mode, if not, check the sqlRootDir");
-            return;
+    private static void checkJarFileDirPath(String sqlRootDir, String path, String pluginLoadMode) {
+
+        if (sqlRootDir == null || sqlRootDir.isEmpty()){
+            if (pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name())) {
+                LOG.warn("be sure you are not in LocalTest mode, if not, check the sqlRootDir");
+                return;
+            }
+
+            throw new RuntimeException("sqlPlugin is empty !");
         }
 
-        File jarFile = new File(dirName);
+        File jarFile = new File(path);
 
         if(!jarFile.exists()){
-            throw new RuntimeException(String.format("path %s not exists!!!", dirName));
+            throw new RuntimeException(String.format("path %s not exists!!!", path));
         }
     }
 
