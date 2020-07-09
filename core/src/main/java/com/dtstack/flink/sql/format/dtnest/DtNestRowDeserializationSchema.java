@@ -74,8 +74,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
 
     @Override
     public Row deserialize(byte[] message) throws IOException {
-        String data = new String(message);
-        String decoderStr = new String(data.getBytes(charsetName), StandardCharsets.UTF_8);
+        String decoderStr = new String(message, charsetName);
         JsonNode root = objectMapper.readTree(decoderStr);
         this.parseTree(root, null);
         Row row = new Row(fieldNames.length);
