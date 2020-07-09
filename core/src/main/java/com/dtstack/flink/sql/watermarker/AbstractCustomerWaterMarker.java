@@ -53,8 +53,6 @@ public abstract class AbstractCustomerWaterMarker<T> extends BoundedOutOfOrderne
 
     protected long lastTime = 0;
 
-    protected TimeZone timezone;
-
     public AbstractCustomerWaterMarker(Time maxOutOfOrderness) {
         super(maxOutOfOrderness);
     }
@@ -102,8 +100,7 @@ public abstract class AbstractCustomerWaterMarker<T> extends BoundedOutOfOrderne
 
     protected long getExtractTimestamp(Long extractTime){
 
-        lastTime = extractTime + timezone.getOffset(extractTime);
-
+        lastTime = extractTime;
         eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - extractTime)/1000));
 
         return lastTime;

@@ -39,10 +39,9 @@ public class CustomerWaterMarkerForTimeStamp extends AbstractCustomerWaterMarker
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForTimeStamp.class);
 
-    public CustomerWaterMarkerForTimeStamp(Time maxOutOfOrderness, int pos,String timezone) {
+    public CustomerWaterMarkerForTimeStamp(Time maxOutOfOrderness, int pos) {
         super(maxOutOfOrderness);
         this.pos = pos;
-        this.timezone= TimeZone.getTimeZone(timezone);
     }
 
     @Override
