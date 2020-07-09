@@ -26,8 +26,6 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.TimeZone;
-
 /**
  * Custom watermark --- for eventtime
  * Date: 2017/12/28

@@ -21,13 +21,9 @@
 package com.dtstack.flink.sql.table;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.flink.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.Map;
-import java.util.TimeZone;
 
 /**
  * Reason:

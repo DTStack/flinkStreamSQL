@@ -29,8 +29,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
-import java.util.TimeZone;
-
 /**
  * Reason:
  * Date: 2018/10/18
