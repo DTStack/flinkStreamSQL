@@ -34,6 +34,7 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.Obje
 import org.apache.flink.types.Row;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -73,7 +74,8 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
 
     @Override
     public Row deserialize(byte[] message) throws IOException {
-        String decoderStr = new String(message, charsetName);
+        String data = new String(message);
+        String decoderStr = new String(data.getBytes(charsetName), StandardCharsets.UTF_8);
         JsonNode root = objectMapper.readTree(decoderStr);
         this.parseTree(root, null);
         Row row = new Row(fieldNames.length);
