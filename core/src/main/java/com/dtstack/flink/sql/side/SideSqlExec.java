@@ -115,7 +115,11 @@ public class SideSqlExec {
         SideSQLParser sideSQLParser = new SideSQLParser();
         sideSQLParser.setLocalTableCache(localTableCache);
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet(), scope);
-        Object pollObj = null;
+        Object pollObj;
+
+        //need clean
+        boolean preIsSideJoin = false;
+        List<FieldReplaceInfo> replaceInfoList = Lists.newArrayList();
 
         while((pollObj = exeQueue.poll()) != null){
 

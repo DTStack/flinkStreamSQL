@@ -22,7 +22,6 @@ package com.dtstack.flink.sql.sink.hbase;
 
 import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -214,10 +213,10 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         Put put = new Put(rowKey.getBytes());
         for (int i = 0; i < record.getArity(); ++i) {
             Object fieldVal = record.getField(i);
-            if (fieldVal == null) {
-                continue;
+            byte[] val = null;
+            if (fieldVal != null) {
+                val = fieldVal.toString().getBytes();
             }
-            byte[] val = fieldVal.toString().getBytes();
             byte[] cf = families[i].getBytes();
             byte[] qualifier = qualifiers[i].getBytes();
 
