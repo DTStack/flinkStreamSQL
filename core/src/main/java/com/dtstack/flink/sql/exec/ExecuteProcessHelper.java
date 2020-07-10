@@ -377,7 +377,7 @@ public class ExecuteProcessHelper {
     private static void timeZoneCheck(String timeZone) {
         ArrayList<String> zones = Lists.newArrayList(TimeZone.getAvailableIDs());
         if (!zones.contains(timeZone)){
-            throw new IllegalArgumentException(" timezone is Incorrect!");
+            throw new IllegalArgumentException(String.format(" timezone of %s is Incorrect!", timeZone));
         }
     }
 }
