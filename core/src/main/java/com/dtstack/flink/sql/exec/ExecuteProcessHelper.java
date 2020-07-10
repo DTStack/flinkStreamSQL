@@ -71,11 +71,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 /**
  *  任务执行时的流程方法
@@ -358,6 +354,8 @@ public class ExecuteProcessHelper {
 
         TableConfig tableConfig = new TableConfig();
 
+        timeZoneCheck(confProperties.getProperty(TIME_ZONE));
+
         tableConfig.setLocalTimeZone(ZoneId.of(confProperties.getProperty(TIME_ZONE)));
 
         StreamTableEnvironment tableEnv = StreamTableEnvironmentImpl.create(env, settings, tableConfig);
@@ -365,4 +363,10 @@ public class ExecuteProcessHelper {
         return tableEnv;
     }
 
+    private static void timeZoneCheck(String timeZone) {
+        ArrayList<String> zones = Lists.newArrayList(TimeZone.getAvailableIDs());
+        if (!zones.contains(timeZone)){
+            throw new IllegalArgumentException(" timezone is Incorrect!");
+        }
+    }
 }
