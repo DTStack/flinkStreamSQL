@@ -423,7 +423,7 @@ public class SideSqlExec {
 
         RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
 
-        TupleTypeInfo tupleTypeInfo = new TupleTypeInfo(Types.BOOLEAN, sideOutTypeInfo);
+        TupleTypeInfo tupleTypeInfo = new TupleTypeInfo(sideOutTypeInfo);
         dsOut.getTransformation().setOutputType(tupleTypeInfo);
 
         String targetTableName = joinInfo.getNewTableName();

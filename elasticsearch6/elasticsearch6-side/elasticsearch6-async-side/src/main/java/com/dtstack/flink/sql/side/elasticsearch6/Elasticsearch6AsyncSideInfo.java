@@ -75,8 +75,8 @@ public class Elasticsearch6AsyncSideInfo extends BaseSideInfo {
         if (leftTableName.equalsIgnoreCase(sideTableName)) {
             equalFieldList.add(leftField);
             int equalFieldIndex = -1;
-            for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for (int i = 0; i < getFieldNames().length; i++) {
+                String fieldName = getFieldNames()[i];
                 if (fieldName.equalsIgnoreCase(rightField)) {
                     equalFieldIndex = i;
                 }
@@ -91,8 +91,8 @@ public class Elasticsearch6AsyncSideInfo extends BaseSideInfo {
 
             equalFieldList.add(rightField);
             int equalFieldIndex = -1;
-            for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for (int i = 0; i < getFieldNames().length; i++) {
+                String fieldName = getFieldNames()[i];
                 if (fieldName.equalsIgnoreCase(leftField)) {
                     equalFieldIndex = i;
                 }

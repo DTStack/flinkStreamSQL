@@ -139,8 +139,8 @@ public abstract class BaseSideInfo implements Serializable{
         if(leftTableName.equalsIgnoreCase(sideTableName)){
             equalFieldList.add(leftField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for(int i=0; i<getFieldNames().length; i++){
+                String fieldName = getFieldNames()[i];
                 if(fieldName.equalsIgnoreCase(rightField)){
                     equalFieldIndex = i;
                 }
@@ -155,8 +155,8 @@ public abstract class BaseSideInfo implements Serializable{
 
             equalFieldList.add(rightField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for(int i=0; i<getFieldNames().length; i++){
+                String fieldName = getFieldNames()[i];
                 if(fieldName.equalsIgnoreCase(leftField)){
                     equalFieldIndex = i;
                 }
@@ -280,5 +280,19 @@ public abstract class BaseSideInfo implements Serializable{
 
     public String getSelectSideFieldType(int index){
         return sideSelectFieldsType.get(index);
+    }
+
+    public String[] getFieldNames(){
+
+        int fieldTypeLength = rowTypeInfo.getFieldTypes().length;
+        if( fieldTypeLength == 2
+                && rowTypeInfo.getFieldTypes()[1].getClass().equals(RowTypeInfo.class)){
+            return ((RowTypeInfo)rowTypeInfo.getFieldTypes()[1]).getFieldNames();
+        } else if(fieldTypeLength ==1
+                && rowTypeInfo.getFieldTypes()[0].getClass().equals(RowTypeInfo.class)){
+            return  ((RowTypeInfo)rowTypeInfo.getFieldTypes()[0]).getFieldNames();
+        }else {
+            return  rowTypeInfo.getFieldNames();
+        }
     }
 }
