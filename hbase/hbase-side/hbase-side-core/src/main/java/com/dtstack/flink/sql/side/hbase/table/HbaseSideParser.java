@@ -69,6 +69,10 @@ public class HbaseSideParser extends AbstractSideTableParser {
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         hbaseTableInfo.setPreRowKey(MathUtil.getBoolean(props.get(PRE_ROW_KEY.toLowerCase()), false));
         hbaseTableInfo.setCacheType((String) props.get(CACHE));
+        props.entrySet().stream()
+                .filter(entity -> entity.getKey().contains("."))
+                .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), String.valueOf(entity.getValue())))
+                .count();
         return hbaseTableInfo;
     }
 

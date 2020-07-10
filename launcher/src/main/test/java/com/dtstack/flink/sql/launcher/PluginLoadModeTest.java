@@ -50,7 +50,7 @@ public class PluginLoadModeTest {
 
 
     public static void testRocSql() throws Exception{
-        String[] sql = new String[]{"-mode", "local", "-sql", "/Users/roc/Documents/flink_sql/sql/zy_sql/hbase_side.sql", "-name", "roc",
+        String[] sql = new String[]{"-mode", "local", "-sql", "/Users/roc/Documents/flink_sql/sql/impala_sink.sql", "-name", "roc",
                 "-localSqlPluginPath", "/Users/roc/workspace/git_code/flinkStreamSQL/plugins",
                 "-remoteSqlPluginPath", "/Users/roc/workspace/git_code/flinkStreamSQL/plugins",
                 "-flinkconf", "/Users/roc/Documents/flink_sql/flinkconf",
