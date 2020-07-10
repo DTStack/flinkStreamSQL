@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
@@ -68,6 +69,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     private int timeOutNum = 0;
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
+    private transient ThreadPoolExecutor cancelExecutor;
 
     public BaseAsyncReqRow(BaseSideInfo sideInfo){
         this.sideInfo = sideInfo;
@@ -82,6 +84,8 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
         super.open(parameters);
         initCache();
         initMetric();
+        cancelExecutor = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(100000),
+                new DTThreadFactory("cancel-timer-executor"));
         LOG.info("async dim table config info: {} ", sideInfo.getSideTableInfo().toString());
     }
 
@@ -248,12 +252,11 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     }
 
     protected void cancelTimerWhenComplete(ResultFuture<CRow> resultFuture, ScheduledFuture<?> timerFuture){
-        ThreadPoolExecutor executors = new ThreadPoolExecutor(1, 1,0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
         if(resultFuture instanceof StreamRecordQueueEntry){
             StreamRecordQueueEntry streamRecordBufferEntry = (StreamRecordQueueEntry) resultFuture;
             streamRecordBufferEntry.onComplete((Object value) -> {
                 timerFuture.cancel(true);
-            },executors);
+            }, cancelExecutor);
         }
     }
 
