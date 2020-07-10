@@ -359,9 +359,9 @@ public class ExecuteProcessHelper {
 
         TableConfig tableConfig = new TableConfig();
 
-        timeZoneCheck(confProperties.getProperty(TIME_ZONE));
+        timeZoneCheck(confProperties.getProperty(TIME_ZONE, TimeZone.getDefault().getID()));
 
-        tableConfig.setLocalTimeZone(ZoneId.of(confProperties.getProperty(TIME_ZONE)));
+        tableConfig.setLocalTimeZone(ZoneId.of(confProperties.getProperty(TIME_ZONE, TimeZone.getDefault().getID())));
 
         StreamTableEnvironment tableEnv = StreamTableEnvironmentImpl.create(env, settings, tableConfig);
         StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties);
