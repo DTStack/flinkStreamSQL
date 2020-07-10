@@ -18,6 +18,8 @@
 
 package com.dtstack.flink.sql.localTest;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import com.alibaba.fastjson.JSONObject;
 import com.dtstack.flink.sql.Main;
 import org.slf4j.Logger;
@@ -32,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * @author tiezhu
@@ -44,13 +47,16 @@ public class LocalTest {
 
     public static void main(String[] args) throws Exception {
 
+        setLogLevel("INFO");
+
         List<String> propertiesList = new ArrayList<>();
-        String sqlPath = "/Users/wtz4680/Desktop/flinkStreamSQL/Bug/Redmine_25807.sql";
+        String sqlPath = "/Users/xuchao/Documents/flinkSql/share/twodimjoin.sql";
         Map<String, Object> conf = new HashMap<>();
         JSONObject properties = new JSONObject();
 
         //其他参数配置
         properties.put("time.characteristic", "eventTime");
+        properties.put("timezone", TimeZone.getDefault());
 
         // 任务配置参数
         conf.put("-sql", URLEncoder.encode(readSQL(sqlPath), StandardCharsets.UTF_8.name()));
@@ -75,5 +81,11 @@ public class LocalTest {
             LOG.error("Can not get the job info !!!", ioe);
             throw new RuntimeException(ioe);
         }
+    }
+
+    private static void setLogLevel(String level) {
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        ch.qos.logback.classic.Logger logger = loggerContext.getLogger("root");
+        logger.setLevel(Level.toLevel(level));
     }
 }
