@@ -70,11 +70,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.time.ZoneId;
+import java.util.*;
 
 /**
  *  任务执行时的流程方法
@@ -87,6 +84,8 @@ public class ExecuteProcessHelper {
     private static final String CLASS_FILE_NAME_FMT = "class_path_%d";
     private static final Logger LOG = LoggerFactory.getLogger(ExecuteProcessHelper.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private static final String TIME_ZONE = "timezone";
 
     public static FlinkPlanner flinkPlanner = new FlinkPlanner();
 
@@ -358,9 +357,21 @@ public class ExecuteProcessHelper {
                 .inStreamingMode()
                 .build();
 
-        StreamTableEnvironment tableEnv = StreamTableEnvironmentImpl.create(env, settings, new TableConfig());
+        TableConfig tableConfig = new TableConfig();
+
+        timeZoneCheck(confProperties.getProperty(TIME_ZONE));
+
+        tableConfig.setLocalTimeZone(ZoneId.of(confProperties.getProperty(TIME_ZONE)));
+
+        StreamTableEnvironment tableEnv = StreamTableEnvironmentImpl.create(env, settings, tableConfig);
         StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties);
         return tableEnv;
     }
 
+    private static void timeZoneCheck(String timeZone) {
+        ArrayList<String> zones = Lists.newArrayList(TimeZone.getAvailableIDs());
+        if (!zones.contains(timeZone)){
+            throw new IllegalArgumentException(" timezone is Incorrect!");
+        }
+    }
 }

@@ -29,8 +29,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
-import java.util.TimeZone;
-
 /**
  * Reason:
  * Date: 2018/10/18
@@ -52,8 +50,6 @@ public abstract class AbstractCustomerWaterMarker<T> extends BoundedOutOfOrderne
     protected int pos;
 
     protected long lastTime = 0;
-
-    protected TimeZone timezone;
 
     public AbstractCustomerWaterMarker(Time maxOutOfOrderness) {
         super(maxOutOfOrderness);
@@ -102,8 +98,7 @@ public abstract class AbstractCustomerWaterMarker<T> extends BoundedOutOfOrderne
 
     protected long getExtractTimestamp(Long extractTime){
 
-        lastTime = extractTime + timezone.getOffset(extractTime);
-
+        lastTime = extractTime;
         eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - extractTime)/1000));
 
         return lastTime;
