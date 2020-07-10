@@ -71,7 +71,13 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.ArrayList;
 
 /**
  *  任务执行时的流程方法
@@ -359,9 +365,9 @@ public class ExecuteProcessHelper {
 
         TableConfig tableConfig = new TableConfig();
 
-        timeZoneCheck(confProperties.getProperty(TIME_ZONE));
+        timeZoneCheck(confProperties.getProperty(TIME_ZONE, TimeZone.getDefault().getID()));
 
-        tableConfig.setLocalTimeZone(ZoneId.of(confProperties.getProperty(TIME_ZONE)));
+        tableConfig.setLocalTimeZone(ZoneId.of(confProperties.getProperty(TIME_ZONE, TimeZone.getDefault().getID())));
 
         StreamTableEnvironment tableEnv = StreamTableEnvironmentImpl.create(env, settings, tableConfig);
         StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties);
