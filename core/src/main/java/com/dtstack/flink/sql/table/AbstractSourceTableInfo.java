@@ -21,13 +21,9 @@
 package com.dtstack.flink.sql.table;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.flink.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.Map;
-import java.util.TimeZone;
 
 /**
  * Reason:
@@ -39,10 +35,6 @@ import java.util.TimeZone;
 public abstract class AbstractSourceTableInfo extends AbstractTableInfo {
 
     public static final String SOURCE_SUFFIX = "Source";
-
-    public static final String TIME_ZONE_KEY="timezone";
-
-    private String timeZone=TimeZone.getDefault().getID();
 
     private String eventTimeField;
 
@@ -108,24 +100,5 @@ public abstract class AbstractSourceTableInfo extends AbstractTableInfo {
 
     public String getAdaptName(){
         return getName() + "_adapt";
-    }
-
-    public String getTimeZone() {
-        return timeZone;
-    }
-
-    public void setTimeZone(String timeZone) {
-        if (StringUtils.isNullOrWhitespaceOnly(timeZone)){
-            return;
-        }
-        timeZoneCheck(timeZone);
-        this.timeZone = timeZone;
-    }
-
-    private void timeZoneCheck(String timeZone) {
-        ArrayList<String> zones = Lists.newArrayList(TimeZone.getAvailableIDs());
-        if (!zones.contains(timeZone)){
-            throw  new IllegalArgumentException(" timezone is Incorrect!");
-        }
     }
 }

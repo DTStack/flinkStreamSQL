@@ -45,10 +45,10 @@ public class Options {
     @OptionRequired(description = "Yarn and Hadoop configuration directory")
     private  String yarnconf;
 
-    @OptionRequired(required = true,description = "Sql local plugin root")
+    @OptionRequired(description = "Sql local plugin root")
     private  String localSqlPluginPath;
 
-    @OptionRequired(required = false,description = "Sql remote plugin root")
+    @OptionRequired(description = "Sql remote plugin root")
     private  String remoteSqlPluginPath ;
 
     @OptionRequired(description = "sql ext jar,eg udf jar")
@@ -69,9 +69,6 @@ public class Options {
     @OptionRequired(description = "plugin load mode, by classpath or shipfile")
     private String pluginLoadMode = EPluginLoadMode.CLASSPATH.name();
     
-    @OptionRequired(description = "log level")
-    private String logLevel = "info";
-
     @OptionRequired(description = "file add to ship file")
     private  String addShipfile;
 
@@ -179,14 +176,6 @@ public class Options {
     public void setPluginLoadMode(String pluginLoadMode) {
         this.pluginLoadMode = pluginLoadMode;
     }
-
-	public String getLogLevel() {
-		return logLevel;
-	}
-
-	public void setLogLevel(String logLevel) {
-		this.logLevel = logLevel;
-	}
 
     public String getAddShipfile() {
         return addShipfile;
