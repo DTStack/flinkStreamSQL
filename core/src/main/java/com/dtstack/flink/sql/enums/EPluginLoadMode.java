@@ -33,7 +33,12 @@ public enum EPluginLoadMode {
     /**
      * 1:shipfile
      */
-    SHIPFILE(1);
+    SHIPFILE(1),
+
+    /**
+     * 2:localTest
+     */
+    LOCALTEST(3);
 
     private int type;
 

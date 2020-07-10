@@ -25,19 +25,15 @@ import com.dtstack.flink.sql.parser.InsertSqlParser;
 import com.dtstack.flink.sql.parser.SqlParser;
 import com.dtstack.flink.sql.parser.SqlTree;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.*;
-import org.apache.flink.table.api.internal.TableEnvironmentImpl;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.api.java.internal.StreamTableEnvironmentImpl;
 import org.apache.flink.table.sinks.TableSink;
-import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
-import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
@@ -108,7 +104,6 @@ public class ExecuteProcessHelper {
         String remoteSqlPluginPath = options.getRemoteSqlPluginPath();
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
-        String logLevel = options.getLogLevel();
 
         Preconditions.checkArgument(checkRemoteSqlPluginPath(remoteSqlPluginPath, deployMode, pluginLoadMode),
                 "Non-local mode or shipfile deployment mode, remoteSqlPluginPath is required");
@@ -152,7 +147,7 @@ public class ExecuteProcessHelper {
 
 
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
-        SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql());
+        SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql(), paramsInfo.getPluginLoadMode());
 
         Map<String, AbstractSideTableInfo> sideTableMap = Maps.newHashMap();
         Map<String, Table> registerTableCache = Maps.newHashMap();
@@ -165,7 +160,7 @@ public class ExecuteProcessHelper {
         // cache classPathSets
         ExecuteProcessHelper.registerPluginUrlToCachedFile(env, classPathSets);
 
-        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), tableEnv, sqlTree, sideTableMap, registerTableCache);
+        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), paramsInfo.getPluginLoadMode(),tableEnv, sqlTree, sideTableMap, registerTableCache);
 
         if (env instanceof MyLocalStreamEnvironment) {
             ((MyLocalStreamEnvironment) env).setClasspaths(ClassLoaderManager.getClassPath());
@@ -189,12 +184,14 @@ public class ExecuteProcessHelper {
     }
 
     private static void sqlTranslation(String localSqlPluginPath,
+                                       String pluginLoadMode,
                                        StreamTableEnvironment tableEnv,
                                        SqlTree sqlTree,Map<String, AbstractSideTableInfo> sideTableMap,
                                        Map<String, Table> registerTableCache) throws Exception {
 
         SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
+        sideSqlExec.setPluginLoadMode(pluginLoadMode);
 
         int scope = 0;
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
@@ -278,7 +275,7 @@ public class ExecuteProcessHelper {
             if (tableInfo instanceof AbstractSourceTableInfo) {
 
                 AbstractSourceTableInfo sourceTableInfo = (AbstractSourceTableInfo) tableInfo;
-                Table table = StreamSourceFactory.getStreamSource(sourceTableInfo, env, tableEnv, localSqlPluginPath);
+                Table table = StreamSourceFactory.getStreamSource(sourceTableInfo, env, tableEnv, localSqlPluginPath, pluginLoadMode);
                 tableEnv.registerTable(sourceTableInfo.getAdaptName(), table);
                 //Note --- parameter conversion function can not be used inside a function of the type of polymerization
                 //Create table in which the function is arranged only need adaptation sql
@@ -308,7 +305,7 @@ public class ExecuteProcessHelper {
                 pluginClassPathSets.add(sourceTablePathUrl);
             } else if (tableInfo instanceof AbstractTargetTableInfo) {
 
-                TableSink tableSink = StreamSinkFactory.getTableSink((AbstractTargetTableInfo) tableInfo, localSqlPluginPath);
+                TableSink tableSink = StreamSinkFactory.getTableSink((AbstractTargetTableInfo) tableInfo, localSqlPluginPath, pluginLoadMode);
                 TypeInformation[] flinkTypes = FunctionManager.transformTypes(tableInfo.getFieldClasses());
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
 
@@ -323,6 +320,9 @@ public class ExecuteProcessHelper {
             } else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
+        }
+        if (localSqlPluginPath == null || localSqlPluginPath.isEmpty()) {
+            return Sets.newHashSet();
         }
         return pluginClassPathSets;
     }
@@ -351,7 +351,7 @@ public class ExecuteProcessHelper {
     }
 
 
-    private static StreamTableEnvironment getStreamTableEnv(StreamExecutionEnvironment env, Properties confProperties) {
+    public static StreamTableEnvironment getStreamTableEnv(StreamExecutionEnvironment env, Properties confProperties) {
         // use blink and streammode
         EnvironmentSettings settings = EnvironmentSettings.newInstance()
                 .useBlinkPlanner()

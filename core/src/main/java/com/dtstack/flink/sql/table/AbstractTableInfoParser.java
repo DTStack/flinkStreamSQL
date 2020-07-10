@@ -58,7 +58,7 @@ public class AbstractTableInfoParser {
 
     //Parsing loaded plugin
     public AbstractTableInfo parseWithTableType(int tableType, CreateTableParser.SqlParserResult parserResult,
-                                                String localPluginRoot) throws Exception {
+                                                String localPluginRoot, String pluginLoadMode) throws Exception {
         AbstractTableParser absTableParser = null;
         Map<String, Object> props = parserResult.getPropMap();
         String type = MathUtil.getString(props.get(TYPE_KEY));
@@ -73,14 +73,14 @@ public class AbstractTableInfoParser {
             if(!isSideTable){
                 absTableParser = sourceTableInfoMap.get(type);
                 if(absTableParser == null){
-                    absTableParser = StreamSourceFactory.getSqlParser(type, localPluginRoot);
+                    absTableParser = StreamSourceFactory.getSqlParser(type, localPluginRoot, pluginLoadMode);
                     sourceTableInfoMap.put(type, absTableParser);
                 }
             }else{
                 absTableParser = sideTableInfoMap.get(type);
                 if(absTableParser == null){
                     String cacheType = MathUtil.getString(props.get(AbstractSideTableInfo.CACHE_KEY));
-                    absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType);
+                    absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType, pluginLoadMode);
                     sideTableInfoMap.put(type + cacheType, absTableParser);
                 }
             }
@@ -88,7 +88,7 @@ public class AbstractTableInfoParser {
         }else if(tableType == ETableType.SINK.getType()){
             absTableParser = targetTableInfoMap.get(type);
             if(absTableParser == null){
-                absTableParser = StreamSinkFactory.getSqlParser(type, localPluginRoot);
+                absTableParser = StreamSinkFactory.getSqlParser(type, localPluginRoot, pluginLoadMode);
                 targetTableInfoMap.put(type, absTableParser);
             }
         }

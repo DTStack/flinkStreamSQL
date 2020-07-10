@@ -37,10 +37,10 @@ public class StreamSideFactory {
 
     private static final String CURR_TYPE = "side";
 
-    public static AbstractTableParser getSqlParser(String pluginType, String sqlRootDir, String cacheType) throws Exception {
+    public static AbstractTableParser getSqlParser(String pluginType, String sqlRootDir, String cacheType, String pluginLoadMode) throws Exception {
 
         String sideOperator = ECacheType.ALL.name().equalsIgnoreCase(cacheType) ? "all" : "async";
-        String pluginJarPath = PluginUtil.getSideJarFileDirPath(pluginType, sideOperator, "side", sqlRootDir);
+        String pluginJarPath = PluginUtil.getSideJarFileDirPath(pluginType, sideOperator, "side", sqlRootDir, pluginLoadMode);
         String className = PluginUtil.getSqlParserClassName(pluginType, CURR_TYPE);
 
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {
