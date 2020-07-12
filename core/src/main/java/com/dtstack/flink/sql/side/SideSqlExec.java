@@ -382,7 +382,17 @@ public class SideSqlExec {
         Table leftTable = getTableFromCache(localTableCache, joinInfo.getLeftTableAlias(), joinInfo.getLeftTableName());
 
         RowTypeInfo leftTypeInfo = new RowTypeInfo(leftTable.getSchema().getFieldTypes(), leftTable.getSchema().getFieldNames());
+
+        int length = leftTable.getSchema().getFieldDataTypes().length;
+        LogicalType[] logicalTypes = new LogicalType[length];
+        for(int i=0; i<length; i++){
+            logicalTypes[i] = leftTable.getSchema().getFieldDataTypes()[i].getLogicalType();
+        }
+
+        BaseRowTypeInfo leftBaseTypeInfo = new BaseRowTypeInfo(logicalTypes, leftTable.getSchema().getFieldNames());
+
         leftScopeChild.setRowTypeInfo(leftTypeInfo);
+        leftScopeChild.setBaseRowTypeInfo(leftBaseTypeInfo);
 
         JoinScope.ScopeChild rightScopeChild = new JoinScope.ScopeChild();
         rightScopeChild.setAlias(joinInfo.getRightTableAlias());
