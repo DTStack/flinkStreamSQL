@@ -24,10 +24,18 @@ import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.logical.DecimalType;
+import org.apache.flink.table.types.logical.LogicalType;
+import org.apache.flink.table.types.utils.ClassDataTypeConverter;
+import org.apache.flink.table.types.utils.TypeConversions;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Reason:
@@ -94,6 +102,27 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         }
 
         return new RowTypeInfo(types, fieldNames);
+    }
+
+    public BaseRowTypeInfo getBaseRowTypeInfo(){
+        String[] fieldNames = getFields();
+        Class[] fieldClass = getFieldClasses();
+        LogicalType[] logicalTypes = new LogicalType[fieldClass.length];
+        for (int i = 0; i < fieldClass.length; i++) {
+            if(fieldClass[i].getName().equals(BigDecimal.class.getName())){
+                logicalTypes[i] = new DecimalType(DecimalType.MAX_PRECISION, 18);
+                continue;
+            }
+
+            Optional<DataType> optionalDataType = ClassDataTypeConverter.extractDataType(fieldClass[i]);
+            if(!optionalDataType.isPresent()){
+                throw new RuntimeException(String.format("not support table % field %s type %s", getName(), fieldNames[i], fieldClass[i]));
+            }
+
+            logicalTypes[i] = optionalDataType.get().getLogicalType();
+        }
+
+        return new BaseRowTypeInfo(logicalTypes, fieldNames);
     }
 
     public String getCacheType() {

@@ -18,9 +18,12 @@
 
 package com.dtstack.flink.sql.side.rdb.all;
 
+import com.dtstack.flink.sql.util.RowDataComplete;
+import com.dtstack.flink.sql.util.RowDataConvert;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -104,7 +107,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> value, Collector<Tuple2<Boolean,Row>> out) throws Exception {
+    public void flatMap(Tuple2<Boolean, Row> value, Collector<Tuple2<Boolean, BaseRow>> out) throws Exception {
         List<Integer> equalValIndex = sideInfo.getEqualValIndex();
         ArrayList<Object> inputParams = equalValIndex.stream()
                 .map(value.f1::getField)
@@ -112,7 +115,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
-            out.collect(Tuple2.of(value.f0, fillData(value.f1, null)));
+            Row row = fillData(value.f1, null);
+            RowDataComplete.collectTupleRow(out, Tuple2.of(value.f0, row));
             return;
         }
 
@@ -122,9 +126,9 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
         if (CollectionUtils.isEmpty(cacheList) && sideInfo.getJoinType() == JoinType.LEFT) {
-            out.collect(Tuple2.of(value.f0, fillData(value.f1, null)));
+            out.collect(Tuple2.of(value.f0, RowDataConvert.convertToBaseRow(fillData(value.f1, null))));
         } else if (!CollectionUtils.isEmpty(cacheList)) {
-            cacheList.stream().forEach(one -> out.collect(Tuple2.of(value.f0, fillData(value.f1, one))));
+            cacheList.stream().forEach(one -> out.collect(Tuple2.of(value.f0, RowDataConvert.convertToBaseRow(fillData(value.f1, one)))));
         }
 
     }

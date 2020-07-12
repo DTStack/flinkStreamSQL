@@ -17,12 +17,13 @@
  */
 
 
-
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.util.RowDataComplete;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -43,10 +44,11 @@ import java.util.concurrent.TimeUnit;
  * Reason:
  * Date: 2018/9/18
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean,Row>, Tuple2<Boolean,Row>> implements ISideReqRow {
+public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean, Row>, Tuple2<Boolean, BaseRow>> implements ISideReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
@@ -56,7 +58,7 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean,R
 
     private ScheduledExecutorService es;
 
-    public BaseAllReqRow(BaseSideInfo sideInfo){
+    public BaseAllReqRow(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
 
     }
@@ -73,7 +75,7 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean,R
 
         //start reload cache thread
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
-        es = new ScheduledThreadPoolExecutor(1,new DTThreadFactory("cache-all-reload"));
+        es = new ScheduledThreadPoolExecutor(1, new DTThreadFactory("cache-all-reload"));
         es.scheduleAtFixedRate(() -> reloadCache(), sideTableInfo.getCacheTimeout(), sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS);
     }
 
@@ -87,12 +89,12 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean,R
         return obj;
     }
 
-    protected void sendOutputRow(Tuple2<Boolean, Row> value, Object sideInput, Collector<Tuple2<Boolean, Row>> out) {
+    protected void sendOutputRow(Tuple2<Boolean, Row> value, Object sideInput, Collector<Tuple2<Boolean, BaseRow>> out) {
         if (sideInput == null && sideInfo.getJoinType() != JoinType.LEFT) {
             return;
         }
         Row row = fillData(value.f1, sideInput);
-        out.collect(Tuple2.of(value.f0, row));
+        RowDataComplete.collectTupleRow(out, Tuple2.of(value.f0, row));
     }
 
     @Override

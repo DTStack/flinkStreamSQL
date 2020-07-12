@@ -20,12 +20,14 @@ package com.dtstack.flink.sql.side.redis;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
@@ -128,7 +130,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row> > resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow> > resultFuture) throws Exception {
         String key = buildCacheKey(inputParams);
         if(StringUtils.isBlank(key)){
             return;
@@ -141,7 +143,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                     try {
                         Row row = fillData(input.f1, values);
                         dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
-                        resultFuture.complete(Collections.singleton(Tuple2.of(input.f0, row)));
+                        RowDataComplete.completeTupleRows(resultFuture, Collections.singleton(Tuple2.of(input.f0, row)));
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }

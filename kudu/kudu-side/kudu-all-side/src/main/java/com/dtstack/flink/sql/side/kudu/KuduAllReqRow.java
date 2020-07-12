@@ -7,6 +7,7 @@ import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -15,6 +16,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.apache.kudu.ColumnSchema;
@@ -105,7 +107,7 @@ public class KuduAllReqRow extends BaseAllReqRow {
 
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean,Row>> out) throws Exception {
+    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean, BaseRow>> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = input.f1.getField(conValIndex);
@@ -120,13 +122,14 @@ public class KuduAllReqRow extends BaseAllReqRow {
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
                 Row row = fillData(input.f1, null);
-                out.collect(Tuple2.of(input.f0, row));
+                RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, row));
             }
             return;
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(Tuple2.of(input.f0, fillData(input.f1, one)));
+            Row row = fillData(input.f1, one);
+            RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, row));
         }
     }
 
