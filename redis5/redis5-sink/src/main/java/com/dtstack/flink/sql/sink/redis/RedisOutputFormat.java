@@ -19,6 +19,8 @@
 package com.dtstack.flink.sql.sink.redis;
 
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.sink.redis.enums.RedisType;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -35,11 +37,7 @@ import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author yanxi
@@ -49,7 +47,7 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private String url;
 
-    private String database;
+    private String database = "0";
 
     private String tableName;
 
@@ -71,7 +69,7 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     protected List<String> primaryKeys;
 
-    protected int timeout;
+    protected int timeout = 10000;
 
     private JedisPool pool;
 
@@ -121,29 +119,21 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             String[] ipPortPair = StringUtils.split(ipPort, ":");
             addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
         }
-        if (timeout == 0){
-            timeout = 10000;
-        }
-        if (database == null)
-        {
-            database = "0";
-        }
 
-        switch (redisType){
-            //单机
-            case 1:
+        switch (RedisType.parse(redisType)){
+            case STANDALONE:
                 pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
                 jedis = pool.getResource();
                 break;
-            //哨兵
-            case 2:
+            case SENTINEL:
                 jedisSentinelPool = new JedisSentinelPool(masterName, ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
                 jedis = jedisSentinelPool.getResource();
                 break;
-            //集群
-            case 3:
+            case CLUSTER:
                 jedis = new JedisCluster(addresses, timeout, timeout, 10, password, poolConfig);
+                break;
             default:
+                throw new RuntimeException("unsupport redis type[ " + redisType + "]");
         }
     }
 
@@ -158,36 +148,14 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         if (row.getArity() != fieldNames.length) {
             return;
         }
-
-        HashMap<String, Integer> map = new HashMap<>(8);
-        for (String primaryKey : primaryKeys) {
-            for (int i = 0; i < fieldNames.length; i++) {
-                if (fieldNames[i].equals(primaryKey)) {
-                    map.put(primaryKey, i);
-                }
-            }
+        Map<String, Object> refData = Maps.newHashMap();
+        for(int i = 0; i < fieldNames.length; i++){
+            refData.put(fieldNames[i], row.getField(i));
         }
-
-        List<String> kvList = new LinkedList<>();
-        for (String primaryKey : primaryKeys){
-            StringBuilder primaryKv = new StringBuilder();
-            int index = map.get(primaryKey).intValue();
-            primaryKv.append(primaryKey).append(":").append(row.getField(index));
-            kvList.add(primaryKv.toString());
-        }
-
-        String perKey = String.join(":", kvList);
-        for (int i = 0; i < fieldNames.length; i++) {
-            StringBuilder key = new StringBuilder();
-            key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
-
-            String value = "null";
-            Object field = row.getField(i);
-            if (field != null) {
-                value = field.toString();
-            }
-            jedis.set(key.toString(), value);
-        }
+        String redisKey = buildCacheKey(refData);
+        refData.entrySet().forEach(e ->{
+            jedis.hset(redisKey, e.getKey(), String.valueOf(e.getValue()));
+        });
 
         if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
@@ -209,6 +177,17 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             }
         }
 
+    }
+
+    public String buildCacheKey(Map<String, Object> refData) {
+        StringBuilder keyBuilder = new StringBuilder(tableName);
+        for(String primaryKey : primaryKeys){
+            if(!refData.containsKey(primaryKey)){
+                return null;
+            }
+            keyBuilder.append("_").append(refData.get(primaryKey));
+        }
+        return keyBuilder.toString();
     }
 
     public static RedisOutputFormatBuilder buildRedisOutputFormat(){
