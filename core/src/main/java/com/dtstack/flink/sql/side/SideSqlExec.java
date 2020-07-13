@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.enums.EPluginLoadMode;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -104,7 +105,7 @@ public class SideSqlExec {
                      Map<String, Table> tableCache,
                      CreateTmpTableParser.SqlParserResult createView,
                      String scope) throws Exception {
-        if (localSqlPluginPath == null) {
+        if (localSqlPluginPath == null && !pluginLoadMode.equals(EPluginLoadMode.LOCALTEST.name())) {
             throw new RuntimeException("need to set localSqlPluginPath");
         }
 
