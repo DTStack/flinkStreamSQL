@@ -2,13 +2,11 @@ package com.dtstack.flink.sql.util;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import org.apache.flink.api.common.typeinfo.TypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.shaded.guava18.com.google.common.base.Splitter;
 import org.apache.flink.table.api.Types;
-import scala.reflect.macros.TypecheckException;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;
@@ -26,6 +24,11 @@ public class DataTypeUtils {
     private final static String ROW = "ROW";
     private final static char FIELD_DELIMITER = ',';
     private final static char TYPE_DELIMITER = ' ';
+
+    private final static Pattern COMPLEX_TYPE_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(.+?<.+>)\\s*,");
+    private final static Pattern ATOMIC_TYPE_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(\\w+)\\s*,");
+    private final static Pattern TAIL_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(.+?<.+>)\\s*");
+    private final static Pattern ATOMIC_TAIL_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(\\w+)\\s*");
 
     private DataTypeUtils() {}
 
@@ -153,5 +156,10 @@ public class DataTypeUtils {
             default:
                 throw new RuntimeException("type " + string + "not supported");
         }
+    }
+
+    public static void splitFields(String fieldStmt) {
+        // TODO 可以把每轮字符流开始的空白字符去掉。
+
     }
 }

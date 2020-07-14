@@ -85,7 +85,7 @@ public abstract class AbstractTableParser {
     }
 
     public void parseFieldsInfo(String fieldsInfo, AbstractTableInfo tableInfo){
-
+        // TODO 替换
         List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
