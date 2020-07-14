@@ -1,5 +1,6 @@
 package com.dtstack.flink.sql.util;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -9,6 +10,7 @@ import org.apache.flink.shaded.guava18.com.google.common.base.Splitter;
 import org.apache.flink.table.api.Types;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,10 +27,10 @@ public class DataTypeUtils {
     private final static char FIELD_DELIMITER = ',';
     private final static char TYPE_DELIMITER = ' ';
 
-    private final static Pattern COMPLEX_TYPE_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(.+?<.+>)\\s*,");
     private final static Pattern ATOMIC_TYPE_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(\\w+)\\s*,");
-    private final static Pattern TAIL_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(.+?<.+>)\\s*");
-    private final static Pattern ATOMIC_TAIL_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(\\w+)\\s*");
+    private final static Pattern COMPLEX_TYPE_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(.+?<.+?>)\\s*,");
+    private final static Pattern ATOMIC_TAIL_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(\\w+)\\s*$");
+    private final static Pattern COMPLEX_TAIL_PATTERN = Pattern.compile("^\\s*(\\w+)\\s+(.+?<.+>)\\s*$");
 
     private DataTypeUtils() {}
 
@@ -158,8 +160,33 @@ public class DataTypeUtils {
         }
     }
 
-    public static void splitFields(String fieldStmt) {
-        // TODO 可以把每轮字符流开始的空白字符去掉。
+    public static ArrayList<String> fieldStmtLexer(String fieldStmts) {
 
+        String stmtStream = fieldStmts;
+        ArrayList<String> tokens = new ArrayList<>();
+        while (Strings.isNullOrEmpty(stmtStream)) {
+            Matcher atomicTypeMatcher = ATOMIC_TYPE_PATTERN.matcher(stmtStream);
+            Matcher complexTypeMatcher = COMPLEX_TYPE_PATTERN.matcher(stmtStream);
+            Matcher atomicTypeTailMatcher = ATOMIC_TAIL_PATTERN.matcher(stmtStream);
+            Matcher complexTypeTailMatcher = COMPLEX_TAIL_PATTERN.matcher(stmtStream);
+
+            String fieldStmt;
+
+            if (atomicTypeMatcher.find()) {
+                fieldStmt = atomicTypeMatcher.group(0);
+            } else if (complexTypeMatcher.find()) {
+                fieldStmt = complexTypeMatcher.group(0);
+            } else if (atomicTypeTailMatcher.find()) {
+                fieldStmt = atomicTypeTailMatcher.group(0);
+            } else if (complexTypeTailMatcher.find()) {
+                fieldStmt = complexTypeTailMatcher.group(0);
+            } else {
+                throw new RuntimeException("field declaration statement error" + fieldStmts);
+            }
+
+            tokens.add(fieldStmt);
+            stmtStream = stmtStream.substring(fieldStmt.length() + 1);
+        }
+        return tokens;
     }
 }

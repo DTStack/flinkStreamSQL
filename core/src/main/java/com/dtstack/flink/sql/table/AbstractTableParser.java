@@ -27,6 +27,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -49,6 +51,9 @@ public abstract class AbstractTableParser {
     private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
     private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
     private static Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
+
+    private static Pattern compositeTypeHeadPattern = Pattern.compile(".+<.+<");
+    private static Pattern compositeTypeTailPattern = Pattern.compile(">\\s*>");
 
     private Map<String, Pattern> patternMap = Maps.newHashMap();
 
@@ -85,8 +90,11 @@ public abstract class AbstractTableParser {
     }
 
     public void parseFieldsInfo(String fieldsInfo, AbstractTableInfo tableInfo){
-        // TODO 替换
+
         List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
+
+        ArrayList<String> cache = new ArrayList<>();
+        boolean currentIsCompositeType = false;
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
 
@@ -94,7 +102,33 @@ public abstract class AbstractTableParser {
                 throw new RuntimeException(String.format("table [%s],exists field empty.", tableInfo.getName()));
             }
 
-            String[] filedInfoArr = fieldRow.split("\\s+");
+            // 处理复合类型，例如 ARRAY<ROW<foo INT, bar STRING>>
+            String[] filedInfoArr;
+            Matcher headMatcher = compositeTypeHeadPattern.matcher(fieldRow);
+            Matcher tailMatcher = compositeTypeTailPattern.matcher(fieldRow);
+
+            if (tailMatcher.find()) {
+                cache.add(fieldRow);
+                currentIsCompositeType = false;
+                fieldRow = String.join("", cache);
+                cache.clear();
+                String[] tmp = fieldRow.split("\\s+");
+                String[] type = Arrays.copyOfRange(tmp, 1, tmp.length);
+                filedInfoArr = new String[] {
+                    tmp[0],
+                    String.join(" ", type)
+                };
+            } else if (headMatcher.find() || currentIsCompositeType) {
+                currentIsCompositeType = true;
+                StringBuilder builder = new StringBuilder();
+                builder.append(fieldRow);
+                builder.append(",");
+                cache.add(builder.toString());
+                continue;
+            } else {
+                filedInfoArr = fieldRow.split("\\s+");
+            }
+
             if(filedInfoArr.length < 2 ){
                 throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
             }
