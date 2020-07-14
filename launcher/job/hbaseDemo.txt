@@ -1,0 +1,19 @@
+hbase维度表
+
+//所有的Configuation参数，都加一个前缀hbase
+//这个是维表参数，都跑通过过，这个是lru的
+create hbase_sie()with(
+hbase.hbase.security.authentication='kerberos',
+hbase.hbase.master.kerberos.principal='...',
+hbase.hbase.kerberos.regionserver.principal='...',
+hbase.hbase.security.auth.enable = 'true',
+hbase.hbase.sasl.clientconfig = 'Client'
+)
+
+全量的表应该和sink参数是一样的
+
+(
+   hbase.hbase.security.authentication='kerberos',
+   hbase.hbase.master.kerberos.principal='...',
+   hbase.hbase.regionserver.kerberos.principal='...', //注意和上面的顺序，异步客户端和正常连接这个参数不一样
+)

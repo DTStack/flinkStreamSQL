@@ -33,12 +33,14 @@ import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
+import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,11 +81,14 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
 
     private String[] colNames;
 
+    private Map<String,String> hbaseParam;
+
     public HbaseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new HbaseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
 
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
         colNames = ((HbaseSideTableInfo)sideTableInfo).getColumnRealNames();
+        hbaseParam = ((HbaseSideTableInfo)sideTableInfo).getHbaseParam();
     }
 
 
@@ -95,7 +100,17 @@ public class HbaseAsyncReqRow extends AsyncReqRow {
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-aysnc"));
 
-        hBaseClient = new HBaseClient(hbaseSideTableInfo.getHost(), hbaseSideTableInfo.getParent(), executorService);
+        String host = hbaseSideTableInfo.getHost();
+        String zkParent = hbaseSideTableInfo.getParent();
+        Config config = new Config();
+        if (StringUtils.isNotBlank(zkParent)){
+            config.overrideConfig("hbase.zookeeper.znode.parent",zkParent);
+        }
+        config.overrideConfig("hbase.zookeeper.quorum",host);
+        hbaseParam.forEach(config::overrideConfig);
+
+        hBaseClient = new HBaseClient(config,executorService);
+
 
         try {
             Deferred deferred = hBaseClient.ensureTableExists(tableName)

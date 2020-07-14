@@ -88,5 +88,4 @@ public class KafkaConsumer extends FlinkKafkaConsumer<Row> {
         ((KafkaDeserializationMetricWrapper) deserializationMetricWrapper).setFetcher(fetcher);
         return fetcher;
     }
-
 }

@@ -68,6 +68,11 @@ public class HbaseSideParser extends AbsSideTableParser {
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         hbaseTableInfo.setPreRowKey(MathUtil.getBoolean(props.get(PRE_ROW_KEY.toLowerCase()), false));
         hbaseTableInfo.setCacheType((String) props.get(CACHE));
+        props.forEach((key,value)->{
+            if (!key.isEmpty() && key.startsWith("hbase.")){
+                hbaseTableInfo.addHbaseParam(key.substring(6),value.toString());
+            }
+        });
         return hbaseTableInfo;
     }
 

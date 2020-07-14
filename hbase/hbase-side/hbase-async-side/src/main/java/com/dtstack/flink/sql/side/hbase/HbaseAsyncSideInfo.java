@@ -36,7 +36,7 @@ public class HbaseAsyncSideInfo extends SideInfo {
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, SideTableInfo sideTableInfo) {
         rowKeyBuilder = new RowKeyBuilder();
-        if(sideTableInfo.getPrimaryKeys().size() < 1){
+        if(sideTableInfo.getPrimaryKeys().isEmpty()){
             throw new RuntimeException("Primary key dimension table must be filled");
         }
 

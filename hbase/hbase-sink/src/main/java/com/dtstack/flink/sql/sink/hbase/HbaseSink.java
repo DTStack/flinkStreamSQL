@@ -53,6 +53,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String tableName;
     protected String updateMode;
     protected String[] rowkey;
+    protected Map<String,String> hbaseParam;
 
     public HbaseSink() {
         // TO DO NOTHING
@@ -68,6 +69,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.rowkey = hbaseTableInfo.getRowkey();
         this.columnNameFamily = hbaseTableInfo.getColumnNameFamily();
         this.updateMode = hbaseTableInfo.getUpdateMode();
+        this.hbaseParam = hbaseTableInfo.getHbaseParam();
         return this;
     }
 
@@ -80,7 +82,8 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
                 .setRowkey(rowkey)
                 .setUpdateMode(updateMode)
                 .setColumnNames(fieldNames)
-                .setColumnNameFamily(columnNameFamily);
+                .setColumnNameFamily(columnNameFamily)
+                .setHbaseParam(this.hbaseParam);
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);

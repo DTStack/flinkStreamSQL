@@ -62,6 +62,7 @@ public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
     private String updateMode;
     private String[] columnTypes;
     private Map<String, String> columnNameFamily;
+    private Map<String, String> hbaseParam;
 
     private String[] families;
     private String[] qualifiers;
@@ -77,9 +78,11 @@ public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
         LOG.warn("---configure---");
         conf = HBaseConfiguration.create();
         conf.set("hbase.zookeeper.quorum", host);
-        if (zkParent != null && !"".equals(zkParent)) {
+        if (StringUtils.isNotBlank(zkParent)) {
             conf.set("zookeeper.znode.parent", zkParent);
         }
+        //设置所有的hbase参数
+        hbaseParam.forEach(conf::set);
         LOG.warn("---configure end ---");
     }
 
@@ -224,6 +227,11 @@ public class HbaseOutputFormat extends DtRichOutputFormat<Tuple2> {
 
         private HbaseOutputFormatBuilder() {
             format = new HbaseOutputFormat();
+        }
+
+        public HbaseOutputFormatBuilder setHbaseParam(Map<String,String> hbaseParam){
+            format.hbaseParam = hbaseParam;
+            return this;
         }
 
         public HbaseOutputFormatBuilder setHost(String host) {

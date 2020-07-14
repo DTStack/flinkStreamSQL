@@ -72,6 +72,14 @@ public class HbaseSinkParser extends AbsTableParser {
         hbaseTableInfo.setRowkey(StringUtils.split(rk, ","));
         String updateMode = (String) props.getOrDefault(UPDATE_KEY, EUpdateMode.APPEND.name());
         hbaseTableInfo.setUpdateMode(updateMode);
+        /**
+         * 寻找到hbase开头的hbase配置，添加到hbaseParam当中，如果有kerberos认证，添加进去，会被加载到conf
+         */
+        props.forEach((key,value)->{
+            if (!key.isEmpty() && key.startsWith("hbase.")){
+                hbaseTableInfo.addHbaseParam(key.substring(6),value.toString());
+            }
+        });
         return hbaseTableInfo;
     }
 

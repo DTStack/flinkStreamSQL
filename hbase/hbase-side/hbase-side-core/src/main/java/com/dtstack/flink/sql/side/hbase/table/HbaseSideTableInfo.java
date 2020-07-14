@@ -26,6 +26,7 @@ import com.google.common.collect.Maps;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * hbase-dimensional form of property
@@ -57,6 +58,8 @@ public class HbaseSideTableInfo extends SideTableInfo {
     private List<String> columnRealNameList = Lists.newArrayList();
 
     private Map<String, String> aliasNameRef = Maps.newHashMap();
+
+    private Map<String,String> hbaseParam = Maps.newHashMap();
 
     public HbaseSideTableInfo(){
         setType(CURR_TYPE);
@@ -147,6 +150,27 @@ public class HbaseSideTableInfo extends SideTableInfo {
     public void setPreRowKey(boolean preRowKey) {
         this.preRowKey = preRowKey;
     }
+
+    public String getHbaseParam(String key){
+        return hbaseParam.get(key);
+    }
+
+    public Set<String> getHbaseParamKeys(){
+        return hbaseParam.keySet();
+    }
+
+    public void addHbaseParam(String key,String value){
+        hbaseParam.put(key,value);
+    }
+
+    public Map<String, String> getHbaseParam(){
+        return hbaseParam;
+    }
+
+    public void setHbaseParam(Map<String, String> hbaseParam){
+        this.hbaseParam = hbaseParam;
+    }
+
 
     @Override
     public void finish(){

@@ -23,7 +23,10 @@ package com.dtstack.flink.sql.sink.hbase.table;
 
 import com.dtstack.flink.sql.table.TargetTableInfo;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Date: 2018/09/14
@@ -53,6 +56,8 @@ public class HbaseTableInfo extends TargetTableInfo {
     private String tableName;
 
     private String updateMode;
+
+    private Map<String, String> hbaseParam = Maps.newHashMap();
 
     public HbaseTableInfo(){
         setType(CURR_TYPE);
@@ -136,6 +141,26 @@ public class HbaseTableInfo extends TargetTableInfo {
 
     public void setUpdateMode(String updateMode) {
         this.updateMode = updateMode;
+    }
+
+    public String getHbaseParam(String key){
+        return hbaseParam.get(key);
+    }
+
+    public Set<String> getHbaseParamKeys(){
+        return hbaseParam.keySet();
+    }
+
+    public void addHbaseParam(String key,String value){
+        hbaseParam.put(key,value);
+    }
+
+    public Map<String, String> getHbaseParam(){
+        return hbaseParam;
+    }
+
+    public void setHbaseParam(Map<String, String> hbaseParam){
+        this.hbaseParam = hbaseParam;
     }
 
     @Override

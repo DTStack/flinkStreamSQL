@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
+import org.apache.commons.lang.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
 import org.apache.flink.table.runtime.types.CRow;
@@ -53,12 +54,14 @@ public class HbaseAllReqRow extends AllReqRow {
 
     private Map<String, String> aliasNameInversion;
 
+    private Map<String, String> hbaseParam;
+
     private AtomicReference<Map<String, Map<String, Object>>> cacheRef = new AtomicReference<>();
 
     public HbaseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, SideTableInfo sideTableInfo) {
         super(new HbaseAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
-
+        hbaseParam = ((HbaseSideTableInfo)sideTableInfo).getHbaseParam();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         Map<String, String> aliasNameRef = hbaseSideTableInfo.getAliasNameRef();
         aliasNameInversion = new HashMap<>();
@@ -156,7 +159,13 @@ public class HbaseAllReqRow extends AllReqRow {
         SideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         Configuration conf = new Configuration();
-        conf.set("hbase.zookeeper.quorum", hbaseSideTableInfo.getHost());
+        String host = hbaseSideTableInfo.getHost();
+        String zkParent = hbaseSideTableInfo.getParent();
+        conf.set("hbase.zookeeper.quorum", host);
+        if (StringUtils.isNotBlank(zkParent)){
+            conf.set("zookeeper.znode.parent",zkParent);
+        }
+        hbaseParam.forEach(conf::set);
         Connection conn = null;
         Table table = null;
         ResultScanner resultScanner = null;

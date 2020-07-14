@@ -21,7 +21,10 @@ import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.source.serversocket.table.ServersocketSourceTableInfo;
 import com.dtstack.flink.sql.table.TableInfo;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
+import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.IOUtils;
@@ -43,7 +46,7 @@ import java.util.Map;
  *
  * @author maqi
  */
-public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
+public class CustomerSocketTextStreamFunction extends RichParallelSourceFunction<Row> implements ResultTypeQueryable<Row> {
 	private static final Logger LOG = LoggerFactory.getLogger(CustomerSocketTextStreamFunction.class);
 
 	protected DtNestRowDeserializationSchema deserializationSchema;
@@ -75,6 +78,9 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 
 	@Override
 	public void run(SourceContext<Row> ctx) throws Exception {
+		deserializationMetricWrapper.setRuntimeContext(getRuntimeContext());
+		deserializationMetricWrapper.initMetric();
+
 		final StringBuilder buffer = new StringBuilder();
 		long attempt = 0;
 
@@ -146,4 +152,9 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 		}
 	}
 
+	@Override
+	public TypeInformation<Row> getProducedType() {
+		DeserializationSchema<Row> deserializationSchema = deserializationMetricWrapper.getDeserializationSchema();
+		return deserializationSchema.getProducedType();
+	}
 }
