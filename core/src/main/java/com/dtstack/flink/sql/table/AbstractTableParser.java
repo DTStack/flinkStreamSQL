@@ -48,12 +48,12 @@ public abstract class AbstractTableParser {
     private static final String CHAR_TYPE_NO_LENGTH = "CHAR";
 
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
-    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
+    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
     private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
     private static Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
 
-    private static Pattern compositeTypeHeadPattern = Pattern.compile(".+<.+<");
-    private static Pattern compositeTypeTailPattern = Pattern.compile(">\\s*>");
+    private static Pattern compositeTypeHeadPattern = Pattern.compile(".+<.+<.+");
+    private static Pattern compositeTypeTailPattern = Pattern.compile(".*>\\s*>.*");
 
     private Map<String, Pattern> patternMap = Maps.newHashMap();
 
@@ -93,8 +93,8 @@ public abstract class AbstractTableParser {
 
         List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
 
-        ArrayList<String> cache = new ArrayList<>();
-        boolean currentIsCompositeType = false;
+        ArrayList<String> buffer = new ArrayList<>();
+
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
 
@@ -103,65 +103,58 @@ public abstract class AbstractTableParser {
             }
 
             // 处理复合类型，例如 ARRAY<ROW<foo INT, bar STRING>>
-            String[] filedInfoArr;
             Matcher headMatcher = compositeTypeHeadPattern.matcher(fieldRow);
             Matcher tailMatcher = compositeTypeTailPattern.matcher(fieldRow);
-
-            if (tailMatcher.find()) {
-                cache.add(fieldRow);
-                currentIsCompositeType = false;
-                fieldRow = String.join("", cache);
-                cache.clear();
-                String[] tmp = fieldRow.split("\\s+");
-                String[] type = Arrays.copyOfRange(tmp, 1, tmp.length);
-                filedInfoArr = new String[] {
-                    tmp[0],
-                    String.join(" ", type)
-                };
-            } else if (headMatcher.find() || currentIsCompositeType) {
-                currentIsCompositeType = true;
-                StringBuilder builder = new StringBuilder();
-                builder.append(fieldRow);
-                builder.append(",");
-                cache.add(builder.toString());
-                continue;
+            if (
+                !tailMatcher.matches() &&
+                (headMatcher.matches() ||
+                !buffer.isEmpty())
+            ) {
+                writeBuffer(buffer, fieldRow);
             } else {
-                filedInfoArr = fieldRow.split("\\s+");
+
+                String[] fieldInfoArr;
+                if (tailMatcher.matches()) {
+                    buffer.add(fieldRow);
+                    fieldRow = String.join("", buffer);
+                    fieldInfoArr = readBuffer(buffer);
+                }  else {
+                    fieldInfoArr = fieldRow.split("\\s+");
+                }
+
+                if (fieldInfoArr.length < 2) {
+                    throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
+                }
+
+                boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
+                if (isMatcherKey) {
+                    continue;
+                }
+
+                //Compatible situation may arise in space in the fieldName
+                String[] filedNameArr = new String[fieldInfoArr.length - 1];
+                System.arraycopy(fieldInfoArr, 0, filedNameArr, 0, fieldInfoArr.length - 1);
+                String fieldName = String.join(" ", filedNameArr);
+                String fieldType = fieldInfoArr[fieldInfoArr.length - 1 ].trim();
+
+                Class fieldClass = null;
+                AbstractTableInfo.FieldExtraInfo fieldExtraInfo = null;
+
+                Matcher matcher = charTypePattern.matcher(fieldType);
+                if (matcher.find()) {
+                    fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
+                    fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
+                    fieldExtraInfo.setLength(Integer.valueOf(matcher.group(1)));
+                } else {
+                    fieldClass = dbTypeConvertToJavaType(fieldType);
+                }
+
+                tableInfo.addPhysicalMappings(fieldInfoArr[0],fieldInfoArr[0]);
+                tableInfo.addField(fieldName);
+                tableInfo.addFieldClass(fieldClass);
+                tableInfo.addFieldType(fieldType);
+                tableInfo.addFieldExtraInfo(fieldExtraInfo);
             }
-
-            if(filedInfoArr.length < 2 ){
-                throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
-            }
-
-            boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
-            if(isMatcherKey){
-                continue;
-            }
-
-            //Compatible situation may arise in space in the fieldName
-            String[] filedNameArr = new String[filedInfoArr.length - 1];
-            System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
-            String fieldName = String.join(" ", filedNameArr);
-            String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
-
-
-            Class fieldClass = null;
-            AbstractTableInfo.FieldExtraInfo fieldExtraInfo = null;
-
-            Matcher matcher = charTypePattern.matcher(fieldType);
-            if (matcher.find()) {
-                fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
-                fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
-                fieldExtraInfo.setLength(Integer.valueOf(matcher.group(1)));
-            } else {
-                fieldClass = dbTypeConvertToJavaType(fieldType);
-            }
-
-            tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
-            tableInfo.addField(fieldName);
-            tableInfo.addFieldClass(fieldClass);
-            tableInfo.addFieldType(fieldType);
-            tableInfo.addFieldExtraInfo(fieldExtraInfo);
         }
 
         tableInfo.finish();
@@ -206,4 +199,24 @@ public abstract class AbstractTableParser {
         patternMap.put(parserName, pattern);
         handlerMap.put(parserName, handler);
     }
+
+    private void writeBuffer(List<String> buffer, String fieldRow) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(fieldRow);
+        builder.append(",");
+        buffer.add(builder.toString());
+    }
+
+    private String[] readBuffer(List<String> buffer) {
+        String fieldRow = String.join("", buffer);
+        buffer.clear();
+        String[] tmp = fieldRow.split("\\s+");
+        String[] type = Arrays.copyOfRange(tmp, 1, tmp.length);
+        String[] fieldInfoArr = new String[] {
+            tmp[0],
+            String.join(" ", type)
+        };
+        return fieldInfoArr;
+    }
+
 }

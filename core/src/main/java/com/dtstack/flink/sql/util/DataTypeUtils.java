@@ -160,6 +160,11 @@ public class DataTypeUtils {
         }
     }
 
+    /**
+     * 目前这个方法未使用，设置当初是想字段声明走统一的词法分析器(分词器)。
+     * @param fieldStmts
+     * @return
+     */
     public static ArrayList<String> fieldStmtLexer(String fieldStmts) {
 
         String stmtStream = fieldStmts;
