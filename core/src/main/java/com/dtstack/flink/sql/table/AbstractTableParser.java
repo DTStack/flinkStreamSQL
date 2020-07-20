@@ -95,10 +95,10 @@ public abstract class AbstractTableParser {
 
         ArrayList<String> buffer = new ArrayList<>();
 
-        for(String fieldRow : fieldRows){
+        for (String fieldRow : fieldRows) {
             fieldRow = fieldRow.trim();
 
-            if(StringUtils.isBlank(fieldRow)){
+            if (StringUtils.isBlank(fieldRow)) {
                 throw new RuntimeException(String.format("table [%s],exists field empty.", tableInfo.getName()));
             }
 
