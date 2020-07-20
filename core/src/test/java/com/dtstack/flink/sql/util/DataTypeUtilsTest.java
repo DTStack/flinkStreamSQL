@@ -15,18 +15,27 @@ public class DataTypeUtilsTest {
 
     @Test
     public void convertToArray() {
+        String[] normalFieldNames = new String[] { "id", "name" };
+        TypeInformation[] normalTypes = new TypeInformation[] {Types.INT(), Types.STRING()};
+        RowTypeInfo rowTypeInfo = new RowTypeInfo(normalTypes, normalFieldNames);
+        TypeInformation normalAtomicType = Types.OBJECT_ARRAY(Types.STRING());
+        TypeInformation normalCompositeType = Types.OBJECT_ARRAY(rowTypeInfo);
+
+        String atomicStrWithBlank = " ARRAY< STRING\n > ";
+        String compositeTypeStrWithBlank = " ARRAY<  ROW< id  INT, name  STRING >  > ";
+
+        TypeInformation atomicArrayTypeWithBlank = DataTypeUtils.convertToArray(atomicStrWithBlank);
+        TypeInformation compositeTypeArrayTypeWithBlank = DataTypeUtils.convertToArray(compositeTypeStrWithBlank);
+
+        Assert.assertTrue(normalAtomicType.equals(atomicArrayTypeWithBlank));
+        Assert.assertTrue(normalCompositeType.equals(compositeTypeArrayTypeWithBlank));
+
+
         String atomicStr = "ARRAY<STRING>";
         String compositeTypeStr = "ARRAY<ROW<id INT, name STRING>>";
 
         TypeInformation atomicArrayType = DataTypeUtils.convertToArray(atomicStr);
         TypeInformation compositeTypeArrayType = DataTypeUtils.convertToArray(compositeTypeStr);
-
-
-        String[] normalFieldNames = new String[] {"id", "name"};
-        TypeInformation[] normalTypes = new TypeInformation[] {Types.INT(), Types.STRING()};
-        RowTypeInfo rowTypeInfo = new RowTypeInfo(normalTypes, normalFieldNames);
-        TypeInformation normalAtomicType = Types.OBJECT_ARRAY(Types.STRING());
-        TypeInformation normalCompositeType = Types.OBJECT_ARRAY(rowTypeInfo);
 
         Assert.assertTrue(normalAtomicType.equals(atomicArrayType));
         Assert.assertTrue(normalCompositeType.equals(compositeTypeArrayType));
@@ -34,7 +43,7 @@ public class DataTypeUtilsTest {
 
     @Test
     public void convertToRow() {
-        String string = "ROW<id INT, name STRING>";
+        String string = " ROW < id INT, name STRING > ";
         RowTypeInfo rowType = DataTypeUtils.convertToRow(string);
 
         String[] fieldNames = rowType.getFieldNames();
@@ -48,7 +57,7 @@ public class DataTypeUtilsTest {
 
     @Test
     public void convertToAtomicType() {
-        TypeInformation type = DataTypeUtils.convertToAtomicType("STRING");
-        Assert.assertTrue(type == Types.STRING());
+        TypeInformation type = DataTypeUtils.convertToAtomicType(" TIMESTAMP ");
+        Assert.assertTrue(type == Types.SQL_TIMESTAMP());
     }
 }

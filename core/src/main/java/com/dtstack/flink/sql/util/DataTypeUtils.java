@@ -30,14 +30,20 @@ public class DataTypeUtils {
 
     private DataTypeUtils() {}
 
-    public static TypeInformation convertToCompositeType(String string) {
-        Matcher matcher = COMPOSITE_TYPE_PATTERN.matcher(string);
-        // TODO 现在只支持ARRAY类型后续可以加入 MAP等类型
-        if (matcher.find() && ARRAY.equals(matcher.group(1))) {
-            return convertToArray(string);
-        } else {
-            throw new RuntimeException("type " + string + "is not support!");
-        }
+    /**
+     * 现在只支持ARRAY类型后续可以加入 MAP等类型
+     * @param compositeTypeString
+     * @return
+     */
+    public static TypeInformation convertToCompositeType(String compositeTypeString) {
+        Matcher matcher = matchCompositeType(compositeTypeString);
+        final String errorMsg = "type " + compositeTypeString + "is not support!";
+        Preconditions.checkState(matcher.find(), errorMsg);
+
+        String normalizedType = normalizeType(matcher.group(1));
+        Preconditions.checkState(ARRAY.equals(normalizedType), errorMsg);
+
+        return convertToArray(compositeTypeString);
     }
 
     /**
@@ -46,64 +52,56 @@ public class DataTypeUtils {
      * @return
      */
     public static TypeInformation convertToArray(String arrayTypeString) {
-        Matcher matcher = COMPOSITE_TYPE_PATTERN.matcher(arrayTypeString);
-        if (matcher.find() && ARRAY.equals(matcher.group(1))) {
-            String elementTypeString = matcher.group(2);
-            TypeInformation elementType;
-            if (elementTypeString.toUpperCase().startsWith(ROW)) {
-                elementType = convertToRow(elementTypeString);
-            } else {
-                elementType = convertToAtomicType(elementTypeString);
-            }
-            return Types.OBJECT_ARRAY(elementType);
+        Matcher matcher = matchCompositeType(arrayTypeString);
+        final String errorMsg =  arrayTypeString + "convert to array type error!";
+        Preconditions.checkState(matcher.find(), errorMsg);
+
+        String normalizedType = normalizeType(matcher.group(1));
+        Preconditions.checkState(ARRAY.equals(normalizedType), errorMsg);
+
+        String elementTypeString = matcher.group(2);
+        TypeInformation elementType;
+        String normalizedElementType = normalizeType(elementTypeString);
+        if (normalizedElementType.startsWith(ROW)) {
+            elementType = convertToRow(elementTypeString);
         } else {
-            throw new RuntimeException(arrayTypeString + "convert to array type error!");
+            elementType = convertToAtomicType(elementTypeString);
         }
 
+        return Types.OBJECT_ARRAY(elementType);
     }
 
     /**
      * 目前ROW里只支持基本类型
-     * @param string
+     * @param rowTypeString
      */
-    public static RowTypeInfo convertToRow(String string) {
-        Matcher matcher = COMPOSITE_TYPE_PATTERN.matcher(string);
+    public static RowTypeInfo convertToRow(String rowTypeString) {
+        Matcher matcher = matchCompositeType(rowTypeString);
+        final String errorMsg = rowTypeString + "convert to row type error!";
+        Preconditions.checkState(matcher.find(), errorMsg);
 
-        if (matcher.find() &&
-            ROW.equals(matcher.group(1).toUpperCase())
-        ) {
-            String elementTypeStr = matcher.group(2);
-            Iterable<String> typeInfo = splitCompositeTypeFields(elementTypeStr);
-            Tuple2<TypeInformation[], String[]> tuple = genFieldInfo(typeInfo);
-            return new RowTypeInfo(tuple.f0, tuple.f1);
-        } else {
-            throw new RuntimeException(string + "convert to row type error!");
-        }
+        String normalizedType = normalizeType(matcher.group(1));
+        Preconditions.checkState(ROW.equals(normalizedType), errorMsg);
+
+        String elementTypeStr = matcher.group(2);
+        Iterable<String> fieldInfos = splitCompositeTypeField(elementTypeStr);
+        Tuple2<TypeInformation[], String[]> info = genFieldInfo(fieldInfos);
+        return new RowTypeInfo(info.f0, info.f1);
     }
 
-    private static Iterable<String> splitCompositeTypeFields(String string) {
-        return Splitter
-            .on(FIELD_DELIMITER)
-            .trimResults()
-            .split(string);
-    }
 
-    private static Tuple2<TypeInformation[], String[]> genFieldInfo(Iterable<String> typeInfo) {
+
+    private static Tuple2<TypeInformation[], String[]> genFieldInfo(Iterable<String> fieldInfos) {
         ArrayList<TypeInformation> types = Lists.newArrayList();
         ArrayList<String> fieldNames = Lists.newArrayList();
 
-        for (String type : typeInfo) {
-            Iterable<String> fieldInfo = Splitter
-                .on(TYPE_DELIMITER)
-                .trimResults()
-                .omitEmptyStrings()
-                .split(type);
-
-            ArrayList<String> array = Lists.newArrayList(fieldInfo.iterator());
-            Preconditions.checkState(array.size() == 2, "field info must be name with type");
-            TypeInformation fieldType = convertToAtomicType(array.get(1));
+        for (String fieldInfo : fieldInfos) {
+            Iterable<String> splitedInfo = splitTypeInfo(fieldInfo);
+            ArrayList<String> info = Lists.newArrayList(splitedInfo.iterator());
+            Preconditions.checkState(info.size() == 2, "field info must be name with type");
+            TypeInformation fieldType = convertToAtomicType(info.get(1));
             types.add(fieldType);
-            fieldNames.add(array.get(0));
+            fieldNames.add(info.get(0));
         }
 
         TypeInformation[] typeArray = types.toArray(new TypeInformation[types.size()]);
@@ -117,7 +115,7 @@ public class DataTypeUtils {
      * @return
      */
     public static TypeInformation convertToAtomicType(String string) {
-        switch (string.toUpperCase()) {
+        switch (normalizeType(string)) {
             case "VARCHAR":
             case "STRING":
                 return Types.STRING();
@@ -152,4 +150,32 @@ public class DataTypeUtils {
         }
     }
 
+    private static Iterable<String> splitTypeInfo(String string) {
+        return Splitter
+            .on(TYPE_DELIMITER)
+            .trimResults()
+            .omitEmptyStrings()
+            .split(string);
+    }
+
+    private static Iterable<String> splitCompositeTypeField(String string) {
+        return Splitter
+            .on(FIELD_DELIMITER)
+            .trimResults()
+            .split(string);
+    }
+
+    private static String replaceBlank(String s) {
+        return s.replaceAll("\\s", " ").trim();
+    }
+
+    private static Matcher matchCompositeType(String s) {
+        return COMPOSITE_TYPE_PATTERN.matcher(
+            replaceBlank(s)
+        );
+    }
+
+    private static String normalizeType(String s) {
+        return s.toUpperCase().trim();
+    }
 }
