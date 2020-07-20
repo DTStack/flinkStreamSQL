@@ -37,9 +37,17 @@ hbase2.0
 |rowkey | hbase的rowkey关联的列信息,多个值以逗号隔开|是||
 |updateMode|APPEND：不回撤数据，只下发增量数据，UPSERT：先删除回撤数据，然后更新|否|APPEND｜
 |parallelism | 并行度设置|否|1|
-      
-  
+|kerberosAuthEnable | 是否开启kerberos认证|否|false|
+|regionserverPrincipal | regionserver的principal，这个值从hbase-site.xml的hbase.regionserver.kerberos.principal属性中获取|否||
+|clientKeytabFile|client的keytab 文件|否|
+|clientPrincipal|client的principal|否||
+|zookeeperSaslClient | zookeeper.sasl.client值|否|true|
+|securityKrb5Conf | java.security.krb5.conf值|否||
+ 另外开启Kerberos认证还需要在VM参数中配置krb5, -Djava.security.krb5.conf=/Users/xuchao/Documents/flinkSql/kerberos/krb5.conf
+ 同时在addShipfile参数中添加keytab文件的路径，参数具体细节请看[命令参数说明](../config.md)
 ## 5.样例：
+
+### 普通结果表语句示例
 ```
 CREATE TABLE MyTable(
     name varchar,
@@ -78,8 +86,58 @@ into
         channel,
         name                                            
     from
-        MyTable a        
+        MyTable a       
+
+ 
  ```
+
+### kerberos认证结果表语句示例
+```
+CREATE TABLE MyTable(
+    name varchar,
+    channel varchar,
+    age int
+ )WITH(
+    type ='kafka10',
+    bootstrapServers ='172.16.8.107:9092',
+    zookeeperQuorum ='172.16.8.107:2181/kafka',
+    offsetReset ='latest',
+    topic ='mqTest01',
+    timezone='Asia/Shanghai',
+    updateMode ='append',
+    enableKeyPartitions ='false',
+    topicIsPattern ='false',
+    parallelism ='1'
+ );
+
+CREATE TABLE MyResult(
+    cf:name varchar ,
+    cf:channel varchar 
+ )WITH(
+	type ='hbase',
+	zookeeperQuorum ='cdh2.cdhsite:2181,cdh4.cdhsite:2181',
+	zookeeperParent ='/hbase',
+	tableName ='myresult',
+	partitionedJoin ='false',
+	parallelism ='1',
+	rowKey='name',
+    kerberosAuthEnable='true',
+    regionserverPrincipal='hbase/_HOST@DTSTACK.COM',
+    clientKeytabFile='test.keytab',
+    clientPrincipal='test@DTSTACK.COM',
+    securityKrb5Conf='krb5.conf',
+ );
+
+insert          
+into
+    MyResult
+    select
+        channel,
+        name                                            
+    from
+        MyTable a      
+
+```
 
 ## 6.hbase数据
 ### 数据内容说明

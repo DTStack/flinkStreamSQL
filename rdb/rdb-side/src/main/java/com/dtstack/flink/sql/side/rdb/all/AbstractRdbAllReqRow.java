@@ -93,7 +93,6 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     protected void reloadCache() {
         //reload cacheRef and replace to old cacheRef
         Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
-        cacheRef.set(newCache);
         try {
             loadData(newCache);
         } catch (SQLException e) {
@@ -123,6 +122,11 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
         if (CollectionUtils.isEmpty(cacheList) && sideInfo.getJoinType() == JoinType.LEFT) {
             out.collect(new CRow(fillData(value.row(), null), value.change()));
+            return;
+        }
+
+        if (CollectionUtils.isEmpty(cacheList)) {
+            return;
         }
 
         cacheList.forEach(one -> out.collect(new CRow(fillData(value.row(), one), value.change())));
