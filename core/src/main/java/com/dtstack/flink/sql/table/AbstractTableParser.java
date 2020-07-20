@@ -103,16 +103,15 @@ public abstract class AbstractTableParser {
             }
 
             // 处理复合类型，例如 ARRAY<ROW<foo INT, bar STRING>>
+            // 把ARRAY类型的长串字符压入Buffer
             Matcher headMatcher = compositeTypeHeadPattern.matcher(fieldRow);
             Matcher tailMatcher = compositeTypeTailPattern.matcher(fieldRow);
-            if (
-                !tailMatcher.matches() &&
-                (headMatcher.matches() ||
-                !buffer.isEmpty())
-            ) {
+            boolean isNotTail = !tailMatcher.matches();
+            boolean isToNeedPush = headMatcher.matches() || !buffer.isEmpty();
+
+            if (isNotTail && isToNeedPush) {
                 writeBuffer(buffer, fieldRow);
             } else {
-
                 String[] fieldInfoArr;
                 if (tailMatcher.matches()) {
                     buffer.add(fieldRow);
@@ -122,9 +121,8 @@ public abstract class AbstractTableParser {
                     fieldInfoArr = fieldRow.split("\\s+");
                 }
 
-                if (fieldInfoArr.length < 2) {
-                    throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
-                }
+                String errorMsg = String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow);
+                Preconditions.checkState(fieldInfoArr.length >= 2, errorMsg);
 
                 boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
                 if (isMatcherKey) {
@@ -149,7 +147,7 @@ public abstract class AbstractTableParser {
                     fieldClass = dbTypeConvertToJavaType(fieldType);
                 }
 
-                tableInfo.addPhysicalMappings(fieldInfoArr[0],fieldInfoArr[0]);
+                tableInfo.addPhysicalMappings(fieldInfoArr[0], fieldInfoArr[0]);
                 tableInfo.addField(fieldName);
                 tableInfo.addFieldClass(fieldClass);
                 tableInfo.addFieldType(fieldType);

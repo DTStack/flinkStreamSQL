@@ -84,24 +84,23 @@ public class DataTypeUtils {
         Preconditions.checkState(ROW.equals(normalizedType), errorMsg);
 
         String elementTypeStr = matcher.group(2);
-        Iterable<String> fieldInfos = splitCompositeTypeField(elementTypeStr);
-        Tuple2<TypeInformation[], String[]> info = genFieldInfo(fieldInfos);
+        Iterable<String> fieldInfoStrs = splitCompositeTypeField(elementTypeStr);
+        Tuple2<TypeInformation[], String[]> info = genFieldInfo(fieldInfoStrs);
         return new RowTypeInfo(info.f0, info.f1);
     }
 
-
-
-    private static Tuple2<TypeInformation[], String[]> genFieldInfo(Iterable<String> fieldInfos) {
+    private static Tuple2<TypeInformation[], String[]> genFieldInfo(Iterable<String> fieldInfoStrs) {
         ArrayList<TypeInformation> types = Lists.newArrayList();
         ArrayList<String> fieldNames = Lists.newArrayList();
 
-        for (String fieldInfo : fieldInfos) {
-            Iterable<String> splitedInfo = splitTypeInfo(fieldInfo);
+        for (String fieldStr : fieldInfoStrs) {
+            Iterable<String> splitedInfo = splitTypeInfo(fieldStr);
             ArrayList<String> info = Lists.newArrayList(splitedInfo.iterator());
             Preconditions.checkState(info.size() == 2, "field info must be name with type");
+
+            fieldNames.add(info.get(0));
             TypeInformation fieldType = convertToAtomicType(info.get(1));
             types.add(fieldType);
-            fieldNames.add(info.get(0));
         }
 
         TypeInformation[] typeArray = types.toArray(new TypeInformation[types.size()]);
