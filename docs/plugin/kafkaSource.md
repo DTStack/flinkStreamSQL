@@ -149,7 +149,7 @@ SQL样例
 ```
 CREATE TABLE ods (
     id INT,
-    some_users ARRAY<STRING>>
+    some_users ARRAY<STRING>
 ) WITH (
     ...
 );
@@ -183,7 +183,7 @@ json样例
             "user_info": "bar"
         }
     ]
-
+}
 ```
 
 SQL样例
