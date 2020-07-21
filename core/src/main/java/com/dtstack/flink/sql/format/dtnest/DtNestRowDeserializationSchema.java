@@ -45,7 +45,7 @@ import java.util.Map;
 
 /**
  * source data parse to json format
- *
+ * <p>
  * Date: 2019/12/12
  * Company: www.dtstack.com
  *
@@ -55,28 +55,33 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private Map<String, String> rowAndFieldMapping;
-    private Map<String, JsonNode> nodeAndJsonNodeMapping = Maps.newHashMap();
+    private final Map<String, String> rowAndFieldMapping;
+    private final Map<String, JsonNode> nodeAndJsonNodeMapping = Maps.newHashMap();
 
     private final String[] fieldNames;
     private final TypeInformation<?>[] fieldTypes;
-    private List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos;
+    private final List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos;
+    private final String charsetName;
 
-    public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping, List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos) {
+    public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping,
+                                          List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos,
+                                          String charsetName) {
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
         this.rowAndFieldMapping = rowAndFieldMapping;
         this.fieldExtraInfos = fieldExtraInfos;
+        this.charsetName = charsetName;
     }
 
     @Override
     public Row deserialize(byte[] message) throws IOException {
-        JsonNode root = objectMapper.readTree(message);
+        String decoderStr = new String(message, charsetName);
+        JsonNode root = objectMapper.readTree(decoderStr);
         this.parseTree(root, null);
         return convertTopRow();
     }
 
-    private void parseTree(JsonNode jsonNode, String prefix){
+    private void parseTree(JsonNode jsonNode, String prefix) {
         if (jsonNode.isArray()) {
             ArrayNode array = (ArrayNode) jsonNode;
             for (int i = 0; i < array.size(); i++) {
@@ -95,15 +100,15 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
             return;
         }
         Iterator<String> iterator = jsonNode.fieldNames();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             String next = iterator.next();
             JsonNode child = jsonNode.get(next);
             String nodeKey = getNodeKey(prefix, next);
 
             nodeAndJsonNodeMapping.put(nodeKey, child);
-            if(child.isArray()){
+            if (child.isArray()) {
                 parseTree(child, nodeKey);
-            }else {
+            } else {
                 parseTree(child, nodeKey);
             }
         }
@@ -114,8 +119,8 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         return nodeAndJsonNodeMapping.get(nodeMappingKey);
     }
 
-    private String getNodeKey(String prefix, String nodeName){
-        if(Strings.isNullOrEmpty(prefix)){
+    private String getNodeKey(String prefix, String nodeName) {
+        if (Strings.isNullOrEmpty(prefix)) {
             return nodeName;
         }
         return prefix + "." + nodeName;
@@ -139,7 +144,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
             } else {
                 return node.asText();
             }
-        }  else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
+        } else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
             return Date.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
             // local zone
