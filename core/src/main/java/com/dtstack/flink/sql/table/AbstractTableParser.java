@@ -25,7 +25,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -170,25 +169,6 @@ public abstract class AbstractTableParser {
     protected void addParserHandler(String parserName, Pattern pattern, ITableFieldDealHandler handler) {
         patternMap.put(parserName, pattern);
         handlerMap.put(parserName, handler);
-    }
-
-    private void writeBuffer(List<String> buffer, String fieldRow) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(fieldRow);
-        builder.append(",");
-        buffer.add(builder.toString());
-    }
-
-    private String[] readBuffer(List<String> buffer) {
-        String fieldRow = String.join("", buffer);
-        buffer.clear();
-        String[] tmp = fieldRow.split("\\s+");
-        String[] type = Arrays.copyOfRange(tmp, 1, tmp.length);
-        String[] fieldInfoArr = new String[] {
-            tmp[0],
-            String.join(" ", type)
-        };
-        return fieldInfoArr;
     }
 
 }
