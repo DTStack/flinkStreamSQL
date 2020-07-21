@@ -130,7 +130,85 @@ CREATE TABLE MyTable(
  );
 ```
 
-数组类型字段解析示例
+#### 数组类型字段解析示例
+
+声明数据类型为Array可以使用CROSS JOIN UNNEST语句对Array类型进行展开。（新模式，推荐）
+
+json样例
+```
+{
+    "id": 2,
+    "some_users": [
+        "foo",
+        "bar"
+    ]
+}
+```
+
+SQL样例
+```
+CREATE TABLE ods (
+    id INT,
+    some_users ARRAY<STRING>
+) WITH (
+    ...
+);
+
+CREATE TABLE dwd (
+    id INT,
+    user_no INT,
+    user_info VARCHAR
+) WITH (
+    type ='console',
+);
+
+INSERT INTO dwd
+    SELECT id, user_info
+    FROM ods_foo
+    CROSS JOIN UNNEST(ods_foo.some_users) AS A (user_info);
+```
+
+json样例
+```
+{
+    "id": 4,
+    "some_users": [
+        {
+            "user_no": 12,
+            "user_info": "foo"
+
+        },
+        {
+            "user_no": 14,
+            "user_info": "bar"
+        }
+    ]
+}
+```
+
+SQL样例
+```
+CREATE TABLE ods (
+    id INT,
+    some_users ARRAY<ROW<user_no INT, user_info STRING>>
+) WITH (
+    ...
+);
+
+CREATE TABLE dwd (
+    id INT,
+    user_no INT,
+    user_info VARCHAR
+) WITH (
+    type ='console',
+);
+
+INSERT INTO dwd
+    SELECT id, user_no, user_info
+    FROM ods_foo
+    CROSS JOIN UNNEST(ods_foo.some_users) AS A (user_no, user_info);
+```
+##### 旧模式
 
 json: {"name":"tom", "obj":{"channel": "root"}, "user": [{"pv": 4}, {"pv": 10}], "xctime":1572932485}
 ```
