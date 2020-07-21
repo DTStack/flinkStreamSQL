@@ -122,26 +122,25 @@ public class ParserJoinField {
         List<FieldInfo> fieldInfoList = Lists.newArrayList();
         while(true) {
             JoinScope.ScopeChild resolved;
-            RowTypeInfo field;
+            BaseRowTypeInfo field;
             BaseRowTypeInfo baseRowTypeInfo;
             if(!prefixId.hasNext()) {
                 return fieldInfoList;
             }
 
             resolved = (JoinScope.ScopeChild)prefixId.next();
-            int fieldTypeLength = resolved.getRowTypeInfo().getFieldTypes().length;
+            int fieldTypeLength = resolved.getBaseRowTypeInfo().getFieldTypes().length;
             if(fieldTypeLength == 2
-                    && resolved.getRowTypeInfo().getFieldTypes()[1].getClass().equals(RowTypeInfo.class)){
-                field = (RowTypeInfo) resolved.getRowTypeInfo().getFieldTypes()[1];
+                    && resolved.getRowTypeInfo().getFieldTypes()[1].getClass().equals(BaseRowTypeInfo.class)){
+                field = (BaseRowTypeInfo) resolved.getBaseRowTypeInfo().getFieldTypes()[1];
             } else if(fieldTypeLength ==1
-                    && resolved.getRowTypeInfo().getFieldTypes()[0].getClass().equals(RowTypeInfo.class)){
-                field = (RowTypeInfo) resolved.getRowTypeInfo().getFieldTypes()[0];
+                    && resolved.getRowTypeInfo().getFieldTypes()[0].getClass().equals(BaseRowTypeInfo.class)){
+                field = (BaseRowTypeInfo) resolved.getBaseRowTypeInfo().getFieldTypes()[0];
             }else{
-                field = resolved.getRowTypeInfo();
+                field = resolved.getBaseRowTypeInfo();
             }
 
-
-            baseRowTypeInfo = resolved.getBaseRowTypeInfo();
+            baseRowTypeInfo = field;
             String[] fieldNames = field.getFieldNames();
             TypeInformation<?>[] types = field.getFieldTypes();
             LogicalType[] logicalTypes = baseRowTypeInfo.getLogicalTypes();
