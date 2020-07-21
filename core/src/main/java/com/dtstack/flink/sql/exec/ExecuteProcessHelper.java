@@ -82,9 +82,10 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- *  任务执行时的流程方法
+ * 任务执行时的流程方法
  * Date: 2020/2/17
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class ExecuteProcessHelper {
@@ -131,13 +132,14 @@ public class ExecuteProcessHelper {
     }
 
     /**
-     *   非local模式或者shipfile部署模式，remoteSqlPluginPath必填
+     * 非local模式或者shipfile部署模式，remoteSqlPluginPath必填
+     *
      * @param remoteSqlPluginPath
      * @param deployMode
      * @param pluginLoadMode
      * @return
      */
-    public static boolean checkRemoteSqlPluginPath(String remoteSqlPluginPath, String deployMode, String pluginLoadMode) {
+    private static boolean checkRemoteSqlPluginPath(String remoteSqlPluginPath, String deployMode, String pluginLoadMode) {
         if (StringUtils.isEmpty(remoteSqlPluginPath)) {
             return StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.SHIPFILE.name())
                     || StringUtils.equalsIgnoreCase(deployMode, ClusterMode.local.name());
@@ -176,7 +178,7 @@ public class ExecuteProcessHelper {
     }
 
 
-    public static List<URL> getExternalJarUrls(String addJarListStr) throws java.io.IOException {
+    private static List<URL> getExternalJarUrls(String addJarListStr) throws java.io.IOException {
         List<URL> jarUrlList = Lists.newArrayList();
         if (Strings.isNullOrEmpty(addJarListStr)) {
             return jarUrlList;
@@ -192,7 +194,7 @@ public class ExecuteProcessHelper {
 
     private static void sqlTranslation(String localSqlPluginPath,
                                        StreamTableEnvironment tableEnv,
-                                       SqlTree sqlTree,Map<String, AbstractSideTableInfo> sideTableMap,
+                                       SqlTree sqlTree, Map<String, AbstractSideTableInfo> sideTableMap,
                                        Map<String, Table> registerTableCache,
                                        StreamQueryConfig queryConfig) throws Exception {
 
@@ -246,7 +248,7 @@ public class ExecuteProcessHelper {
         }
     }
 
-    public static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv)
+    private static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv)
             throws IllegalAccessException, InvocationTargetException {
         // udf和tableEnv须由同一个类加载器加载
         ClassLoader levelClassLoader = tableEnv.getClass().getClassLoader();
@@ -262,13 +264,14 @@ public class ExecuteProcessHelper {
     }
 
     /**
-     *    向Flink注册源表和结果表，返回执行时插件包的全路径
+     * 向Flink注册源表和结果表，返回执行时插件包的全路径
+     *
      * @param sqlTree
      * @param env
      * @param tableEnv
      * @param localSqlPluginPath
      * @param remoteSqlPluginPath
-     * @param pluginLoadMode   插件加载模式 classpath or shipfile
+     * @param pluginLoadMode      插件加载模式 classpath or shipfile
      * @param sideTableMap
      * @param registerTableCache
      * @return
@@ -299,7 +302,23 @@ public class ExecuteProcessHelper {
 
                 if (waterMarkerAssigner.checkNeedAssignWaterMarker(sourceTableInfo)) {
                     adaptStream = waterMarkerAssigner.assignWaterMarker(adaptStream, typeInfo, sourceTableInfo);
-                    fields += ",ROWTIME.ROWTIME";
+                    String eventTimeField = sourceTableInfo.getEventTimeField();
+                    boolean hasEventTimeField = false;
+                    if (!Strings.isNullOrEmpty(eventTimeField)) {
+                        String[] fieldArray = fields.split(",");
+                        for (int i = 0; i < fieldArray.length; i++) {
+                            if (fieldArray[i].equals(eventTimeField)) {
+                                fieldArray[i] = eventTimeField + ".ROWTIME";
+                                hasEventTimeField = true;
+                                break;
+                            }
+                        }
+                        if (hasEventTimeField) {
+                            fields = String.join(",", fieldArray);
+                        } else {
+                            fields += ",ROWTIME.ROWTIME";
+                        }
+                    }
                 } else {
                     fields += ",PROCTIME.PROCTIME";
                 }
@@ -335,11 +354,12 @@ public class ExecuteProcessHelper {
     }
 
     /**
-     *   perjob模式将job依赖的插件包路径存储到cacheFile，在外围将插件包路径传递给jobgraph
+     * perjob模式将job依赖的插件包路径存储到cacheFile，在外围将插件包路径传递给jobgraph
+     *
      * @param env
      * @param classPathSet
      */
-    public static void registerPluginUrlToCachedFile(StreamExecutionEnvironment env, Set<URL> classPathSet) {
+    private static void registerPluginUrlToCachedFile(StreamExecutionEnvironment env, Set<URL> classPathSet) {
         int i = 0;
         for (URL url : classPathSet) {
             String classFileName = String.format(CLASS_FILE_NAME_FMT, i);
@@ -348,7 +368,7 @@ public class ExecuteProcessHelper {
         }
     }
 
-    public static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
+    private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();

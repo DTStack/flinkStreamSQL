@@ -104,14 +104,14 @@ public class ClusterClientFactory {
             try {
                 boolean isHighAvailability;
 
-                config.setString(HADOOP_CONF, yarnConfDir);
+                config.setString("fs.hdfs.hadoopconf", yarnConfDir);
                 FileSystem.initialize(config);
 
                 YarnConfiguration yarnConf = YarnConfLoader.getYarnConf(yarnConfDir);
                 YarnClient yarnClient = YarnClient.createYarnClient();
                 yarnClient.init(yarnConf);
                 yarnClient.start();
-                ApplicationId applicationId;
+                ApplicationId applicationId = null;
 
                 String yarnSessionConf = launcherOptions.getYarnSessionConf();
                 yarnSessionConf = URLDecoder.decode(yarnSessionConf, Charsets.UTF_8.toString());
@@ -184,7 +184,7 @@ public class ClusterClientFactory {
 
         }
 
-        if (applicationId == null || StringUtils.isEmpty(applicationId.toString())) {
+        if (null == applicationId || StringUtils.isEmpty(applicationId.toString())) {
             throw new RuntimeException("No flink session found on yarn cluster.");
         }
         return applicationId;

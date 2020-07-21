@@ -91,6 +91,7 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
 
         SqlIdentifier left = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[0];
         SqlIdentifier right = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[1];
+        Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
@@ -99,7 +100,7 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
         String rightField = right.getComponent(1).getSimple();
 
         if (leftTableName.equalsIgnoreCase(sideTableName)) {
-            equalFieldList.add(leftField);
+            equalFieldList.add(physicalFields.get(leftField));
             int equalFieldIndex = -1;
             for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
@@ -115,7 +116,7 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
 
         } else if (rightTableName.equalsIgnoreCase(sideTableName)) {
 
-            equalFieldList.add(rightField);
+            equalFieldList.add(physicalFields.get(rightField));
             int equalFieldIndex = -1;
             for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
