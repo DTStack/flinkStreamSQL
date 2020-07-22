@@ -145,7 +145,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, BaseRow> im
                 dealFillDataError(input, resultFuture, e);
             }
         } else {
-            resultFuture.complete(null);
+            resultFuture.complete(Collections.EMPTY_LIST);
         }
     }
 
@@ -163,14 +163,14 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, BaseRow> im
         }
         timeOutNum++;
         if (sideInfo.getJoinType() == JoinType.LEFT) {
-            resultFuture.complete(null);
+            resultFuture.complete(Collections.EMPTY_LIST);
             return;
         }
         if (timeOutNum > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)) {
             resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
             return;
         }
-        resultFuture.complete(null);
+        resultFuture.complete(Collections.EMPTY_LIST);
     }
 
     protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture)

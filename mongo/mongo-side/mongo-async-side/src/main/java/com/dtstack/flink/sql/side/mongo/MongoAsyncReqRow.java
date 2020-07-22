@@ -133,7 +133,7 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
             public void onResult(final Void result, final Throwable t) {
                 if (atomicInteger.get() <= 0) {
                     LOG.warn("Cannot retrieve the data from the database");
-                    resultFuture.complete(null);
+                    resultFuture.complete(Collections.EMPTY_LIST);
                 } else {
                     if (openCache()) {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));

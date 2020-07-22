@@ -211,7 +211,7 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                     if (openCache()) {
                         putCache(key, CacheMissVal.getMissKeyObj());
                     }
-                    resultFuture.complete(null);
+                    resultFuture.complete(Collections.EMPTY_LIST);
                 }
             }
 

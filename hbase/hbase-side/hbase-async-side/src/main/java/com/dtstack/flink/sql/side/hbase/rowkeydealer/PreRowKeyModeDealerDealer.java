@@ -130,7 +130,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
                     resultFuture.completeExceptionally(e);
                 }
             } catch (Exception e) {
-                resultFuture.complete(null);
+                resultFuture.complete(Collections.EMPTY_LIST);
                 LOG.error("record:" + input);
                 LOG.error("get side record exception:", e);
             }
@@ -150,7 +150,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
     private String dealFail(Object arg2, Row input, ResultFuture<BaseRow> resultFuture){
         LOG.error("record:" + input);
         LOG.error("get side record exception:" + arg2);
-        resultFuture.complete(null);
+        resultFuture.complete(Collections.EMPTY_LIST);
         return "";
     }
 }
