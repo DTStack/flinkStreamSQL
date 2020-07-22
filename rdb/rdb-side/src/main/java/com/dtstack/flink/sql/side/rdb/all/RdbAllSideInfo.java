@@ -71,8 +71,7 @@ public class RdbAllSideInfo extends BaseSideInfo {
         String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
         String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
         String whereClause = buildWhereClause(predicateClause);
-        String sql = "SELECT " + fromClause + " FROM " + tableName + whereClause;
-        return sql;
+        return "SELECT " + fromClause + " FROM " + tableName + whereClause;
     }
 
     private String buildWhereClause(String predicateClause) {

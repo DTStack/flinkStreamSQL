@@ -22,11 +22,7 @@ package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.calcite.config.Lex;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import com.google.common.collect.Lists;
@@ -163,6 +159,10 @@ public class CreateTmpTableParser implements IParser {
                 }else{
                     parseNode(unionRight, sqlParseResult);
                 }
+                break;
+            case MATCH_RECOGNIZE:
+                SqlMatchRecognize node = (SqlMatchRecognize) sqlNode;
+                sqlParseResult.addSourceTable(node.getTableRef().toString());
                 break;
             default:
                 //do nothing

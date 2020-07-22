@@ -68,7 +68,7 @@ public class SqlParser {
             throw new RuntimeException("need to set local sql plugin root");
         }
 
-        sql = sql.replaceAll("--.*", "")
+        sql = DtStringUtil.dealSqlComment(sql)
                 .replaceAll("\r\n", " ")
                 .replaceAll("\n", " ")
                 .replace("\t", " ").trim();

@@ -72,6 +72,10 @@ public class Options {
     @OptionRequired(description = "log level")
     private String logLevel = "info";
 
+    @OptionRequired(description = "file add to ship file")
+    private  String addShipfile;
+
+
     public String getMode() {
         return mode;
     }
@@ -183,4 +187,13 @@ public class Options {
 	public void setLogLevel(String logLevel) {
 		this.logLevel = logLevel;
 	}
+
+    public String getAddShipfile() {
+        return addShipfile;
+    }
+
+    public void setAddShipfile(String addShipfile) {
+        this.addShipfile = addShipfile;
+    }
+
 }

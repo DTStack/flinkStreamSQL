@@ -43,7 +43,15 @@
 | tableName | hbase 的表名称|是||
 | cache | 维表缓存策略(NONE/LRU)|否|NONE|
 | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
-
+|hbase.security.auth.enable | 是否开启kerberos认证|否|false|
+|hbase.security.authentication|认证类型|否|kerberos|
+|hbase.kerberos.regionserver.principal | regionserver的principal，这个值从hbase-site.xml的hbase.regionserver.kerberos.principal属性中获取|否||
+|hbase.keytab|client的keytab 文件|否|
+|hbase.principal|client的principal|否||
+|hbase.sasl.clientconfig | hbase.sasl.clientconfig值|否|Client,和jaas文件中的域对应|
+|java.security.krb5.conf | java.security.krb5.conf值|否||
+ 另外开启Kerberos认证还需要在VM参数中配置krb5, -Djava.security.krb5.conf=/Users/xuchao/Documents/flinkSql/kerberos/krb5.conf
+ 同时在addShipfile参数中添加keytab文件的路径，参数具体细节请看[命令参数说明](../config.md)
 --------------
 
 ## 5.样例
@@ -168,4 +176,77 @@ into
         sideTable b
             on a.id=b.rowkey1 and a.name = b.rowkey2;
 ```
+### kerberos维表示例
+```
+CREATE TABLE MyTable(
+	name varchar,
+	channel varchar,
+	pv INT,
+	xctime bigint
+)WITH(
+	type ='kafka11',
+	bootstrapServers ='172.16.8.107:9092',
+	zookeeperQuorum ='172.16.8.107:2181/kafka',
+	offsetReset ='latest',
+	topic ='es_test',
+	timezone='Asia/Shanghai',
+	updateMode ='append',
+	enableKeyPartitions ='false',
+	topicIsPattern ='false',
+	parallelism ='1'
+);
 
+CREATE TABLE MyResult(
+  name varchar,
+  channel varchar
+)WITH(
+	type ='mysql',
+	url ='jdbc:mysql://172.16.10.45:3306/test',
+	userName ='dtstack',
+	password ='abc123',
+	tableName ='myresult',
+	updateMode ='append',
+	parallelism ='1',
+	batchSize ='100',
+	batchWaitInterval ='1000'
+);
+
+CREATE TABLE sideTable(
+	cf:name varchar as name,
+	cf:info varchar as info,
+	PRIMARY KEY(md5(name) +'test') ,
+	PERIOD FOR SYSTEM_TIME
+)WITH(
+	type ='hbase',
+	zookeeperQuorum ='172.16.10.104:2181,172.16.10.224:2181,172.16.10.252:2181',
+	zookeeperParent ='/hbase',
+	tableName ='workerinfo',
+	partitionedJoin ='false',
+	cache ='LRU',
+	cacheSize ='10000',
+	cacheTTLMs ='60000',
+	asyncTimeoutNum ='0',
+	parallelism ='1',
+    hbase.security.auth.enable='true',
+    hbase.security.authentication='kerberos',
+    hbase.sasl.clientconfig='Client',
+    hbase.kerberos.regionserver.principal='hbase/_HOST@DTSTACK.COM',
+    hbase.keytab='yijing.keytab',
+    hbase.principal='yijing@DTSTACK.COM',
+    java.security.krb5.conf='krb5.conf'
+);
+
+insert into
+	MyResult
+select
+	b.name as name,
+	a.channel
+
+from
+	MyTable a
+
+join
+	sideTable b
+
+on a.channel=b.name
+```
