@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,6 +75,14 @@ public class YarnJobClusterExecutor {
                 .createClusterDescriptor(jobParamsInfo.getYarnConfDir(), flinkConfiguration);
 
         List<File> shipFiles = getShipFiles(jobParamsInfo.getFlinkJarPath(), jobParamsInfo.getPluginLoadMode(), jobGraph, clusterDescriptor);
+
+        if (jobParamsInfo.getAddShipFile() != null) {
+            List<String> addShipFilesPath = parsePathFromStr(jobParamsInfo.getAddShipFile());
+            for (String path : addShipFilesPath) {
+                shipFiles.addAll(getShipFiles(path, jobParamsInfo.getPluginLoadMode(), jobGraph, clusterDescriptor));
+            }
+        }
+
         clusterDescriptor.addShipFiles(shipFiles);
 
         ClusterSpecification clusterSpecification = YarnClusterClientFactory.INSTANCE.getClusterSpecification(flinkConfiguration);
@@ -81,8 +90,8 @@ public class YarnJobClusterExecutor {
 
         String applicationId = applicationIdClusterClientProvider.getClusterClient().getClusterId().toString();
         String flinkJobId = jobGraph.getJobID().toString();
-        String tips = String.format("deploy per_job with appId: %s, jobId: %s", applicationId, flinkJobId);
-        System.out.println(tips);
+
+        LOG.info(String.format("deploy per_job with appId: %s, jobId: %s", applicationId, flinkJobId));
     }
 
     private void appendApplicationConfig(Configuration flinkConfig, JobParamsInfo jobParamsInfo) {
@@ -115,9 +124,14 @@ public class YarnJobClusterExecutor {
 
     private void dealFlinkLibJar(String flinkJarPath, YarnClusterDescriptor clusterDescriptor, List<File> shipFiles) throws MalformedURLException {
         if (StringUtils.isEmpty(flinkJarPath) || !new File(flinkJarPath).exists()) {
-            throw new RuntimeException("The param '-flinkJarPath' ref dir is not exist");
+            throw new RuntimeException("path " + flinkJarPath + " is not exist");
         }
         File[] jars = new File(flinkJarPath).listFiles();
+
+        if (jars == null || jars.length == 0) {
+            throw new RuntimeException(flinkJarPath + " no file exist !");
+        }
+
         for (File file : jars) {
             if (file.toURI().toURL().toString().contains("flink-dist")) {
                 clusterDescriptor.setLocalJarPath(new Path(file.toURI().toURL().toString()));
@@ -161,5 +175,11 @@ public class YarnJobClusterExecutor {
         return logConfigFile;
     }
 
+    private static List<String> parsePathFromStr(String pathStr) {
+        if (pathStr.length() > 2) {
+            pathStr = pathStr.substring(1, pathStr.length() - 1).replace("\"", "");
+        }
 
+        return Arrays.asList(pathStr.split(","));
+    }
 }
