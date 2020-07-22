@@ -118,7 +118,7 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
         }, arg2 -> {
             LOG.error("record:" + input);
             LOG.error("get side record exception:" + arg2);
-            resultFuture.complete(null);
+            resultFuture.complete(Collections.EMPTY_LIST);
             return "";
         });
     }

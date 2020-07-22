@@ -85,7 +85,7 @@ public abstract class AbstractRowKeyModeDealer {
                 resultFuture.completeExceptionally(e);
             }
         } else {
-            resultFuture.complete(null);
+            resultFuture.complete(Collections.EMPTY_LIST);
         }
     }
 
