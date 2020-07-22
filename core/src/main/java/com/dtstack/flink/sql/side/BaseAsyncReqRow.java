@@ -64,7 +64,7 @@ import java.util.concurrent.ScheduledFuture;
  * @author xuchao
  */
 
-public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, Row>, Tuple2<Boolean, BaseRow>> implements ISideReqRow {
+public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, BaseRow> implements ISideReqRow {
     private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
     private static final long serialVersionUID = 2098635244857937717L;
     private RuntimeContext runtimeContext;
@@ -135,12 +135,12 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, 
         return sideInfo.getSideCache() != null;
     }
 
-    protected void dealMissKey(Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) {
+    protected void dealMissKey(Row input, ResultFuture<BaseRow> resultFuture) {
         if (sideInfo.getJoinType() == JoinType.LEFT) {
             //Reserved left table data
             try {
-                Row row = fillData(input.f1, null);
-                RowDataComplete.completeTupleRows(resultFuture, Collections.singleton(new Tuple2<>(input.f0, row)));
+                Row row = fillData(input, null);
+                RowDataComplete.completeRow(resultFuture, row);
             } catch (Exception e) {
                 dealFillDataError(input, resultFuture, e);
             }
@@ -156,7 +156,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, 
     }
 
     @Override
-    public void timeout(Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception {
+    public void timeout(Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
 
         if (timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0) {
             LOG.info("Async function call has timed out. input:{}, timeOutNum:{}", input.toString(), timeOutNum);
@@ -173,14 +173,14 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, 
         resultFuture.complete(null);
     }
 
-    protected void preInvoke(Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture)
+    protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture)
             throws InvocationTargetException, IllegalAccessException {
         registerTimerAndAddToHandler(input, resultFuture);
     }
 
     @Override
-    public void asyncInvoke(Tuple2<Boolean, Row> row, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception {
-        Tuple2<Boolean, Row> input = Tuple2.of(row.f0, Row.copy(row.f1));
+    public void asyncInvoke(Row row, ResultFuture<BaseRow> resultFuture) throws Exception {
+        Row input = Row.copy(row);
         preInvoke(input, resultFuture);
         Map<String, Object> inputParams = parseInputParam(input);
         if (MapUtils.isEmpty(inputParams)) {
@@ -194,11 +194,11 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, 
         handleAsyncInvoke(inputParams, input, resultFuture);
     }
 
-    private Map<String, Object> parseInputParam(Tuple2<Boolean, Row> input) {
+    private Map<String, Object> parseInputParam(Row input) {
         Map<String, Object> inputParams = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.f1.getField(conValIndex);
+            Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
                 return inputParams;
             }
@@ -212,7 +212,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, 
         return openCache() && getFromCache(buildCacheKey(inputParams)) != null;
     }
 
-    private void invokeWithCache(Map<String, Object> inputParams, Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) {
+    private void invokeWithCache(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) {
         if (openCache()) {
             CacheObj val = getFromCache(buildCacheKey(inputParams));
             if (val != null) {
@@ -221,21 +221,19 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, 
                     return;
                 } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
-                        Row row = fillData(input.f1, val.getContent());
-                        BaseRow baseRow = RowDataConvert.convertToBaseRow(row);
-                        resultFuture.complete(Collections.singleton(Tuple2.of(input.f0, baseRow)));
+                        Row row = fillData(input, val.getContent());
+                        RowDataComplete.completeRow(resultFuture, row);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
-                        List<Tuple2<Boolean, BaseRow>> rowList = Lists.newArrayList();
+                        List<Row> rowList = Lists.newArrayList();
                         for (Object one : (List) val.getContent()) {
-                            Row row = fillData(input.f1, one);
-                            BaseRow baseRow = RowDataConvert.convertToBaseRow(row);
-                            rowList.add(Tuple2.of(input.f0, baseRow));
+                            Row row = fillData(input, one);
+                            rowList.add(row);
                         }
-                        resultFuture.complete(rowList);
+                        RowDataComplete.completeRow(resultFuture,rowList);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }
@@ -247,7 +245,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, 
         }
     }
 
-    public abstract void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception;
+    public abstract void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception;
 
     public abstract String buildCacheKey(Map<String, Object> inputParams);
 
@@ -255,14 +253,14 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, 
         return ((StreamingRuntimeContext) this.runtimeContext).getProcessingTimeService();
     }
 
-    protected ScheduledFuture<?> registerTimer(Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) {
+    protected ScheduledFuture<?> registerTimer(Row input, ResultFuture<BaseRow> resultFuture) {
         long timeoutTimestamp = sideInfo.getSideTableInfo().getAsyncTimeout() + getProcessingTimeService().getCurrentProcessingTime();
         return getProcessingTimeService().registerTimer(
                 timeoutTimestamp,
                 timestamp -> timeout(input, resultFuture));
     }
 
-    protected void registerTimerAndAddToHandler(Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture)
+    protected void registerTimerAndAddToHandler(Row input, ResultFuture<BaseRow> resultFuture)
             throws InvocationTargetException, IllegalAccessException {
         ScheduledFuture<?> timeFuture = registerTimer(input, resultFuture);
         // resultFuture 是ResultHandler 的实例
@@ -272,7 +270,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Tuple2<Boolean, 
     }
 
 
-    protected void dealFillDataError(Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture, Throwable e) {
+    protected void dealFillDataError(Row input, ResultFuture<BaseRow> resultFuture, Throwable e) {
         parseErrorRecords.inc();
         if (parseErrorRecords.getCount() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)) {
             LOG.info("dealFillDataError", e);

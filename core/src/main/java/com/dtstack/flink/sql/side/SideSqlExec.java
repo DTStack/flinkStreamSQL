@@ -428,7 +428,10 @@ public class SideSqlExec {
 
         RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getFieldTypes(), targetTable.getSchema().getFieldNames());
 
-        DataStream<Tuple2<Boolean, Row>> adaptStream = tableEnv.toRetractStream(targetTable, Row.class);
+        DataStream adaptStream = tableEnv.toRetractStream(targetTable, Row.class)
+                .filter(f -> f.f0)
+                .map(f -> f.f1)
+                .returns(Row.class);
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if (sideTableInfo.isPartitionedJoin()) {
@@ -438,7 +441,7 @@ public class SideSqlExec {
             adaptStream = adaptStream.keyBy(new TupleKeySelector(keyIndex, projectedTypeInfo(keyIndex, targetTable.getSchema())));
         }
 
-        DataStream<Tuple2<Boolean, Row>> dsOut = null;
+        DataStream dsOut = null;
         if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo, pluginLoadMode);
         }else{
@@ -447,8 +450,7 @@ public class SideSqlExec {
 
         BaseRowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
 
-        TupleTypeInfo tupleTypeInfo = new TupleTypeInfo(Types.BOOLEAN, sideOutTypeInfo);
-        dsOut.getTransformation().setOutputType(tupleTypeInfo);
+        dsOut.getTransformation().setOutputType(sideOutTypeInfo);
 
         String targetTableName = joinInfo.getNewTableName();
         String targetTableAlias = joinInfo.getNewTableAlias();

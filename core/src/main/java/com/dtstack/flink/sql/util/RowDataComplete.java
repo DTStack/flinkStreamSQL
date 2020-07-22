@@ -57,7 +57,7 @@ public class RowDataComplete {
         resultFuture.complete(baseRowList);
     }
 
-    public static void completeTupleRows(ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture, Collection<Tuple2<Boolean, Row>> tupleRowList) {
+    public static void completeTupleRow(ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture, Collection<Tuple2<Boolean, Row>> tupleRowList) {
         List<Tuple2<Boolean, BaseRow>> baseRowList = Lists.newArrayList();
         for (Tuple2<Boolean, Row> rowTuple : tupleRowList) {
             baseRowList.add(new Tuple2<>(rowTuple.f0, RowDataConvert.convertToBaseRow(rowTuple.f1)));

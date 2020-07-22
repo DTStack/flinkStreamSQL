@@ -19,9 +19,10 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.util.RowDataComplete;
+import org.apache.calcite.sql.JoinType;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -29,9 +30,6 @@ import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.dtstack.flink.sql.factory.DTThreadFactory;
-import org.apache.calcite.sql.JoinType;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -48,7 +46,7 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean, Row>, Tuple2<Boolean, BaseRow>> implements ISideReqRow {
+public abstract class BaseAllReqRow extends RichFlatMapFunction<Row, BaseRow> implements ISideReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
@@ -89,12 +87,12 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Tuple2<Boolean, 
         return obj;
     }
 
-    protected void sendOutputRow(Tuple2<Boolean, Row> value, Object sideInput, Collector<Tuple2<Boolean, BaseRow>> out) {
+    protected void sendOutputRow(Row value, Object sideInput, Collector<BaseRow> out) {
         if (sideInput == null && sideInfo.getJoinType() != JoinType.LEFT) {
             return;
         }
-        Row row = fillData(value.f1, sideInput);
-        RowDataComplete.collectTupleRow(out, Tuple2.of(value.f0, row));
+        Row row = fillData(value, sideInput);
+        RowDataComplete.collectRow(out, row);
     }
 
     @Override

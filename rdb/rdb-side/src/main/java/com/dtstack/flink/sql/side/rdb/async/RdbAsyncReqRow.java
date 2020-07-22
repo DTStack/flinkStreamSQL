@@ -111,12 +111,12 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    protected void preInvoke(Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) {
+    protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture) {
 
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
 
         AtomicLong networkLogCounter = new AtomicLong(0L);
         while (!connectionStatus.get()) {//network is unhealth
@@ -129,7 +129,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         executor.execute(() -> connectWithRetry(params, input, resultFuture, rdbSqlClient));
     }
 
-    private void connectWithRetry(Map<String, Object> inputParams, Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture, SQLClient rdbSqlClient) {
+    private void connectWithRetry(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture, SQLClient rdbSqlClient) {
         AtomicLong failCounter = new AtomicLong(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while (!finishFlag.get()) {
@@ -262,7 +262,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         this.rdbSqlClient = rdbSqlClient;
     }
 
-    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, Tuple2<Boolean, Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) {
+    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) {
         String key = buildCacheKey(inputParams);
         JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
         connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {
@@ -275,21 +275,20 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
             int resultSize = rs.result().getResults().size();
             if (resultSize > 0) {
-                List<Tuple2<Boolean, Row>> rowList = Lists.newArrayList();
+                List<Row> rowList = Lists.newArrayList();
 
                 for (JsonArray line : rs.result().getResults()) {
-                    Row row = fillData(input.f1, line);
+                    Row row = fillData(input, line);
                     if (openCache()) {
                         cacheContent.add(line);
                     }
-                    rowList.add(new Tuple2<Boolean, Row>(input.f0, row));
+                    rowList.add(row);
                 }
 
                 if (openCache()) {
                     putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                 }
-
-                RowDataComplete.completeTupleRows(resultFuture, rowList);
+                RowDataComplete.completeRow(resultFuture, rowList);
             } else {
                 dealMissKey(input, resultFuture);
                 if (openCache()) {

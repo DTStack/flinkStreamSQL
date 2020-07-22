@@ -29,7 +29,7 @@ import org.apache.flink.types.Row;
  * Company: www.dtstack.com
  * @author maqi
  */
-public class TupleKeySelector implements ResultTypeQueryable<Row>, KeySelector<Tuple2<Boolean, Row>, Row> {
+public class TupleKeySelector implements ResultTypeQueryable<Row>, KeySelector<Row, Row> {
 
     private int[] keyFields;
     private TypeInformation<Row> returnType;
@@ -40,8 +40,8 @@ public class TupleKeySelector implements ResultTypeQueryable<Row>, KeySelector<T
     }
 
     @Override
-    public Row getKey(Tuple2<Boolean, Row> value) throws Exception {
-        return Row.project(value.f1, keyFields);
+    public Row getKey(Row value) throws Exception {
+        return Row.project(value, keyFields);
     }
 
     @Override
