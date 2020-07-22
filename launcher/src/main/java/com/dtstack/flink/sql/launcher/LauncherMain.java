@@ -71,6 +71,7 @@ public class LauncherMain {
         String udfJar = launcherOptions.getAddjar();
         String queue = launcherOptions.getQueue();
         String pluginLoadMode = launcherOptions.getPluginLoadMode();
+        String addShipfile = launcherOptions.getAddShipfile();
 
         String yarnSessionConf = URLDecoder.decode(launcherOptions.getYarnSessionConf(), Charsets.UTF_8.toString());
         Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
@@ -91,6 +92,7 @@ public class LauncherMain {
                 .setFlinkJarPath(flinkJarPath)
                 .setPluginLoadMode(pluginLoadMode)
                 .setQueue(queue)
+                .setAddShipfile(addShipfile)
                 .build();
     }
 
