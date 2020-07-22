@@ -29,6 +29,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
 
 import java.io.Serializable;
 import java.util.List;
@@ -286,11 +288,11 @@ public abstract class BaseSideInfo implements Serializable{
 
         int fieldTypeLength = rowTypeInfo.getFieldTypes().length;
         if( fieldTypeLength == 2
-                && rowTypeInfo.getFieldTypes()[1].getClass().equals(RowTypeInfo.class)){
-            return ((RowTypeInfo)rowTypeInfo.getFieldTypes()[1]).getFieldNames();
+                && rowTypeInfo.getFieldTypes()[1].getClass().equals(BaseRowTypeInfo.class)){
+            return ((BaseRowTypeInfo)rowTypeInfo.getFieldTypes()[1]).getFieldNames();
         } else if(fieldTypeLength ==1
-                && rowTypeInfo.getFieldTypes()[0].getClass().equals(RowTypeInfo.class)){
-            return  ((RowTypeInfo)rowTypeInfo.getFieldTypes()[0]).getFieldNames();
+                && rowTypeInfo.getFieldTypes()[0].getClass().equals(BaseRowTypeInfo.class)){
+            return  ((BaseRowTypeInfo)rowTypeInfo.getFieldTypes()[0]).getFieldNames();
         }else {
             return  rowTypeInfo.getFieldNames();
         }
