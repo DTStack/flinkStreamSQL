@@ -130,7 +130,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow> > resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
         String key = buildCacheKey(inputParams);
         if(StringUtils.isBlank(key)){
             return;
@@ -141,9 +141,9 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
             public void accept(Map<String, String> values) {
                 if (MapUtils.isNotEmpty(values)) {
                     try {
-                        Row row = fillData(input.f1, values);
+                        Row row = fillData(input, values);
                         dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
-                        RowDataComplete.completeTupleRows(resultFuture, Collections.singleton(Tuple2.of(input.f0, row)));
+                        RowDataComplete.completeRow(resultFuture, row);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }

@@ -75,16 +75,16 @@ public abstract class AbstractRowKeyModeDealer {
         this.sideFieldIndex = sideFieldIndex;
     }
 
-    protected void dealMissKey(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture){
-        if(joinType == JoinType.LEFT){
+    protected void dealMissKey(Row input, ResultFuture<BaseRow> resultFuture) {
+        if (joinType == JoinType.LEFT) {
             try {
                 //保留left 表数据
-                Row row = fillData(input.f1, null);
-                RowDataComplete.completeTupleRows(resultFuture, Collections.singleton(Tuple2.of(input.f0,row)));
+                Row row = fillData(input, null);
+                RowDataComplete.completeRow(resultFuture, row);
             } catch (Exception e) {
                 resultFuture.completeExceptionally(e);
             }
-        }else{
+        } else {
             resultFuture.complete(null);
         }
     }
@@ -112,6 +112,6 @@ public abstract class AbstractRowKeyModeDealer {
         return row;
     }
 
-    public abstract void asyncGetData(String tableName, String rowKeyStr, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture,
+    public abstract void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<BaseRow> resultFuture,
                                       AbstractSideCache sideCache);
 }

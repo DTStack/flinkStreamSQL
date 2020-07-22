@@ -129,8 +129,8 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception {
-        Tuple2<Boolean,Row> inputCopy = Tuple2.of(input.f0, Row.copy(input.f1));
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+        Row inputCopy = Row.copy(input);
         //scannerBuilder 设置为null重新加载过滤条件,然后connkudu重新赋值
         //todo:代码需要优化
         scannerBuilder = null;
@@ -155,7 +155,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
 
         List<Map<String, Object>> cacheContent = Lists.newArrayList();
         AsyncKuduScanner asyncKuduScanner = scannerBuilder.build();
-        List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
+        List<Row> rowList = Lists.newArrayList();
         Deferred<RowResultIterator> data = asyncKuduScanner.nextRows();
         //从之前的同步修改为调用异步的Callback
         data.addCallbackDeferring(new GetListRowCB(inputCopy, cacheContent, rowList, asyncKuduScanner, resultFuture, buildCacheKey(inputParams)));
@@ -207,19 +207,19 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
     }
 
     class GetListRowCB implements Callback<Deferred<List<Row>>, RowResultIterator> {
-        private Tuple2<Boolean,Row> input;
+        private Row input;
         private List<Map<String, Object>> cacheContent;
-        private List<Tuple2<Boolean,Row>> rowList;
+        private List<Row> rowList;
         private AsyncKuduScanner asyncKuduScanner;
-        private ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture;
+        private ResultFuture<BaseRow> resultFuture;
         private String key;
 
 
         public GetListRowCB() {
         }
 
-        GetListRowCB(Tuple2<Boolean,Row> input, List<Map<String, Object>> cacheContent, List<Tuple2<Boolean,Row>> rowList,
-                     AsyncKuduScanner asyncKuduScanner, ResultFuture<Tuple2<Boolean,BaseRow>> resultFuture, String key) {
+        GetListRowCB(Row input, List<Map<String, Object>> cacheContent, List<Row> rowList,
+                     AsyncKuduScanner asyncKuduScanner, ResultFuture<BaseRow> resultFuture, String key) {
             this.input = input;
             this.cacheContent = cacheContent;
             this.rowList = rowList;
@@ -239,11 +239,11 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                         KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
                     }
                 }
-                Row row = fillData(input.f1, oneRow);
+                Row row = fillData(input, oneRow);
                 if (openCache()) {
                     cacheContent.add(oneRow);
                 }
-                rowList.add(Tuple2.of(input.f0, row));
+                rowList.add(row);
             }
             if (asyncKuduScanner.hasMoreRows()) {
                 return asyncKuduScanner.nextRows().addCallbackDeferring(this);
@@ -253,7 +253,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                 if (openCache()) {
                     putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                 }
-                RowDataComplete.completeTupleRows(resultFuture, rowList);
+                RowDataComplete.completeRow(resultFuture, rowList);
             } else {
                 dealMissKey(input, resultFuture);
                 if (openCache()) {

@@ -140,15 +140,15 @@ public class HbaseAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean, BaseRow>> out) throws Exception {
+    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.f1.getField(conValIndex);
+            Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input.f1, null);
-                    RowDataComplete.collectTupleRow(out, new Tuple2<>(input.f0, data));
+                    Row data = fillData(input, null);
+                    RowDataComplete.collectRow(out, data);
                 }
                 return;
             }
@@ -165,14 +165,14 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()) {
                 if (entry.getKey().startsWith(rowKeyStr)) {
                     cacheList = cacheRef.get().get(entry.getKey());
-                    Row row = fillData(input.f1, cacheList);
-                    RowDataComplete.collectTupleRow(out, new Tuple2<>(input.f0, row));
+                    Row row = fillData(input, cacheList);
+                    RowDataComplete.collectRow(out, row);
                 }
             }
         } else {
             cacheList = cacheRef.get().get(rowKeyStr);
-            Row row = fillData(input.f1, cacheList);
-            RowDataComplete.collectTupleRow(out, new Tuple2<>(input.f0, row));
+            Row row = fillData(input, cacheList);
+            RowDataComplete.collectRow(out, row);
         }
 
     }

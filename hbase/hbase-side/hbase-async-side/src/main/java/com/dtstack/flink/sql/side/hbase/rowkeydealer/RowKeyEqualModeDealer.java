@@ -63,7 +63,7 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
 
 
     @Override
-    public void asyncGetData(String tableName, String rowKeyStr, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture,
+    public void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<BaseRow> resultFuture,
                              AbstractSideCache sideCache){
         //TODO 是否有查询多个col family 和多个col的方法
         GetRequest getRequest = new GetRequest(tableName, rowKeyStr);
@@ -94,11 +94,11 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
                             sideVal.add(val);
                         }
 
-                        Row row = fillData(input.f1, sideVal);
+                        Row row = fillData(input, sideVal);
                         if(openCache){
                             sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, sideVal));
                         }
-                        RowDataComplete.completeTupleRows(resultFuture, Collections.singleton(Tuple2.of(input.f0, row)));
+                        RowDataComplete.completeRow(resultFuture, row);
                     } catch (Exception e) {
                         resultFuture.completeExceptionally(e);
                     }

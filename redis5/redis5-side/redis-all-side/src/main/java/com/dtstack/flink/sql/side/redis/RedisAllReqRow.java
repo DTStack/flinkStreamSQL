@@ -112,14 +112,14 @@ public class RedisAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean, BaseRow>> out) throws Exception {
+    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
         Map<String, String> inputParams = Maps.newHashMap();
         for(Integer conValIndex : sideInfo.getEqualValIndex()){
-            Object equalObj = input.f1.getField(conValIndex);
+            Object equalObj = input.getField(conValIndex);
             if(equalObj == null){
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input.f1, null);
-                    RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, data));
+                    Row data = fillData(input, null);
+                    RowDataComplete.collectRow(out, data);
                 }
                 return;
             }
@@ -132,8 +132,8 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
         if (cacheMap == null){
             if(sideInfo.getJoinType() == JoinType.LEFT){
-                Row data = fillData(input.f1, null);
-                RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, data));
+                Row data = fillData(input, null);
+                RowDataComplete.collectRow(out, data);
             }else{
                 return;
             }
@@ -141,8 +141,8 @@ public class RedisAllReqRow extends BaseAllReqRow {
             return;
         }
 
-        Row newRow = fillData(input.f1, cacheMap);
-        RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, newRow));
+        Row newRow = fillData(input, cacheMap);
+        RowDataComplete.collectRow(out, newRow);
     }
 
     private String buildCacheKey(Map<String, String> refData) {

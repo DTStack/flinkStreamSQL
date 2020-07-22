@@ -83,7 +83,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
 
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
         String key = buildCacheKey(inputParams);
         BoolQueryBuilder boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
         boolQueryBuilder = setInputParams(inputParams, boolQueryBuilder);
@@ -99,7 +99,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
             public void onResponse(SearchResponse searchResponse) {
 
                 List<Object> cacheContent = Lists.newArrayList();
-                List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
+                List<Row> rowList = Lists.newArrayList();
                 SearchHit[] searchHits = searchResponse.getHits().getHits();
                 if (searchHits.length > 0) {
                     Elasticsearch6SideTableInfo tableInfo = null;
@@ -123,7 +123,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                             searchHits = searchResponse.getHits().getHits();
                         }
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
-                        RowDataComplete.completeTupleRows(resultFuture, rowList);
+                        RowDataComplete.completeRow(resultFuture, rowList);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     } finally {
@@ -161,7 +161,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         return sb.toString();
     }
 
-    private void loadDataToCache(SearchHit[] searchHits, List<Tuple2<Boolean,Row>> rowList, List<Object> cacheContent, Tuple2<Boolean,Row> copyCrow) {
+    private void loadDataToCache(SearchHit[] searchHits, List<Row> rowList, List<Object> cacheContent, Row copyCrow) {
         List<Object> results = Lists.newArrayList();
         for (SearchHit searchHit : searchHits) {
             Map<String, Object> object = searchHit.getSourceAsMap();
@@ -170,14 +170,14 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         rowList.addAll(getRows(copyCrow, cacheContent, results));
     }
 
-    protected List<Tuple2<Boolean, Row>> getRows(Tuple2<Boolean, Row> inputRow, List<Object> cacheContent, List<Object> results) {
-        List<Tuple2<Boolean, Row>> rowList = Lists.newArrayList();
+    protected List<Row> getRows(Row inputRow, List<Object> cacheContent, List<Object> results) {
+        List<Row> rowList = Lists.newArrayList();
         for (Object line : results) {
-            Row row = fillData(inputRow.f1, line);
+            Row row = fillData(inputRow, line);
             if (null != cacheContent && openCache()) {
                 cacheContent.add(line);
             }
-            rowList.add(Tuple2.of(inputRow.f0, row));
+            rowList.add(row);
         }
         return rowList;
     }

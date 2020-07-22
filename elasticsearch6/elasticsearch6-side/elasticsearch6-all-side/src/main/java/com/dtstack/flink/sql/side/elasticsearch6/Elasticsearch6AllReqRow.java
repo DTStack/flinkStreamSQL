@@ -73,10 +73,10 @@ public class Elasticsearch6AllReqRow extends BaseAllReqRow implements Serializab
     }
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> value, Collector<Tuple2<Boolean, BaseRow>> out) throws Exception {
+    public void flatMap(Row value, Collector<BaseRow> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = value.f1.getField(conValIndex);
+            Object equalObj = value.getField(conValIndex);
             if (equalObj == null) {
                 sendOutputRow(value, null, out);
                 return;

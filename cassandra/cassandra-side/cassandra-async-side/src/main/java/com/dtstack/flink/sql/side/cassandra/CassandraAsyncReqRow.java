@@ -163,7 +163,7 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
 
         String key = buildCacheKey(inputParams);
         //connect Cassandra
@@ -194,15 +194,15 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                 cluster.closeAsync();
                 if (rows.size() > 0) {
                     List<com.datastax.driver.core.Row> cacheContent = Lists.newArrayList();
-                    List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
+                    List<Row> rowList = Lists.newArrayList();
                     for (com.datastax.driver.core.Row line : rows) {
-                        Row row = fillData(input.f1, line);
+                        Row row = fillData(input, line);
                         if (openCache()) {
                             cacheContent.add(line);
                         }
-                        rowList.add(Tuple2.of(input.f0,row));
+                        rowList.add(row);
                     }
-                    RowDataComplete.completeTupleRows(resultFuture, rowList);
+                    RowDataComplete.completeRow(resultFuture, rowList);
                     if (openCache()) {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }

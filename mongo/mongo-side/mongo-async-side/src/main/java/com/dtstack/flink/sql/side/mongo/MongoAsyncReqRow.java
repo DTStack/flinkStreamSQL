@@ -95,8 +95,8 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean, BaseRow>> resultFuture) throws Exception {
-        Tuple2<Boolean,Row> inputCopy = Tuple2.of(input.f0, Row.copy(input.f1));
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+        Row inputCopy = Row.copy(input);
         BasicDBObject basicDbObject = new BasicDBObject();
         try {
             basicDbObject.putAll(inputParams);
@@ -121,11 +121,11 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
             @Override
             public void apply(final Document document) {
                 atomicInteger.incrementAndGet();
-                Row row = fillData(inputCopy.f1, document);
+                Row row = fillData(inputCopy, document);
                 if (openCache()) {
                     cacheContent.add(document);
                 }
-                RowDataComplete.completeTupleRows(resultFuture, Collections.singleton(Tuple2.of(inputCopy.f0, row)));
+                RowDataComplete.completeRow(resultFuture, row);
             }
         };
         SingleResultCallback<Void> callbackWhenFinished = new SingleResultCallback<Void>() {

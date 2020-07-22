@@ -107,10 +107,10 @@ public class KuduAllReqRow extends BaseAllReqRow {
 
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean, BaseRow>> out) throws Exception {
+    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = input.f1.getField(conValIndex);
+            Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
                 out.collect(null);
             }
@@ -121,15 +121,15 @@ public class KuduAllReqRow extends BaseAllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(input.f1, null);
-                RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, row));
+                Row row = fillData(input, null);
+                RowDataComplete.collectRow(out, row);
             }
             return;
         }
 
         for (Map<String, Object> one : cacheList) {
-            Row row = fillData(input.f1, one);
-            RowDataComplete.collectTupleRow(out, Tuple2.of(input.f0, row));
+            Row row = fillData(input, one);
+            RowDataComplete.collectRow(out, row);
         }
     }
 
