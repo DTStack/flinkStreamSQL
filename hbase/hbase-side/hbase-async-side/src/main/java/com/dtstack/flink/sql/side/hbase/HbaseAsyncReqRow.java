@@ -53,6 +53,7 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -67,6 +68,8 @@ import java.util.concurrent.TimeUnit;
 public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = 2098635104857937717L;
+
+    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseAsyncReqRow.class);
 
@@ -164,7 +167,8 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
-                obj = ((Timestamp)obj).getTime();
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
 
             row.setField(entry.getKey(), obj);
