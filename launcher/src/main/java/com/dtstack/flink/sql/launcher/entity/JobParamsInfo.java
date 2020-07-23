@@ -22,29 +22,31 @@ import java.util.Arrays;
 import java.util.Properties;
 
 /**
- *   parse the original mission parameters
+ * parse the original mission parameters
  * Date: 2020/3/4
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class JobParamsInfo {
 
-    private String mode;
-    private String name;
-    private String queue;
-    private String localPluginRoot;
-    private String flinkConfDir;
-    private String flinkJarPath;
-    private String yarnConfDir;
-    private String pluginLoadMode;
-    private String udfJar;
-    private String[] execArgs;
-    private Properties confProperties;
-    private Properties yarnSessionConfProperties;
+    private final String mode;
+    private final String name;
+    private final String queue;
+    private final String localPluginRoot;
+    private final String flinkConfDir;
+    private final String flinkJarPath;
+    private final String yarnConfDir;
+    private final String pluginLoadMode;
+    private final String udfJar;
+    private final String[] execArgs;
+    private final Properties confProperties;
+    private final Properties yarnSessionConfProperties;
+    private final String addShipFile;
 
     private JobParamsInfo(String mode, String name, String queue, String localPluginRoot, String flinkConfDir, String yarnConfDir,
                           String pluginLoadMode, String[] execArgs, Properties confProperties, Properties yarnSessionConfProperties,
-                          String udfJar, String flinkJarPath) {
+                          String udfJar, String flinkJarPath, String addShipFile) {
         this.mode = mode;
         this.name = name;
         this.queue = queue;
@@ -57,6 +59,7 @@ public class JobParamsInfo {
         this.yarnSessionConfProperties = yarnSessionConfProperties;
         this.udfJar = udfJar;
         this.flinkJarPath = flinkJarPath;
+        this.addShipFile = addShipFile;
     }
 
     public String getMode() {
@@ -107,6 +110,10 @@ public class JobParamsInfo {
         return flinkJarPath;
     }
 
+    public String getAddShipFile() {
+        return addShipFile;
+    }
+
     public static JobParamsInfo.Builder builder() {
         return new JobParamsInfo.Builder();
     }
@@ -125,6 +132,7 @@ public class JobParamsInfo {
         private String udfJar;
         private Properties confProperties;
         private Properties yarnSessionConfProperties;
+        private String addShipfile;
 
         public JobParamsInfo.Builder setMode(String mode) {
             this.mode = mode;
@@ -186,9 +194,15 @@ public class JobParamsInfo {
             return this;
         }
 
+        public JobParamsInfo.Builder setAddShipfile(String addShipfile) {
+            this.addShipfile = addShipfile;
+            return this;
+        }
+
         public JobParamsInfo build() {
             return new JobParamsInfo(mode, name, queue, localPluginRoot, flinkConfDir,
-                    yarnConfDir, pluginLoadMode, execArgs, confProperties, yarnSessionConfProperties, udfJar, flinkJarPath);
+                    yarnConfDir, pluginLoadMode, execArgs, confProperties,
+                    yarnSessionConfProperties, udfJar, flinkJarPath, addShipfile);
         }
     }
 
@@ -207,6 +221,7 @@ public class JobParamsInfo {
                 ", execArgs=" + Arrays.toString(execArgs) +
                 ", confProperties=" + confProperties +
                 ", yarnSessionConfProperties=" + yarnSessionConfProperties +
+                ", addShipFile='" + addShipFile + '\'' +
                 '}';
     }
 }

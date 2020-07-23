@@ -27,10 +27,9 @@ import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.dtstack.flink.sql.util.RowDataComplete;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
-import com.google.common.collect.Lists;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
@@ -118,7 +117,7 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
         }, arg2 -> {
             LOG.error("record:" + input);
             LOG.error("get side record exception:" + arg2);
-            resultFuture.complete(null);
+            resultFuture.complete(Collections.EMPTY_LIST);
             return "";
         });
     }

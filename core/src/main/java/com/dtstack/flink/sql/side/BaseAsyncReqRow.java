@@ -25,23 +25,21 @@ import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
-import com.dtstack.flink.sql.util.RowDataComplete;
-import com.dtstack.flink.sql.util.RowDataConvert;
 import com.dtstack.flink.sql.util.ReflectionUtils;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.MapUtils;
 import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
-import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,7 +143,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, BaseRow> im
                 dealFillDataError(input, resultFuture, e);
             }
         } else {
-            resultFuture.complete(null);
+            resultFuture.complete(Collections.EMPTY_LIST);
         }
     }
 
@@ -163,14 +161,14 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, BaseRow> im
         }
         timeOutNum++;
         if (sideInfo.getJoinType() == JoinType.LEFT) {
-            resultFuture.complete(null);
+            resultFuture.complete(Collections.EMPTY_LIST);
             return;
         }
         if (timeOutNum > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)) {
             resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
             return;
         }
-        resultFuture.complete(null);
+        resultFuture.complete(Collections.EMPTY_LIST);
     }
 
     protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture)

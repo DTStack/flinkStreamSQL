@@ -23,9 +23,8 @@ package com.dtstack.flink.sql.side.hbase.rowkeydealer;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.util.RowDataComplete;
-import org.apache.calcite.sql.JoinType;
 import com.google.common.collect.Maps;
-import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.calcite.sql.JoinType;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
@@ -85,7 +84,7 @@ public abstract class AbstractRowKeyModeDealer {
                 resultFuture.completeExceptionally(e);
             }
         } else {
-            resultFuture.complete(null);
+            resultFuture.complete(Collections.EMPTY_LIST);
         }
     }
 
