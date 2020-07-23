@@ -112,10 +112,10 @@ public class HbaseAllReqRow extends BaseAllReqRow {
                 row.setField(entry.getKey(), null);
             }else{
                 String key = sideInfo.getSideFieldNameIndex().get(entry.getKey());
+                key = aliasNameInversion.get(key);
                 row.setField(entry.getKey(), sideInputList.get(key));
             }
         }
-
         return row;
     }
 
