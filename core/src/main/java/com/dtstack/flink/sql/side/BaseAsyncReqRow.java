@@ -40,6 +40,7 @@ import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +113,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, BaseRow> im
 
 
     protected Object convertTimeIndictorTypeInfo(Integer index, Object obj) {
-        boolean isTimeIndicatorTypeInfo = DataTypes.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(index).getClass());
+        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(index).getClass());
 
         //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
         if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {

@@ -3,6 +3,7 @@ package com.dtstack.flink.sql.util;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.dataformat.BinaryString;
 import org.apache.flink.table.dataformat.GenericRow;
+import org.apache.flink.table.dataformat.SqlTimestamp;
 import org.apache.flink.types.Row;
 
 import java.sql.Timestamp;
@@ -23,7 +24,8 @@ public class RowDataConvert {
             if(row.getField(i) instanceof String){
                 genericRow.setField(i, BinaryString.fromString((String)row.getField(i)));
             } else if(row.getField(i) instanceof Timestamp){
-                genericRow.setField(i, ((Timestamp)row.getField(i)).getTime());
+                SqlTimestamp newTimestamp = SqlTimestamp.fromTimestamp(((Timestamp)row.getField(i)));
+                genericRow.setField(i, newTimestamp);
             }else{
                 genericRow.setField(i, row.getField(i));
             }
