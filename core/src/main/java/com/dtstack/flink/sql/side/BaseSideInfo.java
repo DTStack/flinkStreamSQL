@@ -121,14 +121,13 @@ public abstract class BaseSideInfo implements Serializable{
         return sideTableInfo.getFieldTypes()[fieldIndex];
     }
 
-
-    public void dealOneEqualCon(SqlNode sqlNode, String sideTableName){
-        if(!SqlKind.COMPARISON.contains(sqlNode.getKind())){
+    public void dealOneEqualCon(SqlNode sqlNode, String sideTableName) {
+        if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
             throw new RuntimeException("not compare operator.");
         }
 
-        SqlIdentifier left = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[0];
-        SqlIdentifier right = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[1];
+        SqlIdentifier left = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[0];
+        SqlIdentifier right = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[1];
 
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
@@ -136,38 +135,38 @@ public abstract class BaseSideInfo implements Serializable{
         String rightTableName = right.getComponent(0).getSimple();
         String rightField = right.getComponent(1).getSimple();
 
-        if(leftTableName.equalsIgnoreCase(sideTableName)){
+        if (leftTableName.equalsIgnoreCase(sideTableName)) {
             equalFieldList.add(leftField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
+            for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
-                if(fieldName.equalsIgnoreCase(rightField)){
+                if (fieldName.equalsIgnoreCase(rightField)) {
                     equalFieldIndex = i;
                 }
             }
-            if(equalFieldIndex == -1){
-                throw new RuntimeException("can't find equal field " + rightField);
+            if (equalFieldIndex == -1) {
+                throw new RuntimeException("can't deal equal field: " + sqlNode);
             }
 
             equalValIndex.add(equalFieldIndex);
 
-        }else if(rightTableName.equalsIgnoreCase(sideTableName)){
+        } else if (rightTableName.equalsIgnoreCase(sideTableName)) {
 
             equalFieldList.add(rightField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
+            for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
-                if(fieldName.equalsIgnoreCase(leftField)){
+                if (fieldName.equalsIgnoreCase(leftField)) {
                     equalFieldIndex = i;
                 }
             }
-            if(equalFieldIndex == -1){
-                throw new RuntimeException("can't find equal field " + rightField);
+            if (equalFieldIndex == -1) {
+                throw new RuntimeException("can't deal equal field: " + sqlNode.toString());
             }
 
             equalValIndex.add(equalFieldIndex);
 
-        }else{
+        } else {
             throw new RuntimeException("resolve equalFieldList error:" + sqlNode.toString());
         }
     }
