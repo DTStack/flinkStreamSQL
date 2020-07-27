@@ -50,7 +50,7 @@ public class LocalTest {
         setLogLevel("INFO");
 
         List<String> propertiesList = new ArrayList<>();
-        String sqlPath = "/Users/xuchao/Documents/flinkSql/share/twodimjoin.sql";
+        String sqlPath = "/Users/wtz4680/Desktop/flinkStreamSQL/sql/rowtimeprint.sql";
         Map<String, Object> conf = new HashMap<>();
         JSONObject properties = new JSONObject();
 

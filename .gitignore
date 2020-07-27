@@ -15,4 +15,3 @@ lib/
 bin/nohup.out
 .DS_Store
 bin/sideSql.txt
-localTest/
