@@ -111,7 +111,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
 
     }
-    private void openKerberosConn() throws IOException {
+    private void openKerberosConn() throws Exception {
         conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
         conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
 
