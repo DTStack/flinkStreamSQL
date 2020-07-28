@@ -21,8 +21,10 @@
 package com.dtstack.flink.sql.side;
 
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -32,6 +34,8 @@ import com.dtstack.flink.sql.factory.DTThreadFactory;
 import org.apache.calcite.sql.JoinType;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -84,6 +88,37 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> impl
 
         Row row = fillData(value.row(), sideInput);
         out.collect(new CRow(row, value.change()));
+    }
+
+    @Override
+    public Row fillData(Row input, Object sideInput) {
+        Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
+        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+
+        for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
+            // origin value
+            Object obj = input.getField(entry.getValue());
+            obj = dealTimeAttributeType(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass(), obj);
+            row.setField(entry.getKey(), obj);
+        }
+
+        for (Map.Entry<Integer, String> entry : sideInfo.getSideFieldNameIndex().entrySet()) {
+            if (cacheInfo == null) {
+                row.setField(entry.getKey(), null);
+            } else {
+                row.setField(entry.getKey(), cacheInfo.get(entry.getValue()));
+            }
+        }
+        return row;
+    }
+
+    protected Object dealTimeAttributeType(Class<? extends TypeInformation> entry, Object obj) {
+        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
+        if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
+            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+        }
+        return obj;
     }
 
     @Override

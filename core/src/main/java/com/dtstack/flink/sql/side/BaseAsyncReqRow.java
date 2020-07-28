@@ -194,6 +194,10 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
         return inputParams;
     }
 
+    private void constantField() {
+
+    }
+
     protected boolean isUseCache(Map<String, Object> inputParams){
         return openCache() && getFromCache(buildCacheKey(inputParams)) != null;
     }
