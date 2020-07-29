@@ -105,13 +105,13 @@ public class MyLocalStreamEnvironment extends StreamExecutionEnvironment {
         configuration.addAll(jobGraph.getJobConfiguration());
 
         configuration.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE.key(), "512M");
-        configuration.setInteger(TaskManagerOptions.NUM_TASK_SLOTS.key(), jobGraph.getMaximumParallelism());
 
         // add (and override) the settings with what the user defined
         configuration.addAll(this.conf);
 
         MiniClusterConfiguration.Builder configBuilder = new MiniClusterConfiguration.Builder();
         configBuilder.setConfiguration(configuration);
+        configBuilder.setNumSlotsPerTaskManager(jobGraph.getMaximumParallelism());
 
         if (LOG.isInfoEnabled()) {
             LOG.info("Running job on local embedded Flink mini cluster");
