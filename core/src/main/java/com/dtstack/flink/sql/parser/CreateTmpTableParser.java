@@ -21,14 +21,11 @@
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
-import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParser;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -53,6 +50,8 @@ public class CreateTmpTableParser implements IParser {
 
     private static final Pattern EMPTYVIEW = Pattern.compile(EMPTY_STR);
 
+    private FlinkPlanner flinkPlanner = new FlinkPlanner();
+
     public static CreateTmpTableParser newInstance(){
         return new CreateTmpTableParser();
     }
@@ -76,16 +75,10 @@ public class CreateTmpTableParser implements IParser {
                 selectSql = "select " + matcher.group(2);
             }
 
-            SqlParser.Config config = SqlParser
-                    .configBuilder()
-                    .setLex(Lex.MYSQL)
-                    .build();
-            SqlParser sqlParser = SqlParser.create(selectSql,config);
-
             SqlNode sqlNode = null;
             try {
-                sqlNode = sqlParser.parseStmt();
-            } catch (SqlParseException e) {
+                sqlNode = flinkPlanner.getParser().parse(selectSql);
+            } catch (Exception e) {
                 throw new RuntimeException("", e);
             }
 

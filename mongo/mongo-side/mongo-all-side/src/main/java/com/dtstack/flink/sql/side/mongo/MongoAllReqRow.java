@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
@@ -38,6 +39,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.bson.Document;
@@ -119,14 +121,14 @@ public class MongoAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> input, Collector<Tuple2<Boolean,Row>> out) throws Exception {
+    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = input.f1.getField(conValIndex);
+            Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input.f1, null);
-                    out.collect(Tuple2.of(input.f0, data));
+                    Row data = fillData(input, null);
+                    RowDataComplete.collectRow(out, data);
                 }
                 return;
             }
@@ -137,8 +139,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(input.f1, null);
-                out.collect(Tuple2.of(input.f0, row));
+                Row row = fillData(input, null);
+                RowDataComplete.collectRow(out, row);
             } else {
                 return;
             }
@@ -147,7 +149,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(Tuple2.of(input.f0, fillData(input.f1, one)));
+            Row row = fillData(input, one);
+            RowDataComplete.collectRow(out, row);
         }
     }
 
@@ -169,9 +172,10 @@ public class MongoAllReqRow extends BaseAllReqRow {
         return sb.toString();
     }
 
-    private MongoCollection getConn(String address, String database, String tableName) {
+    private MongoCollection getConn(String host, String userName, String password, String database, String tableName) {
+
         MongoCollection dbCollection;
-        mongoClient = new MongoClient(new MongoClientURI(address));
+        mongoClient = new MongoClient(new MongoClientURI(getConnectionUrl(host, userName, password)));
         db = mongoClient.getDatabase(database);
         dbCollection = db.getCollection(tableName, Document.class);
         return dbCollection;
@@ -185,7 +189,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
         try {
             for (int i = 0; i < CONN_RETRY_NUM; i++) {
                 try {
-                    dbCollection = getConn(tableInfo.getAddress(), tableInfo.getDatabase(), tableInfo.getTableName());
+                    dbCollection = getConn(tableInfo.getAddress(), tableInfo.getUserName(), tableInfo.getPassword(),
+                            tableInfo.getDatabase(), tableInfo.getTableName());
                     break;
                 } catch (Exception e) {
                     if (i == CONN_RETRY_NUM - 1) {
@@ -243,4 +248,14 @@ public class MongoAllReqRow extends BaseAllReqRow {
             }
         }
     }
+    private String getConnectionUrl(String address, String userName, String password){
+        if(address.startsWith("mongodb://") || address.startsWith("mongodb+srv://")){
+            return  address;
+        }
+        if (StringUtils.isNotBlank(userName) && StringUtils.isNotBlank(password)) {
+            return String.format("mongodb://%s:%s@%s", userName, password, address);
+        }
+        return String.format("mongodb://%s", address);
+    }
+
 }

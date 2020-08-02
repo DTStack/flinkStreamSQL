@@ -41,5 +41,5 @@ public interface IParser {
      * @param sql
      * @param sqlTree
      */
-    void parseSql(String sql, SqlTree sqlTree);
+    void parseSql(String sql, SqlTree sqlTree) throws Exception;
 }

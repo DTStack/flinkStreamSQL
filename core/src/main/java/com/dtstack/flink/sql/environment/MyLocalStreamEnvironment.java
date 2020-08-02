@@ -22,6 +22,7 @@ import org.apache.flink.api.common.InvalidProgramException;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.minicluster.MiniCluster;
@@ -96,8 +97,8 @@ public class MyLocalStreamEnvironment extends StreamExecutionEnvironment {
         return execute(streamGraph);
     }
 
-    @Override
     public JobExecutionResult execute(StreamGraph streamGraph) throws Exception {
+
         JobGraph jobGraph = streamGraph.getJobGraph();
         jobGraph.setClasspaths(classpaths);
 
@@ -105,25 +106,37 @@ public class MyLocalStreamEnvironment extends StreamExecutionEnvironment {
         configuration.addAll(jobGraph.getJobConfiguration());
 
         configuration.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE.key(), "512M");
+        configuration.setInteger(TaskManagerOptions.NUM_TASK_SLOTS, jobGraph.getMaximumParallelism());
 
         // add (and override) the settings with what the user defined
         configuration.addAll(this.conf);
 
-        MiniClusterConfiguration.Builder configBuilder = new MiniClusterConfiguration.Builder();
-        configBuilder.setConfiguration(configuration);
-        configBuilder.setNumSlotsPerTaskManager(jobGraph.getMaximumParallelism());
+        if (!configuration.contains(RestOptions.BIND_PORT)) {
+            configuration.setString(RestOptions.BIND_PORT, "0");
+        }
+
+        int numSlotsPerTaskManager = configuration.getInteger(TaskManagerOptions.NUM_TASK_SLOTS, jobGraph.getMaximumParallelism());
+
+        MiniClusterConfiguration cfg = new MiniClusterConfiguration.Builder()
+                .setConfiguration(configuration)
+                .setNumSlotsPerTaskManager(numSlotsPerTaskManager)
+                .build();
 
         if (LOG.isInfoEnabled()) {
             LOG.info("Running job on local embedded Flink mini cluster");
         }
 
-        try (MiniCluster exec = new MiniCluster(configBuilder.build());) {
-            exec.start();
-            JobExecutionResult jobExecutionResult = exec.executeJobBlocking(jobGraph);
+        MiniCluster miniCluster = new MiniCluster(cfg);
+
+        try {
+            miniCluster.start();
+            configuration.setInteger(RestOptions.PORT, miniCluster.getRestAddress().get().getPort());
+
+            return miniCluster.executeJobBlocking(jobGraph);
+        }
+        finally {
             transformations.clear();
-            return jobExecutionResult;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            miniCluster.close();
         }
     }
 }

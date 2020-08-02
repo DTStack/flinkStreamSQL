@@ -40,8 +40,8 @@ public class StreamSinkFactory {
 
     private static final String DIR_NAME_FORMAT = "%ssink";
 
-    public static AbstractTableParser getSqlParser(String pluginType, String sqlRootDir) throws Exception {
-        String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), sqlRootDir);
+    public static AbstractTableParser getSqlParser(String pluginType, String sqlRootDir, String pluginLoadMode) throws Exception {
+        String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), sqlRootDir, pluginLoadMode);
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
         String className = PluginUtil.getSqlParserClassName(typeNoVersion, CURR_TYPE);
 
@@ -54,9 +54,9 @@ public class StreamSinkFactory {
         });
     }
 
-    public static TableSink getTableSink(AbstractTargetTableInfo targetTableInfo, String localSqlRootDir) throws Exception {
+    public static TableSink getTableSink(AbstractTargetTableInfo targetTableInfo, String localSqlRootDir, String pluginLoadMode) throws Exception {
         String pluginType = targetTableInfo.getType();
-        String pluginJarDirPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), localSqlRootDir);
+        String pluginJarDirPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), localSqlRootDir, pluginLoadMode);
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(pluginType);
         String className = PluginUtil.getGenerClassName(typeNoVersion, CURR_TYPE);
 

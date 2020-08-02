@@ -56,8 +56,8 @@ public class JobGraphBuildUtil {
     private static final String SP = File.separator;
     private static final String CORE_JAR = "core";
 
-    private static String findLocalCoreJarPath(String localSqlRootJar) throws Exception {
-        String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR);
+    private static String findLocalCoreJarPath(String localSqlRootJar, String pluginLoadMode) throws Exception {
+        String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR, pluginLoadMode);
         return localSqlRootJar + SP + jarPath;
     }
 
@@ -67,7 +67,7 @@ public class JobGraphBuildUtil {
         String flinkConfDir = jobParamsInfo.getFlinkConfDir();
 
         String[] execArgs = jobParamsInfo.getExecArgs();
-        File coreJarFile = new File(findLocalCoreJarPath(jobParamsInfo.getLocalPluginRoot()));
+        File coreJarFile = new File(findLocalCoreJarPath(jobParamsInfo.getLocalPluginRoot(), jobParamsInfo.getPluginLoadMode()));
         SavepointRestoreSettings savepointRestoreSettings = dealSavepointRestoreSettings(jobParamsInfo.getConfProperties());
 
         PackagedProgram program = PackagedProgram.newBuilder()

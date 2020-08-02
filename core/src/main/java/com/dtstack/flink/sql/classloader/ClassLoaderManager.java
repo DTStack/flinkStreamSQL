@@ -65,7 +65,7 @@ public class ClassLoaderManager {
                 LOG.info("pluginJarPath:{} create ClassLoad successful...", pluginJarPath);
                 return classLoader;
             } catch (Throwable e) {
-                LOG.error("retrieve ClassLoad happens error:{}", e);
+                LOG.error("retrieve ClassLoad happens error", e);
                 throw new RuntimeException("retrieve ClassLoad happens error");
             }
         });

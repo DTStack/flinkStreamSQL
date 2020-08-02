@@ -26,6 +26,7 @@ import com.dtstack.flink.sql.table.AbstractTableParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.MathUtil;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.LinkedHashMap;
@@ -54,6 +55,16 @@ public class HbaseSinkParser extends AbstractTableParser {
 
     public static final String UPDATE_KEY = "updateMode";
 
+    public static final String KERBEROS_AUTH_ENABLE_KEY = "kerberosAuthEnable";
+    public static final String REGIONSERVER_KEYTAB_FILE_KEY = "regionserverKeytabFile";
+    public static final String REGIONSERVER_PRINCIPAL_KEY = "regionserverPrincipal";
+    public static final String SECURITY_KRB5_CONF_KEY = "securityKrb5Conf";
+    public static final String ZOOKEEPER_SASL_CLINT_KEY = "zookeeperSaslClient";
+
+    public static final String CLIENT_PRINCIPAL_KEY = "clientPrincipal";
+    public static final String CLIENT_KEYTABFILE_KEY = "clientKeytabFile";
+
+
     @Override
     protected boolean fieldNameNeedsUpperCase() {
         return false;
@@ -72,6 +83,15 @@ public class HbaseSinkParser extends AbstractTableParser {
         hbaseTableInfo.setRowkey(rk);
         String updateMode = (String) props.getOrDefault(UPDATE_KEY, EUpdateMode.APPEND.name());
         hbaseTableInfo.setUpdateMode(updateMode);
+
+        hbaseTableInfo.setKerberosAuthEnable(MathUtil.getBoolean(props.get(KERBEROS_AUTH_ENABLE_KEY.toLowerCase()), false));
+        hbaseTableInfo.setRegionserverKeytabFile((String) props.get(REGIONSERVER_KEYTAB_FILE_KEY.toLowerCase()));
+        hbaseTableInfo.setRegionserverPrincipal((String) props.get(REGIONSERVER_PRINCIPAL_KEY.toLowerCase()));
+        hbaseTableInfo.setSecurityKrb5Conf((String) props.get(SECURITY_KRB5_CONF_KEY.toLowerCase()));
+        hbaseTableInfo.setZookeeperSaslClient((String) props.get(ZOOKEEPER_SASL_CLINT_KEY.toLowerCase()));
+
+        hbaseTableInfo.setClientPrincipal((String) props.get(CLIENT_PRINCIPAL_KEY.toLowerCase()));
+        hbaseTableInfo.setClientKeytabFile((String) props.get(CLIENT_KEYTABFILE_KEY.toLowerCase()));
         return hbaseTableInfo;
     }
 
@@ -98,14 +118,23 @@ public class HbaseSinkParser extends AbstractTableParser {
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
             Class fieldClass = dbTypeConvertToJavaType(fieldType);
             String[] columnFamily = StringUtils.split(fieldName.trim(), ":");
-            columnFamilies.put(fieldName.trim(),columnFamily[1]);
             tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
             tableInfo.addField(columnFamily[1]);
             tableInfo.addFieldClass(fieldClass);
             tableInfo.addFieldType(fieldType);
             tableInfo.addFieldExtraInfo(null);
         }
-        tableInfo.setColumnNameFamily(columnFamilies);
+        tableInfo.setColumnNameFamily(parseColumnFamily(tableInfo.getPhysicalFields()));
         tableInfo.finish();
+    }
+
+    private Map<String, String> parseColumnFamily(Map<String, String> physicalFieldMap){
+        Map<String, String> columnFamiles = Maps.newHashMap();
+        physicalFieldMap.values().forEach(x -> {
+            String[] columnFamily = StringUtils.split(x.trim(), ":");
+            columnFamiles.put(x, columnFamily[1]);
+        });
+
+        return columnFamiles;
     }
 }

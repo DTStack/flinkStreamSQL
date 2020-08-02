@@ -22,6 +22,8 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.util.ParseUtils;
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -46,6 +48,16 @@ public class MongoAsyncSideInfo extends BaseSideInfo {
 
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
+        String sideTableName = joinInfo.getSideTableName();
+
+        SqlNode conditionNode = joinInfo.getCondition();
+
+        List<SqlNode> sqlNodeList = Lists.newArrayList();
+        ParseUtils.parseAnd(conditionNode, sqlNodeList);
+
+        for(SqlNode sqlNode : sqlNodeList){
+            dealOneEqualCon(sqlNode, sideTableName);
+        }
     }
 
 
@@ -67,8 +79,8 @@ public class MongoAsyncSideInfo extends BaseSideInfo {
         if(leftTableName.equalsIgnoreCase(sideTableName)){
             equalFieldList.add(leftField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for(int i=0; i<getFieldNames().length; i++){
+                String fieldName = getFieldNames()[i];
                 if(fieldName.equalsIgnoreCase(rightField)){
                     equalFieldIndex = i;
                 }
@@ -83,8 +95,8 @@ public class MongoAsyncSideInfo extends BaseSideInfo {
 
             equalFieldList.add(rightField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for(int i=0; i<getFieldNames().length; i++){
+                String fieldName = getFieldNames()[i];
                 if(fieldName.equalsIgnoreCase(leftField)){
                     equalFieldIndex = i;
                 }

@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.side;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.table.types.logical.LogicalType;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -29,6 +29,7 @@ import java.util.Objects;
  * Reason:
  * Date: 2018/7/23
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -41,6 +42,8 @@ public class FieldInfo implements Serializable {
     private String fieldName;
 
     private TypeInformation typeInformation;
+
+    private LogicalType logicalType;
 
     public String getTable() {
         return table;
@@ -66,6 +69,15 @@ public class FieldInfo implements Serializable {
         this.typeInformation = typeInformation;
     }
 
+    public LogicalType getLogicalType() {
+        return logicalType;
+    }
+
+    public void setLogicalType(LogicalType logicalType) {
+        this.logicalType = logicalType;
+    }
+
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -84,5 +96,14 @@ public class FieldInfo implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(table, fieldName);
+    }
+
+    @Override
+    public String toString() {
+        return "FieldInfo{" +
+                "table='" + table + '\'' +
+                ", fieldName='" + fieldName + '\'' +
+                ", typeInformation=" + typeInformation +
+                '}';
     }
 }

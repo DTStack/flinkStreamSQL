@@ -19,44 +19,32 @@
 
 package com.dtstack.flink.sql.side.cassandra;
 
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.types.Row;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.QueryOptions;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SocketOptions;
+import com.datastax.driver.core.*;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.BaseAsyncReqRow;
-import com.dtstack.flink.sql.side.CacheMissVal;
-import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.vertx.core.json.JsonArray;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
-import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -161,60 +149,13 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
-        Tuple2<Boolean, Row> inputCopy = Tuple2.of(input.f0, input.f1);
-        JsonArray inputParams = new JsonArray();
-        StringBuffer stringBuffer = new StringBuffer();
-        String sqlWhere = " where ";
-
-        for (int i = 0; i < sideInfo.getEqualFieldList().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.f1.getField(conValIndex);
-            if (equalObj == null) {
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            inputParams.add(equalObj);
-            StringBuffer sqlTemp = stringBuffer.append(sideInfo.getEqualFieldList().get(i))
-                    .append(" = ");
-            if (equalObj instanceof String) {
-                sqlTemp.append("'" + equalObj + "'")
-                        .append(" and ");
-            } else {
-                sqlTemp.append(equalObj)
-                        .append(" and ");
-            }
-
-        }
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
 
         String key = buildCacheKey(inputParams);
-        sqlWhere = sqlWhere + stringBuffer.toString().substring(0, stringBuffer.lastIndexOf(" and "));
-
-        if (openCache()) {
-            CacheObj val = getFromCache(key);
-            if (val != null) {
-
-                if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
-                    for (Object jsonArray : (List) val.getContent()) {
-                        Row row = fillData(inputCopy.f1, jsonArray);
-                        rowList.add(Tuple2.of(inputCopy.f0, row));
-                    }
-                    resultFuture.complete(rowList);
-                } else {
-                    throw new RuntimeException("not support cache obj type " + val.getType());
-                }
-                return;
-            }
-        }
-
         //connect Cassandra
         connCassandraDB(cassandraSideTableInfo);
 
-        String sqlCondition = sideInfo.getSqlCondition() + " " + sqlWhere + "  ALLOW FILTERING ";
+        String sqlCondition = sideInfo.getSqlCondition() + " " + buildWhereCondition(inputParams) + "  ALLOW FILTERING ";
         LOG.info("sqlCondition:{}" + sqlCondition);
 
         ListenableFuture<ResultSet> resultSet = Futures.transformAsync(session,
@@ -239,24 +180,24 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                 cluster.closeAsync();
                 if (rows.size() > 0) {
                     List<com.datastax.driver.core.Row> cacheContent = Lists.newArrayList();
-                    List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
+                    List<Row> rowList = Lists.newArrayList();
                     for (com.datastax.driver.core.Row line : rows) {
-                        Row row = fillData(inputCopy.f1, line);
+                        Row row = fillData(input, line);
                         if (openCache()) {
                             cacheContent.add(line);
                         }
-                        rowList.add(Tuple2.of(inputCopy.f0,row));
+                        rowList.add(row);
                     }
-                    resultFuture.complete(rowList);
+                    RowDataComplete.completeRow(resultFuture, rowList);
                     if (openCache()) {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }
                 } else {
-                    dealMissKey(inputCopy, resultFuture);
+                    dealMissKey(input, resultFuture);
                     if (openCache()) {
                         putCache(key, CacheMissVal.getMissKeyObj());
                     }
-                    resultFuture.complete(null);
+                    resultFuture.complete(Collections.EMPTY_LIST);
                 }
             }
 
@@ -268,6 +209,24 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                 resultFuture.completeExceptionally(t);
             }
         });
+    }
+
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        StringBuilder sb = new StringBuilder();
+        for (Object ele : inputParams.values()) {
+            sb.append(ele.toString()).append("_");
+        }
+        return sb.toString();
+    }
+
+    private String buildWhereCondition(Map<String, Object> inputParams){
+        StringBuilder sb = new StringBuilder(" where ");
+        for(Map.Entry<String, Object> entry : inputParams.entrySet()){
+            Object value = entry.getValue() instanceof String ? "'" + entry.getValue() + "'" : entry.getValue();
+            sb.append(String.format("%s = %s", entry.getKey(), value));
+        }
+        return sb.toString();
     }
 
     @Override
@@ -298,15 +257,5 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
             cluster.close();
             cluster = null;
         }
-    }
-
-    public String buildCacheKey(JsonArray jsonArray) {
-        StringBuilder sb = new StringBuilder();
-        for (Object ele : jsonArray.getList()) {
-            sb.append(ele.toString())
-                    .append("_");
-        }
-
-        return sb.toString();
     }
 }

@@ -61,6 +61,7 @@ public class HbaseSideParser extends AbstractSideTableParser {
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         HbaseSideTableInfo hbaseTableInfo = new HbaseSideTableInfo();
         hbaseTableInfo.setName(tableName);
+        parseCacheProp(hbaseTableInfo, props);
         parseFieldsInfo(fieldsInfo, hbaseTableInfo);
         hbaseTableInfo.setTableName((String) props.get(TABLE_NAME_KEY.toLowerCase()));
         hbaseTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
@@ -68,6 +69,10 @@ public class HbaseSideParser extends AbstractSideTableParser {
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         hbaseTableInfo.setPreRowKey(MathUtil.getBoolean(props.get(PRE_ROW_KEY.toLowerCase()), false));
         hbaseTableInfo.setCacheType((String) props.get(CACHE));
+        props.entrySet().stream()
+                .filter(entity -> entity.getKey().contains("."))
+                .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), String.valueOf(entity.getValue())))
+                .count();
         return hbaseTableInfo;
     }
 
@@ -100,6 +105,7 @@ public class HbaseSideParser extends AbstractSideTableParser {
         sideTableInfo.addFieldClass(fieldClass);
         sideTableInfo.addFieldType(fieldType);
         sideTableInfo.putAliasNameRef(aliasStr, fieldName);
+        sideTableInfo.addPhysicalMappings(aliasStr, fieldName);
     }
 
 

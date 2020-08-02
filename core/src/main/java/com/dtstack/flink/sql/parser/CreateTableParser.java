@@ -41,6 +41,8 @@ public class CreateTableParser implements IParser {
 
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STR);
 
+    private static final Pattern PROP_PATTERN = Pattern.compile("^'\\s*(.+)\\s*'$");
+
     public static CreateTableParser newInstance(){
         return new CreateTableParser();
     }
@@ -69,16 +71,25 @@ public class CreateTableParser implements IParser {
     }
 
     private Map parseProp(String propsStr){
-        String[] strs = propsStr.trim().split("'\\s*,");
+        propsStr = propsStr.replaceAll("'\\s*,", "'|");
+        String[] strs = propsStr.trim().split("\\|");
         Map<String, Object> propMap = Maps.newHashMap();
-        for(int i=0; i<strs.length; i++){
-            List<String> ss = DtStringUtil.splitIgnoreQuota(strs[i], '=');
+        for (String str : strs) {
+            List<String> ss = DtStringUtil.splitIgnoreQuota(str, '=');
             String key = ss.get(0).trim();
-            String value = ss.get(1).trim().replaceAll("'", "").trim();
+            String value = extractValue(ss.get(1).trim());
             propMap.put(key, value);
         }
 
         return propMap;
+    }
+
+    private String extractValue(String value) {
+        Matcher matcher = PROP_PATTERN.matcher(value);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        throw new RuntimeException("[" + value + "] format is invalid");
     }
 
     public static class SqlParserResult{

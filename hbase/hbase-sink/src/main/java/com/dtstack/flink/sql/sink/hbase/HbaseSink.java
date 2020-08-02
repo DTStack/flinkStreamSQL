@@ -53,6 +53,18 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String tableName;
     protected String updateMode;
     protected String rowkey;
+    protected String registerTabName;
+
+    protected boolean kerberosAuthEnable;
+    protected String regionserverKeytabFile;
+    protected String regionserverPrincipal;
+    protected String securityKrb5Conf;
+    protected String zookeeperSaslClient;
+
+    private String clientPrincipal;
+    private String clientKeytabFile;
+    private int parallelism = -1;
+
 
     public HbaseSink() {
         // TO DO NOTHING
@@ -67,7 +79,21 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.tableName = hbaseTableInfo.getTableName();
         this.rowkey = hbaseTableInfo.getRowkey();
         this.columnNameFamily = hbaseTableInfo.getColumnNameFamily();
-        this.updateMode = hbaseTableInfo.getUpdateMode();
+        this.registerTabName =  hbaseTableInfo.getName();
+
+        this.kerberosAuthEnable = hbaseTableInfo.isKerberosAuthEnable();
+        this.regionserverKeytabFile = hbaseTableInfo.getRegionserverKeytabFile();
+        this.regionserverPrincipal = hbaseTableInfo.getRegionserverPrincipal();
+        this.securityKrb5Conf = hbaseTableInfo.getSecurityKrb5Conf();
+        this.zookeeperSaslClient = hbaseTableInfo.getZookeeperSaslClient();
+
+        this.clientKeytabFile = hbaseTableInfo.getClientKeytabFile();
+        this.clientPrincipal = hbaseTableInfo.getClientPrincipal();
+
+        Integer tmpSinkParallelism = hbaseTableInfo.getParallelism();
+        if (tmpSinkParallelism != null) {
+            this.parallelism = tmpSinkParallelism;
+        }
         return this;
     }
 
@@ -79,13 +105,19 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     @Override
     public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         HbaseOutputFormat.HbaseOutputFormatBuilder builder = HbaseOutputFormat.buildHbaseOutputFormat();
-        builder.setHost(this.zookeeperQuorum)
-                .setZkParent(this.parent)
-                .setTable(this.tableName)
-                .setRowkey(rowkey)
-                .setUpdateMode(updateMode)
-                .setColumnNames(fieldNames)
-                .setColumnNameFamily(columnNameFamily);
+        builder.setHost(this.zookeeperQuorum).setZkParent(this.parent).setTable(this.tableName);
+
+        builder.setRowkey(rowkey);
+        builder.setColumnNames(fieldNames);
+        builder.setColumnNameFamily(columnNameFamily);
+        builder.setKerberosAuthEnable(kerberosAuthEnable);
+        builder.setRegionserverKeytabFile(regionserverKeytabFile);
+        builder.setRegionserverPrincipal(regionserverPrincipal);
+        builder.setSecurityKrb5Conf(securityKrb5Conf);
+        builder.setZookeeperSaslClient(zookeeperSaslClient);
+
+        builder.setClientPrincipal(clientPrincipal);
+        builder.setClientKeytabFile(clientKeytabFile);
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);

@@ -23,6 +23,7 @@ package com.dtstack.flink.sql.side;
 import com.google.common.collect.HashBasedTable;
 import org.apache.commons.lang3.StringUtils;
 
+
 /**
  * 用于记录转换之后的表和原来表直接字段的关联关系
  * Date: 2018/8/30
@@ -78,7 +79,7 @@ public class FieldReplaceInfo {
      * @param fieldName
      * @return
      */
-    public String getTargetFieldName(String tableName, String fieldName){
+    public String getTargetFieldName(String tableName, String fieldName) {
         String targetFieldName = mappingTable.get(tableName, fieldName);
         if(StringUtils.isNotBlank(targetFieldName)){
             return targetFieldName;

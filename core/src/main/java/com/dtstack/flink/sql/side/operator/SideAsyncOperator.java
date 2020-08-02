@@ -49,10 +49,10 @@ public class SideAsyncOperator {
     private static final String ORDERED = "ordered";
 
 
-    private static BaseAsyncReqRow loadAsyncReq(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,
-                                                JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) throws Exception {
+    private static BaseAsyncReqRow loadAsyncReq(String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo, JoinInfo joinInfo,
+                                                List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo, String pluginLoadMode) throws Exception {
         String pathOfType = String.format(PATH_FORMAT, sideType);
-        String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir);
+        String pluginJarPath = PluginUtil.getJarFileDirPath(pathOfType, sqlRootDir, pluginLoadMode);
         String className = PluginUtil.getSqlSideClassName(sideType, "side", OPERATOR_TYPE);
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) ->
                 cl.loadClass(className).asSubclass(BaseAsyncReqRow.class)
@@ -61,15 +61,15 @@ public class SideAsyncOperator {
     }
 
     public static DataStream getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,  JoinInfo joinInfo,
-                                            List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) throws Exception {
-        BaseAsyncReqRow asyncDbReq = loadAsyncReq(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+                                            List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo, String pluginLoadMode) throws Exception {
+        BaseAsyncReqRow asyncDbReq = loadAsyncReq(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo, pluginLoadMode);
 
         //TODO How much should be set for the degree of parallelism? Timeout? capacity settings?
         if (ORDERED.equals(sideTableInfo.getCacheMode())){
-            return AsyncDataStream.orderedWait(inputStream, asyncDbReq, sideTableInfo.getAsyncTimeout(), TimeUnit.MILLISECONDS, sideTableInfo.getAsyncCapacity())
+            return AsyncDataStream.orderedWait(inputStream, asyncDbReq, -1, TimeUnit.MILLISECONDS, sideTableInfo.getAsyncCapacity())
                     .setParallelism(sideTableInfo.getParallelism());
         }else {
-            return AsyncDataStream.unorderedWait(inputStream, asyncDbReq, sideTableInfo.getAsyncTimeout(), TimeUnit.MILLISECONDS, sideTableInfo.getAsyncCapacity())
+            return AsyncDataStream.unorderedWait(inputStream, asyncDbReq, -1, TimeUnit.MILLISECONDS, sideTableInfo.getAsyncCapacity())
                     .setParallelism(sideTableInfo.getParallelism());
         }
 

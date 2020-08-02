@@ -37,6 +37,10 @@ public class OracleSink extends AbstractRdbSink implements IStreamSinkGener<Abst
 
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
+        ((OracleDialect) jdbcDialect).setFieldList(fieldList);
+        ((OracleDialect) jdbcDialect).setFieldTypeList(fieldTypeList);
+        ((OracleDialect) jdbcDialect).setFieldExtraInfoList(fieldExtraInfoList);
+
         JDBCOptions jdbcOptions = JDBCOptions.builder()
                 .setDbUrl(dbUrl)
                 .setDialect(jdbcDialect)

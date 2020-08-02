@@ -24,9 +24,18 @@ import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.logical.DecimalType;
+import org.apache.flink.table.types.logical.LogicalType;
+import org.apache.flink.table.types.utils.ClassDataTypeConverter;
+import org.apache.flink.table.types.utils.TypeConversions;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Reason:
@@ -53,7 +62,9 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     public static final String ASYNC_TIMEOUT_KEY = "asyncTimeout";
 
-    public static final String ASYNC_TIMEOUT_NUM_KEY = "asyncTimeoutNum";
+    public static final String ASYNC_FAIL_MAX_NUM_KEY = "asyncFailMaxNum";
+
+    public static final String CONNECT_RETRY_MAX_NUM_KEY = "connectRetryMaxNum";
 
     public static final String ASYNC_REQ_POOL_KEY = "asyncPoolSize";
 
@@ -61,7 +72,7 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     private int cacheSize = 10000;
 
-    private long cacheTimeout = 60_000L;
+    private long cacheTimeout = 60 * 1000L;
 
     private int  asyncCapacity=100;
 
@@ -72,11 +83,13 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
      */
     private int asyncPoolSize = 0;
 
-    private int asyncTimeoutNumLimit = Integer.MAX_VALUE;
-
     private boolean partitionedJoin = false;
 
     private String cacheMode="ordered";
+
+    private Long asyncFailMaxNum;
+
+    private Integer connectRetryMaxNum;
 
     private List<PredicateInfo>  predicateInfoes = Lists.newArrayList();
 
@@ -89,6 +102,27 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         }
 
         return new RowTypeInfo(types, fieldNames);
+    }
+
+    public BaseRowTypeInfo getBaseRowTypeInfo(){
+        String[] fieldNames = getFields();
+        Class[] fieldClass = getFieldClasses();
+        LogicalType[] logicalTypes = new LogicalType[fieldClass.length];
+        for (int i = 0; i < fieldClass.length; i++) {
+            if(fieldClass[i].getName().equals(BigDecimal.class.getName())){
+                logicalTypes[i] = new DecimalType(DecimalType.MAX_PRECISION, 18);
+                continue;
+            }
+
+            Optional<DataType> optionalDataType = ClassDataTypeConverter.extractDataType(fieldClass[i]);
+            if(!optionalDataType.isPresent()){
+                throw new RuntimeException(String.format("not support table % field %s type %s", getName(), fieldNames[i], fieldClass[i]));
+            }
+
+            logicalTypes[i] = optionalDataType.get().getLogicalType();
+        }
+
+        return new BaseRowTypeInfo(logicalTypes, fieldNames);
     }
 
     public String getCacheType() {
@@ -155,13 +189,14 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         return predicateInfoes;
     }
 
-    public int getAsyncTimeoutNumLimit() {
-        return asyncTimeoutNumLimit;
+    public Long getAsyncFailMaxNum(Long defaultValue) {
+        return Objects.isNull(asyncFailMaxNum) ? defaultValue : asyncFailMaxNum;
     }
 
-    public void setAsyncTimeoutNumLimit(int asyncTimeoutNumLimit) {
-        this.asyncTimeoutNumLimit = asyncTimeoutNumLimit;
+    public void setAsyncFailMaxNum(Long asyncFailMaxNum) {
+        this.asyncFailMaxNum = asyncFailMaxNum;
     }
+
 
     public int getAsyncPoolSize() {
         return asyncPoolSize;
@@ -171,6 +206,14 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         this.asyncPoolSize = asyncPoolSize;
     }
 
+
+    public Integer getConnectRetryMaxNum(Integer defaultValue) {
+        return Objects.isNull(connectRetryMaxNum) ? defaultValue : connectRetryMaxNum;
+    }
+
+    public void setConnectRetryMaxNum(Integer connectRetryMaxNum) {
+        this.connectRetryMaxNum = connectRetryMaxNum;
+    }
     @Override
     public String toString() {
         return "Cache Info{" +
@@ -180,9 +223,10 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
                 ", asyncCapacity=" + asyncCapacity +
                 ", asyncTimeout=" + asyncTimeout +
                 ", asyncPoolSize=" + asyncPoolSize +
-                ", asyncTimeoutNumLimit=" + asyncTimeoutNumLimit +
+                ", asyncFailMaxNum=" + asyncFailMaxNum +
                 ", partitionedJoin=" + partitionedJoin +
                 ", cacheMode='" + cacheMode + '\'' +
                 '}';
     }
+
 }

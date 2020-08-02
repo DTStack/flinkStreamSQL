@@ -20,12 +20,14 @@ package com.dtstack.flink.sql.side.redis;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
@@ -128,65 +130,33 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
-        Tuple2<Boolean, Row> inputCopy = Tuple2.of(input.f0, input.f1);
-        Map<String, Object> refData = Maps.newHashMap();
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.f1.getField(conValIndex);
-            if(equalObj == null){
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
-        }
-
-        String key = buildCacheKey(refData);
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+        String key = buildCacheKey(inputParams);
         if(StringUtils.isBlank(key)){
             return;
         }
-        if(openCache()){
-            CacheObj val = getFromCache(key);
-            if(val != null){
-                if(ECacheContentType.MissVal == val.getType()){
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                }else if(ECacheContentType.MultiLine == val.getType()){
-                    try {
-                        Row row = fillData(inputCopy.f1, val.getContent());
-                        resultFuture.complete(Collections.singleton(Tuple2.of(input.f0, row)));
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                }else{
-                    RuntimeException exception = new RuntimeException("not support cache obj type " + val.getType());
-                    resultFuture.completeExceptionally(exception);
-                }
-                return;
-            }
-        }
-
         RedisFuture<Map<String, String>> future = ((RedisHashAsyncCommands) async).hgetall(key);
         future.thenAccept(new Consumer<Map<String, String>>() {
             @Override
             public void accept(Map<String, String> values) {
                 if (MapUtils.isNotEmpty(values)) {
                     try {
-                        Row row = fillData(input.f1, values);
+                        Row row = fillData(input, values);
                         dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
-                        resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0, row)));
+                        RowDataComplete.completeRow(resultFuture, row);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
+                        dealFillDataError(input, resultFuture, e);
                     }
                 } else {
-                    dealMissKey(inputCopy, resultFuture);
+                    dealMissKey(input, resultFuture);
                     dealCacheData(key,CacheMissVal.getMissKeyObj());
                 }
             }
         });
     }
 
-    private String buildCacheKey(Map<String, Object> refData) {
+    @Override
+    public String buildCacheKey(Map<String, Object> refData) {
         StringBuilder keyBuilder = new StringBuilder(redisSideTableInfo.getTableName());
         List<String> primaryKeys = redisSideTableInfo.getPrimaryKeys();
         for(String primaryKey : primaryKeys){

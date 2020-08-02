@@ -8,6 +8,7 @@ target/
 *.eclipse.*
 *.iml
 plugins/
+sqlplugins/
 lib/
 .vertx/
 .DS_Store

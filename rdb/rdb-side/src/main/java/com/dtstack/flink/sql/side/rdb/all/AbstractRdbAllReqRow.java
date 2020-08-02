@@ -18,33 +18,29 @@
 
 package com.dtstack.flink.sql.side.rdb.all;
 
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
-
-
 import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
+import com.dtstack.flink.sql.util.RowDataComplete;
+import com.dtstack.flink.sql.util.RowDataConvert;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
+import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +78,6 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         LOG.info("rdb dim table config info: {} ", tableInfo.toString());
     }
 
-
     @Override
     protected void initCache() throws SQLException {
         Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
@@ -104,15 +99,16 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Tuple2<Boolean,Row> value, Collector<Tuple2<Boolean,Row>> out) throws Exception {
+    public void flatMap(Row value, Collector<BaseRow> out) throws Exception {
         List<Integer> equalValIndex = sideInfo.getEqualValIndex();
         ArrayList<Object> inputParams = equalValIndex.stream()
-                .map(value.f1::getField)
+                .map(value::getField)
                 .filter(object -> null != object)
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
-            out.collect(Tuple2.of(value.f0, fillData(value.f1, null)));
+            Row row = fillData(value, null);
+            RowDataComplete.collectRow(out, row);
             return;
         }
 
@@ -122,11 +118,11 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
         if (CollectionUtils.isEmpty(cacheList) && sideInfo.getJoinType() == JoinType.LEFT) {
-            out.collect(Tuple2.of(value.f0, fillData(value.f1, null)));
+            Row row = fillData(value, null);
+            RowDataComplete.collectRow(out, row);
         } else if (!CollectionUtils.isEmpty(cacheList)) {
-            cacheList.stream().forEach(one -> out.collect(Tuple2.of(value.f0, fillData(value.f1, one))));
+            cacheList.stream().forEach(one -> out.collect(RowDataConvert.convertToBaseRow(fillData(value, one))));
         }
-
     }
 
     @Override
@@ -153,8 +149,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     }
 
     /**
-     *  covert flink time attribute.Type information for indicating event or processing time.
-     *  However, it behaves like a regular SQL timestamp but is serialized as Long.
+     * covert flink time attribute.Type information for indicating event or processing time.
+     * However, it behaves like a regular SQL timestamp but is serialized as Long.
      *
      * @param entry
      * @param obj

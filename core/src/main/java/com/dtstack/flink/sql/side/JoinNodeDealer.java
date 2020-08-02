@@ -19,12 +19,12 @@
 
 package com.dtstack.flink.sql.side;
 
-import com.dtstack.flink.sql.config.CalciteConfig;
+import com.dtstack.flink.sql.parser.FlinkPlanner;
+import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.esotericsoftware.minlog.Log;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -67,6 +67,8 @@ public class JoinNodeDealer {
 
     private SideSQLParser sideSQLParser;
 
+    private FlinkPlanner flinkPlanner = new FlinkPlanner();
+
     public JoinNodeDealer(SideSQLParser sideSQLParser){
         this.sideSQLParser = sideSQLParser;
     }
@@ -75,17 +77,24 @@ public class JoinNodeDealer {
      * 解析 join 操作
      * @param joinNode
      * @param sideTableSet 标明哪些表名是维表
-     * @param queueInfo
+     * @param queueInfo sql执行队列
      * @param parentWhere join 关联的最上层的where 节点
      * @param parentSelectList join 关联的最上层的select 节点
      * @param joinFieldSet
      * @param tableRef 存储构建临时表查询后源表和新表之间的关联关系
      * @return
      */
-    public JoinInfo dealJoinNode(SqlJoin joinNode, Set<String> sideTableSet,
-                                 Queue<Object> queueInfo, SqlNode parentWhere,
-                                 SqlNodeList parentSelectList, Set<Tuple2<String, String>> joinFieldSet,
-                                 Map<String, String> tableRef) {
+    public JoinInfo dealJoinNode(SqlJoin joinNode,
+                                 Set<String> sideTableSet,
+                                 Queue<Object> queueInfo,
+                                 SqlNode parentWhere,
+                                 SqlNodeList parentSelectList,
+                                 SqlNodeList parentGroupByList,
+                                 Set<Tuple2<String, String>> joinFieldSet,
+                                 Map<String, String> tableRef,
+                                 Map<String, String> fieldRef,
+                                 String scope) {
+
         SqlNode leftNode = joinNode.getLeft();
         SqlNode rightNode = joinNode.getRight();
         JoinType joinType = joinNode.getJoinType();
@@ -94,66 +103,32 @@ public class JoinNodeDealer {
         String leftTbAlias = "";
         String rightTableName = "";
         String rightTableAlias = "";
-        boolean leftTbisTmp = false;
 
-        //如果是连续join 判断是否已经处理过添加到执行队列
-        Boolean needBuildTemp = false;
+        //抽取join中的的条件
         extractJoinField(joinNode.getCondition(), joinFieldSet);
 
-        if(leftNode.getKind() == IDENTIFIER){
-            leftTbName = leftNode.toString();
-        } else if (leftNode.getKind() == JOIN) {
+        if (leftNode.getKind() == JOIN) {
             //处理连续join
-            Tuple2<Boolean, JoinInfo> nestJoinResult = dealNestJoin((SqlJoin) leftNode, sideTableSet,
-                    queueInfo, parentWhere, parentSelectList, joinFieldSet, tableRef);
-            needBuildTemp = nestJoinResult.f0;
-            SqlBasicCall buildAs = TableUtils.buildAsNodeByJoinInfo(nestJoinResult.f1, null, null);
+            dealNestJoin(joinNode, sideTableSet, queueInfo, parentWhere, parentSelectList,
+                    parentGroupByList, joinFieldSet, tableRef, fieldRef, scope);
+            leftNode = joinNode.getLeft();
+        }
 
-            if(needBuildTemp){
-                //记录表之间的关联关系
-                String newLeftTableName = buildAs.getOperands()[1].toString();
-                Set<String> fromTableNameSet = Sets.newHashSet();
-                TableUtils.getFromTableInfo(joinNode.getLeft(), fromTableNameSet);
-                for(String tbTmp : fromTableNameSet){
-                    tableRef.put(tbTmp, newLeftTableName);
-                }
-
-                //替换leftNode 为新的查询
-                joinNode.setLeft(buildAs);
-                leftNode = buildAs;
-
-                //替换select field 中的对应字段
-                for(SqlNode sqlNode : parentSelectList.getList()){
-                    for(String tbTmp : fromTableNameSet) {
-                        TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName);
-                    }
-                }
-
-                //替换where 中的条件相关
-                for(String tbTmp : fromTableNameSet){
-                    TableUtils.replaceWhereCondition(parentWhere, tbTmp, newLeftTableName);
-                }
-
-                leftTbisTmp = true;
-
-            }
-
-            leftTbName = buildAs.getOperands()[0].toString();
-            leftTbAlias = buildAs.getOperands()[1].toString();
-
-        } else if (leftNode.getKind() == AS) {
-            AliasInfo aliasInfo = (AliasInfo) sideSQLParser.parseSql(leftNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
+        if (leftNode.getKind() == AS) {
+            AliasInfo aliasInfo = (AliasInfo) sideSQLParser.parseSql(leftNode, sideTableSet, queueInfo,
+                    parentWhere, parentSelectList, parentGroupByList, scope);
             leftTbName = aliasInfo.getName();
             leftTbAlias = aliasInfo.getAlias();
-
-        } else {
-            throw new RuntimeException(String.format("---not deal node with type %s", leftNode.getKind().toString()));
+        } else if(leftNode.getKind() == IDENTIFIER){
+            leftTbName = leftNode.toString();
+            leftTbAlias = leftTbName;
         }
 
         boolean leftIsSide = checkIsSideTable(leftTbName, sideTableSet);
         Preconditions.checkState(!leftIsSide, "side-table must be at the right of join operator");
 
-        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, parentSelectList);
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo,
+                parentWhere, parentSelectList, parentGroupByList, scope);
         rightTableName = rightTableNameAndAlias.f0;
         rightTableAlias = rightTableNameAndAlias.f1;
 
@@ -162,78 +137,270 @@ public class JoinNodeDealer {
             throw new RuntimeException("side join not support join type of right[current support inner join and left join]");
         }
 
-        if(leftNode.getKind() == JOIN && rightIsSide){
-            needBuildTemp = true;
-        }
-
         JoinInfo tableInfo = new JoinInfo();
         tableInfo.setLeftTableName(leftTbName);
         tableInfo.setRightTableName(rightTableName);
-        if (StringUtils.isEmpty(leftTbAlias)){
-            tableInfo.setLeftTableAlias(leftTbName);
-        } else {
-            tableInfo.setLeftTableAlias(leftTbAlias);
-        }
 
-        if (StringUtils.isEmpty(rightTableAlias)){
-            tableInfo.setRightTableAlias(rightTableName);
-        } else {
-            tableInfo.setRightTableAlias(rightTableAlias);
-        }
+        leftTbAlias = StringUtils.isEmpty(leftTbAlias) ? leftTbName : leftTbAlias;
+        rightTableAlias = StringUtils.isEmpty(rightTableAlias) ? rightTableName : rightTableAlias;
 
-        TableUtils.replaceJoinFieldRefTableName(joinNode.getCondition(), tableRef);
-
-        tableInfo.setLeftIsTmpTable(leftTbisTmp);
-        tableInfo.setLeftIsSideTable(leftIsSide);
+        tableInfo.setLeftTableAlias(leftTbAlias);
+        tableInfo.setRightTableAlias(rightTableAlias);
         tableInfo.setRightIsSideTable(rightIsSide);
         tableInfo.setLeftNode(leftNode);
         tableInfo.setRightNode(rightNode);
         tableInfo.setJoinType(joinType);
         tableInfo.setCondition(joinNode.getCondition());
+        tableInfo.setScope(scope);
 
-        if(tableInfo.getLeftNode().getKind() != AS && needBuildTemp){
-            extractTemporaryQuery(tableInfo.getLeftNode(), tableInfo.getLeftTableAlias(), (SqlBasicCall) parentWhere,
-                    parentSelectList, queueInfo, joinFieldSet, tableRef);
-        }else {
-            SqlKind asNodeFirstKind = ((SqlBasicCall)tableInfo.getLeftNode()).operands[0].getKind();
-            if(asNodeFirstKind == SELECT){
-                queueInfo.offer(tableInfo.getLeftNode());
-                tableInfo.setLeftNode(((SqlBasicCall)tableInfo.getLeftNode()).operands[1]);
-            }
+        TableUtils.replaceJoinFieldRefTableName(joinNode.getCondition(), fieldRef);
+
+        //extract 需要查询的字段信息
+        if(rightIsSide){
+            extractJoinNeedSelectField(leftNode, rightNode, parentWhere, parentSelectList, parentGroupByList, tableRef, joinFieldSet, fieldRef, tableInfo);
         }
+
+        if(tableInfo.getLeftNode().getKind() != AS){
+            return tableInfo;
+        }
+
+        SqlKind asNodeFirstKind = ((SqlBasicCall)tableInfo.getLeftNode()).operands[0].getKind();
+        if(asNodeFirstKind == SELECT){
+            queueInfo.offer(tableInfo.getLeftNode());
+            tableInfo.setLeftNode(((SqlBasicCall)tableInfo.getLeftNode()).operands[1]);
+        }
+
         return tableInfo;
     }
 
+    /**
+     * 获取join 之后需要查询的字段信息
+     */
+    public void extractJoinNeedSelectField(SqlNode leftNode,
+                                           SqlNode rightNode,
+                                           SqlNode parentWhere,
+                                           SqlNodeList parentSelectList,
+                                           SqlNodeList parentGroupByList,
+                                           Map<String, String> tableRef,
+                                           Set<Tuple2<String, String>> joinFieldSet,
+                                           Map<String, String> fieldRef,
+                                           JoinInfo tableInfo){
 
-    //处理多层join
-    private Tuple2<Boolean, JoinInfo> dealNestJoin(SqlJoin joinNode, Set<String> sideTableSet,
-                                                   Queue<Object> queueInfo, SqlNode parentWhere,
-                                                   SqlNodeList selectList, Set<Tuple2<String, String>> joinFieldSet,
-                                                   Map<String, String> tableRef){
-        SqlNode rightNode = joinNode.getRight();
-        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo, parentWhere, selectList);
-        JoinInfo joinInfo = dealJoinNode(joinNode, sideTableSet, queueInfo, parentWhere, selectList, joinFieldSet, tableRef);
+        Set<String> extractSelectField = extractField(leftNode, parentWhere, parentSelectList, parentGroupByList, tableRef, joinFieldSet);
+        Set<String> rightExtractSelectField = extractField(rightNode, parentWhere, parentSelectList, parentGroupByList, tableRef, joinFieldSet);
+
+        //重命名right 中和 left 重名的
+        Map<String, String> leftTbSelectField = Maps.newHashMap();
+        Map<String, String> rightTbSelectField = Maps.newHashMap();
+        String newTableName = tableInfo.getNewTableAlias();
+
+        for(String tmpField : extractSelectField){
+            String[] tmpFieldSplit = StringUtils.split(tmpField, '.');
+            leftTbSelectField.put(tmpFieldSplit[1], tmpFieldSplit[1]);
+            fieldRef.put(tmpField, TableUtils.buildTableField(newTableName, tmpFieldSplit[1]));
+        }
+
+        for(String tmpField : rightExtractSelectField){
+            String[] tmpFieldSplit = StringUtils.split(tmpField, '.');
+            String originalFieldName = tmpFieldSplit[1];
+            String targetFieldName = originalFieldName;
+            if(leftTbSelectField.containsKey(originalFieldName)){
+                targetFieldName = ParseUtils.dealDuplicateFieldName(leftTbSelectField, originalFieldName);
+            }
+
+            rightTbSelectField.put(originalFieldName, targetFieldName);
+            fieldRef.put(tmpField, TableUtils.buildTableField(newTableName, targetFieldName));
+        }
+
+        tableInfo.setLeftSelectFieldInfo(leftTbSelectField);
+        tableInfo.setRightSelectFieldInfo(rightTbSelectField);
+    }
+
+    /**
+     * 指定的节点关联到的 select 中的字段和 where中的字段
+     * @param sqlNode
+     * @param parentWhere
+     * @param parentSelectList
+     * @param parentGroupByList
+     * @param tableRef
+     * @param joinFieldSet
+     * @return
+     */
+    public Set<String> extractField(SqlNode sqlNode,
+                                    SqlNode parentWhere,
+                                    SqlNodeList parentSelectList,
+                                    SqlNodeList parentGroupByList,
+                                    Map<String, String> tableRef,
+                                    Set<Tuple2<String, String>> joinFieldSet){
+        Set<String> fromTableNameSet = Sets.newHashSet();
+        TableUtils.getFromTableInfo(sqlNode, fromTableNameSet);
+        Set<String> extractCondition = Sets.newHashSet();
+
+        extractWhereCondition(fromTableNameSet, (SqlBasicCall) parentWhere, extractCondition);
+        Set<String> extractSelectField = extractSelectFields(parentSelectList, fromTableNameSet, tableRef);
+        Set<String> fieldFromJoinCondition = extractSelectFieldFromJoinCondition(joinFieldSet, fromTableNameSet, tableRef);
+
+        Set<String> extractGroupByField = extractFieldFromGroupByList(parentGroupByList, fromTableNameSet, tableRef);
+        extractSelectField.addAll(extractCondition);
+        extractSelectField.addAll(fieldFromJoinCondition);
+        extractSelectField.addAll(extractGroupByField);
+
+        return extractSelectField;
+    }
+
+
+    /**
+     * 处理多层join
+     * 判断左节点是否需要创建临时查询
+     * （1）右节点是维表
+     * （2）左节点不是 as 节点
+     */
+    private JoinInfo dealNestJoin(SqlJoin joinNode,
+                                  Set<String> sideTableSet,
+                                  Queue<Object> queueInfo,
+                                  SqlNode parentWhere,
+                                  SqlNodeList parentSelectList,
+                                  SqlNodeList parentGroupByList,
+                                  Set<Tuple2<String, String>> joinFieldSet,
+                                  Map<String, String> tableRef,
+                                  Map<String, String> fieldRef,
+                                  String scope){
+
+        SqlJoin leftJoinNode = (SqlJoin) joinNode.getLeft();
+        SqlNode parentRightJoinNode = joinNode.getRight();
+        SqlNode rightNode = leftJoinNode.getRight();
+
+        Tuple2<String, String> rightTableNameAndAlias = parseRightNode(rightNode, sideTableSet, queueInfo,
+                parentWhere, parentSelectList, parentGroupByList, scope);
+        Tuple2<String, String> parentRightJoinInfo = parseRightNode(parentRightJoinNode, sideTableSet,
+                queueInfo, parentWhere, parentSelectList, parentGroupByList, scope);
+        boolean parentRightIsSide = checkIsSideTable(parentRightJoinInfo.f0, sideTableSet);
+
+        JoinInfo joinInfo = dealJoinNode(leftJoinNode, sideTableSet, queueInfo, parentWhere, parentSelectList,
+                parentGroupByList, joinFieldSet, tableRef, fieldRef, scope);
 
         String rightTableName = rightTableNameAndAlias.f0;
         boolean rightIsSide = checkIsSideTable(rightTableName, sideTableSet);
-        boolean needBuildTemp = false;
+        SqlBasicCall buildAs = TableUtils.buildAsNodeByJoinInfo(joinInfo, null, null);
 
-        if(!rightIsSide){
-            //右表不是维表的情况
-        }else{
-            //右边表是维表需要重新构建左表的临时查询
-            queueInfo.offer(joinInfo);
-            needBuildTemp = true;
+        if(rightIsSide){
+            addSideInfoToExeQueue(queueInfo, joinInfo, joinNode, parentSelectList, parentGroupByList, parentWhere, tableRef);
         }
 
-        //return Tuple2.of(needBuildTemp, TableUtils.buildAsNodeByJoinInfo(joinInfo, null, null));
-        return Tuple2.of(needBuildTemp, joinInfo);
+        SqlNode newLeftNode = joinNode.getLeft();
+
+        if(newLeftNode.getKind() != AS && parentRightIsSide){
+
+            String leftTbAlias = buildAs.getOperands()[1].toString();
+            extractTemporaryQuery(newLeftNode, leftTbAlias, (SqlBasicCall) parentWhere,
+                    parentSelectList, queueInfo, joinFieldSet, tableRef, fieldRef);
+
+            //替换leftNode 为新的查询
+            joinNode.setLeft(buildAs);
+            replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentGroupByList, parentWhere);
+        }
+
+        return joinInfo;
     }
 
-    private void extractTemporaryQuery(SqlNode node, String tableAlias, SqlBasicCall parentWhere,
-                                       SqlNodeList parentSelectList, Queue<Object> queueInfo,
+    /**
+     * 右边表是维表需要重新构建左表的临时查询
+     * 并将joinInfo 添加到执行队列里面
+     * @param queueInfo
+     * @param joinInfo
+     * @param joinNode
+     * @param parentSelectList
+     * @param parentGroupByList
+     * @param parentWhere
+     * @param tableRef
+     */
+    public void addSideInfoToExeQueue(Queue<Object> queueInfo,
+                                      JoinInfo joinInfo,
+                                      SqlJoin joinNode,
+                                      SqlNodeList parentSelectList,
+                                      SqlNodeList parentGroupByList,
+                                      SqlNode parentWhere,
+                                      Map<String, String> tableRef){
+        //只处理维表
+        if(!joinInfo.isRightIsSideTable()){
+            return;
+        }
+
+        SqlBasicCall buildAs = TableUtils.buildAsNodeByJoinInfo(joinInfo, null, null);
+        SqlNode leftJoinNode = joinNode.getLeft();
+        queueInfo.offer(joinInfo);
+        //替换左表为新的表名称
+        joinNode.setLeft(buildAs);
+
+        replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentGroupByList, parentWhere);
+    }
+
+    /**
+     * 替换指定的查询和条件节点中的字段为新的字段
+     * @param buildAs
+     * @param leftJoinNode
+     * @param tableRef
+     * @param parentSelectList
+     * @param parentGroupByList
+     * @param parentWhere
+     */
+    public void replaceSelectAndWhereField(SqlBasicCall buildAs,
+                   SqlNode leftJoinNode,
+                   Map<String, String> tableRef,
+                   SqlNodeList parentSelectList,
+                   SqlNodeList parentGroupByList,
+                   SqlNode parentWhere){
+
+        String newLeftTableName = buildAs.getOperands()[1].toString();
+        Set<String> fromTableNameSet = Sets.newHashSet();
+        TableUtils.getFromTableInfo(leftJoinNode, fromTableNameSet);
+
+        for(String tbTmp : fromTableNameSet){
+            tableRef.put(tbTmp, newLeftTableName);
+        }
+
+        //替换select field 中的对应字段
+        HashBiMap<String, String> fieldReplaceRef = HashBiMap.create();
+        for(SqlNode sqlNode : parentSelectList.getList()){
+            for(String tbTmp : fromTableNameSet) {
+                TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);
+            }
+        }
+
+        //TODO 应该根据上面的查询字段的关联关系来替换
+        //替换where 中的条件相关
+        for(String tbTmp : fromTableNameSet){
+            TableUtils.replaceWhereCondition(parentWhere, tbTmp, newLeftTableName, fieldReplaceRef);
+        }
+
+        if(parentGroupByList != null){
+            for(SqlNode sqlNode : parentGroupByList.getList()){
+                for(String tbTmp : fromTableNameSet) {
+                    TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);
+                }
+            }
+        }
+
+    }
+
+    /**
+     * 抽取出中间查询表
+     * @param node
+     * @param tableAlias
+     * @param parentWhere
+     * @param parentSelectList
+     * @param queueInfo
+     * @param joinFieldSet
+     * @param tableRef
+     * @return 源自段和新生成字段之间的映射关系
+     */
+    private void extractTemporaryQuery(SqlNode node, String tableAlias,
+                                       SqlBasicCall parentWhere,
+                                       SqlNodeList parentSelectList,
+                                       Queue<Object> queueInfo,
                                        Set<Tuple2<String, String>> joinFieldSet,
-                                       Map<String, String> tableRef){
+                                       Map<String, String> tableRef,
+                                       Map<String, String> fieldRef){
         try{
             //父一级的where 条件中如果只和临时查询相关的条件都截取进来
             Set<String> fromTableNameSet = Sets.newHashSet();
@@ -247,8 +414,13 @@ public class JoinNodeDealer {
             }
 
             Set<String> extractSelectField = extractSelectFields(parentSelectList, fromTableNameSet, tableRef);
-            Set<String> fieldFromJoinCondition = extractSelectFieldFromJoinCondition(joinFieldSet, fromTableNameSet);
-            String extractSelectFieldStr = buildSelectNode(extractSelectField, fieldFromJoinCondition);
+            Set<String> fieldFromJoinCondition = extractSelectFieldFromJoinCondition(joinFieldSet, fromTableNameSet, tableRef);
+            Set<String> newFields = buildSelectNode(extractSelectField, fieldFromJoinCondition);
+            String extractSelectFieldStr = StringUtils.join(newFields, ',');
+
+            Map<String, String> oldRefNewField = buildTmpTableFieldRefOriField(newFields, tableAlias);
+            fieldRef.putAll(oldRefNewField);
+
             String extractConditionStr = buildCondition(extractCondition);
 
             String tmpSelectSql = String.format(SELECT_TEMP_SQL,
@@ -256,14 +428,32 @@ public class JoinNodeDealer {
                     node.toString(),
                     extractConditionStr);
 
-            SqlParser sqlParser = SqlParser.create(tmpSelectSql, CalciteConfig.MYSQL_LEX_CONFIG);
-            SqlNode sqlNode = sqlParser.parseStmt();
+            SqlNode sqlNode = flinkPlanner.getParser().parse(tmpSelectSql);
+
             SqlBasicCall sqlBasicCall = buildAsSqlNode(tableAlias, sqlNode);
             queueInfo.offer(sqlBasicCall);
 
+            //替换select中的表结构
+            HashBiMap<String, String> fieldReplaceRef = HashBiMap.create();
+            for(SqlNode tmpSelect : parentSelectList.getList()){
+                for(String tbTmp : fromTableNameSet) {
+                    TableUtils.replaceSelectFieldTable(tmpSelect, tbTmp, tableAlias, fieldReplaceRef);
+                }
+            }
+
+            //替换where 中的条件相关
+            for(String tbTmp : fromTableNameSet){
+                TableUtils.replaceWhereCondition(parentWhere, tbTmp, tableAlias, fieldReplaceRef);
+            }
+
+            for(String tbTmp : fromTableNameSet){
+                tableRef.put(tbTmp, tableAlias);
+            }
+
             Log.info("-------build temporary query-----------\n{}", tmpSelectSql);
             Log.info("---------------------------------------");
-        } catch (Exception e) {
+
+        }catch (Exception e){
             Log.error("", e);
             throw new RuntimeException(e);
         }
@@ -287,12 +477,36 @@ public class JoinNodeDealer {
         return extractFieldList;
     }
 
-    private Set<String> extractSelectFieldFromJoinCondition(Set<Tuple2<String, String>> joinFieldSet, Set<String> fromTableNameSet){
+    private Set<String> extractSelectFieldFromJoinCondition(Set<Tuple2<String, String>> joinFieldSet,
+                                                            Set<String> fromTableNameSet,
+                                                            Map<String, String> tableRef){
         Set<String> extractFieldList = Sets.newHashSet();
         for(Tuple2<String, String> field : joinFieldSet){
             if(fromTableNameSet.contains(field.f0)){
                 extractFieldList.add(field.f0 + "." + field.f1);
             }
+
+            if(tableRef.containsKey(field.f0)){
+                if(fromTableNameSet.contains(tableRef.get(field.f0))){
+                    extractFieldList.add(tableRef.get(field.f0) + "." + field.f1);
+                }
+            }
+        }
+
+        return extractFieldList;
+    }
+
+    private Set<String> extractFieldFromGroupByList(SqlNodeList parentGroupByList,
+                                                    Set<String> fromTableNameSet,
+                                                    Map<String, String> tableRef){
+
+        if(parentGroupByList == null){
+            return Sets.newHashSet();
+        }
+
+        Set<String> extractFieldList = Sets.newHashSet();
+        for(SqlNode selectNode : parentGroupByList.getList()){
+            extractSelectField(selectNode, extractFieldList, fromTableNameSet, tableRef);
         }
 
         return extractFieldList;
@@ -304,11 +518,58 @@ public class JoinNodeDealer {
      * @param joinFieldSet
      */
     private void extractJoinField(SqlNode condition, Set<Tuple2<String, String>> joinFieldSet){
+        if (null == condition || condition.getKind() == LITERAL) {
+            return;
+        }
+
         SqlKind joinKind = condition.getKind();
-        if( joinKind == AND || joinKind == EQUALS ){
-            extractJoinField(((SqlBasicCall)condition).operands[0], joinFieldSet);
-            extractJoinField(((SqlBasicCall)condition).operands[1], joinFieldSet);
-        }else{
+        if (  AGGREGATE.contains(condition.getKind())
+                || AVG_AGG_FUNCTIONS.contains(joinKind)
+                || COMPARISON.contains(joinKind)
+                || joinKind == OTHER_FUNCTION
+                || joinKind == DIVIDE
+                || joinKind == CAST
+                || joinKind == TRIM
+                || joinKind == TIMES
+                || joinKind == PLUS
+                || joinKind == NOT_IN
+                || joinKind == OR
+                || joinKind == AND
+                || joinKind == MINUS
+                || joinKind == TUMBLE
+                || joinKind == TUMBLE_START
+                || joinKind == TUMBLE_END
+                || joinKind == SESSION
+                || joinKind == SESSION_START
+                || joinKind == SESSION_END
+                || joinKind == HOP
+                || joinKind == HOP_START
+                || joinKind == HOP_END
+                || joinKind == BETWEEN
+                || joinKind == IS_NULL
+                || joinKind == IS_NOT_NULL
+                || joinKind == CONTAINS
+                || joinKind == TIMESTAMP_ADD
+                || joinKind == TIMESTAMP_DIFF
+                || joinKind == LIKE
+                || joinKind == COALESCE
+                || joinKind == EQUALS ){
+
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) condition;
+            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if(sqlNode instanceof SqlLiteral){
+                    continue;
+                }
+
+                if(sqlNode instanceof SqlDataTypeSpec){
+                    continue;
+                }
+
+                extractJoinField(sqlNode, joinFieldSet);
+            }
+
+        } else if (condition.getKind() == IDENTIFIER){
             Preconditions.checkState(((SqlIdentifier)condition).names.size() == 2, "join condition must be format table.field");
             Tuple2<String, String> tuple2 = Tuple2.of(((SqlIdentifier)condition).names.get(0), ((SqlIdentifier)condition).names.get(1));
             joinFieldSet.add(tuple2);
@@ -368,6 +629,7 @@ public class JoinNodeDealer {
                 || selectNode.getKind() == TIMESTAMP_ADD
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
+                || selectNode.getKind() == COALESCE
 
         ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
@@ -408,12 +670,13 @@ public class JoinNodeDealer {
 
 
     private Tuple2<String, String> parseRightNode(SqlNode sqlNode, Set<String> sideTableSet, Queue<Object> queueInfo,
-                                                  SqlNode parentWhere, SqlNodeList selectList) {
+                                                  SqlNode parentWhere, SqlNodeList selectList, SqlNodeList parentGroupByList,
+                                                  String scope) {
         Tuple2<String, String> tabName = new Tuple2<>("", "");
         if(sqlNode.getKind() == IDENTIFIER){
             tabName.f0 = sqlNode.toString();
         }else{
-            AliasInfo aliasInfo = (AliasInfo)sideSQLParser.parseSql(sqlNode, sideTableSet, queueInfo, parentWhere, selectList);
+            AliasInfo aliasInfo = (AliasInfo)sideSQLParser.parseSql(sqlNode, sideTableSet, queueInfo, parentWhere, selectList, parentGroupByList, scope);
             tabName.f0 = aliasInfo.getName();
             tabName.f1 = aliasInfo.getAlias();
         }
@@ -446,14 +709,39 @@ public class JoinNodeDealer {
         return " where " + StringUtils.join(conditionList, " AND ");
     }
 
-    public String buildSelectNode(Set<String> extractSelectField, Set<String> joinFieldSet){
+    /**
+     * 构建抽取表的查询字段信息
+     * 包括去除重复字段，名称相同的取别名
+     * @param extractSelectField
+     * @param joinFieldSet
+     * @return
+     */
+    public Set<String> buildSelectNode(Set<String> extractSelectField, Set<String> joinFieldSet){
         if(CollectionUtils.isEmpty(extractSelectField)){
             throw new RuntimeException("no field is used");
         }
 
-        Sets.SetView view = Sets.union(extractSelectField, joinFieldSet);
+        Sets.SetView<String> view = Sets.union(extractSelectField, joinFieldSet);
+        Set<String> newFieldSet = Sets.newHashSet();
+        //为相同的列取别名
+        HashBiMap<String, String> refFieldMap = HashBiMap.create();
+        for(String field : view){
+            String[] fieldInfo = StringUtils.split(field, '.');
+            String aliasName = fieldInfo[1];
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(field);
+            if(refFieldMap.inverse().get(aliasName) != null){
+                aliasName = ParseUtils.dealDuplicateFieldName(refFieldMap, aliasName);
+                stringBuilder.append(" as ")
+                        .append(aliasName);
+            }
 
-        return StringUtils.join(view, ",");
+            refFieldMap.put(field, aliasName);
+
+            newFieldSet.add(stringBuilder.toString());
+        }
+
+        return newFieldSet;
     }
 
     private boolean checkIsSideTable(String tableName, Set<String> sideTableList){
@@ -471,6 +759,38 @@ public class JoinNodeDealer {
         sqlNodes[0] = newSource;
         sqlNodes[1] = sqlIdentifierAlias;
         return new SqlBasicCall(operator, sqlNodes, sqlParserPos);
+    }
+
+    /**
+     * 获取where中和指定表有关联的字段
+     * @param fromTableNameSet
+     * @param parentWhere
+     * @param extractCondition
+     */
+    private void extractWhereCondition(Set<String> fromTableNameSet, SqlBasicCall parentWhere, Set<String> extractCondition){
+
+        if(parentWhere == null){
+            return;
+        }
+
+        SqlKind kind = parentWhere.getKind();
+        if(kind == AND){
+            extractWhereCondition(fromTableNameSet, (SqlBasicCall) parentWhere.getOperands()[0], extractCondition);
+            extractWhereCondition(fromTableNameSet, (SqlBasicCall) parentWhere.getOperands()[1], extractCondition);
+        } else {
+
+            Set<String> fieldInfos = Sets.newHashSet();
+            TableUtils.getConditionRefTable(parentWhere, fieldInfos);
+            fieldInfos.forEach(fieldInfo -> {
+                String[] splitInfo = StringUtils.split(fieldInfo, ".");
+                if(splitInfo.length == 2 && fromTableNameSet.contains(splitInfo[0])){
+                    extractCondition.add(fieldInfo);
+                }
+            });
+
+        }
+
+
     }
 
 
@@ -503,8 +823,18 @@ public class JoinNodeDealer {
 
             return false;
         } else {
+            //条件表达式，如果该条件关联的表都是指定的表则移除
+            Set<String> fieldInfos = Sets.newHashSet();
+            TableUtils.getConditionRefTable(parentWhere, fieldInfos);
             Set<String> conditionRefTableNameSet = Sets.newHashSet();
-            TableUtils.getConditionRefTable(parentWhere, conditionRefTableNameSet);
+
+            fieldInfos.forEach(fieldInfo -> {
+                String[] splitInfo = StringUtils.split(fieldInfo, ".");
+                if(splitInfo.length == 2){
+                    conditionRefTableNameSet.add(splitInfo[0]);
+                }
+            });
+
 
             if(fromTableNameSet.containsAll(conditionRefTableNameSet)){
                 return true;
@@ -547,20 +877,57 @@ public class JoinNodeDealer {
     private SqlIdentifier checkAndReplaceJoinCondition(SqlNode node, Map<String, String> tableMap){
 
         SqlKind joinKind = node.getKind();
-        if( joinKind == AND || joinKind == EQUALS ){
-            SqlIdentifier leftNode = checkAndReplaceJoinCondition(((SqlBasicCall)node).operands[0], tableMap);
-            SqlIdentifier rightNode = checkAndReplaceJoinCondition(((SqlBasicCall)node).operands[1], tableMap);
+        if(   AGGREGATE.contains(joinKind)
+                || AVG_AGG_FUNCTIONS.contains(joinKind)
+                || COMPARISON.contains(joinKind)
+                || joinKind == OTHER_FUNCTION
+                || joinKind == DIVIDE
+                || joinKind == CAST
+                || joinKind == TRIM
+                || joinKind == TIMES
+                || joinKind == PLUS
+                || joinKind == NOT_IN
+                || joinKind == OR
+                || joinKind == AND
+                || joinKind == MINUS
+                || joinKind == TUMBLE
+                || joinKind == TUMBLE_START
+                || joinKind == TUMBLE_END
+                || joinKind == SESSION
+                || joinKind == SESSION_START
+                || joinKind == SESSION_END
+                || joinKind == HOP
+                || joinKind == HOP_START
+                || joinKind == HOP_END
+                || joinKind == BETWEEN
+                || joinKind == IS_NULL
+                || joinKind == IS_NOT_NULL
+                || joinKind == CONTAINS
+                || joinKind == TIMESTAMP_ADD
+                || joinKind == TIMESTAMP_DIFF
+                || joinKind == LIKE
+                || joinKind == COALESCE
+                || joinKind == EQUALS ){
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) node;
+            for(int i=0; i<sqlBasicCall.getOperands().length; i++){
+                SqlNode sqlNode = sqlBasicCall.getOperands()[i];
+                if(sqlNode instanceof SqlLiteral){
+                    continue;
+                }
 
-            if(leftNode != null){
-                ((SqlBasicCall)node).setOperand(0, leftNode);
-            }
+                if(sqlNode instanceof SqlDataTypeSpec){
+                    continue;
+                }
 
-            if(rightNode != null){
-                ((SqlBasicCall)node).setOperand(1, leftNode);
+                SqlIdentifier replaceNode = checkAndReplaceJoinCondition(sqlNode, tableMap);
+                if(replaceNode != null){
+                    ((SqlBasicCall)node).setOperand(i, replaceNode);
+                }
+
             }
 
             return null;
-        } else {
+        } else if (node.getKind() == IDENTIFIER) {
             //replace table
             Preconditions.checkState(((SqlIdentifier)node).names.size() == 2, "join condition must be format table.field");
             String tbName = ((SqlIdentifier) node).names.get(0);
@@ -571,8 +938,29 @@ public class JoinNodeDealer {
 
             return null;
         }
+
+        return null;
     }
 
+    /**
+     * 解析出临时中间表的属性列和源表之间的关系
+     * @param fieldSet
+     * @param newTableAliasName
+     */
+    public Map<String, String> buildTmpTableFieldRefOriField(Set<String> fieldSet, String newTableAliasName){
+        Map<String, String> refInfo = Maps.newConcurrentMap();
+        for(String field : fieldSet){
+            String[] fields = StringUtils.splitByWholeSeparator(field, "as");
+            String oldKey = field;
+            String[] oldFieldInfo = StringUtils.splitByWholeSeparator(fields[0], ".");
+            String oldFieldName = oldFieldInfo.length == 2 ? oldFieldInfo[1] : oldFieldInfo[0];
+            String newKey = fields.length == 2 ? newTableAliasName + "." + fields[1] :
+                    newTableAliasName + "." + oldFieldName;
+            refInfo.put(oldKey, newKey);
+        }
+
+        return refInfo;
+    }
 
 
 }

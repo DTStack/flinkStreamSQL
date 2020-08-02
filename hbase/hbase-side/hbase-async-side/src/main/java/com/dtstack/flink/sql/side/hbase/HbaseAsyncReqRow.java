@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+ 
+
 package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
@@ -29,18 +31,28 @@ import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
+import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
+import com.dtstack.flink.sql.util.AuthUtil;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
+import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -69,27 +81,44 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
     private transient AbstractRowKeyModeDealer rowKeyMode;
 
-    private final String tableName;
+    private String tableName;
 
-    private final String[] colNames;
+    private String[] colNames;
 
     public HbaseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new HbaseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
 
         tableName = ((HbaseSideTableInfo)sideTableInfo).getTableName();
-        colNames = ((HbaseSideTableInfo)sideTableInfo).getColumnRealNames();
+        colNames =  StringUtils.split(sideInfo.getSideSelectFields(), ",");
     }
 
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
+        Map<String, Object> hbaseConfig = hbaseSideTableInfo.getHbaseConfig();
+
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-aysnc"));
 
-        hBaseClient = new HBaseClient(hbaseSideTableInfo.getHost(), hbaseSideTableInfo.getParent(), executorService);
+        Config config = new Config();
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
+        config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
+        HbaseConfigUtils.loadKrb5Conf(hbaseConfig);
+        hbaseConfig.entrySet().forEach(entity -> {
+            config.overrideConfig(entity.getKey(), (String) entity.getValue());
+        });
+
+        if (HbaseConfigUtils.asyncOpenKerberos(hbaseConfig)) {
+            String jaasStr = HbaseConfigUtils.buildJaasStr(hbaseConfig);
+            String jaasFilePath = HbaseConfigUtils.creatJassFile(jaasStr);
+            config.overrideConfig(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
+        }
+
+        hBaseClient = new HBaseClient(config, executorService);
 
         try {
             Deferred deferred = hBaseClient.ensureTableExists(tableName)
@@ -117,55 +146,17 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
-        Tuple2<Boolean,Row> inputCopy = Tuple2.of(input.f0,input.f1);
-        Map<String, Object> refData = Maps.newHashMap();
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = inputCopy.f1.getField(conValIndex);
-            if(equalObj == null){
-                dealMissKey(inputCopy, resultFuture);
-                return;
-            }
-            refData.put(getAliasFieldsName(sideInfo.getEqualFieldList().get(i), sideInfo.getSideTableInfo().getPhysicalFields()), equalObj);
-        }
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+        rowKeyMode.asyncGetData(tableName, buildCacheKey(inputParams), input, resultFuture, sideInfo.getSideCache());
+    }
 
-        String rowKeyStr = ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(refData);
-
-        //get from cache
-        if (openCache()) {
-            CacheObj val = getFromCache(rowKeyStr);
-            if (val != null) {
-                if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(inputCopy, resultFuture);
-                    return;
-                } else if (ECacheContentType.SingleLine == val.getType()) {
-                    try {
-                        Row row = fillData(inputCopy.f1, val);
-                        resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0,row)));
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    try {
-                        for (Object one : (List) val.getContent()) {
-                            Row row = fillData(inputCopy.f1, one);
-                            resultFuture.complete(Collections.singleton(Tuple2.of(inputCopy.f0,row)));
-                        }
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, inputCopy);
-                    }
-                }
-                return;
-            }
-        }
-
-        rowKeyMode.asyncGetData(tableName, rowKeyStr, inputCopy, resultFuture, sideInfo.getSideCache());
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        return ((HbaseAsyncSideInfo)sideInfo).getRowKeyBuilder().getRowKey(inputParams);
     }
 
     @Override
     public Row fillData(Row input, Object sideInput){
-
         List<Object> sideInputList = (List<Object>) sideInput;
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
@@ -185,29 +176,11 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         return row;
     }
 
-    // 根据实际字段名获得对应的别名
-    public String getAliasFieldsName(String realFieldName, Map<String, String> physicalFields) {
-        Collection<String> values = physicalFields.values();
-        Set<String> keySet = physicalFields.keySet();
-        if (!values.contains(realFieldName)) {
-            // TODO Error ? or Warn ?
-            LOG.warn(realFieldName + "不存在别名");
-        } else {
-            for (String key : keySet) {
-                if (physicalFields.get(key).equals(realFieldName)) {
-                    return key;
-                }
-            }
-        }
-        return realFieldName;
-    }
-
     @Override
     public void close() throws Exception {
         super.close();
         hBaseClient.shutdown();
     }
-
 
     class CheckResult{
 

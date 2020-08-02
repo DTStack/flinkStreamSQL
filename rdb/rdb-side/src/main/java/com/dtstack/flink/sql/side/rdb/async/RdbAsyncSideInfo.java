@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -100,8 +101,8 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
         if (leftTableName.equalsIgnoreCase(sideTableName)) {
             equalFieldList.add(leftField);
             int equalFieldIndex = -1;
-            for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for (int i = 0; i < getFieldNames().length; i++) {
+                String fieldName = getFieldNames()[i];
                 if (fieldName.equalsIgnoreCase(rightField)) {
                     equalFieldIndex = i;
                 }
@@ -116,8 +117,8 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
 
             equalFieldList.add(rightField);
             int equalFieldIndex = -1;
-            for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for (int i = 0; i < getFieldNames().length; i++) {
+                String fieldName = getFieldNames()[i];
                 if (fieldName.equalsIgnoreCase(leftField)) {
                     equalFieldIndex = i;
                 }
@@ -141,14 +142,26 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
 
     public String getSelectFromStatement(String tableName, List<String> selectFields, List<String> conditionFields, List<String> sqlJoinCompareOperate,
                                          List<PredicateInfo> predicateInfoes) {
-        String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
-        String whereClause = conditionFields.stream().map(f -> quoteIdentifier(f) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + " ? ")
-                .collect(Collectors.joining(" AND "));
-        String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
+        String fromClause = selectFields.stream()
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
 
-        String sql = "SELECT " + fromClause + " FROM " + tableName + (conditionFields.size() > 0 ? " WHERE " + whereClause : "")
+        String whereClause = conditionFields.stream()
+                .map(f -> quoteIdentifier(sideTableInfo.getPhysicalFields().getOrDefault(f, f)) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + wrapperPlaceholder(f))
+                .collect(Collectors.joining(" AND "));
+
+        String predicateClause = predicateInfoes.stream()
+                .map(this::buildFilterCondition)
+                .collect(Collectors.joining(" AND "));
+
+        String dimQuerySql = "SELECT " + fromClause + " FROM " + tableName + (conditionFields.size() > 0 ? " WHERE " + whereClause : "")
                 + (predicateInfoes.size() > 0 ? " AND " + predicateClause : "") + getAdditionalWhereClause();
-        return sql;
+
+        return dimQuerySql;
+    }
+
+    public String wrapperPlaceholder(String fieldName) {
+        return " ? ";
     }
 
     public String buildFilterCondition(PredicateInfo info) {

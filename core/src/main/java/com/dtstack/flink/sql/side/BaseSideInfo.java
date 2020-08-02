@@ -29,6 +29,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
 
 import java.io.Serializable;
 import java.util.List;
@@ -54,6 +56,8 @@ public abstract class BaseSideInfo implements Serializable{
     protected String sqlCondition = "";
 
     protected String sideSelectFields = "";
+
+    protected Map<Integer, String> sideSelectFieldsType = Maps.newHashMap();
 
     protected JoinType joinType;
 
@@ -84,15 +88,17 @@ public abstract class BaseSideInfo implements Serializable{
         String sideTableName = joinInfo.getSideTableName();
         String nonSideTableName = joinInfo.getNonSideTable();
         List<String> fields = Lists.newArrayList();
+        int sideTableFieldIndex = 0;
 
-        int sideIndex = 0;
         for( int i=0; i<outFieldInfoList.size(); i++){
             FieldInfo fieldInfo = outFieldInfoList.get(i);
             if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
-                fields.add(sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName()));
-                sideFieldIndex.put(i, sideIndex);
-                sideFieldNameIndex.put(i, fieldInfo.getFieldName());
-                sideIndex++;
+                String sideFieldName = sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName());
+                fields.add(sideFieldName);
+                sideSelectFieldsType.put(sideTableFieldIndex, getTargetFieldType(fieldInfo.getFieldName()));
+                sideFieldIndex.put(i, sideTableFieldIndex);
+                sideFieldNameIndex.put(i, sideFieldName);
+                sideTableFieldIndex++;
             }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
                 int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
                 inFieldIndex.put(i, nonSideIndex);
@@ -107,6 +113,16 @@ public abstract class BaseSideInfo implements Serializable{
 
         sideSelectFields = String.join(",", fields);
     }
+
+    public String getTargetFieldType(String fieldName){
+        int fieldIndex = sideTableInfo.getFieldList().indexOf(fieldName);
+        if(fieldIndex == -1){
+            throw new RuntimeException(sideTableInfo.getName() + "can't find field: " + fieldName);
+        }
+
+        return sideTableInfo.getFieldTypes()[fieldIndex];
+    }
+
 
     public void dealOneEqualCon(SqlNode sqlNode, String sideTableName){
         if(!SqlKind.COMPARISON.contains(sqlNode.getKind())){
@@ -125,8 +141,8 @@ public abstract class BaseSideInfo implements Serializable{
         if(leftTableName.equalsIgnoreCase(sideTableName)){
             equalFieldList.add(leftField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for(int i=0; i<getFieldNames().length; i++){
+                String fieldName = getFieldNames()[i];
                 if(fieldName.equalsIgnoreCase(rightField)){
                     equalFieldIndex = i;
                 }
@@ -141,8 +157,8 @@ public abstract class BaseSideInfo implements Serializable{
 
             equalFieldList.add(rightField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
-                String fieldName = rowTypeInfo.getFieldNames()[i];
+            for(int i=0; i<getFieldNames().length; i++){
+                String fieldName = getFieldNames()[i];
                 if(fieldName.equalsIgnoreCase(leftField)){
                     equalFieldIndex = i;
                 }
@@ -254,5 +270,31 @@ public abstract class BaseSideInfo implements Serializable{
 
     public void setSideFieldNameIndex(Map<Integer, String> sideFieldNameIndex) {
         this.sideFieldNameIndex = sideFieldNameIndex;
+    }
+
+    public Map<Integer, String> getSideSelectFieldsType() {
+        return sideSelectFieldsType;
+    }
+
+    public void setSideSelectFieldsType(Map<Integer, String> sideSelectFieldsType) {
+        this.sideSelectFieldsType = sideSelectFieldsType;
+    }
+
+    public String getSelectSideFieldType(int index){
+        return sideSelectFieldsType.get(index);
+    }
+
+    public String[] getFieldNames(){
+
+        int fieldTypeLength = rowTypeInfo.getFieldTypes().length;
+        if( fieldTypeLength == 2
+                && rowTypeInfo.getFieldTypes()[1].getClass().equals(BaseRowTypeInfo.class)){
+            return ((BaseRowTypeInfo)rowTypeInfo.getFieldTypes()[1]).getFieldNames();
+        } else if(fieldTypeLength ==1
+                && rowTypeInfo.getFieldTypes()[0].getClass().equals(BaseRowTypeInfo.class)){
+            return  ((BaseRowTypeInfo)rowTypeInfo.getFieldTypes()[0]).getFieldNames();
+        }else {
+            return  rowTypeInfo.getFieldNames();
+        }
     }
 }

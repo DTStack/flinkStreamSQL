@@ -18,10 +18,12 @@
 
 package com.dtstack.flink.sql.side.elasticsearch6;
 
+import com.dtstack.flink.sql.util.RowDataComplete;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
@@ -81,39 +83,8 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
 
 
     @Override
-    public void asyncInvoke(Tuple2<Boolean,Row> input, ResultFuture<Tuple2<Boolean,Row>> resultFuture) throws Exception {
-        Tuple2<Boolean,Row> copyInput= Tuple2.of(input.f0,input.f1);
-        List<Object> inputParams = Lists.newArrayList();
-        for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = copyInput.f1.getField(conValIndex);
-            if (equalObj == null) {
-                dealMissKey(copyInput, resultFuture);
-                return;
-            }
-            inputParams.add(equalObj);
-        }
-
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
         String key = buildCacheKey(inputParams);
-        if (openCache()) {
-            CacheObj val = getFromCache(key);
-            if (val != null) {
-                if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(copyInput, resultFuture);
-                    return;
-                } else if (ECacheContentType.MultiLine == val.getType()) {
-                    try {
-                        List<Tuple2<Boolean,Row>> rowList = getRows(copyInput, null, (List) val.getContent());
-                        resultFuture.complete(rowList);
-                    } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, copyInput);
-                    }
-                } else {
-                    resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
-                }
-                return;
-            }
-        }
-
         BoolQueryBuilder boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
         boolQueryBuilder = setInputParams(inputParams, boolQueryBuilder);
         SearchSourceBuilder searchSourceBuilder = initConfiguration();
@@ -128,14 +99,14 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
             public void onResponse(SearchResponse searchResponse) {
 
                 List<Object> cacheContent = Lists.newArrayList();
-                List<Tuple2<Boolean,Row>> rowList = Lists.newArrayList();
+                List<Row> rowList = Lists.newArrayList();
                 SearchHit[] searchHits = searchResponse.getHits().getHits();
                 if (searchHits.length > 0) {
                     Elasticsearch6SideTableInfo tableInfo = null;
                     RestHighLevelClient tmpRhlClient = null;
                     try {
                         while (true) {
-                            loadDataToCache(searchHits, rowList, cacheContent, copyInput);
+                            loadDataToCache(searchHits, rowList, cacheContent, input);
                             // determine if all results haven been ferched
                             if (searchHits.length < getFetchSize()) {
                                 break;
@@ -152,9 +123,9 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                             searchHits = searchResponse.getHits().getHits();
                         }
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
-                        resultFuture.complete(rowList);
+                        RowDataComplete.completeRow(resultFuture, rowList);
                     } catch (Exception e) {
-                        dealFillDataError(resultFuture, e, copyInput);
+                        dealFillDataError(input, resultFuture, e);
                     } finally {
                         if (tmpRhlClient != null) {
                             try {
@@ -165,7 +136,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                         }
                     }
                 } else {
-                    dealMissKey(copyInput, resultFuture);
+                    dealMissKey(input, resultFuture);
                     dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
             }
@@ -177,10 +148,20 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                 resultFuture.completeExceptionally(new RuntimeException("Response failed!"));
             }
         });
-
     }
 
-    private void loadDataToCache(SearchHit[] searchHits, List<Tuple2<Boolean,Row>> rowList, List<Object> cacheContent, Tuple2<Boolean,Row> copyCrow) {
+    @Override
+    public String buildCacheKey(Map<String, Object> inputParams) {
+        StringBuilder sb = new StringBuilder();
+        for (Object ele : inputParams.values()) {
+            sb.append(ele.toString())
+                    .append("_");
+        }
+
+        return sb.toString();
+    }
+
+    private void loadDataToCache(SearchHit[] searchHits, List<Row> rowList, List<Object> cacheContent, Row copyCrow) {
         List<Object> results = Lists.newArrayList();
         for (SearchHit searchHit : searchHits) {
             Map<String, Object> object = searchHit.getSourceAsMap();
@@ -189,14 +170,14 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         rowList.addAll(getRows(copyCrow, cacheContent, results));
     }
 
-    protected List<Tuple2<Boolean, Row>> getRows(Tuple2<Boolean, Row> inputRow, List<Object> cacheContent, List<Object> results) {
-        List<Tuple2<Boolean, Row>> rowList = Lists.newArrayList();
+    protected List<Row> getRows(Row inputRow, List<Object> cacheContent, List<Object> results) {
+        List<Row> rowList = Lists.newArrayList();
         for (Object line : results) {
-            Row row = fillData(inputRow.f1, line);
+            Row row = fillData(inputRow, line);
             if (null != cacheContent && openCache()) {
                 cacheContent.add(line);
             }
-            rowList.add(Tuple2.of(inputRow.f0, row));
+            rowList.add(row);
         }
         return rowList;
     }
@@ -238,16 +219,6 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
 
     }
 
-    public String buildCacheKey(List equalValList) {
-        StringBuilder sb = new StringBuilder();
-        for (Object ele : equalValList) {
-            sb.append(ele.toString())
-                    .append("_");
-        }
-
-        return sb.toString();
-    }
-
     private SearchSourceBuilder initConfiguration() {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.size(getFetchSize());
@@ -258,7 +229,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         return searchSourceBuilder;
     }
 
-    private BoolQueryBuilder setInputParams(List<Object> inputParams, BoolQueryBuilder boolQueryBuilder) {
+    private BoolQueryBuilder setInputParams(Map<String, Object> inputParams, BoolQueryBuilder boolQueryBuilder) {
         if (boolQueryBuilder == null) {
             boolQueryBuilder = new BoolQueryBuilder();
         }
@@ -266,7 +237,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         for (int i = 0; i < sqlJoinCompareOperate.size(); i++) {
             String fieldName = sideInfo.getEqualFieldList().get(i);
             String operatorKind = sqlJoinCompareOperate.get(sideInfo.getEqualFieldList().indexOf(fieldName));
-            String condition = String.valueOf(inputParams.get(i));
+            String condition = String.valueOf(inputParams.get(fieldName));
             boolQueryBuilder = Es6Util.buildFilterCondition(boolQueryBuilder, new PredicateInfo(null, operatorKind, null, fieldName, condition), sideInfo);
         }
 

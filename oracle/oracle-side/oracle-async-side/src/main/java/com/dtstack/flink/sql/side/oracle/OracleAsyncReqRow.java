@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.side.oracle;
 
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
@@ -32,6 +33,9 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 public class OracleAsyncReqRow extends RdbAsyncReqRow {
@@ -52,7 +56,7 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
                 .put("user", rdbSideTableInfo.getUserName())
                 .put("password", rdbSideTableInfo.getPassword())
                 .put("provider_class", DT_PROVIDER_CLASS)
-                .put("preferred_test_query", PREFERRED_TEST_QUERY_SQL)
+                .put("preferred_test_query", "select 1 from dual")
                 .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
                 .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
 
