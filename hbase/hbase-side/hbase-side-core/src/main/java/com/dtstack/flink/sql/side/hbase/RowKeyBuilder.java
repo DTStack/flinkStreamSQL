@@ -20,7 +20,10 @@
 
 package com.dtstack.flink.sql.side.hbase;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.MD5Utils;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
@@ -46,8 +49,15 @@ public class RowKeyBuilder implements Serializable{
 
     private List<ReplaceInfo> operatorChain = Lists.newArrayList();
 
-    public void init(String rowKeyTempl){
+    private AbstractSideTableInfo sideTableInfo;
+
+    public void init(String rowKeyTempl) {
     	operatorChain.addAll(makeFormula(rowKeyTempl));
+    }
+
+    public void init(String rowKeyTempl, AbstractSideTableInfo sideTableInfo) {
+        this.init(rowKeyTempl);
+        this.sideTableInfo = sideTableInfo;
     }
 
     /**
@@ -55,11 +65,27 @@ public class RowKeyBuilder implements Serializable{
      * @param refData
      * @return
      */
-    public String getRowKey(Map<String, Object> refData){
+    public String getRowKey(Map<String, Object> refData) {
+        addConstant(refData);
     	return buildStr(operatorChain, refData);
     }
 
-
+    /**
+     * add constant join fields
+     * @param rowkeyMap
+     */
+    private void addConstant(Map<String, Object> rowkeyMap) {
+        List<PredicateInfo> predicateInfos = sideTableInfo.getPredicateInfoes();
+        final String name = sideTableInfo.getName();
+        for (PredicateInfo info : predicateInfos) {
+            if (info.getOwnerTable().equals(name) &&
+                info.getOperatorName().equals("=")) {
+                String condition = info.getCondition();
+                String conditionWithoutQuota = condition.replaceAll("['\"]", "");
+                rowkeyMap.put(info.getFieldName(), conditionWithoutQuota);
+            }
+        }
+    }
 
     private String buildStr(List<ReplaceInfo> fieldList, Map<String, Object> refData){
         if(CollectionUtils.isEmpty(fieldList)){

@@ -172,6 +172,9 @@ public abstract class BaseSideInfo implements Serializable{
      */
     private void evalConstantEquation(SqlLiteral literal, SqlIdentifier identifier) {
         String tableName = identifier.getComponent(0).getSimple();
+        String sideTableName = sideTableInfo.getName();
+        String errorMsg = "only support set side table constant field, error field " + identifier;
+        Preconditions.checkState(tableName.equals(sideTableName), errorMsg);
         String fieldName = identifier.getComponent(1).getSimple();
         Object constant = literal.getValue();
         List<PredicateInfo> predicateInfos = sideTableInfo.getPredicateInfoes();

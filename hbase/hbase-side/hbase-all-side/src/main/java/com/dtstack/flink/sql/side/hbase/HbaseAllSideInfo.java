@@ -46,7 +46,7 @@ public class HbaseAllSideInfo extends BaseSideInfo {
             throw new RuntimeException("Primary key dimension table must be filled");
         }
 
-        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0));
+        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0), sideTableInfo);
 
         String sideTableName = joinInfo.getSideTableName();
         SqlNode conditionNode = joinInfo.getCondition();
