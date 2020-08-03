@@ -111,7 +111,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
 
     }
-    private void openKerberosConn() throws IOException {
+    private void openKerberosConn() throws Exception {
         conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
         conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
 
@@ -213,10 +213,10 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         Put put = new Put(rowKey.getBytes());
         for (int i = 0; i < record.getArity(); ++i) {
             Object fieldVal = record.getField(i);
-            if (fieldVal == null) {
-                continue;
+            byte[] val = null;
+            if (fieldVal != null) {
+                val = fieldVal.toString().getBytes();
             }
-            byte[] val = fieldVal.toString().getBytes();
             byte[] cf = families[i].getBytes();
             byte[] qualifier = qualifiers[i].getBytes();
 

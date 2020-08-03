@@ -20,13 +20,11 @@ package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import com.google.common.collect.Lists;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -41,8 +39,11 @@ public class ImpalaDialect implements JDBCDialect {
 
     private TypeInformation[] fieldTypes;
 
-    public ImpalaDialect(TypeInformation[] fieldTypes){
+    private List<String> primaryKeys;
+
+    public ImpalaDialect(TypeInformation[] fieldTypes, List<String> primaryKeys){
         this.fieldTypes = fieldTypes;
+        this.primaryKeys = primaryKeys;
     }
 
     @Override
@@ -62,7 +63,17 @@ public class ImpalaDialect implements JDBCDialect {
 
     @Override
     public String getUpdateStatement(String tableName, String[] fieldNames, String[] conditionFields) {
-        throw new RuntimeException("impala does not support update sql, please remove primary key or use append mode");
+        //跳过primary key字段
+        String setClause = Arrays.stream(fieldNames)
+                .filter(f -> CollectionUtils.isNotEmpty(primaryKeys) ? !primaryKeys.contains(f) : true)
+                .map(f -> quoteIdentifier(f) + "=?")
+                .collect(Collectors.joining(", "));
+        String conditionClause = Arrays.stream(conditionFields)
+                .map(f -> quoteIdentifier(f) + "=?")
+                .collect(Collectors.joining(" AND "));
+        return "UPDATE " + quoteIdentifier(tableName) +
+                " SET " + setClause +
+                " WHERE " + conditionClause;
     }
 
     @Override

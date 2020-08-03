@@ -104,6 +104,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
                 obj = Timestamp.valueOf(((LocalDateTime) obj));
             }
+
             row.setField(entry.getKey(), obj);
         }
 
