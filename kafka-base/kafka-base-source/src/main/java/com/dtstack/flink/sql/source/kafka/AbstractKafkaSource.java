@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.source.kafka;
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.kafka.enums.EKafkaOffset;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
+import com.dtstack.flink.sql.util.DataTypeUtils;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -72,10 +73,18 @@ public abstract class AbstractKafkaSource implements IStreamSourceGener<Table> {
     }
 
     protected TypeInformation<Row> getRowTypeInformation(KafkaSourceTableInfo kafkaSourceTableInfo) {
+        String[] fieldTypes = kafkaSourceTableInfo.getFieldTypes();
         Class<?>[] fieldClasses = kafkaSourceTableInfo.getFieldClasses();
-        TypeInformation[] types = IntStream.range(0, fieldClasses.length)
-                .mapToObj(i -> TypeInformation.of(fieldClasses[i]))
-                .toArray(TypeInformation[]::new);
+        TypeInformation[] types =
+                IntStream.range(0, fieldClasses.length)
+                        .mapToObj(i -> {
+                            if (fieldClasses[i].isArray()) {
+                                return DataTypeUtils.convertToArray(fieldTypes[i]);
+                            }
+                            return TypeInformation.of(fieldClasses[i]);
+                        })
+                        .toArray(TypeInformation[]::new);
+
 
         return new RowTypeInfo(types, kafkaSourceTableInfo.getFields());
     }
