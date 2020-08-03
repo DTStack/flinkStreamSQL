@@ -21,7 +21,12 @@
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.regex.Matcher;

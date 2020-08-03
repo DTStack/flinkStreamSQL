@@ -18,7 +18,6 @@
 
 package com.dtstack.flink.sql.sink.rdb;
 
-import com.google.common.collect.Lists;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

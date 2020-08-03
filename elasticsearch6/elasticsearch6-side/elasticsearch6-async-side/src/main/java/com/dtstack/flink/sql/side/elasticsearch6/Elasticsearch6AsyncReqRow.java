@@ -19,7 +19,6 @@
 package com.dtstack.flink.sql.side.elasticsearch6;
 
 import com.dtstack.flink.sql.util.RowDataComplete;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -54,7 +53,6 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 /**
  * @author yinxi
@@ -63,7 +61,6 @@ import java.util.TimeZone;
 public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch6AsyncReqRow.class);
-    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
     private transient RestHighLevelClient rhlClient;
     private SearchRequest searchRequest;
     private List<String> sqlJoinCompareOperate = Lists.newArrayList();
@@ -194,8 +191,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
             Object obj = input.getField(entry.getValue());
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
             if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+                obj = ((Timestamp) obj).getTime();
             }
 
             row.setField(entry.getKey(), obj);

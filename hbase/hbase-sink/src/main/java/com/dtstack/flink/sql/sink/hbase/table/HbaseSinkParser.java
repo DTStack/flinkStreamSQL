@@ -129,7 +129,7 @@ public class HbaseSinkParser extends AbstractTableParser {
     }
 
     private Map<String, String> parseColumnFamily(Map<String, String> physicalFieldMap){
-        Map<String, String> columnFamiles = new LinkedHashMap<>();
+        Map<String, String> columnFamiles = Maps.newHashMap();
         physicalFieldMap.values().forEach(x -> {
             String[] columnFamily = StringUtils.split(x.trim(), ":");
             columnFamiles.put(x, columnFamily[1]);

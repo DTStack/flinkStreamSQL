@@ -19,7 +19,6 @@
 package com.dtstack.flink.sql.sink.hbase;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.HadoopKerberosName;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.slf4j.Logger;

@@ -29,7 +29,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
@@ -107,10 +106,8 @@ public class Elasticsearch6AllReqRow extends BaseAllReqRow implements Serializab
 
             //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
             if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+                obj = ((Timestamp) obj).getTime();
             }
-
 
             row.setField(entry.getKey(), obj);
         }

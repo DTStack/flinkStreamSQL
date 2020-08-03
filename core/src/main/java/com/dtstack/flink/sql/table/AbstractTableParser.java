@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+
+
 package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.util.ClassUtil;
@@ -44,7 +46,7 @@ public abstract class AbstractTableParser {
     private static final String CHAR_TYPE_NO_LENGTH = "CHAR";
 
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
-    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
+    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
     private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
     private static Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
 
@@ -82,14 +84,13 @@ public abstract class AbstractTableParser {
         return false;
     }
 
-    public void parseFieldsInfo(String fieldsInfo, AbstractTableInfo tableInfo) {
+    public void parseFieldsInfo(String fieldsInfo, AbstractTableInfo tableInfo){
 
         List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
-
-        for (String fieldRow : fieldRows) {
+        for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
 
-            if (StringUtils.isBlank(fieldRow)) {
+            if(StringUtils.isBlank(fieldRow)){
                 throw new RuntimeException(String.format("table [%s],exists field empty.", tableInfo.getName()));
             }
 
@@ -131,7 +132,7 @@ public abstract class AbstractTableParser {
         tableInfo.finish();
     }
 
-    public void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo) {
+    public void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo){
         String primaryFields = matcher.group(1).trim();
         String[] splitArry = primaryFields.split(",");
         List<String> primaryKes = Lists.newArrayList(splitArry);
@@ -170,5 +171,4 @@ public abstract class AbstractTableParser {
         patternMap.put(parserName, pattern);
         handlerMap.put(parserName, handler);
     }
-
 }
