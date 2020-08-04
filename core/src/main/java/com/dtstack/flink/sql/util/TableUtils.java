@@ -19,8 +19,10 @@
 
 package com.dtstack.flink.sql.util;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
@@ -710,4 +712,20 @@ public class TableUtils {
         return tableName + "_" + scope;
     }
 
+    /**
+     * add constant join fields, using in such as hbase、redis etc kv database
+     * @param keyMap
+     */
+    public static void addConstant(Map<String, Object> keyMap, AbstractSideTableInfo sideTableInfo) {
+        List<PredicateInfo> predicateInfos = sideTableInfo.getPredicateInfoes();
+        final String name = sideTableInfo.getName();
+        for (PredicateInfo info : predicateInfos) {
+            if (info.getOwnerTable().equals(name) &&
+                info.getOperatorName().equals("=")) {
+                String condition = info.getCondition();
+                String conditionWithoutQuota = condition.replaceAll("['\"]", "");
+                keyMap.put(info.getFieldName(), conditionWithoutQuota);
+            }
+        }
+    }
 }

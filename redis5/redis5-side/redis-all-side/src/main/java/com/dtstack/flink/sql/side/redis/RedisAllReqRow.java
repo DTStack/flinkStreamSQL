@@ -79,7 +79,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
     public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
-        this.redisSideReqRow = new RedisSideReqRow(super.sideInfo);
+        this.redisSideReqRow = new RedisSideReqRow(super.sideInfo, (RedisSideTableInfo) sideTableInfo);
     }
 
     @Override
@@ -111,7 +111,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
     @Override
     public void flatMap(CRow input, Collector<CRow> out) throws Exception {
-        Map<String, String> inputParams = Maps.newHashMap();
+        Map<String, Object> inputParams = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.row().getField(conValIndex);
@@ -122,9 +122,9 @@ public class RedisAllReqRow extends BaseAllReqRow {
                 }
                 return;
             }
-            inputParams.put(sideInfo.getEqualFieldList().get(i), equalObj.toString());
+            inputParams.put(sideInfo.getEqualFieldList().get(i), equalObj);
         }
-        String key = buildCacheKey(inputParams);
+        String key = redisSideReqRow.buildCacheKey(inputParams);
         if(StringUtils.isBlank(key)){
             return;
         }
@@ -142,19 +142,6 @@ public class RedisAllReqRow extends BaseAllReqRow {
         Row newRow = fillData(input.row(), cacheMap);
         out.collect(new CRow(newRow, input.change()));
     }
-
-    private String buildCacheKey(Map<String, String> refData) {
-        StringBuilder keyBuilder = new StringBuilder(tableInfo.getTableName());
-        List<String> primaryKeys = tableInfo.getPrimaryKeys();
-        for(String primaryKey : primaryKeys){
-            if(!refData.containsKey(primaryKey)){
-                return null;
-            }
-            keyBuilder.append("_").append(refData.get(primaryKey));
-        }
-        return keyBuilder.toString();
-    }
-
 
     private void loadData(Map<String, Map<String, String>> tmpCache) throws SQLException {
         JedisCommands jedis = null;

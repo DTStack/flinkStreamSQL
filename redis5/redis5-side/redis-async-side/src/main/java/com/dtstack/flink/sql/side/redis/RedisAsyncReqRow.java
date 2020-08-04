@@ -70,7 +70,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
 
     public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
-        redisSideReqRow = new RedisSideReqRow(super.sideInfo);
+        redisSideReqRow = new RedisSideReqRow(super.sideInfo, (RedisSideTableInfo) sideTableInfo);
     }
 
     @Override
@@ -126,6 +126,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+
         String key = buildCacheKey(inputParams);
         if(StringUtils.isBlank(key)){
             return;
@@ -137,7 +138,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                 if (MapUtils.isNotEmpty(values)) {
                     try {
                         Row row = fillData(input.row(), values);
-                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
+                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, values));
                         resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
@@ -153,15 +154,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
     // TODO 升级对常量JOIN的支持
     @Override
     public String buildCacheKey(Map<String, Object> refData) {
-        StringBuilder keyBuilder = new StringBuilder(redisSideTableInfo.getTableName());
-        List<String> primaryKeys = redisSideTableInfo.getPrimaryKeys();
-        for(String primaryKey : primaryKeys){
-            if(!refData.containsKey(primaryKey)){
-                return null;
-            }
-            keyBuilder.append("_").append(refData.get(primaryKey));
-        }
-        return keyBuilder.toString();
+        return redisSideReqRow.buildCacheKey(refData);
     }
 
     @Override
