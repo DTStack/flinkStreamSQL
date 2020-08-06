@@ -41,6 +41,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.api.Table;
 
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collector;
 
 import static org.apache.calcite.sql.SqlKind.*;
 import static org.apache.calcite.sql.SqlKind.CASE;
@@ -708,6 +710,21 @@ public class TableUtils {
         }
 
         return tableName + "_" + scope;
+    }
+
+    public static String buildTableNameWithScope(String leftTableName, String leftTableAlias, String rightTableName, String scope, Set<String> existTableNames){
+        //兼容左边表是as 的情况
+        String leftStr = Strings.isNullOrEmpty(leftTableName) ? leftTableAlias : leftTableName;
+        String newName = leftStr + "_" + rightTableName;
+        String newTableName = TableUtils.buildTableNameWithScope(newName, scope);
+        if (CollectionUtils.isEmpty(existTableNames)) {
+            return newName;
+        }
+        if (!existTableNames.contains(newName)) {
+            return newName;
+        }
+        return newName + "_" + System.currentTimeMillis();
+
     }
 
 }
