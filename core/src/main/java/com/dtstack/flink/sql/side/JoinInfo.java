@@ -69,6 +69,8 @@ public class JoinInfo implements Serializable {
 
     private String scope = "";
 
+    private String newTableName = null;
+
     /**
      * 左表需要查询的字段信息和output的时候对应的列名称
      */
@@ -96,13 +98,12 @@ public class JoinInfo implements Serializable {
     }
 
     public String getNewTableName(){
-        //兼容左边表是as 的情况
-        String leftStr = leftTableName;
-        leftStr = Strings.isNullOrEmpty(leftStr) ? leftTableAlias : leftStr;
-        String newName =  leftStr + "_" + rightTableName;
-        return TableUtils.buildTableNameWithScope(newName, scope);
+        return this.newTableName;
     }
 
+    public void setNewTableName(String newTableName){
+        this.newTableName = newTableName;
+    }
 
     public String getNewTableAlias(){
         String newName = leftTableAlias + "_" + rightTableAlias;

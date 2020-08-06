@@ -3,46 +3,47 @@
 CREATE TABLE tableName(
     colName colType,
     ...
-    colNameX colType,
-     [primary key (colName)]
+    function(colNameX) AS aliasName,
+    WATERMARK FOR colName AS withOffset( colName , delayTime )
  )WITH(
-    type ='kafka09',
+    type ='kafka11',
     bootstrapServers ='ip:port,ip:port...',
     zookeeperQuorum ='ip:port,ip:port/zkparent',
     offsetReset ='latest',
     topic ='topicName',
     groupId='test',
     parallelism ='parllNum',
-    timezone='Asia/Shanghai',
-    sourcedatatype ='json' #可不设置
  );
 ```
 
-## 2.支持版本
- kafka09,kafka10,kafka11及以上版本   
- 
+## 2.支持的版本
+    kafka09,kafka10,kafka11及以上版本    
+ **kafka读取和写入的版本必须一致，否则会有兼容性错误。**
+
 ## 3.表结构定义
  
 |参数名称|含义|
 |----|---|
-| tableName| 结果表名称|
+| tableName | 在 sql 中使用的名称;即注册到flink-table-env上的名称|
 | colName | 列名称|
 | colType | 列类型 [colType支持的类型](../colType.md)|
 
 ## 4.参数：
-
+ 
 |参数名称|含义|是否必填|默认值|
-|----|----|----|----|
-|type |表名的输出表类型[kafka09&#124;kafka10&#124;kafka11&#124;kafka]|是||
+|----|---|---|---|
+|type | kafka09 | 是|kafka09、kafka10、kafka11、kafka(对应kafka1.0及以上版本)|
 |groupId | 需要读取的 groupId 名称|否||
 |bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
 |zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||
 |topic | 需要读取的 topic 名称|是||
-|topicIsPattern | topic是否是正则表达式格式(true&#124;false)  |否| false
-|offsetReset  | 读取的topic 的offset初始位置[latest&#124;earliest&#124;指定offset值({"0":12312,"1":12321,"2":12312},{"partition_no":offset_value})]|否|latest|
 |parallelism | 并行度设置|否|1|
-|sourcedatatype | 数据类型|否|json|
-|timezone|时区设置[timezone支持的参数](../timeZone.md)|否|'Asia/Shanghai'
+|partitionKeys | 用来分区的字段|否||
+|updateMode | 回溯流数据下发模式，append,upsert.upsert模式下会将是否为回溯信息以字段形式进行下发。|否|append|
+|sinkdatatype | 写入kafka数据格式，json,avro,csv|否|json|
+|fieldDelimiter | csv数据分隔符|否| , |
+
+
 **kafka相关参数可以自定义，使用kafka.开头即可。**
 ```
 kafka.consumer.id
@@ -74,79 +75,149 @@ kafka.socket.receive.buffer.bytes
 kafka.fetch.min.bytes
 ```
 
-## 5.完整样例：
+## 5.样例：
+
+### json格式：
+```
+CREATE TABLE MyResult(
+    channel varchar,
+    pv varchar
+ )WITH(
+    type='kafka',
+    bootstrapServers='172.16.8.107:9092',
+    topic='mqTest02',
+    parallelism ='2',
+    partitionKeys = 'channel,pv',
+    updateMode='upsert'
+ );
+ 
+upsert模式下发的数据格式：{"channel":"zs","pv":"330",retract:true}
+append模式下发的数据格式：{"channel":"zs","pv":"330"}
+
+```
+
+### avro格式：
+
+如果updateMode='upsert',schemaInfo需要包含retract属性信息。
+
 ```
 CREATE TABLE MyTable(
-    id bigint,
-    name varchar,
-    address varchar
-)WITH(
-    type = 'kafka10',
-    bootstrapServers = '172.16.101.224:9092',
-    zookeeperQuorm = '172.16.100.188:2181/kafka',
-    offsetReset = 'latest',
-    topic = 'tiezhu_test_in2',
-    groupId = 'flink_sql',
-    timezone = 'Asia/Shanghai',
-    topicIsPattern = 'false',
-    parallelism = '1'
-);
+    channel varchar,
+    pv varchar
+    --xctime bigint
+ )WITH(
+   type='kafka',
+   bootstrapServers='172.16.8.107:9092',
+   groupId='mqTest01',
+   offsetReset='latest',
+   topic='mqTest01',
+   parallelism ='1',
+   topicIsPattern ='false'
+ );
 
-CREATE TABLE sideTable(
-    id bigint,
-    school varchar,
-    home varchar,
-    PRIMARY KEY(id),
+create table sideTable(
+    channel varchar,
+    xccount int,
+    PRIMARY KEY(channel),
     PERIOD FOR SYSTEM_TIME
-)WITH(
+ )WITH(
     type='mysql',
-    url='jdbc:mysql://172.16.8.109:3306/tiezhu',
+    url='jdbc:mysql://172.16.8.109:3306/test?charset=utf8',
     userName='dtstack',
     password='abc123',
-    tableName='stressTest',
-    cache='ALL',
-    parallelism='1'
-);
+    tableName='sidetest',
+    cache = 'LRU',
+    cacheTTLMs='10000',
+    parallelism ='1'
+
+ );
+
 
 CREATE TABLE MyResult(
-    id bigint,
-    name varchar,
-    address varchar,
-    home varchar,
-    school varchar
-)WITH(
-    type = 'kafka10',
-    bootstrapServers = '172.16.101.224:9092',
-    zookeeperQuorm = '172.16.100.188:2181/kafka',
-    offsetReset = 'latest',
-    topic = 'tiezhu_test_out2',
-    parallelism = '1'
-);
+    channel varchar,
+    pv varchar
+ )WITH(
+    --type='console'
+    type='kafka',
+    bootstrapServers='172.16.8.107:9092',
+    topic='mqTest02',
+    parallelism ='1',
+    updateMode='upsert',
+    sinkdatatype = 'avro',
+    schemaInfo = '{"type":"record","name":"MyResult","fields":[{"name":"channel","type":"string"}
+    ,{"name":"pv","type":"string"},{"name":"channel","type":"string"},
+    {"name":"retract","type":"boolean"}]}'
 
-insert
+ );
+
+ 
+insert 
 into
-    MyResult
+    MyResult   
     select
-        t1.id AS id,
-        t1.name AS name,
-        t1.address AS address,
-        t2.school AS school,
-        t2.home AS home
-    from(
-    select
-    id,
-    name,
-    address
+        a.channel as channel,
+        a.pv as pv
     from
-        MyTable
-    ) t1
-    join    sideTable t2
-    on t1.id = t2.id;        
- ```
-
-## 6.结果表数据示例：
+            MyTable a
 ```
-[root@node002 bin]# ./kafka-console-consumer.sh --bootstrap-server 172.16.101.224:9092 --topic tiezhu_test_out2
-{"id":122,"name":"tiezhu122","address":"hangzhou122","home":"ganzhou122","school":" ecjtu122"}
-{"id":123,"name":"tiezhu123","address":"hangzhou123","home":"ganzhou123","school":" ecjtu123"}
+### csv格式：
+
+```
+CREATE TABLE MyTable(
+    channel varchar,
+    pv varchar
+    --xctime bigint
+ )WITH(
+   type='kafka',
+   bootstrapServers='172.16.8.107:9092',
+   groupId='mqTest01',
+   offsetReset='latest',
+   topic='mqTest01',
+   parallelism ='2',
+   topicIsPattern ='false'
+ );
+
+create table sideTable(
+    channel varchar,
+    xccount int,
+    PRIMARY KEY(channel),
+    PERIOD FOR SYSTEM_TIME
+ )WITH(
+    type='mysql',
+    url='jdbc:mysql://172.16.8.109:3306/test?charset=utf8',
+    userName='dtstack',
+    password='abc123',
+    tableName='sidetest',
+    cache = 'LRU',
+    cacheTTLMs='10000',
+    parallelism ='1'
+
+ );
+
+
+CREATE TABLE MyResult(
+    channel varchar,
+    pv varchar
+ )WITH(
+    type='kafka',
+    bootstrapServers='172.16.8.107:9092',
+    topic='mqTest02',
+    parallelism ='2',
+    updateMode='upsert',
+    sinkdatatype = 'csv',
+    fieldDelimiter='*'
+    
+   
+
+ );
+
+ 
+insert 
+into
+    MyResult   
+    select
+        a.channel as channel,
+        a.pv as pv
+    from
+            MyTable a
 ```

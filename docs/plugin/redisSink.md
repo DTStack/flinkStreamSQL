@@ -94,7 +94,8 @@ redis5.0
 
 ## 6.redis完整样例
 ### redis数据说明
-redis使用k-v格式存储，key的构建格式为tableName:privateKey:privateKeyValue:columnName, value=columnValue
+redis使用散列类型 hash 数据结构，key=tableName_primaryKey1_primaryKey2,value={column1=value1, column2=value2}
+如果以班级class表为例，id和name作为联合主键，那么redis的结构为 <class_1_john ,{id=1, name=john, age=12}>
 
 ### 源表数据内容
 ```
@@ -103,10 +104,10 @@ redis使用k-v格式存储，key的构建格式为tableName:privateKey:privateKe
 ### redis实际数据内容
 ```
 127.0.0.1:6379> keys *
-1) "resultTable:name:roc:name"
-2) "resultTable:name:roc:channel"
-127.0.0.1:6379> get "resultTable:name:roc:name"
-"roc"
-127.0.0.1:6379> get "resultTable:name:roc:channel"
-"daishu"
+1) "resultTable_roc"
+127.0.0.1:6379> hgetall resultTable_roc
+1) "channel"
+2) "daishu"
+3) "name"
+4) "roc"
 ```
