@@ -43,12 +43,13 @@
 | tableName | hbase 的表名称|是||
 | cache | 维表缓存策略(NONE/LRU)|否|NONE|
 | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
-|kerberosAuthEnable | 是否开启kerberos认证|否|false|
-|regionserverPrincipal | regionserver的principal，这个值从hbase-site.xml的hbase.regionserver.kerberos.principal属性中获取|否||
-|clientKeytabFile|client的keytab 文件|否|
-|clientPrincipal|client的principal|否||
-|zookeeperSaslClient | zookeeper.sasl.client值|否|true|
-|securityKrb5Conf | java.security.krb5.conf值|否||
+|hbase.security.auth.enable | 是否开启kerberos认证|否|false|
+|hbase.security.authentication|认证类型|否|kerberos|
+|hbase.kerberos.regionserver.principal | regionserver的principal，这个值从hbase-site.xml的hbase.regionserver.kerberos.principal属性中获取|否||
+|hbase.keytab|client的keytab 文件|否|
+|hbase.principal|client的principal|否||
+|hbase.sasl.clientconfig | hbase.sasl.clientconfig值|否|Client,和jaas文件中的域对应|
+|java.security.krb5.conf | java.security.krb5.conf值|否||
  另外开启Kerberos认证还需要在VM参数中配置krb5, -Djava.security.krb5.conf=/Users/xuchao/Documents/flinkSql/kerberos/krb5.conf
  同时在addShipfile参数中添加keytab文件的路径，参数具体细节请看[命令参数说明](../config.md)
 --------------
@@ -226,11 +227,13 @@ CREATE TABLE sideTable(
 	cacheTTLMs ='60000',
 	asyncTimeoutNum ='0',
 	parallelism ='1',
-    kerberosAuthEnable='true',
-    regionserverPrincipal='hbase/_HOST@DTSTACK.COM',
-    clientKeytabFile='test.keytab',
-    clientPrincipal='test@DTSTACK.COM',
-    securityKrb5Conf='krb5.conf',
+    hbase.security.auth.enable='true',
+    hbase.security.authentication='kerberos',
+    hbase.sasl.clientconfig='Client',
+    hbase.kerberos.regionserver.principal='hbase/_HOST@DTSTACK.COM',
+    hbase.keytab='yijing.keytab',
+    hbase.principal='yijing@DTSTACK.COM',
+    java.security.krb5.conf='krb5.conf'
 );
 
 insert into

@@ -89,6 +89,12 @@ public class DtStringUtil {
             } else if (c == ')' && !inSingleQuotes && !inQuotes) {
                 bracketLeftNum--;
                 b.append(c);
+            } else if (c == '<' && !inSingleQuotes && !inQuotes) {
+                bracketLeftNum++;
+                b.append(c);
+            } else if (c == '>' && !inSingleQuotes && !inQuotes) {
+                bracketLeftNum--;
+                b.append(c);
             } else {
                 b.append(c);
             }
