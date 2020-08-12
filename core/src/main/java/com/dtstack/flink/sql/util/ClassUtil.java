@@ -37,7 +37,7 @@ public class ClassUtil {
     public static Class<?> stringConvertClass(String str) {
 
         // 这部分主要是告诉Class转TypeInfomation的方法，字段是Array类型
-        String lowerStr = str.toLowerCase();
+        String lowerStr = str.toLowerCase().trim();
         if (lowerStr.startsWith("array")) {
             return Array.newInstance(Integer.class, 0).getClass();
         }
