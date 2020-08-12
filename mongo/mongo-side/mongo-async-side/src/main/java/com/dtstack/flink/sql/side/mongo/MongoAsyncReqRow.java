@@ -50,10 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -63,7 +60,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author xuqianjin
  */
 public class MongoAsyncReqRow extends BaseAsyncReqRow {
+
     private static final long serialVersionUID = -1183158242862673706L;
+
+    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoAsyncReqRow.class);
 
@@ -165,6 +165,8 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
 
             if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
                 obj = ((Timestamp) obj).getTime();
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
 
             row.setField(entry.getKey(), obj);

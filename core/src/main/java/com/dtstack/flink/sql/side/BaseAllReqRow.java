@@ -32,6 +32,7 @@ import com.dtstack.flink.sql.factory.DTThreadFactory;
 import org.apache.calcite.sql.JoinType;
 
 import java.sql.SQLException;
+import java.util.TimeZone;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +49,8 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> impl
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
     public static final long LOAD_DATA_ERROR_SLEEP_TIME = 5_000L;
+
+    public static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     protected BaseSideInfo sideInfo;
 
