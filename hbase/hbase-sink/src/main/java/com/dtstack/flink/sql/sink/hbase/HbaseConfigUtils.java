@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import sun.security.krb5.Config;
 import sun.security.krb5.KrbException;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -74,6 +75,10 @@ public class HbaseConfigUtils {
 
         if (org.apache.commons.lang.StringUtils.isEmpty(keytab)) {
             throw new IllegalArgumentException("keytab can not be null");
+        }
+
+        if (!new File(keytab).exists()){
+            throw new IllegalArgumentIOException("keytab ["+ keytab + "] not exist");
         }
 
         conf.set(KEY_HADOOP_SECURITY_AUTHENTICATION, "Kerberos");
