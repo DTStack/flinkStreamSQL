@@ -74,14 +74,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/tidbsink">
+                                <copy todir="${basedir}/../../sqlplugins/tidbsink">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/tidbsink/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/tidbsink/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../sqlplugins/tidbsink/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/tidbsink/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
