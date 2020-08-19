@@ -50,10 +50,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -91,8 +88,10 @@ public class CassandraAllReqRow extends BaseAllReqRow {
 
             //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
             if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                obj = ((Timestamp) obj).getTime();
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
+
             row.setField(entry.getKey(), obj);
         }
 

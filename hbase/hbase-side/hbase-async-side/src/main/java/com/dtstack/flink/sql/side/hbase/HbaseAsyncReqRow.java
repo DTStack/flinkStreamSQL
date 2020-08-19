@@ -20,20 +20,16 @@
 
 package com.dtstack.flink.sql.side.hbase;
 
-import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.AbstractRowKeyModeDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
-import com.dtstack.flink.sql.util.AuthUtil;
-import com.google.common.collect.Maps;
 import com.stumbleupon.async.Deferred;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -42,17 +38,17 @@ import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
+import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.security.krb5.KrbException;
 
-import java.io.File;
-import java.io.IOException;
 import java.sql.Timestamp;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -67,6 +63,8 @@ import java.util.concurrent.TimeUnit;
 public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = 2098635104857937717L;
+
+    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseAsyncReqRow.class);
 
@@ -115,9 +113,10 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         if (HbaseConfigUtils.asyncOpenKerberos(hbaseConfig)) {
             String jaasStr = HbaseConfigUtils.buildJaasStr(hbaseConfig);
             String jaasFilePath = HbaseConfigUtils.creatJassFile(jaasStr);
+            System.setProperty(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
             config.overrideConfig(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
+            refreshConfig();
         }
-
         hBaseClient = new HBaseClient(config, executorService);
 
         try {
@@ -145,6 +144,13 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         }
     }
 
+    private void refreshConfig() throws KrbException {
+        sun.security.krb5.Config.refresh();
+        KerberosName.resetDefaultRealm();
+        //reload java.security.auth.login.config
+        javax.security.auth.login.Configuration.setConfiguration(null);
+    }
+
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
         rowKeyMode.asyncGetData(tableName, buildCacheKey(inputParams), input, resultFuture, sideInfo.getSideCache());
@@ -164,7 +170,8 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
-                obj = ((Timestamp)obj).getTime();
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
 
             row.setField(entry.getKey(), obj);
