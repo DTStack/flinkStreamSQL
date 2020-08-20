@@ -94,22 +94,21 @@ public abstract class AbstractTableParser {
                 throw new RuntimeException(String.format("table [%s],exists field empty.", tableInfo.getName()));
             }
 
-            String[] filedInfoArr = fieldRow.split("\\s+");
-            if(filedInfoArr.length < 2 ){
-                throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
-            }
+            String[] fieldInfoArr = fieldRow.split("\\s+");
+
+            String errorMsg = String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow);
+            Preconditions.checkState(fieldInfoArr.length >= 2, errorMsg);
 
             boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
-            if(isMatcherKey){
+            if (isMatcherKey) {
                 continue;
             }
 
             //Compatible situation may arise in space in the fieldName
-            String[] filedNameArr = new String[filedInfoArr.length - 1];
-            System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
+            String[] filedNameArr = new String[fieldInfoArr.length - 1];
+            System.arraycopy(fieldInfoArr, 0, filedNameArr, 0, fieldInfoArr.length - 1);
             String fieldName = String.join(" ", filedNameArr);
-            String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
-
+            String fieldType = fieldInfoArr[fieldInfoArr.length - 1 ].trim();
 
             Class fieldClass = null;
             AbstractTableInfo.FieldExtraInfo fieldExtraInfo = null;
@@ -123,7 +122,7 @@ public abstract class AbstractTableParser {
                 fieldClass = dbTypeConvertToJavaType(fieldType);
             }
 
-            tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
+            tableInfo.addPhysicalMappings(fieldInfoArr[0], fieldInfoArr[0]);
             tableInfo.addField(fieldName);
             tableInfo.addFieldClass(fieldClass);
             tableInfo.addFieldType(fieldType);

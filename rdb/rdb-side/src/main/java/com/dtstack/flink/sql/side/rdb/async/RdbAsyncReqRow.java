@@ -52,8 +52,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.flink.api.java.tuple.Tuple2;
-
 /**
  * Date: 2018/11/26
  * Company: www.dtstack.com

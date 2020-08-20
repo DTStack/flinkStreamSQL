@@ -53,6 +53,8 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     public static final String SOURCE_DATA_TYPE_KEY = "sourceDataType";
 
+    public static final String CHARSET_NAME_KEY = "charsetName";
+
     private String bootstrapServers;
 
     private String topic;
@@ -71,6 +73,7 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     public Map<String, String> kafkaParams = new HashMap<>();
 
+    public String charsetName;
 
     public String getBootstrapServers() {
         return bootstrapServers;
@@ -148,11 +151,19 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
         this.fieldDelimiter = fieldDelimiter;
     }
 
-    @Override
-    public boolean check() {
-        Preconditions.checkNotNull(getType(), "kafka of type is required");
-        Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
-        Preconditions.checkNotNull(topic, "kafka of topic is required");
-        return false;
-    }
+	public String getCharsetName() {
+		return charsetName;
+	}
+
+	public void setCharsetName(String charsetName) {
+		this.charsetName = charsetName;
+	}
+
+	@Override
+	public boolean check() {
+		Preconditions.checkNotNull(getType(), "kafka of type is required");
+		Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");
+		Preconditions.checkNotNull(topic, "kafka of topic is required");
+		return false;
+	}
 }

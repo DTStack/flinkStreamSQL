@@ -20,8 +20,11 @@ package com.dtstack.flink.sql.sink.hbase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.security.krb5.Config;
+import sun.security.krb5.KrbException;
 
 import java.io.IOException;
 
@@ -54,7 +57,11 @@ public class HbaseConfigUtils {
     public static final String KEY_JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf";
     public static final String KEY_ZOOKEEPER_SASL_CLIENT = "zookeeper.sasl.client";
 
-    public static UserGroupInformation loginAndReturnUGI(Configuration conf, String principal, String keytab) throws IOException {
+    public static final String KEY_HADOOP_SECURITY_AUTHENTICATION = "hadoop.security.authentication";
+    public static final String KEY_HADOOP_SECURITY_AUTH_TO_LOCAL = "hadoop.security.auth_to_local";
+    public static final String KEY_HADOOP_SECURITY_AUTHORIZATION = "hadoop.security.authorization";
+
+    public static UserGroupInformation loginAndReturnUGI(Configuration conf, String principal, String keytab) throws IOException, KrbException {
         LOG.info("loginAndReturnUGI principal {}",principal);
         LOG.info("loginAndReturnUGI keytab {}",keytab);
         if (conf == null) {
@@ -69,7 +76,13 @@ public class HbaseConfigUtils {
             throw new IllegalArgumentException("keytab can not be null");
         }
 
-        conf.set("hadoop.security.authentication", "Kerberos");
+        conf.set(KEY_HADOOP_SECURITY_AUTHENTICATION, "Kerberos");
+        //conf.set("hadoop.security.auth_to_local", "DEFAULT");
+        conf.set(KEY_HADOOP_SECURITY_AUTH_TO_LOCAL, "RULE:[1:$1] RULE:[2:$1]");
+        conf.set(KEY_HADOOP_SECURITY_AUTHORIZATION, "true");
+
+        Config.refresh();
+        KerberosName.resetDefaultRealm();
         UserGroupInformation.setConfiguration(conf);
 
         return UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);

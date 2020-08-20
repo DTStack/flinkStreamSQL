@@ -29,8 +29,6 @@ import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import com.dtstack.flink.sql.util.RowDataComplete;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.commons.lang.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Maps;
 import org.apache.flink.table.dataformat.BaseRow;
@@ -40,7 +38,6 @@ import org.apache.flink.util.Collector;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -53,7 +50,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 
 import java.security.PrivilegedAction;

@@ -19,7 +19,6 @@
 package com.dtstack.flink.sql.side.elasticsearch6;
 
 import com.dtstack.flink.sql.util.RowDataComplete;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
