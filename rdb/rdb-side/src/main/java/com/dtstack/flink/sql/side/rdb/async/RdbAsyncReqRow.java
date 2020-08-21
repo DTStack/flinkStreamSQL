@@ -317,9 +317,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
      * 出现class无法找到的问题
      */
     private void synCloseVertx() {
-        if (vertx != null) {
-            synCloseVertx(DEFAULT_TIME_OUT);
-        }
+        synCloseVertx(DEFAULT_TIME_OUT);
     }
 
     private void synCloseVertx(Long timeout) {
