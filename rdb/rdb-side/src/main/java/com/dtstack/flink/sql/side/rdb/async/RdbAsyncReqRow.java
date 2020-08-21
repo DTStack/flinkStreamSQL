@@ -20,7 +20,6 @@
 package com.dtstack.flink.sql.side.rdb.async;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.CacheMissVal;
@@ -30,6 +29,8 @@ import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import com.dtstack.flink.sql.util.DateUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLClient;
@@ -80,7 +81,11 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public final static String PREFERRED_TEST_QUERY_SQL = "select 1 from dual";
 
+    public static final long DEFAULT_TIME_OUT = 3_000L;
+
     private transient SQLClient rdbSqlClient;
+
+    protected Vertx vertx;
 
     private AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
@@ -238,6 +243,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             rdbSqlClient.close();
         }
 
+        synCloseVertx();
+
         if(executor != null){
             executor.shutdown();
         }
@@ -302,5 +309,32 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             result.put(k, convertDataType(v));
         });
         return result;
+    }
+
+    /**
+     * 一种阻塞的关闭方式
+     * 由于Vertx#close的关闭是异步的，可能导致主线程运行完毕，classloader释放了加载的class
+     * 出现class无法找到的问题
+     */
+    private void synCloseVertx() {
+        if (vertx != null) {
+            synCloseVertx(DEFAULT_TIME_OUT);
+        }
+    }
+
+    private void synCloseVertx(Long timeout) {
+        if (timeout <= 0) {
+            timeout = DEFAULT_TIME_OUT;
+        }
+        if (vertx != null) {
+            long start = System.currentTimeMillis();
+            io.vertx.core.Future<Void> future = Future.future();
+            vertx.close(future);
+            for (;;) {
+                if (future.isComplete() || System.currentTimeMillis() - start >= timeout) {
+                    return;
+                }
+            }
+        }
     }
 }

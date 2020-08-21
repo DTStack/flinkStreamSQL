@@ -74,7 +74,7 @@ public class Db2AsyncReqRow extends RdbAsyncReqRow {
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
-        Vertx vertx = Vertx.vertx(vo);
+        vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, db2lientConfig));
         setExecutor(new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(10), new DTThreadFactory("dbAsyncExec")));

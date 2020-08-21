@@ -81,7 +81,7 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
         vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
         vo.setWorkerPoolSize(impalaSideTableInfo.getAsyncPoolSize());
         vo.setFileResolverCachingEnabled(false);
-        Vertx vertx = Vertx.vertx(vo);
+        vertx = Vertx.vertx(vo);
         setRdbSqlClient(JDBCClient.createNonShared(vertx, impalaClientConfig));
         setExecutor(new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(10), new DTThreadFactory("impalaAsyncExec")));

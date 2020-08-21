@@ -25,7 +25,6 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
-import com.dtstack.flink.sql.util.VertxUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -48,8 +47,6 @@ import java.util.concurrent.TimeUnit;
 
 public class MysqlAsyncReqRow extends RdbAsyncReqRow {
     private final static String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
-
-    private Vertx vertx;
 
     public MysqlAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new MysqlAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -83,9 +80,4 @@ public class MysqlAsyncReqRow extends RdbAsyncReqRow {
                 new LinkedBlockingQueue<>(10), new DTThreadFactory("mysqlAsyncExec")));
     }
 
-    @Override
-    public void close() throws Exception {
-        super.close();
-        VertxUtils.synClose(vertx);
-    }
 }

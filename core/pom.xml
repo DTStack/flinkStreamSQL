@@ -21,7 +21,6 @@
         <jackson.version>2.7.9</jackson.version>
         <guava.version>19.0</guava.version>
         <logger.tool.version>1.0.0-SNAPSHOT</logger.tool.version>
-        <vertx.version>3.5.2</vertx.version>
     </properties>
 
     <dependencies>
@@ -122,12 +121,6 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-core</artifactId>
-            <version>${vertx.version}</version>
         </dependency>
     </dependencies>
 

@@ -25,7 +25,6 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
-import com.dtstack.flink.sql.util.VertxUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -41,8 +40,6 @@ import java.util.concurrent.TimeUnit;
 
 public class OracleAsyncReqRow extends RdbAsyncReqRow {
     private static final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
-
-    private Vertx vertx;
 
     public OracleAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new OracleAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -75,9 +72,4 @@ public class OracleAsyncReqRow extends RdbAsyncReqRow {
                 new LinkedBlockingQueue<>(10), new DTThreadFactory("oracleAsyncExec")));
     }
 
-    @Override
-    public void close() throws Exception {
-        super.close();
-        VertxUtils.synClose(vertx);
-    }
 }
