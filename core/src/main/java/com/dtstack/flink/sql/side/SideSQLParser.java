@@ -73,7 +73,7 @@ public class SideSQLParser {
         Queue<Object> queueInfo = Queues.newLinkedBlockingQueue();
         SqlNode sqlNode = flinkPlanner.getParser().parse(exeSql);
 
-        parseSql(sqlNode, sideTableSet, queueInfo, null, null, null, scope);
+        parseSql(sqlNode, sideTableSet, queueInfo, null, null, null, scope, Sets.newHashSet());
         queueInfo.offer(sqlNode);
         return queueInfo;
     }
@@ -94,7 +94,8 @@ public class SideSQLParser {
                            SqlNode parentWhere,
                            SqlNodeList parentSelectList,
                            SqlNodeList parentGroupByList,
-                           String scope){
+                           String scope,
+                           Set<String> joinTableNames){
         SqlKind sqlKind = sqlNode.getKind();
         switch (sqlKind){
             case WITH: {
@@ -102,15 +103,15 @@ public class SideSQLParser {
                 SqlNodeList sqlNodeList = sqlWith.withList;
                 for (SqlNode withAsTable : sqlNodeList) {
                     SqlWithItem sqlWithItem = (SqlWithItem) withAsTable;
-                    parseSql(sqlWithItem.query, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope);
+                    parseSql(sqlWithItem.query, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope, joinTableNames);
                     queueInfo.add(sqlWithItem);
                 }
-                parseSql(sqlWith.body, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope);
+                parseSql(sqlWith.body, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope, joinTableNames);
                 break;
             }
             case INSERT:
                 SqlNode sqlSource = ((SqlInsert)sqlNode).getSource();
-                return parseSql(sqlSource, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope);
+                return parseSql(sqlSource, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope, joinTableNames);
             case SELECT:
                 SqlNode sqlFrom = ((SqlSelect)sqlNode).getFrom();
                 SqlNode sqlWhere = ((SqlSelect)sqlNode).getWhere();
@@ -118,7 +119,7 @@ public class SideSQLParser {
                 SqlNodeList groupByList = ((SqlSelect) sqlNode).getGroup();
 
                 if(sqlFrom.getKind() != IDENTIFIER){
-                    Object result = parseSql(sqlFrom, sideTableSet, queueInfo, sqlWhere, selectList, groupByList, scope);
+                    Object result = parseSql(sqlFrom, sideTableSet, queueInfo, sqlWhere, selectList, groupByList, scope, joinTableNames);
                     if(result instanceof JoinInfo){
                         return TableUtils.dealSelectResultWithJoinInfo((JoinInfo) result, (SqlSelect) sqlNode, queueInfo);
                     }else if(result instanceof AliasInfo){
@@ -140,7 +141,7 @@ public class SideSQLParser {
                 Map<String, String> tableRef = Maps.newHashMap();
                 Map<String, String> fieldRef = Maps.newHashMap();
                 return joinNodeDealer.dealJoinNode((SqlJoin) sqlNode, sideTableSet, queueInfo,
-                        parentWhere, parentSelectList, parentGroupByList, joinFieldSet, tableRef, fieldRef, scope);
+                        parentWhere, parentSelectList, parentGroupByList, joinFieldSet, tableRef, fieldRef, scope, joinTableNames);
             case AS:
                 SqlNode info = ((SqlBasicCall)sqlNode).getOperands()[0];
                 SqlNode alias = ((SqlBasicCall) sqlNode).getOperands()[1];
@@ -149,7 +150,7 @@ public class SideSQLParser {
                 if(info.getKind() == IDENTIFIER){
                     infoStr = info.toString();
                 } else {
-                    infoStr = parseSql(info, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope).toString();
+                    infoStr = parseSql(info, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope, joinTableNames).toString();
                 }
 
                 AliasInfo aliasInfo = new AliasInfo();
@@ -162,12 +163,12 @@ public class SideSQLParser {
                 SqlNode unionLeft = ((SqlBasicCall)sqlNode).getOperands()[0];
                 SqlNode unionRight = ((SqlBasicCall)sqlNode).getOperands()[1];
 
-                parseSql(unionLeft, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope);
-                parseSql(unionRight, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope);
+                parseSql(unionLeft, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope, joinTableNames);
+                parseSql(unionRight, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope, joinTableNames);
                 break;
             case ORDER_BY:
                 SqlOrderBy sqlOrderBy  = (SqlOrderBy) sqlNode;
-                parseSql(sqlOrderBy.query, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope);
+                parseSql(sqlOrderBy.query, sideTableSet, queueInfo, parentWhere, parentSelectList, parentGroupByList, scope, joinTableNames);
 
             case LITERAL:
                 return LITERAL.toString();
