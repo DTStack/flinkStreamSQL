@@ -229,7 +229,7 @@ public class ExecuteProcessHelper {
                     }
                     if (isSide) {
                         //sql-dimensional table contains the dimension table of execution
-                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, null, null);
+                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, null, String.valueOf(scope));
                     } else {
                         LOG.info("----------exec sql without dimension join-----------");
                         LOG.info("----------real sql exec is--------------------------\n{}", result.getExecSql());
