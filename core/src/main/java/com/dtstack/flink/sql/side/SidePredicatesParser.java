@@ -49,8 +49,7 @@ public class SidePredicatesParser {
     private FlinkPlanner flinkPlanner = new FlinkPlanner();
 
     public void fillPredicatesForSideTable(String exeSql, Map<String, AbstractSideTableInfo> sideTableMap) throws SqlParseException {
-
-        SqlNode sqlNode = org.apache.calcite.sql.parser.SqlParser.create(exeSql).parseStmt();
+        SqlNode sqlNode = flinkPlanner.getParser().parse(exeSql);
         parseSql(sqlNode, sideTableMap, Maps.newHashMap());
     }
 
