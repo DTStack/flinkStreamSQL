@@ -106,11 +106,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
             String nodeKey = getNodeKey(prefix, next);
 
             nodeAndJsonNodeMapping.put(nodeKey, child);
-            if (child.isArray()) {
-                parseTree(child, nodeKey);
-            } else {
-                parseTree(child, nodeKey);
-            }
+            parseTree(child, nodeKey);
         }
     }
 
