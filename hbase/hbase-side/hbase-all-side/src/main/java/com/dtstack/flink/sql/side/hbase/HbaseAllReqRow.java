@@ -27,6 +27,8 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import com.dtstack.flink.sql.util.RowDataComplete;
+import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -100,6 +102,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
                 obj = Timestamp.valueOf(((LocalDateTime) obj));
             }
+
             row.setField(entry.getKey(), obj);
         }
 
@@ -175,6 +178,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
 
     private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        Map<String, String> colRefType = ((HbaseAllSideInfo)sideInfo).getColRefType();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         boolean openKerberos = hbaseSideTableInfo.isKerberosAuthEnable();
         int loadDataCount = 0;
@@ -211,14 +215,12 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             resultScanner = table.getScanner(new Scan());
             for (Result r : resultScanner) {
                 Map<String, Object> kv = new HashedMap();
-                for (Cell cell : r.listCells())
-                {
+                for (Cell cell : r.listCells()) {
                     String family = Bytes.toString(CellUtil.cloneFamily(cell));
                     String qualifier = Bytes.toString(CellUtil.cloneQualifier(cell));
-                    String value = Bytes.toString(CellUtil.cloneValue(cell));
                     StringBuilder key = new StringBuilder();
                     key.append(family).append(":").append(qualifier);
-
+                    Object value = HbaseUtils.convertByte(CellUtil.cloneValue(cell), colRefType.get(key.toString()));
                     kv.put(aliasNameInversion.get(key.toString()), value);
                 }
                 loadDataCount++;
