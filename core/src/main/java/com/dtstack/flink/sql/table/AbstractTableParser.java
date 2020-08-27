@@ -44,7 +44,7 @@ public abstract class AbstractTableParser {
     private static final String CHAR_TYPE_NO_LENGTH = "CHAR";
 
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
-    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
+    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+?)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
     private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
     private static Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
 
@@ -84,7 +84,7 @@ public abstract class AbstractTableParser {
 
     public void parseFieldsInfo(String fieldsInfo, AbstractTableInfo tableInfo) {
 
-        List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
+        List<String> fieldRows = DtStringUtil.splitField(fieldsInfo);
 
         for (String fieldRow : fieldRows) {
             fieldRow = fieldRow.trim();
