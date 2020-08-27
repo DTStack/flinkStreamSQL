@@ -59,7 +59,7 @@ public class HbaseConfigUtils {
     private final static String KEY_HBASE_SECURITY_AUTH_ENABLE = "hbase.security.auth.enable";
     private final static String KEY_HBASE_SASL_CLIENTCONFIG = "hbase.sasl.clientconfig";
     private final static String KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL = "hbase.kerberos.regionserver.principal";
-    private static final String KEY_KEY_TAB = "hbase.keytab";
+    public static final String KEY_KEY_TAB = "hbase.keytab";
     private static final String KEY_PRINCIPAL = "hbase.principal";
 
     public final static String KEY_HBASE_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
@@ -159,7 +159,7 @@ public class HbaseConfigUtils {
     }
 
     public static void loadKrb5Conf(Map<String, Object> kerberosConfig) {
-        String krb5FilePath = MapUtils.getString(kerberosConfig, KEY_JAVA_SECURITY_KRB5_CONF);
+        String krb5FilePath = System.getProperty("user.dir") + File.separator + MapUtils.getString(kerberosConfig, KEY_JAVA_SECURITY_KRB5_CONF);
         if (!org.apache.commons.lang.StringUtils.isEmpty(krb5FilePath)) {
             System.setProperty(KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);;
         }
@@ -183,7 +183,7 @@ public class HbaseConfigUtils {
             }
         }
 
-        String keyTab = MapUtils.getString(kerberosConfig, KEY_KEY_TAB);
+        String keyTab = System.getProperty("user.dir") + File.separator + MapUtils.getString(kerberosConfig, KEY_KEY_TAB);
         String principal = MapUtils.getString(kerberosConfig, KEY_PRINCIPAL);
 
         StringBuilder jaasSB = new StringBuilder("Client {\n" +

@@ -38,7 +38,6 @@ import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
-import com.dtstack.flink.sql.constrant.ConfigConstrant;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
