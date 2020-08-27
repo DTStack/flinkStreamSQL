@@ -18,9 +18,11 @@
 
 package com.dtstack.flink.sql.side.redis;
 
-import com.dtstack.flink.sql.side.*;
-import io.lettuce.core.KeyValue;
-import io.lettuce.core.api.async.RedisStringAsyncCommands;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -145,13 +147,12 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                     }
                 } else {
                     dealMissKey(input, resultFuture);
-                    dealCacheData(key,CacheMissVal.getMissKeyObj());
+                    dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
             }
         });
     }
 
-    // TODO 升级对常量JOIN的支持
     @Override
     public String buildCacheKey(Map<String, Object> refData) {
         return redisSideReqRow.buildCacheKey(refData);

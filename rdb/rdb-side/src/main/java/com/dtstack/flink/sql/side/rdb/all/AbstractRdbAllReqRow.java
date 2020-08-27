@@ -132,46 +132,6 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         cacheList.forEach(one -> out.collect(new CRow(fillData(value.row(), one), value.change())));
     }
 
-    @Override
-    public Row fillData(Row input, Object sideInput) {
-        Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
-
-        for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            // origin value
-            Object obj = input.getField(entry.getValue());
-            obj = dealTimeAttributeType(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass(), obj);
-            row.setField(entry.getKey(), obj);
-        }
-
-        for (Map.Entry<Integer, String> entry : sideInfo.getSideFieldNameIndex().entrySet()) {
-            if (cacheInfo == null) {
-                row.setField(entry.getKey(), null);
-            } else {
-                row.setField(entry.getKey(), cacheInfo.get(entry.getValue()));
-            }
-
-        }
-        return row;
-    }
-
-    /**
-     * covert flink time attribute.Type information for indicating event or processing time.
-     * However, it behaves like a regular SQL timestamp but is serialized as Long.
-     *
-     * @param entry
-     * @param obj
-     * @return
-     */
-    protected Object dealTimeAttributeType(Class<? extends TypeInformation> entry, Object obj) {
-        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
-        if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
-        }
-        return obj;
-    }
-
     private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws SQLException {
         RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         Connection connection = null;

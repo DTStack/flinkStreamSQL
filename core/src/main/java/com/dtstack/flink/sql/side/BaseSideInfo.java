@@ -22,8 +22,12 @@ package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -31,7 +35,6 @@ import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Reason:
@@ -42,6 +45,7 @@ import java.util.Set;
 
 public abstract class BaseSideInfo implements Serializable{
 
+    // Source Table RowTypeInfo
     protected RowTypeInfo rowTypeInfo;
 
     protected List<FieldInfo> outFieldInfoList;
@@ -128,13 +132,15 @@ public abstract class BaseSideInfo implements Serializable{
         SqlNode leftNode = ((SqlBasicCall) sqlNode).getOperands()[0];
         SqlNode rightNode = ((SqlBasicCall) sqlNode).getOperands()[1];
         if (leftNode.getKind() == SqlKind.LITERAL) {
-            SqlLiteral literal = (SqlLiteral) leftNode;
-            SqlIdentifier identifier = (SqlIdentifier) rightNode;
-            evalConstantEquation(literal, identifier);
-        } else if(rightNode.getKind() == SqlKind.LITERAL) {
-            SqlLiteral literal = (SqlLiteral) rightNode;
-            SqlIdentifier identifier = (SqlIdentifier) leftNode;
-            evalConstantEquation(literal, identifier);
+            evalConstantEquation(
+                (SqlLiteral) leftNode,
+                (SqlIdentifier) rightNode
+            );
+        } else if (rightNode.getKind() == SqlKind.LITERAL) {
+            evalConstantEquation(
+                (SqlLiteral) rightNode,
+                (SqlIdentifier) leftNode
+            );
         } else {
             SqlIdentifier left = (SqlIdentifier) leftNode;
             SqlIdentifier right = (SqlIdentifier) rightNode;

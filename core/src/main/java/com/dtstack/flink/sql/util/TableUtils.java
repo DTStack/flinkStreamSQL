@@ -50,6 +50,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlKind.*;
 import static org.apache.calcite.sql.SqlKind.CASE;
@@ -65,7 +67,7 @@ import static org.apache.calcite.sql.SqlKind.OTHER;
 public class TableUtils {
 
     public static final char SPLIT = '_';
-
+    public static final Pattern stringPattern = Pattern.compile("\".*?\"|\'.*?\'");
     /**
      * 获取select 的字段
      * @param sqlSelect
@@ -720,11 +722,14 @@ public class TableUtils {
         List<PredicateInfo> predicateInfos = sideTableInfo.getPredicateInfoes();
         final String name = sideTableInfo.getName();
         for (PredicateInfo info : predicateInfos) {
-            if (info.getOwnerTable().equals(name) &&
-                info.getOperatorName().equals("=")) {
+            if (info.getOwnerTable().equals(name)
+                && info.getOperatorName().equals("=")) {
                 String condition = info.getCondition();
-                String conditionWithoutQuota = condition.replaceAll("['\"]", "");
-                keyMap.put(info.getFieldName(), conditionWithoutQuota);
+                Matcher matcher = stringPattern.matcher(condition);
+                if (matcher.matches()) {
+                    condition = condition.substring(1, condition.length() - 1);
+                }
+                keyMap.put(info.getFieldName(), condition);
             }
         }
     }

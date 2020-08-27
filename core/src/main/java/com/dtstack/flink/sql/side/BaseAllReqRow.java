@@ -112,6 +112,14 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> impl
         return row;
     }
 
+    /**
+     * covert flink time attribute.Type information for indicating event or processing time.
+     * However, it behaves like a regular SQL timestamp but is serialized as Long.
+     *
+     * @param entry
+     * @param obj
+     * @return
+     */
     protected Object dealTimeAttributeType(Class<? extends TypeInformation> entry, Object obj) {
         boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
         if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
