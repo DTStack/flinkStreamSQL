@@ -13,10 +13,8 @@
     <packaging>pom</packaging>
     <modules>
         <module>manager</module>
-        <module>consumer</module>
         <module>print</module>
         <module>mysql</module>
-        <module>core</module>
     </modules>
 
 
