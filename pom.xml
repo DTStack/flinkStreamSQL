@@ -36,6 +36,7 @@
         <module>polardb</module>
         <module>oceanbase</module>
         <module>tidb</module>
+        <module>dirtyDataManager</module>
         <!--        <module>localTest</module>-->
 
     </modules>
