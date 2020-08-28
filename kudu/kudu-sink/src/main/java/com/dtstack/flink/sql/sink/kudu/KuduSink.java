@@ -53,6 +53,11 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        consumeDataStream(dataStream);
+    }
+
+    @Override
+    public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         KuduOutputFormat.KuduOutputFormatBuilder builder = KuduOutputFormat.buildKuduOutputFormat();
         builder.setKuduMasters(this.kuduMasters)
                 .setTableName(this.tableName)
@@ -69,6 +74,7 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         if (parallelism > 0) {
             dataStreamSink.setParallelism(parallelism);
         }
+        return dataStreamSink;
     }
 
     @Override

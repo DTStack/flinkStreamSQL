@@ -74,8 +74,8 @@ public class CreateTableParser implements IParser {
         propsStr = propsStr.replaceAll("'\\s*,", "'|");
         String[] strs = propsStr.trim().split("\\|");
         Map<String, Object> propMap = Maps.newHashMap();
-        for(int i=0; i<strs.length; i++){
-            List<String> ss = DtStringUtil.splitIgnoreQuota(strs[i], '=');
+        for (String str : strs) {
+            List<String> ss = DtStringUtil.splitIgnoreQuota(str, '=');
             String key = ss.get(0).trim();
             String value = extractValue(ss.get(1).trim());
             propMap.put(key, value);

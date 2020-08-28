@@ -36,14 +36,16 @@
         <module>polardb</module>
         <module>oceanbase</module>
         <module>tidb</module>
+        <!--        <module>localTest</module>-->
 
     </modules>
 
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <flink.version>1.8.1</flink.version>
-  </properties>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <flink.version>1.10.0</flink.version>
+        <hadoop.version>2.7.3</hadoop.version>
+    </properties>
 
     <build>
         <plugins>

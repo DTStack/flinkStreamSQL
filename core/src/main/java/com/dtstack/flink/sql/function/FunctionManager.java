@@ -16,7 +16,9 @@
  * limitations under the License.
  */
 
+
 package com.dtstack.flink.sql.function;
+
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.table.api.TableEnvironment;

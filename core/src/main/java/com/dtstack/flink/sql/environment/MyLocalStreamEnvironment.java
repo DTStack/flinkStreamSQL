@@ -101,11 +101,12 @@ public class MyLocalStreamEnvironment extends StreamExecutionEnvironment {
 
         JobGraph jobGraph = streamGraph.getJobGraph();
         jobGraph.setClasspaths(classpaths);
-        jobGraph.setAllowQueuedScheduling(true);
 
         Configuration configuration = new Configuration();
         configuration.addAll(jobGraph.getJobConfiguration());
-        configuration.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE, "0");
+
+        configuration.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE.key(), "512M");
+        configuration.setInteger(TaskManagerOptions.NUM_TASK_SLOTS, jobGraph.getMaximumParallelism());
 
         // add (and override) the settings with what the user defined
         configuration.addAll(this.conf);

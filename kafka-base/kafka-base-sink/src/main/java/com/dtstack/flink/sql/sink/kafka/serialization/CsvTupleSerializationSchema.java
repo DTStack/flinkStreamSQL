@@ -26,8 +26,10 @@ import org.apache.flink.api.common.typeinfo.BasicArrayTypeInfo;
 import org.apache.flink.api.common.typeinfo.PrimitiveArrayTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.ObjectArrayTypeInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.formats.csv.CsvRowDeserializationSchema;
 import org.apache.flink.formats.csv.CsvRowSchemaConverter;
 import org.apache.flink.formats.csv.CsvRowSerializationSchema;
@@ -38,8 +40,6 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.Cont
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.runtime.types.CRowTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 
@@ -58,7 +58,7 @@ import java.util.Objects;
  * <p>Result <code>byte[]</code> messages can be deserialized using {@link CsvRowDeserializationSchema}.
  */
 @PublicEvolving
-public final class CsvCRowSerializationSchema implements SerializationSchema<CRow> {
+public final class CsvTupleSerializationSchema implements SerializationSchema<Tuple2<Boolean,Row>> {
 
 	private static final long serialVersionUID = 2098447220136965L;
 
@@ -84,7 +84,7 @@ public final class CsvCRowSerializationSchema implements SerializationSchema<CRo
 
 	private String retractKey = "retract";
 
-	private CsvCRowSerializationSchema(
+	private CsvTupleSerializationSchema(
 			RowTypeInfo typeInfo,
 			CsvSchema csvSchema,
 			String updateMode) {
@@ -111,13 +111,14 @@ public final class CsvCRowSerializationSchema implements SerializationSchema<CRo
 		 *
 		 * @param typeInfo type information used to create schema.
 		 */
-		public Builder(TypeInformation<CRow> typeInfo) {
+		public Builder(TypeInformation<Tuple2<Boolean,Row>> typeInfo) {
 			Preconditions.checkNotNull(typeInfo, "Type information must not be null.");
 
-			if (!(typeInfo instanceof CRowTypeInfo)) {
+			if (!(typeInfo instanceof TupleTypeInfo)) {
 				throw new IllegalArgumentException("Row type information expected.");
 			}
-			RowTypeInfo rowTypeInfo = ((CRowTypeInfo) typeInfo).rowType();
+			RowTypeInfo rowTypeInfo = (RowTypeInfo) ((TupleTypeInfo) typeInfo).getTypeAt(1);
+
 			this.typeInfo = rowTypeInfo;
 			this.csvSchema = CsvRowSchemaConverter.convert(rowTypeInfo);
 		}
@@ -163,8 +164,8 @@ public final class CsvCRowSerializationSchema implements SerializationSchema<CRo
 			return this;
 		}
 
-		public CsvCRowSerializationSchema build() {
-			return new CsvCRowSerializationSchema(
+		public CsvTupleSerializationSchema build() {
+			return new CsvTupleSerializationSchema(
 					typeInfo,
 					csvSchema,
 					updateMode);
@@ -172,9 +173,9 @@ public final class CsvCRowSerializationSchema implements SerializationSchema<CRo
 	}
 
 	@Override
-	public byte[] serialize(CRow crow) {
-		Row row = crow.row();
-		boolean change = crow.change();
+	public byte[] serialize(Tuple2<Boolean,Row> tuple2) {
+		Row row = tuple2.f1;
+		boolean change = tuple2.f0;
 		if (root == null) {
 			root = csvMapper.createObjectNode();
 		}
@@ -210,7 +211,7 @@ public final class CsvCRowSerializationSchema implements SerializationSchema<CRo
 		if (this == o) {
 			return true;
 		}
-		final CsvCRowSerializationSchema that = (CsvCRowSerializationSchema) o;
+		final CsvTupleSerializationSchema that = (CsvTupleSerializationSchema) o;
 		final CsvSchema otherSchema = that.csvSchema;
 
 		return typeInfo.equals(that.typeInfo) &&

@@ -19,38 +19,38 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
-
 import com.dtstack.flink.sql.enums.ECacheContentType;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoClient;
-import com.mongodb.MongoClientSettings;
 import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.types.Row;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -60,10 +60,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author xuqianjin
  */
 public class MongoAsyncReqRow extends BaseAsyncReqRow {
-
     private static final long serialVersionUID = -1183158242862673706L;
-
-    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoAsyncReqRow.class);
 
@@ -95,8 +92,8 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(Row.copy(input.row()), input.change());
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+        Row inputCopy = Row.copy(input);
         BasicDBObject basicDbObject = new BasicDBObject();
         try {
             basicDbObject.putAll(inputParams);
@@ -121,11 +118,11 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
             @Override
             public void apply(final Document document) {
                 atomicInteger.incrementAndGet();
-                Row row = fillData(inputCopy.row(), document);
+                Row row = fillData(inputCopy, document);
                 if (openCache()) {
                     cacheContent.add(document);
                 }
-                resultFuture.complete(Collections.singleton(new CRow(row, inputCopy.change())));
+                RowDataComplete.completeRow(resultFuture, row);
             }
         };
         SingleResultCallback<Void> callbackWhenFinished = new SingleResultCallback<Void>() {
@@ -133,7 +130,7 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
             public void onResult(final Void result, final Throwable t) {
                 if (atomicInteger.get() <= 0) {
                     LOG.warn("Cannot retrieve the data from the database");
-                    resultFuture.complete(null);
+                    resultFuture.complete(Collections.EMPTY_LIST);
                 } else {
                     if (openCache()) {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
@@ -161,14 +158,7 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
             Object obj = input.getField(entry.getValue());
-            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
-
-            if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                obj = ((Timestamp) obj).getTime();
-                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
-            }
-
+            obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
 

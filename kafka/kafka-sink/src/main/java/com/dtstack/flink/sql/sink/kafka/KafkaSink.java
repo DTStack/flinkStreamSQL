@@ -44,8 +44,7 @@ public class KafkaSink extends AbstractKafkaSink {
         this.schema = buildTableSchema(fieldNames, fieldTypes);
         this.parallelism = kafkaSinkTableInfo.getParallelism();
         this.sinkOperatorName = SINK_OPERATOR_NAME_TPL.replace("${topic}", topic).replace("${table}", tableName);
-        this.kafkaProducer = new KafkaProducerFactory().createKafkaProducer(kafkaSinkTableInfo, getRowTypeInfo(), kafkaProperties, partitioner, partitionKeys);
+        this.kafkaProducer011 = new KafkaProducerFactory().createKafkaProducer(kafkaSinkTableInfo, getOutputType(), kafkaProperties, partitioner, partitionKeys);
         return this;
     }
-
 }

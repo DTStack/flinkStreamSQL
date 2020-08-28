@@ -24,22 +24,28 @@
     </properties>
 
     <dependencies>
+        <!-- blink table module-->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <version>2.5</version>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-common</artifactId>
+            <version>${flink.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-core</artifactId>
+            <artifactId>flink-table-api-java-bridge_2.11</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-planner-blink_2.11</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-runtime-blink_2.11</artifactId>
             <version>${flink.version}</version>
         </dependency>
 
@@ -57,15 +63,22 @@
 
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-table-planner_2.11</artifactId>
+            <artifactId>flink-cep-scala_2.11</artifactId>
             <version>${flink.version}</version>
         </dependency>
 
         <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.10</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-table-common</artifactId>
+            <artifactId>flink-statebackend-rocksdb_2.11</artifactId>
             <version>${flink.version}</version>
         </dependency>
+
 
         <dependency>
             <groupId>org.apache.calcite</groupId>
@@ -94,47 +107,22 @@
 
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-cep-scala_2.11</artifactId>
-            <version>${flink.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-scala_2.11</artifactId>
-            <version>${flink.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-yarn_2.11</artifactId>
-            <version>${flink.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.flink</groupId>
-                    <artifactId>flink-shaded-hadoop2</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.flink</groupId>
             <artifactId>flink-shaded-hadoop2</artifactId>
             <version>2.7.5-1.8.1</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.apache.flink/flink-statebackend-rocksdb -->
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-statebackend-rocksdb_2.11</artifactId>
-            <version>${flink.version}</version>
         </dependency>
 
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
+            <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.5</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -198,13 +186,13 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../plugins">
+                                <copy todir="${basedir}/../sqlplugins">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
-                                <move file="${basedir}/../plugins/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../plugins/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../sqlplugins/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../sqlplugins/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

@@ -37,8 +37,8 @@ import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.table.api.StreamQueryConfig;
-import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.api.TableConfig;
+import org.apache.flink.table.api.TableEnvironment;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -123,26 +123,19 @@ public final class StreamEnvConfigManager {
         }
     }
 
-    public static StreamQueryConfig getStreamQueryConfig(StreamTableEnvironment tableEnv, Properties confProperties) {
-        return StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties).orElseGet(tableEnv::queryConfig);
-    }
-
     /**
      * 设置TableEnvironment状态超时时间
      * @param tableEnv
      * @param confProperties
      */
-    public static Optional<StreamQueryConfig> streamTableEnvironmentStateTTLConfig(StreamTableEnvironment tableEnv, Properties confProperties) {
-        Optional<StreamQueryConfig> streamQueryConfig = Optional.empty();
+    public static void streamTableEnvironmentStateTTLConfig(TableEnvironment tableEnv, Properties confProperties) {
         confProperties = PropertiesUtils.propertiesTrim(confProperties);
         Optional<Tuple2<Time, Time>> tableEnvTTL = getTableEnvTTL(confProperties);
         if (tableEnvTTL.isPresent()) {
             Tuple2<Time, Time> timeRange = tableEnvTTL.get();
-            StreamQueryConfig queryConfig = tableEnv.queryConfig();
-            queryConfig.withIdleStateRetentionTime(timeRange.f0, timeRange.f1);
-            streamQueryConfig = Optional.of(queryConfig);
+            TableConfig qConfig = tableEnv.getConfig();
+            qConfig.setIdleStateRetentionTime(timeRange.f0, timeRange.f1);
         }
-        return streamQueryConfig;
     }
 
 
@@ -349,6 +342,4 @@ public final class StreamEnvConfigManager {
             throw new RuntimeException("not support " + timeNumber + timeUnit);
         }
     }
-
-
 }

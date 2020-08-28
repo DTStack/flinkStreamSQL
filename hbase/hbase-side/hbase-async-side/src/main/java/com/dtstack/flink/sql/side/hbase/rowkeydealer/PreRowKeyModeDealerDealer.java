@@ -26,24 +26,19 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
+import com.dtstack.flink.sql.util.RowDataComplete;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
-import com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
-import org.hbase.async.BinaryPrefixComparator;
-import org.hbase.async.Bytes;
-import org.hbase.async.CompareFilter;
-import org.hbase.async.HBaseClient;
-import org.hbase.async.KeyValue;
-import org.hbase.async.RowFilter;
-import org.hbase.async.ScanFilter;
-import org.hbase.async.Scanner;
+import org.hbase.async.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -65,7 +60,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
     }
 
     @Override
-    public void asyncGetData(String tableName, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture,
+    public void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<BaseRow> resultFuture,
                              AbstractSideCache sideCache) {
         Scanner prefixScanner = hBaseClient.newScanner(tableName);
         ScanFilter scanFilter = new RowFilter(CompareFilter.CompareOp.EQUAL, new BinaryPrefixComparator(Bytes.UTF8(rowKeyStr)));
@@ -79,7 +74,8 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
     }
 
 
-    private String dealOneRow(ArrayList<ArrayList<KeyValue>> args, String rowKeyStr, CRow input, ResultFuture<CRow> resultFuture, AbstractSideCache sideCache) {
+    private String dealOneRow(ArrayList<ArrayList<KeyValue>> args, String rowKeyStr, Row input,
+                              ResultFuture<BaseRow> resultFuture, AbstractSideCache sideCache) {
         if(args == null || args.size() == 0){
             dealMissKey(input, resultFuture);
             if (openCache) {
@@ -88,7 +84,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
         }
 
         List<Object> cacheContent = Lists.newArrayList();
-        List<CRow> rowList = Lists.newArrayList();
+        List<Row> rowList = Lists.newArrayList();
 
         for(List<KeyValue> oneRow : args){
             try {
@@ -116,24 +112,25 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
                             sideVal.add(val);
                         }
 
-                        Row row = fillData(input.row(), sideVal);
+                        Row row = fillData(input, sideVal);
                         if (openCache) {
                             cacheContent.add(sideVal);
                         }
-                        rowList.add(new CRow(row, input.change()));
+
+                        rowList.add(row);
                     }
                 }catch (Exception e) {
                     resultFuture.completeExceptionally(e);
                 }
             } catch (Exception e) {
-                resultFuture.complete(null);
+                resultFuture.complete(Collections.EMPTY_LIST);
                 LOG.error("record:" + input);
                 LOG.error("get side record exception:", e);
             }
         }
 
         if (rowList.size() > 0){
-            resultFuture.complete(rowList);
+            RowDataComplete.completeRow(resultFuture, rowList);
         }
 
         if(openCache){
@@ -143,10 +140,10 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
         return "";
     }
 
-    private String dealFail(Object arg2, CRow input, ResultFuture<CRow> resultFuture){
+    private String dealFail(Object arg2, Row input, ResultFuture<BaseRow> resultFuture){
         LOG.error("record:" + input);
         LOG.error("get side record exception:" + arg2);
-        resultFuture.complete(null);
+        resultFuture.complete(Collections.EMPTY_LIST);
         return "";
     }
 }

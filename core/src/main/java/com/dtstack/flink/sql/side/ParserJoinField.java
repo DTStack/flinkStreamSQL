@@ -28,6 +28,8 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
+import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.types.logical.LogicalType;
 
 import java.util.Iterator;
 import java.util.List;
@@ -68,10 +70,12 @@ public class ParserJoinField {
                 String tableName = identifier.getComponent(0).getSimple();
                 String fieldName = identifier.getComponent(1).getSimple();
                 TypeInformation<?> type = scope.getFieldType(tableName, fieldName);
+                LogicalType logicalType = scope.getLogicalType(tableName, fieldName);
                 FieldInfo fieldInfo = new FieldInfo();
                 fieldInfo.setTable(tableName);
                 fieldInfo.setFieldName(fieldName);
                 fieldInfo.setTypeInformation(type);
+                fieldInfo.setLogicalType(logicalType);
                 fieldInfoList.add(fieldInfo);
             } else {
                 //处理
@@ -89,15 +93,19 @@ public class ParserJoinField {
                         }
 
                         RowTypeInfo field = scopeChild.getRowTypeInfo();
+                        BaseRowTypeInfo baseRowTypeInfo = scopeChild.getBaseRowTypeInfo();
                         String[] fieldNames = field.getFieldNames();
                         TypeInformation<?>[] types = field.getFieldTypes();
+                        LogicalType[] logicalTypes = baseRowTypeInfo.getLogicalTypes();
                         for(int i=0; i< field.getTotalFields(); i++){
                             String fieldName = fieldNames[i];
                             TypeInformation<?> type = types[i];
+                            LogicalType logicalType = logicalTypes[i];
                             FieldInfo fieldInfo = new FieldInfo();
                             fieldInfo.setTable(tableIdentify.getSimple());
                             fieldInfo.setFieldName(fieldName);
                             fieldInfo.setTypeInformation(type);
+                            fieldInfo.setLogicalType(logicalType);
                             fieldInfoList.add(fieldInfo);
                         }
                         break;
@@ -114,22 +122,37 @@ public class ParserJoinField {
         List<FieldInfo> fieldInfoList = Lists.newArrayList();
         while(true) {
             JoinScope.ScopeChild resolved;
-            RowTypeInfo field;
+            BaseRowTypeInfo field;
+            BaseRowTypeInfo baseRowTypeInfo;
             if(!prefixId.hasNext()) {
                 return fieldInfoList;
             }
 
             resolved = (JoinScope.ScopeChild)prefixId.next();
-            field = resolved.getRowTypeInfo();
+            int fieldTypeLength = resolved.getBaseRowTypeInfo().getFieldTypes().length;
+            if(fieldTypeLength == 2
+                    && resolved.getRowTypeInfo().getFieldTypes()[1].getClass().equals(BaseRowTypeInfo.class)){
+                field = (BaseRowTypeInfo) resolved.getBaseRowTypeInfo().getFieldTypes()[1];
+            } else if(fieldTypeLength ==1
+                    && resolved.getRowTypeInfo().getFieldTypes()[0].getClass().equals(BaseRowTypeInfo.class)){
+                field = (BaseRowTypeInfo) resolved.getBaseRowTypeInfo().getFieldTypes()[0];
+            }else{
+                field = resolved.getBaseRowTypeInfo();
+            }
+
+            baseRowTypeInfo = field;
             String[] fieldNames = field.getFieldNames();
             TypeInformation<?>[] types = field.getFieldTypes();
+            LogicalType[] logicalTypes = baseRowTypeInfo.getLogicalTypes();
             for(int i=0; i< field.getTotalFields(); i++){
                 String fieldName = fieldNames[i];
                 TypeInformation<?> type = types[i];
+                LogicalType logicalType = logicalTypes[i];
                 FieldInfo fieldInfo = new FieldInfo();
                 fieldInfo.setTable(resolved.getAlias());
                 fieldInfo.setFieldName(fieldName);
                 fieldInfo.setTypeInformation(type);
+                fieldInfo.setLogicalType(logicalType);
                 fieldInfoList.add(fieldInfo);
             }
         }

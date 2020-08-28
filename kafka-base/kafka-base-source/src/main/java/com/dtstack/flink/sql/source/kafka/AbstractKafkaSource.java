@@ -27,13 +27,13 @@ import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.types.Row;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
-import java.lang.reflect.Array;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -77,15 +77,22 @@ public abstract class AbstractKafkaSource implements IStreamSourceGener<Table> {
         Class<?>[] fieldClasses = kafkaSourceTableInfo.getFieldClasses();
         TypeInformation[] types =
                 IntStream.range(0, fieldClasses.length)
-                .mapToObj(i -> {
-                    if (fieldClasses[i].isArray()) {
-                        return DataTypeUtils.convertToArray(fieldTypes[i]);
-                    }
-                    return TypeInformation.of(fieldClasses[i]);
-                })
-                .toArray(TypeInformation[]::new);
+                        .mapToObj(i -> {
+                            if (fieldClasses[i].isArray()) {
+                                return DataTypeUtils.convertToArray(fieldTypes[i]);
+                            }
+                            return TypeInformation.of(fieldClasses[i]);
+                        })
+                        .toArray(TypeInformation[]::new);
+
 
         return new RowTypeInfo(types, kafkaSourceTableInfo.getFields());
+    }
+
+    protected void setParallelism(Integer parallelism, DataStreamSource kafkaSource) {
+        if (parallelism > 0) {
+            kafkaSource.setParallelism(parallelism);
+        }
     }
 
     protected void setStartPosition(String offset, String topicName, FlinkKafkaConsumerBase<Row> kafkaSrc) {

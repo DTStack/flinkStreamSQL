@@ -16,27 +16,25 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.launcher.perjob;
+package com.dtstack.flink.sql.launcher.factory;
 
-import org.apache.commons.io.Charsets;
+import org.apache.flink.client.deployment.ClusterDescriptor;
+import org.apache.flink.client.deployment.StandaloneClusterDescriptor;
+import org.apache.flink.configuration.Configuration;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.Arrays;
-import java.util.List;
+import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * Date: 2019/12/28
+ * Date: 2020/3/6
  * Company: www.dtstack.com
  * @author maqi
  */
-public class ConfigParseUtil {
+public enum StandaloneClientFactory implements AbstractClusterClientFactory {
+    INSTANCE;
 
-    public static List<String> parsePathFromStr(String pathStr) throws UnsupportedEncodingException {
-        String addjarPath = URLDecoder.decode(pathStr, Charsets.UTF_8.toString());
-        if (addjarPath.length() > 2) {
-            addjarPath = addjarPath.substring(1,addjarPath.length()-1).replace("\"","");
-        }
-        return Arrays.asList(addjarPath.split(","));
+    @Override
+    public ClusterDescriptor createClusterDescriptor(String clusterConfPath, Configuration flinkConfig) {
+        checkNotNull(flinkConfig);
+        return new StandaloneClusterDescriptor(flinkConfig);
     }
 }

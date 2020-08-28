@@ -76,14 +76,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/redisasyncside">
+                                <copy todir="${basedir}/../../../sqlplugins/redisasyncside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/redisasyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/redisasyncside/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../../../sqlplugins/redisasyncside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/redisasyncside/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

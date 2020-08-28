@@ -31,22 +31,22 @@ import java.util.Properties;
  * @author DocLi
  * @modifyer maqi
  */
-public class KafkaSink extends AbstractKafkaSink{
-	@Override
-	public KafkaSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
-		KafkaSinkTableInfo kafka09SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
+public class KafkaSink extends AbstractKafkaSink {
+    @Override
+    public KafkaSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
+        KafkaSinkTableInfo kafka09SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
 
-		Properties kafkaProperties = getKafkaProperties(kafka09SinkTableInfo);
-		this.tableName = kafka09SinkTableInfo.getName();
-		this.topic = kafka09SinkTableInfo.getTopic();
-		this.partitioner = Optional.of(new CustomerFlinkPartition<>());
-		this.partitionKeys = getPartitionKeys(kafka09SinkTableInfo);
-		this.fieldNames = kafka09SinkTableInfo.getFields();
-		this.fieldTypes = getTypeInformations(kafka09SinkTableInfo);
-		this.schema = buildTableSchema(fieldNames, fieldTypes);
-		this.parallelism = kafka09SinkTableInfo.getParallelism();
-		this.sinkOperatorName = SINK_OPERATOR_NAME_TPL.replace("${topic}", topic).replace("${table}", tableName);
-		this.kafkaProducer = new KafkaProducer09Factory().createKafkaProducer(kafka09SinkTableInfo, getRowTypeInfo(), kafkaProperties, partitioner, partitionKeys);
-		return this;
-	}
+        Properties kafkaProperties = getKafkaProperties(kafka09SinkTableInfo);
+        this.tableName = kafka09SinkTableInfo.getName();
+        this.topic = kafka09SinkTableInfo.getTopic();
+        this.partitioner = Optional.of(new CustomerFlinkPartition<>());
+        this.partitionKeys = getPartitionKeys(kafka09SinkTableInfo);
+        this.fieldNames = kafka09SinkTableInfo.getFields();
+        this.fieldTypes = getTypeInformations(kafka09SinkTableInfo);
+        this.schema = buildTableSchema(fieldNames, fieldTypes);
+        this.parallelism = kafka09SinkTableInfo.getParallelism();
+        this.sinkOperatorName = SINK_OPERATOR_NAME_TPL.replace("${topic}", topic).replace("${table}", tableName);
+        this.kafkaProducer011 = new KafkaProducer09Factory().createKafkaProducer(kafka09SinkTableInfo, getOutputType(), kafkaProperties, partitioner, partitionKeys);
+        return this;
+    }
 }

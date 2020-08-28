@@ -18,35 +18,58 @@
 
 package com.dtstack.flink.sql.parser;
 
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.flink.table.calcite.FlinkPlannerImpl;
-import org.apache.flink.table.calcite.FlinkTypeFactory;
+import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.table.api.SqlDialect;
+import org.apache.flink.table.api.TableConfig;
+import org.apache.flink.table.catalog.Catalog;
+import org.apache.flink.table.catalog.CatalogManager;
+import org.apache.flink.table.catalog.FunctionCatalog;
+import org.apache.flink.table.catalog.GenericInMemoryCatalog;
+import org.apache.flink.table.module.ModuleManager;
+import org.apache.flink.table.planner.calcite.CalciteParser;
+import org.apache.flink.table.planner.catalog.CatalogManagerCalciteSchema;
+import org.apache.flink.table.planner.delegation.PlannerContext;
+
+import java.util.ArrayList;
+
+import static org.apache.calcite.jdbc.CalciteSchemaBuilder.asRootSchema;
 
 /**
+ * 废弃。之后删除
  * Date: 2020/3/31
  * Company: www.dtstack.com
  * @author maqi
  */
 public class FlinkPlanner {
 
-    public static volatile FlinkPlannerImpl flinkPlanner;
+    private final TableConfig tableConfig = new TableConfig();
 
-    private FlinkPlanner() {
+    private final Catalog catalog = new GenericInMemoryCatalog(EnvironmentSettings.DEFAULT_BUILTIN_CATALOG,
+            EnvironmentSettings.DEFAULT_BUILTIN_DATABASE);
+    private final CatalogManager catalogManager =
+            new CatalogManager("builtin", catalog);
+    private final ModuleManager moduleManager = new ModuleManager();
+    private final FunctionCatalog functionCatalog = new FunctionCatalog(
+            tableConfig,
+            catalogManager,
+            moduleManager);
+    private final PlannerContext plannerContext =
+            new PlannerContext(tableConfig,
+                    functionCatalog,
+                    catalogManager,
+                    asRootSchema(new CatalogManagerCalciteSchema(catalogManager, false)),
+                    new ArrayList<>());
+
+
+    public FlinkPlanner() {
     }
 
-    public static FlinkPlannerImpl createFlinkPlanner(FrameworkConfig frameworkConfig, RelOptPlanner relOptPlanner, FlinkTypeFactory typeFactory) {
-        if (flinkPlanner == null) {
-            synchronized (FlinkPlanner.class) {
-                if (flinkPlanner == null) {
-                    flinkPlanner = new FlinkPlannerImpl(frameworkConfig, relOptPlanner, typeFactory);
-                }
-            }
-        }
-        return flinkPlanner;
+    public CalciteParser getParser(){
+        return getParserBySqlDialect(SqlDialect.DEFAULT);
     }
 
-    public static FlinkPlannerImpl getFlinkPlanner() {
-        return flinkPlanner;
+    public CalciteParser getParserBySqlDialect(SqlDialect sqlDialect) {
+        tableConfig.setSqlDialect(sqlDialect);
+        return plannerContext.createCalciteParser();
     }
 }

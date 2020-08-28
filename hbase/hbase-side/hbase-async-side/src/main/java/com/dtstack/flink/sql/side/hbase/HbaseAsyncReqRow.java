@@ -34,10 +34,9 @@ import com.stumbleupon.async.Deferred;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
+import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
@@ -45,10 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.security.krb5.KrbException;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -63,8 +60,6 @@ import java.util.concurrent.TimeUnit;
 public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = 2098635104857937717L;
-
-    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseAsyncReqRow.class);
 
@@ -117,6 +112,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
             config.overrideConfig(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
             refreshConfig();
         }
+
         hBaseClient = new HBaseClient(config, executorService);
 
         try {
@@ -152,7 +148,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
         rowKeyMode.asyncGetData(tableName, buildCacheKey(inputParams), input, resultFuture, sideInfo.getSideCache());
     }
 
@@ -167,13 +163,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
             Object obj = input.getField(entry.getValue());
-            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
-
-            if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
-                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
-            }
-
+            obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
 

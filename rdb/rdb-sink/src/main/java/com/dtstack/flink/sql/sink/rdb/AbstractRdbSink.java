@@ -27,6 +27,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
@@ -117,9 +118,15 @@ public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Se
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        dataStream.addSink(new OutputFormatSinkFunction(getOutputFormat()))
+        consumeDataStream(dataStream);
+    }
+
+    @Override
+    public DataStreamSink<?> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        DataStreamSink dataStreamSink = dataStream.addSink(new OutputFormatSinkFunction(getOutputFormat()))
                 .setParallelism(parallelism)
                 .name(registerTabName);
+        return dataStreamSink;
     }
 
     @Override

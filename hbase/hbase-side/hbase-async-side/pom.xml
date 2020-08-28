@@ -85,14 +85,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/hbaseasyncside">
+                                <copy todir="${basedir}/../../../sqlplugins/hbaseasyncside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/hbaseasyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/hbaseasyncside/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../../../sqlplugins/hbaseasyncside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/hbaseasyncside/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

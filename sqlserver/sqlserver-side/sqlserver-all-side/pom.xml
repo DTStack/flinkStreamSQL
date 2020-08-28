@@ -73,14 +73,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/sqlserverallside">
+                                <copy todir="${basedir}/../../../sqlplugins/sqlserverallside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/sqlserverallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/sqlserverallside/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../../sqlplugins/sqlserverallside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/sqlserverallside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

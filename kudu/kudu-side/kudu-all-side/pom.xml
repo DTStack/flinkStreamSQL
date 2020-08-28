@@ -70,14 +70,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/kuduallside">
+                                <copy todir="${basedir}/../../../sqlplugins/kuduallside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/kuduallside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/kuduallside/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../../sqlplugins/kuduallside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/kuduallside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

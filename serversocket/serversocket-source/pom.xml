@@ -63,14 +63,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../plugins/serversocketsource">
+                                <copy todir="${basedir}/../../sqlplugins/serversocketsource">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../plugins/serversocketsource/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../plugins/serversocketsource/${project.name}-${git.branch}.jar" />
+                                <move file="${basedir}/../../sqlplugins/serversocketsource/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/serversocketsource/${project.name}-${git.branch}.jar" />
                             </tasks>
                         </configuration>
                     </execution>

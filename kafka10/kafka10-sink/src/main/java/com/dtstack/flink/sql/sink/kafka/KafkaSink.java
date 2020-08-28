@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 
 import java.util.Optional;
 import java.util.Properties;
+
 /**
  *
  * Date: 2018/12/18
@@ -34,6 +35,7 @@ import java.util.Properties;
  *
  */
 public class KafkaSink extends AbstractKafkaSink {
+
     @Override
     public KafkaSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         KafkaSinkTableInfo kafka10SinkTableInfo = (KafkaSinkTableInfo) targetTableInfo;
@@ -48,7 +50,7 @@ public class KafkaSink extends AbstractKafkaSink {
         this.schema = buildTableSchema(fieldNames, fieldTypes);
         this.parallelism = kafka10SinkTableInfo.getParallelism();
         this.sinkOperatorName = SINK_OPERATOR_NAME_TPL.replace("${topic}", topic).replace("${table}", tableName);
-        this.kafkaProducer = new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getRowTypeInfo(), kafkaProperties, partitioner, partitionKeys);
+        this.kafkaProducer011 = new KafkaProducer010Factory().createKafkaProducer(kafka10SinkTableInfo, getOutputType(), kafkaProperties, partitioner, partitionKeys);
         return this;
     }
 }

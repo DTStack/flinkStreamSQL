@@ -28,6 +28,7 @@ import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import com.dtstack.flink.sql.util.DateUtil;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.vertx.core.json.JsonArray;
@@ -37,8 +38,7 @@ import io.vertx.ext.sql.SQLConnection;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +48,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -63,8 +62,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private static final long serialVersionUID = 2098635244857937720L;
-
-    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     private static final Logger LOG = LoggerFactory.getLogger(RdbAsyncReqRow.class);
 
@@ -112,16 +109,16 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    protected void preInvoke(CRow input, ResultFuture<CRow> resultFuture){
+    protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture) {
 
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
 
         AtomicLong networkLogCounter = new AtomicLong(0L);
-        while (!connectionStatus.get()){//network is unhealth
-            if(networkLogCounter.getAndIncrement() % 1000 == 0){
+        while (!connectionStatus.get()) {//network is unhealth
+            if (networkLogCounter.getAndIncrement() % 1000 == 0) {
                 LOG.info("network unhealth to block task");
             }
             Thread.sleep(100);
@@ -130,28 +127,28 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         executor.execute(() -> connectWithRetry(params, input, resultFuture, rdbSqlClient));
     }
 
-    private void connectWithRetry(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture, SQLClient rdbSqlClient) {
+    private void connectWithRetry(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture, SQLClient rdbSqlClient) {
         AtomicLong failCounter = new AtomicLong(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
-        while(!finishFlag.get()){
-            try{
+        while (!finishFlag.get()) {
+            try {
                 CountDownLatch latch = new CountDownLatch(1);
                 rdbSqlClient.getConnection(conn -> {
                     try {
-                        if(conn.failed()){
+                        if (conn.failed()) {
                             connectionStatus.set(false);
-                            if(failCounter.getAndIncrement() % 1000 == 0){
+                            if (failCounter.getAndIncrement() % 1000 == 0) {
                                 LOG.error("getConnection error", conn.cause());
                             }
-                            if(failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)){
+                            if (failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)) {
                                 resultFuture.completeExceptionally(conn.cause());
                                 finishFlag.set(true);
                             }
                             return;
                         }
                         connectionStatus.set(true);
-                        ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
-                        cancelTimerWhenComplete(resultFuture, timerFuture);
+                        registerTimerAndAddToHandler(input, resultFuture);
+
                         handleQuery(conn.result(), inputParams, input, resultFuture);
                         finishFlag.set(true);
                     } catch (Exception e) {
@@ -166,14 +163,14 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                     LOG.error("", e);
                 }
 
-            } catch (Exception e){
+            } catch (Exception e) {
                 //数据源队列溢出情况
                 connectionStatus.set(false);
             }
-            if(!finishFlag.get()){
+            if (!finishFlag.get()) {
                 try {
                     Thread.sleep(3000);
-                } catch (Exception e){
+                } catch (Exception e) {
                     LOG.error("", e);
                 }
             }
@@ -219,7 +216,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     public String buildCacheKey(Map<String, Object> inputParam) {
-        return StringUtils.join(inputParam.values(),"_");
+        return StringUtils.join(inputParam.values(), "_");
     }
 
     @Override
@@ -228,12 +225,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
             Object obj = input.getField(entry.getValue());
-            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
-            if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
-            }
-
+            obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
 
@@ -258,7 +250,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             rdbSqlClient.close();
         }
 
-        if(executor != null){
+        if (executor != null) {
             executor.shutdown();
         }
 
@@ -268,7 +260,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         this.rdbSqlClient = rdbSqlClient;
     }
 
-    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture){
+    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) {
         String key = buildCacheKey(inputParams);
         JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
         connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {
@@ -281,21 +273,20 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
             int resultSize = rs.result().getResults().size();
             if (resultSize > 0) {
-                List<CRow> rowList = Lists.newArrayList();
+                List<Row> rowList = Lists.newArrayList();
 
                 for (JsonArray line : rs.result().getResults()) {
-                    Row row = fillData(input.row(), line);
+                    Row row = fillData(input, line);
                     if (openCache()) {
                         cacheContent.add(line);
                     }
-                    rowList.add(new CRow(row, input.change()));
+                    rowList.add(row);
                 }
 
                 if (openCache()) {
                     putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                 }
-
-                resultFuture.complete(rowList);
+                RowDataComplete.completeRow(resultFuture, rowList);
             } else {
                 dealMissKey(input, resultFuture);
                 if (openCache()) {
@@ -312,9 +303,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         });
     }
 
-    private Map<String, Object> formatInputParam(Map<String, Object> inputParam){
+    private Map<String, Object> formatInputParam(Map<String, Object> inputParam) {
         Map<String, Object> result = Maps.newHashMap();
-        inputParam.forEach((k,v) -> {
+        inputParam.forEach((k, v) -> {
             result.put(k, convertDataType(v));
         });
         return result;

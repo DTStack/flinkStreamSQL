@@ -114,9 +114,7 @@ public class ParamsInfo {
         private String remoteSqlPluginPath;
         private String pluginLoadMode;
         private String deployMode;
-        private String logLevel;
         private Properties confProp;
-
 
         public ParamsInfo.Builder setSql(String sql) {
             this.sql = sql;

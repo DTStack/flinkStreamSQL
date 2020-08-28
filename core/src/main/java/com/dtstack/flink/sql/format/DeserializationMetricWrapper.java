@@ -117,6 +117,10 @@ public class DeserializationMetricWrapper extends AbstractDeserializationSchema<
     protected void afterDeserialize() throws IOException {
     }
 
+    public DeserializationSchema<Row> getDeserializationSchema() {
+        return deserializationSchema;
+    }
+
     public RuntimeContext getRuntimeContext() {
         return runtimeContext;
     }

@@ -72,14 +72,14 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../../plugins/db2asyncside">
+                                <copy todir="${basedir}/../../../sqlplugins/db2asyncside">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../../plugins/db2asyncside/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../../plugins/db2asyncside/${project.name}-${git.branch}.jar"/>
+                                <move file="${basedir}/../../../sqlplugins/db2asyncside/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../../sqlplugins/db2asyncside/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

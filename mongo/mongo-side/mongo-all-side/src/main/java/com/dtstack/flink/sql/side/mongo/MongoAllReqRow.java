@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
@@ -37,8 +38,7 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.bson.Document;
@@ -46,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -84,14 +83,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
             Object obj = input.getField(entry.getValue());
-            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
-
-            //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
-            if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
-            }
-
+            obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
 
@@ -128,18 +120,17 @@ public class MongoAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
+    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = input.row().getField(conValIndex);
+            Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
-                if(sideInfo.getJoinType() == JoinType.LEFT){
-                    Row data = fillData(input.row(), null);
-                    out.collect(new CRow(data, input.change()));
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
+                    Row data = fillData(input, null);
+                    RowDataComplete.collectRow(out, data);
                 }
                 return;
             }
-
             inputParams.add(equalObj);
         }
 
@@ -147,8 +138,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(input.row(), null);
-                out.collect(new CRow(row, input.change()));
+                Row row = fillData(input, null);
+                RowDataComplete.collectRow(out, row);
             } else {
                 return;
             }
@@ -157,7 +148,8 @@ public class MongoAllReqRow extends BaseAllReqRow {
         }
 
         for (Map<String, Object> one : cacheList) {
-            out.collect(new CRow(fillData(input.row(), one), input.change()));
+            Row row = fillData(input, one);
+            RowDataComplete.collectRow(out, row);
         }
     }
 

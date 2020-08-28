@@ -26,12 +26,14 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.runtime.types.CRow;
+import com.google.common.collect.Maps;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
@@ -39,16 +41,23 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+
 import java.security.PrivilegedAction;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -90,9 +99,8 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
-            if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
-                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+            if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+                obj = Timestamp.valueOf(((LocalDateTime) obj));
             }
 
             row.setField(entry.getKey(), obj);
@@ -103,10 +111,10 @@ public class HbaseAllReqRow extends BaseAllReqRow {
                 row.setField(entry.getKey(), null);
             }else{
                 String key = sideInfo.getSideFieldNameIndex().get(entry.getKey());
+                key = aliasNameInversion.get(key);
                 row.setField(entry.getKey(), sideInputList.get(key));
             }
         }
-
         return row;
     }
 
@@ -131,15 +139,15 @@ public class HbaseAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
+    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.row().getField(conValIndex);
+            Object equalObj = input.getField(conValIndex);
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input.row(), null);
-                    out.collect(new CRow(data, input.change()));
+                    Row data = fillData(input, null);
+                    RowDataComplete.collectRow(out, data);
                 }
                 return;
             }
@@ -156,14 +164,14 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()) {
                 if (entry.getKey().startsWith(rowKeyStr)) {
                     cacheList = cacheRef.get().get(entry.getKey());
-                    Row row = fillData(input.row(), cacheList);
-                    out.collect(new CRow(row, input.change()));
+                    Row row = fillData(input, cacheList);
+                    RowDataComplete.collectRow(out, row);
                 }
             }
         } else {
             cacheList = cacheRef.get().get(rowKeyStr);
-            Row row = fillData(input.row(), cacheList);
-            out.collect(new CRow(row, input.change()));
+            Row row = fillData(input, cacheList);
+            RowDataComplete.collectRow(out, row);
         }
 
     }

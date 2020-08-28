@@ -18,6 +18,8 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
+import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
@@ -88,4 +90,9 @@ public class KafkaConsumer011 extends FlinkKafkaConsumer011<Row> {
         return fetcher;
     }
 
+    @Override
+    public TypeInformation<Row> getProducedType() {
+        DeserializationSchema<Row> deserializationSchema = deserializationMetricWrapper.getDeserializationSchema();
+        return deserializationSchema.getProducedType();
+    }
 }

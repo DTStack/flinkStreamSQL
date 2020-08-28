@@ -32,7 +32,6 @@ import java.util.Map;
 import java.io.File;
 import java.net.URLEncoder;
 
-import org.apache.commons.codec.Charsets;
 import org.apache.flink.util.FileUtils;
 
 

@@ -33,7 +33,7 @@ import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
-import org.apache.flink.table.calcite.FlinkPlannerImpl;
+import org.apache.flink.table.planner.calcite.FlinkPlannerImpl;
 
 import java.util.List;
 
@@ -49,6 +49,8 @@ import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 
 public class InsertSqlParser implements IParser {
 
+    private FlinkPlanner flinkPlanner = new FlinkPlanner();
+
     // 用来标识当前解析节点的上一层节点是否为 insert 节点
     private static Boolean parentIsInsert = false;
 
@@ -63,10 +65,10 @@ public class InsertSqlParser implements IParser {
     }
 
     @Override
-    public void parseSql(String sql, SqlTree sqlTree) {
+    public void parseSql(String sql, SqlTree sqlTree) throws Exception {
 
-        FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
-        SqlNode sqlNode = flinkPlanner.parse(sql);
+
+        SqlNode sqlNode = flinkPlanner.getParser().parse(sql);
 
         SqlParseResult sqlParseResult = new SqlParseResult();
         parseNode(sqlNode, sqlParseResult);

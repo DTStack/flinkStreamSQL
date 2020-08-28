@@ -10,17 +10,16 @@ import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-import io.vertx.core.json.JsonArray;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import org.apache.kudu.ColumnSchema;
@@ -35,15 +34,14 @@ import org.apache.kudu.client.RowResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public class KuduAsyncReqRow extends BaseAsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(KuduAsyncReqRow.class);
-
-    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
-
     /**
      * 获取连接的尝试次数
      */
@@ -129,8 +127,8 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
-        CRow inputCopy = new CRow(input.row(), input.change());
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+        Row inputCopy = Row.copy(input);
         //scannerBuilder 设置为null重新加载过滤条件,然后connkudu重新赋值
         //todo:代码需要优化
         scannerBuilder = null;
@@ -155,7 +153,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
 
         List<Map<String, Object>> cacheContent = Lists.newArrayList();
         AsyncKuduScanner asyncKuduScanner = scannerBuilder.build();
-        List<CRow> rowList = Lists.newArrayList();
+        List<Row> rowList = Lists.newArrayList();
         Deferred<RowResultIterator> data = asyncKuduScanner.nextRows();
         //从之前的同步修改为调用异步的Callback
         data.addCallbackDeferring(new GetListRowCB(inputCopy, cacheContent, rowList, asyncKuduScanner, resultFuture, buildCacheKey(inputParams)));
@@ -179,14 +177,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
             Object obj = input.getField(entry.getValue());
-            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
-
-            //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
-            if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                obj = ((Timestamp) obj).getTime();
-                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
-            }
+            obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
 
@@ -214,18 +205,19 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
     }
 
     class GetListRowCB implements Callback<Deferred<List<Row>>, RowResultIterator> {
-        private CRow input;
+        private Row input;
         private List<Map<String, Object>> cacheContent;
-        private List<CRow> rowList;
+        private List<Row> rowList;
         private AsyncKuduScanner asyncKuduScanner;
-        private ResultFuture<CRow> resultFuture;
+        private ResultFuture<BaseRow> resultFuture;
         private String key;
 
 
         public GetListRowCB() {
         }
 
-        GetListRowCB(CRow input, List<Map<String, Object>> cacheContent, List<CRow> rowList, AsyncKuduScanner asyncKuduScanner, ResultFuture<CRow> resultFuture, String key) {
+        GetListRowCB(Row input, List<Map<String, Object>> cacheContent, List<Row> rowList,
+                     AsyncKuduScanner asyncKuduScanner, ResultFuture<BaseRow> resultFuture, String key) {
             this.input = input;
             this.cacheContent = cacheContent;
             this.rowList = rowList;
@@ -245,11 +237,11 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                         KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
                     }
                 }
-                Row row = fillData(input.row(), oneRow);
+                Row row = fillData(input, oneRow);
                 if (openCache()) {
                     cacheContent.add(oneRow);
                 }
-                rowList.add(new CRow(row, input.change()));
+                rowList.add(row);
             }
             if (asyncKuduScanner.hasMoreRows()) {
                 return asyncKuduScanner.nextRows().addCallbackDeferring(this);
@@ -259,7 +251,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                 if (openCache()) {
                     putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                 }
-                resultFuture.complete(rowList);
+                RowDataComplete.completeRow(resultFuture, rowList);
             } else {
                 dealMissKey(input, resultFuture);
                 if (openCache()) {

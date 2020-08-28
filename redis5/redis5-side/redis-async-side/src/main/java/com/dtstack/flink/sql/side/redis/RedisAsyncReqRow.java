@@ -20,12 +20,14 @@ package com.dtstack.flink.sql.side.redis;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
-import io.lettuce.core.KeyValue;
-import io.lettuce.core.api.async.RedisStringAsyncCommands;
+import com.dtstack.flink.sql.util.RowDataComplete;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
@@ -45,7 +47,6 @@ import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
-import com.google.common.collect.Maps;
 
 import java.util.Collections;
 import java.util.List;
@@ -129,7 +130,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
         String key = buildCacheKey(inputParams);
         if(StringUtils.isBlank(key)){
             return;
@@ -140,9 +141,9 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
             public void accept(Map<String, String> values) {
                 if (MapUtils.isNotEmpty(values)) {
                     try {
-                        Row row = fillData(input.row(), values);
+                        Row row = fillData(input, values);
                         dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
-                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
+                        RowDataComplete.completeRow(resultFuture, row);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }

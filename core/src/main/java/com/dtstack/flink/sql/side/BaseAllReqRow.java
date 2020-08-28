@@ -17,22 +17,23 @@
  */
 
 
-
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.factory.DTThreadFactory;
+import com.dtstack.flink.sql.util.RowDataComplete;
+import org.apache.calcite.sql.JoinType;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.dtstack.flink.sql.factory.DTThreadFactory;
-import org.apache.calcite.sql.JoinType;
-
 import java.sql.SQLException;
-import java.util.TimeZone;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -41,22 +42,21 @@ import java.util.concurrent.TimeUnit;
  * Reason:
  * Date: 2018/9/18
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> implements ISideReqRow {
+public abstract class BaseAllReqRow extends RichFlatMapFunction<Row, BaseRow> implements ISideReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
     public static final long LOAD_DATA_ERROR_SLEEP_TIME = 5_000L;
 
-    public static final TimeZone LOCAL_TZ = TimeZone.getDefault();
-
     protected BaseSideInfo sideInfo;
 
     private ScheduledExecutorService es;
 
-    public BaseAllReqRow(BaseSideInfo sideInfo){
+    public BaseAllReqRow(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
 
     }
@@ -73,17 +73,26 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<CRow, CRow> impl
 
         //start reload cache thread
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
-        es = new ScheduledThreadPoolExecutor(1,new DTThreadFactory("cache-all-reload"));
+        es = new ScheduledThreadPoolExecutor(1, new DTThreadFactory("cache-all-reload"));
         es.scheduleAtFixedRate(() -> reloadCache(), sideTableInfo.getCacheTimeout(), sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS);
     }
 
-    protected void sendOutputRow(CRow value, Object sideInput, Collector<CRow> out) {
+    protected Object convertTimeIndictorTypeInfo(Integer index, Object obj) {
+        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(index).getClass());
+
+        //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
+        if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+            obj = Timestamp.valueOf(((LocalDateTime) obj));
+        }
+        return obj;
+    }
+
+    protected void sendOutputRow(Row value, Object sideInput, Collector<BaseRow> out) {
         if (sideInput == null && sideInfo.getJoinType() != JoinType.LEFT) {
             return;
         }
-
-        Row row = fillData(value.row(), sideInput);
-        out.collect(new CRow(row, value.change()));
+        Row row = fillData(value, sideInput);
+        RowDataComplete.collectRow(out, row);
     }
 
     @Override

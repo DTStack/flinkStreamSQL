@@ -36,7 +36,7 @@ import org.apache.avro.specific.SpecificRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 
@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
  **
  * @author  maqi
  */
-public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
+public class AvroTuple2SerializationSchema implements SerializationSchema<Tuple2<Boolean,Row>> {
 
 	/**
 	 * Used for time conversions from SQL types.
@@ -110,7 +110,7 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 	 *
 	 * @param recordClazz Avro record class used to serialize Flink's row to Avro's record
 	 */
-	public AvroCRowSerializationSchema(Class<? extends SpecificRecord> recordClazz, String updateMode) {
+	public AvroTuple2SerializationSchema(Class<? extends SpecificRecord> recordClazz, String updateMode) {
 		Preconditions.checkNotNull(recordClazz, "Avro record class must not be null.");
 		this.recordClazz = recordClazz;
 		this.schema = SpecificData.get().getSchema(recordClazz);
@@ -126,7 +126,7 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 	 *
 	 * @param avroSchemaString Avro schema string used to serialize Flink's row to Avro's record
 	 */
-	public AvroCRowSerializationSchema(String avroSchemaString,String updateMode) {
+	public AvroTuple2SerializationSchema(String avroSchemaString, String updateMode) {
 		Preconditions.checkNotNull(avroSchemaString, "Avro schema must not be null.");
 		this.recordClazz = null;
 		this.schemaString = avroSchemaString;
@@ -142,10 +142,10 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 	}
 
 	@Override
-	public byte[] serialize(CRow crow) {
+	public byte[] serialize(Tuple2<Boolean,Row> tuple2) {
 		try {
-			Row row = crow.row();
-			boolean change = crow.change();
+			Row row = tuple2.f1;
+			boolean change = tuple2.f0;
 
 			// convert to record
 			final GenericRecord record = convertRowToAvroRecord(schema, row);
@@ -181,7 +181,7 @@ public class AvroCRowSerializationSchema implements SerializationSchema<CRow> {
 		if (o == null || getClass() != o.getClass()) {
 			return false;
 		}
-		final AvroCRowSerializationSchema that = (AvroCRowSerializationSchema) o;
+		final AvroTuple2SerializationSchema that = (AvroTuple2SerializationSchema) o;
 		return Objects.equals(recordClazz, that.recordClazz) && Objects.equals(schemaString, that.schemaString);
 	}
 

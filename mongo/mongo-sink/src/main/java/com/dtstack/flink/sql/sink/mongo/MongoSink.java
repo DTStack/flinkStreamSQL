@@ -27,6 +27,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.table.sinks.RetractStreamTableSink;
@@ -66,6 +67,11 @@ public class MongoSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        consumeDataStream(dataStream);
+    }
+
+    @Override
+    public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         MongoOutputFormat.MongoOutputFormatBuilder builder = MongoOutputFormat.buildMongoOutputFormat();
         builder.setAddress(this.address)
                 .setDatabase(this.database)
@@ -77,7 +83,8 @@ public class MongoSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
         MongoOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
-        dataStream.addSink(richSinkFunction);
+        DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
+        return dataStreamSink;
     }
 
     @Override

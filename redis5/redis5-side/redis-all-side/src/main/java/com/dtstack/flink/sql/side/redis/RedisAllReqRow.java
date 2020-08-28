@@ -25,17 +25,18 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.redis.enums.RedisType;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
+import com.dtstack.flink.sql.util.RowDataComplete;
 import com.esotericsoftware.minlog.Log;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
-import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.HostAndPort;
@@ -48,14 +49,15 @@ import redis.clients.jedis.JedisSentinelPool;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
-
 import java.util.Calendar;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 /**
  * @author yanxi
  */
@@ -110,37 +112,37 @@ public class RedisAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(CRow input, Collector<CRow> out) throws Exception {
+    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
         Map<String, String> inputParams = Maps.newHashMap();
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.row().getField(conValIndex);
+        for(Integer conValIndex : sideInfo.getEqualValIndex()){
+            Object equalObj = input.getField(conValIndex);
             if(equalObj == null){
-                if(sideInfo.getJoinType() == JoinType.LEFT){
-                    Row data = fillData(input.row(), null);
-                    out.collect(new CRow(data, input.change()));
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
+                    Row data = fillData(input, null);
+                    RowDataComplete.collectRow(out, data);
                 }
                 return;
             }
-            inputParams.put(sideInfo.getEqualFieldList().get(i), equalObj.toString());
+            String columnName = sideInfo.getEqualFieldList().get(conValIndex);
+            inputParams.put(columnName, equalObj.toString());
         }
         String key = buildCacheKey(inputParams);
-        if(StringUtils.isBlank(key)){
-            return;
-        }
 
         Map<String, String> cacheMap = cacheRef.get().get(key);
-        if(MapUtils.isEmpty(cacheMap)){
-            if(sideInfo.getJoinType() != JoinType.LEFT){
+
+        if (cacheMap == null){
+            if(sideInfo.getJoinType() == JoinType.LEFT){
+                Row data = fillData(input, null);
+                RowDataComplete.collectRow(out, data);
+            }else{
                 return;
             }
-            Row data = fillData(input.row(), null);
-            out.collect(new CRow(data, input.change()));
-            return;
 
+            return;
         }
-        Row newRow = fillData(input.row(), cacheMap);
-        out.collect(new CRow(newRow, input.change()));
+
+        Row newRow = fillData(input, cacheMap);
+        RowDataComplete.collectRow(out, newRow);
     }
 
     private String buildCacheKey(Map<String, String> refData) {
@@ -200,8 +202,8 @@ public class RedisAllReqRow extends BaseAllReqRow {
             timeout = 1000;
         }
 
-        String[] nodes = url.split(",");
-        String[] firstIpPort = nodes[0].split(":");
+        String[] nodes = StringUtils.split(url, ",");
+        String[] firstIpPort = StringUtils.split(nodes[0], ":");
         String firstIp = firstIpPort[0];
         String firstPort = firstIpPort[1];
         Set<HostAndPort> addresses = new HashSet<>();
