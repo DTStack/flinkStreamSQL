@@ -18,8 +18,8 @@
 
 package com.dtstack.flink.sql.dirty.print;
 
-import com.dtstack.flink.sql.dirty.consumer.AbstractDirtyDataConsumer;
-import com.dtstack.flink.sql.dirty.entity.DirtyDataEntity;
+import com.dtstack.flink.sql.dirtyManager.consumer.AbstractDirtyDataConsumer;
+import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

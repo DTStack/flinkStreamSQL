@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.dirty.entity;
+package com.dtstack.flink.sql.dirtyManager.entity;
 
 import java.sql.Date;
 

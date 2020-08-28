@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.dirty.mysql;
 
-import com.dtstack.flink.sql.dirty.consumer.AbstractDirtyDataConsumer;
+import com.dtstack.flink.sql.dirtyManager.consumer.AbstractDirtyDataConsumer;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

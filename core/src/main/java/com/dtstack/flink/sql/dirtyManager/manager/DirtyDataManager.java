@@ -16,13 +16,19 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.dirty.manager;
+package com.dtstack.flink.sql.dirtyManager.manager;
 
-import com.dtstack.flink.sql.dirty.consumer.AbstractDirtyDataConsumer;
-import com.dtstack.flink.sql.dirty.entity.DirtyDataEntity;
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
+import com.dtstack.flink.sql.dirtyManager.consumer.AbstractDirtyDataConsumer;
+import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
+import com.dtstack.flink.sql.util.PluginUtil;
 
+import java.io.File;
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
+import java.net.URL;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -34,6 +40,12 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class DirtyDataManager implements Serializable {
     private static final long serialVersionUID = 7190970299538893497L;
+
+    private static final String CLASS_PRE_STR = "com.dtstack.flink.sql.dirty";
+
+    private static final String CLASS_POST_STR = "DirtyDataConsumer";
+
+    private static final String DIRTY_CONSUMER_PATH = "dirtyData";
 
     /**
      * 写入队列阻塞时间
@@ -50,7 +62,7 @@ public class DirtyDataManager implements Serializable {
      */
     private AtomicLong count = new AtomicLong(0);
 
-   private AbstractDirtyDataConsumer consumer;
+    private AbstractDirtyDataConsumer consumer;
 
     public static DirtyDataManager newInstance() {
 
@@ -60,7 +72,15 @@ public class DirtyDataManager implements Serializable {
     public AbstractDirtyDataConsumer createConsumer(Map<String, String> properties) throws Exception {
         // 利用类加载的方式动态加载
         String type = properties.getOrDefault("type", "print");
-        return null;
+        String consumerType = DIRTY_CONSUMER_PATH + File.separator + type;
+        String consumerJar = PluginUtil.getJarFileDirPath(consumerType, properties.getOrDefault("pluginPath", null), "shipfile");
+        String className = CLASS_PRE_STR + "." + type.toLowerCase() + "." + upperCaseFirstChar(type + CLASS_POST_STR);
+
+        return ClassLoaderManager.newInstance(consumerJar, cl -> {
+            Class<?> clazz = cl.loadClass(className);
+            Constructor<?> constructor = clazz.getConstructor(String.class);
+            return (AbstractDirtyDataConsumer) constructor.newInstance(type + CLASS_POST_STR);
+        });
     }
 
     public void close() throws InterruptedException {
@@ -82,4 +102,7 @@ public class DirtyDataManager implements Serializable {
         consumer.setQueue(queue);
     }
 
+    private static String upperCaseFirstChar(String str) {
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
 }

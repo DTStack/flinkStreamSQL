@@ -16,28 +16,48 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.dirty.util;
+package com.dtstack.flink.sql.dirtyManager.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
 
-import java.io.IOException;
-import java.util.Map;
+import java.io.Serializable;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * @author tiezhu
  * Company dtstack
  * Date 2020/8/27 星期四
  */
-public class ManagerUtil {
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+public abstract class AbstractDirtyDataConsumer extends Thread implements  Serializable {
+    private static final long serialVersionUID = -6058598201315176687L;
 
-    @SuppressWarnings("unchecked")
-    public static Map<String, String> convertJsonToMap(String jsonStr) throws IOException {
-        return (Map<String, String>) objectMapper.readValue(jsonStr, Map.class);
+    private long count = 0;
+
+    protected LinkedBlockingQueue<DirtyDataEntity> queue;
+
+    /**
+     * 消费队列数据
+     */
+    public abstract void consume() throws InterruptedException;
+
+    /**
+     * 关闭消费者，需要释放资源
+     */
+    public abstract void close();
+
+    /**
+     * 初始化消费者，初始化定时任务
+     */
+    public void init() {
+
     }
 
-    public static Map<String, String> convertEntityToMap(Object obj) throws IOException {
-        String jsonStr = objectMapper.writeValueAsString(obj);
-        return convertJsonToMap(jsonStr);
+    @Override
+    public void run() {
+
+    }
+
+    public void setQueue(LinkedBlockingQueue<DirtyDataEntity> queue) {
+        this.queue = queue;
     }
 }

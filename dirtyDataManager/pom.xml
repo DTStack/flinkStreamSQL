@@ -9,13 +9,32 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sql.dirtyDataManager</artifactId>
+    <artifactId>sql.dirtyConsumer</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>manager</module>
         <module>print</module>
         <module>mysql</module>
     </modules>
 
+    <properties>
+        <junit.version>3.8.1</junit.version>
+        <sql.core.version>1.0-SNAPSHOT</sql.core.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.core</artifactId>
+            <version>${sql.core.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 
 </project>
