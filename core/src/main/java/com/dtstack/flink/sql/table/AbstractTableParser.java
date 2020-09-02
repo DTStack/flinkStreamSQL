@@ -48,7 +48,7 @@ public abstract class AbstractTableParser {
     private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+?)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
     private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
     private static Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
-    private static Pattern typePattern = Pattern.compile("(\\S+)\\s+(.+)");
+    private static Pattern typePattern = Pattern.compile("(\\S+)\\s+(\\w+.*)");
 
 
     private Map<String, Pattern> patternMap = Maps.newHashMap();
