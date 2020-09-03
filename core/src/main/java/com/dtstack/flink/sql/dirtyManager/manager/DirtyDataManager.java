@@ -22,13 +22,13 @@ import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.dirtyManager.consumer.AbstractDirtyDataConsumer;
 import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
 import com.dtstack.flink.sql.util.PluginUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
-import java.net.URL;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,6 +40,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class DirtyDataManager implements Serializable {
     private static final long serialVersionUID = 7190970299538893497L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(DirtyDataManager.class);
 
     private static final String CLASS_PRE_STR = "com.dtstack.flink.sql.dirty";
 
@@ -55,22 +57,32 @@ public class DirtyDataManager implements Serializable {
     /**
      * 缓存脏数据信息队列
      */
-    private LinkedBlockingQueue<DirtyDataEntity> queue = new LinkedBlockingQueue<>();
+    public final LinkedBlockingQueue<DirtyDataEntity> queue = new LinkedBlockingQueue<>();
 
     /**
      * 统计manager收集到的脏数据条数
      */
-    private AtomicLong count = new AtomicLong(0);
+    private final AtomicLong count = new AtomicLong(0);
 
-    private AbstractDirtyDataConsumer consumer;
+    public static AbstractDirtyDataConsumer consumer;
 
-    public static DirtyDataManager newInstance() {
-
-        return new DirtyDataManager();
+    /**
+     * 通过参数生成manager实例，并同时将consumer实例化
+     */
+    public static DirtyDataManager newInstance(Map<String, String> properties) throws Exception {
+        DirtyDataManager manager = new DirtyDataManager();
+        manager.blockingInterval = Long.parseLong(properties.getOrDefault("blockingInterval", "60"));
+        consumer = createConsumer(properties);
+        consumer.init(properties);
+        Thread dirtyDataConsumer = new Thread(consumer.setQueue(manager.queue), "dirtyData Consumer");
+        dirtyDataConsumer.start();
+        return manager;
     }
 
-    public AbstractDirtyDataConsumer createConsumer(Map<String, String> properties) throws Exception {
-        // 利用类加载的方式动态加载
+    /**
+     * 通过动态加载的方式加载Consumer
+     */
+    private static AbstractDirtyDataConsumer createConsumer(Map<String, String> properties) throws Exception {
         String type = properties.getOrDefault("type", "print");
         String consumerType = DIRTY_CONSUMER_PATH + File.separator + type;
         String consumerJar = PluginUtil.getJarFileDirPath(consumerType, properties.getOrDefault("pluginPath", null), "shipfile");
@@ -78,20 +90,20 @@ public class DirtyDataManager implements Serializable {
 
         return ClassLoaderManager.newInstance(consumerJar, cl -> {
             Class<?> clazz = cl.loadClass(className);
-            Constructor<?> constructor = clazz.getConstructor(String.class);
-            return (AbstractDirtyDataConsumer) constructor.newInstance(type + CLASS_POST_STR);
+            Constructor<?> constructor = clazz.getConstructor();
+            return (AbstractDirtyDataConsumer) constructor.newInstance();
         });
     }
 
-    public void close() throws InterruptedException {
-        if (!queue.isEmpty()) {
-            flush();
+    /**
+     * 脏数据收集任务停止，任务停止之前，需要将队列中所有的数据清空
+     */
+    public void close() throws Exception {
+        if (!queue.isEmpty() && checkConsumer()) {
+            consumer.consume();
         }
-    }
-
-    public void flush() throws InterruptedException {
-        consumer.setQueue(queue);
-        consumer.consume();
+        LOG.info("dirty consumer is closing ......");
+        consumer.close();
     }
 
     // 收集脏数据
@@ -99,9 +111,18 @@ public class DirtyDataManager implements Serializable {
         DirtyDataEntity dirtyDataEntity = new DirtyDataEntity(dataInfo, System.currentTimeMillis(), cause, field);
         queue.offer(dirtyDataEntity, blockingInterval, TimeUnit.MILLISECONDS);
         count.incrementAndGet();
-        consumer.setQueue(queue);
     }
 
+    /**
+     * 查看consumer当前状态
+     */
+    public boolean checkConsumer() {
+        return consumer.isRunning.get();
+    }
+
+    /**
+     * 首字母大写
+     */
     private static String upperCaseFirstChar(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }

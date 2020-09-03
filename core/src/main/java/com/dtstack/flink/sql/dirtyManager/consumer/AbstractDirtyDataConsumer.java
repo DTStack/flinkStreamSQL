@@ -19,26 +19,37 @@
 package com.dtstack.flink.sql.dirtyManager.consumer;
 
 import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author tiezhu
  * Company dtstack
  * Date 2020/8/27 星期四
  */
-public abstract class AbstractDirtyDataConsumer extends Thread implements  Serializable {
-    private static final long serialVersionUID = -6058598201315176687L;
+public abstract class AbstractDirtyDataConsumer implements Runnable, Serializable {
+    protected static final long serialVersionUID = -6058598201315176687L;
 
-    private long count = 0;
+    protected static final Logger LOG = LoggerFactory.getLogger(AbstractDirtyDataConsumer.class);
+
+    protected long errorLimit = 1000;
+    protected long errorCount = 0;
+
+    protected long count = 0;
+
+    public AtomicBoolean isRunning = new AtomicBoolean(true);
 
     protected LinkedBlockingQueue<DirtyDataEntity> queue;
 
     /**
      * 消费队列数据
      */
-    public abstract void consume() throws InterruptedException;
+    public abstract void consume() throws Exception;
 
     /**
      * 关闭消费者，需要释放资源
@@ -48,16 +59,26 @@ public abstract class AbstractDirtyDataConsumer extends Thread implements  Seria
     /**
      * 初始化消费者，初始化定时任务
      */
-    public void init() {
-
-    }
+    public abstract void init(Map<String, String> properties);
 
     @Override
     public void run() {
-
+        try {
+            LOG.info("start to consume dirty data");
+            while (isRunning.get()) {
+                consume();
+            }
+        } catch (Exception e) {
+            LOG.error("consume dirtyData error");
+            errorCount++;
+            if (errorCount == errorLimit) {
+                throw new RuntimeException("脏数据消费失败达到上限，任务失败");
+            }
+        }
     }
 
-    public void setQueue(LinkedBlockingQueue<DirtyDataEntity> queue) {
+    public AbstractDirtyDataConsumer setQueue(LinkedBlockingQueue<DirtyDataEntity> queue) {
         this.queue = queue;
+        return this;
     }
 }

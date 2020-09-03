@@ -19,11 +19,14 @@
 package com.dtstack.flink.sql.dirty.mysql;
 
 import com.dtstack.flink.sql.dirtyManager.consumer.AbstractDirtyDataConsumer;
+import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * @author tiezhu
@@ -44,6 +47,8 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
     private PreparedStatement statement;
 
     private Connection connection;
+
+    private String tableName;
 
     private PreparedStatement getStatement(String url,
                                            String userName,
@@ -79,12 +84,19 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
     }
 
     @Override
-    public void consume() {
-
+    public void consume() throws Exception{
+        if (!isCreatedTable) {
+            createTable("tableName");
+        }
     }
 
     @Override
     public void close() {
+
+    }
+
+    @Override
+    public void init(Map<String, String> properties) {
 
     }
 }

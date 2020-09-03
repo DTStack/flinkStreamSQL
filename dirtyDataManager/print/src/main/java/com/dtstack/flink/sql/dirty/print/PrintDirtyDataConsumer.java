@@ -23,6 +23,8 @@ import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 /**
  * @author tiezhu
  * Company dtstack
@@ -36,6 +38,7 @@ public class PrintDirtyDataConsumer extends AbstractDirtyDataConsumer {
     @Override
     public void consume() throws InterruptedException {
         DirtyDataEntity dataEntity = queue.take();
+        count++;
         LOG.warn("get dirtyData: " + dataEntity.getDirtyData() + "\n"
                 + "cause: " + dataEntity.getCause() + "\n"
                 + "processTime: " + dataEntity.getProcessDate() + "\n"
@@ -44,6 +47,11 @@ public class PrintDirtyDataConsumer extends AbstractDirtyDataConsumer {
 
     @Override
     public void close() {
-        // Do nothing
+        isRunning.compareAndSet(true, false);
+    }
+
+    @Override
+    public void init(Map<String, String> properties) {
+        LOG.info("Log dirty consumer init ......");
     }
 }
