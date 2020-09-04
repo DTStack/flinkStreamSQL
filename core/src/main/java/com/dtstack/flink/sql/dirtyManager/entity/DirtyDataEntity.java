@@ -84,4 +84,14 @@ public class DirtyDataEntity {
         this.cause = cause;
         this.field = field;
     }
+
+    @Override
+    public String toString() {
+        return "DirtyDataEntity{" +
+                "dirtyData='" + dirtyData + '\'' +
+                ", processDate=" + processDate +
+                ", cause='" + cause + '\'' +
+                ", field='" + field + '\'' +
+                '}';
+    }
 }

@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,7 +60,14 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
     /**
      * 初始化消费者，初始化定时任务
      */
-    public abstract void init(Map<String, String> properties);
+    public abstract void init(Map<String, String> properties) throws Exception;
+
+    /**
+     * 检验consumer是否正在执行
+     */
+    public boolean isRunning() {
+        return isRunning.get();
+    }
 
     @Override
     public void run() {

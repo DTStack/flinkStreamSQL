@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Date 2020/8/27 星期四
  */
 public class DirtyDataManager implements Serializable {
+    //TODO 需要确保产生脏数据后至少一次是成功发送给了consumer，至于consumer是否成功消费，manager不需要关心
     private static final long serialVersionUID = 7190970299538893497L;
 
     private static final Logger LOG = LoggerFactory.getLogger(DirtyDataManager.class);
@@ -64,6 +65,11 @@ public class DirtyDataManager implements Serializable {
      */
     private final AtomicLong count = new AtomicLong(0);
 
+    /**
+     * 脏数据写入队列失败条数
+     */
+    private final AtomicLong errorCount = new AtomicLong(0);
+
     public static AbstractDirtyDataConsumer consumer;
 
     /**
@@ -74,6 +80,7 @@ public class DirtyDataManager implements Serializable {
         manager.blockingInterval = Long.parseLong(properties.getOrDefault("blockingInterval", "60"));
         consumer = createConsumer(properties);
         consumer.init(properties);
+        //TODO 使用线程池创建线程，不要用thread
         Thread dirtyDataConsumer = new Thread(consumer.setQueue(manager.queue), "dirtyData Consumer");
         dirtyDataConsumer.start();
         return manager;
@@ -102,22 +109,32 @@ public class DirtyDataManager implements Serializable {
         if (!queue.isEmpty() && checkConsumer()) {
             consumer.consume();
         }
-        LOG.info("dirty consumer is closing ......");
+        LOG.info("dirty consumer is closing ...");
         consumer.close();
     }
 
-    // 收集脏数据
-    public void collectDirtyData(String dataInfo, String cause, String field) throws InterruptedException {
+    /**
+     * 收集脏数据放入队列缓存中，记录放入失败的数目和存入队列中的总数目，如果放入失败的数目超过一定比列，那么manager任务失败
+     */
+    public void collectDirtyData(String dataInfo, String cause, String field) {
         DirtyDataEntity dirtyDataEntity = new DirtyDataEntity(dataInfo, System.currentTimeMillis(), cause, field);
-        queue.offer(dirtyDataEntity, blockingInterval, TimeUnit.MILLISECONDS);
-        count.incrementAndGet();
+        try {
+            queue.offer(dirtyDataEntity, blockingInterval, TimeUnit.MILLISECONDS);
+            count.incrementAndGet();
+        } catch (Exception ignored) {
+            LOG.warn("dirty Data insert error ... Failed number: " + errorCount.incrementAndGet());
+            LOG.warn("error dirty data:" + dirtyDataEntity.toString());
+            if (errorCount.get() > Math.ceil(count.longValue() * 0.8)) {
+                throw new RuntimeException("The number of failed number reaches the limit, manager fails");
+            }
+        }
     }
 
     /**
      * 查看consumer当前状态
      */
     public boolean checkConsumer() {
-        return consumer.isRunning.get();
+        return consumer.isRunning();
     }
 
     /**

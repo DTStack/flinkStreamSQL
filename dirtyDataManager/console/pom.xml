@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>dirtyConsumer.print</artifactId>
+    <artifactId>dirtyConsumer.console</artifactId>
 
     <build>
         <plugins>
@@ -64,8 +64,8 @@
                                     </fileset>
                                 </copy>
 
-                                <move file="${basedir}/../../sqlplugins/dirtyData/print/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../sqlplugins/dirtyData/print/${project.name}.jar"/>
+                                <move file="${basedir}/../../sqlplugins/dirtyData/console/${project.artifactId}-${project.version}.jar"
+                                      tofile="${basedir}/../../sqlplugins/dirtyData/console/${project.name}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>

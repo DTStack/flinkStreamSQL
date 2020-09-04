@@ -12,7 +12,7 @@
     <artifactId>sql.dirtyConsumer</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>print</module>
+        <module>console</module>
         <module>mysql</module>
     </modules>
 

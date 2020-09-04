@@ -30,10 +30,10 @@ import java.util.Map;
  * Company dtstack
  * Date 2020/8/27 星期四
  */
-public class PrintDirtyDataConsumer extends AbstractDirtyDataConsumer {
+public class ConsoleDirtyDataConsumer extends AbstractDirtyDataConsumer {
     private static final long serialVersionUID = 5727194679865135189L;
 
-    private final Logger LOG = LoggerFactory.getLogger(PrintDirtyDataConsumer.class);
+    private final Logger LOG = LoggerFactory.getLogger(ConsoleDirtyDataConsumer.class);
 
     @Override
     public void consume() throws InterruptedException {
@@ -48,10 +48,11 @@ public class PrintDirtyDataConsumer extends AbstractDirtyDataConsumer {
     @Override
     public void close() {
         isRunning.compareAndSet(true, false);
+        LOG.info("console dirty consumer close ...");
     }
 
     @Override
     public void init(Map<String, String> properties) {
-        LOG.info("Log dirty consumer init ......");
+        LOG.info("console dirty consumer init ...");
     }
 }
