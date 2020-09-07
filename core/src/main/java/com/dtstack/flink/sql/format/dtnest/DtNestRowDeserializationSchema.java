@@ -149,8 +149,8 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
             return Time.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIMESTAMP.getTypeClass())) {
             // local zone
-            return Timestamp.valueOf(node.asText());
-        }  else if (info instanceof RowTypeInfo) {
+            return convertToTimestamp(node.asText());
+        } else if (info instanceof RowTypeInfo) {
             return convertRow(node, (RowTypeInfo) info);
         } else if (info instanceof ObjectArrayTypeInfo) {
             return convertObjectArray(node, ((ObjectArrayTypeInfo) info).getComponentInfo());
@@ -165,6 +165,16 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         }
     }
 
+    /**
+     * 将 2020-09-07 14:49:10.0 和 1598446699685 两种格式都转化为 Timestamp
+     */
+    private Timestamp convertToTimestamp(String timestamp) {
+        if (timestamp.contains(" ")) {
+            return Timestamp.valueOf(timestamp);
+        }
+        return new Timestamp(Long.parseLong(timestamp));
+    }
+
     private Row convertTopRow() {
         Row row = new Row(fieldNames.length);
         try {
@@ -175,7 +185,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
                 if (node == null) {
                     if (fieldExtraInfo != null && fieldExtraInfo.getNotNull()) {
                         throw new IllegalStateException("Failed to find field with name '"
-                            + fieldNames[i] + "'.");
+                                + fieldNames[i] + "'.");
                     } else {
                         row.setField(i, null);
                     }
@@ -216,6 +226,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         }
         return array;
     }
+
     @Override
     public TypeInformation<Row> getProducedType() {
         return typeInfo;
