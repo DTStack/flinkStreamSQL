@@ -118,11 +118,18 @@ public class AppendOnlyWriter implements JDBCWriter {
                 } catch (SQLException e1) {
                     throw new RuntimeException(e1);
                 }
+
+                if(e.getMessage().contains("doesn't exist")){
+                    throw new RuntimeException("table not exist");
+
+                }
                 if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
                     LOG.error("record insert failed ,this row is {}", row.toString());
                     LOG.error("", e);
                 }
                 metricOutputFormat.outDirtyRecords.inc();
+
+
             }
         });
         rows.clear();
