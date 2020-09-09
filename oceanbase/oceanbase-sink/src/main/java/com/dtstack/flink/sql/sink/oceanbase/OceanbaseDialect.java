@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.dtstack.flink.sql.sink.ocean;
+package com.dtstack.flink.sql.sink.oceanbase;
 
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 
