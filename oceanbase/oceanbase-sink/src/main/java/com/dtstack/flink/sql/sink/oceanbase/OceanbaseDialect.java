@@ -50,27 +50,30 @@ public class OceanbaseDialect implements JDBCDialect {
                                                String[] uniqueKeyFields,
                                                boolean allReplace) {
         return allReplace ?
-                buildReplaceIntoStatement(tableName, fieldNames) :
-                buildDuplicateUpsertStatement(tableName, fieldNames);
+                buildReplaceIntoStatement(tableName, fieldNames) : buildDuplicateUpsertStatement(tableName, fieldNames);
     }
 
-    private Optional<String> buildDuplicateUpsertStatement(String tableName, String[] fieldsName) {
-        String updateClause = Arrays.stream(fieldsName).map(f -> quoteIdentifier(f)
-                + "IFNULL(VALUES(" + quoteIdentifier(f) + ")," + quoteIdentifier(f) + ")")
-                .collect(Collectors.joining(","));
-        return Optional.of(getInsertIntoStatement("", tableName, fieldsName, null) +
+    public Optional<String> buildDuplicateUpsertStatement(String tableName, String[] fieldNames) {
+        String updateClause = Arrays
+                .stream(fieldNames)
+                .map(f -> quoteIdentifier(f) + "=IFNULL(VALUES(" + quoteIdentifier(f) + ")," + quoteIdentifier(f) + ")")
+                .collect(Collectors.joining(", "));
+
+        return Optional.of(getInsertIntoStatement("", tableName, fieldNames, null) +
                 " ON DUPLICATE KEY UPDATE " + updateClause
         );
     }
 
-    private Optional<String> buildReplaceIntoStatement(String tableName, String[] fieldsNames) {
-        String columns = Arrays.stream(fieldsNames)
+    public Optional<String> buildReplaceIntoStatement(String tableName, String[] fieldNames) {
+        String columns = Arrays
+                .stream(fieldNames)
                 .map(this::quoteIdentifier)
-                .collect(Collectors.joining(","));
-        String placeholders = Arrays.stream(fieldsNames)
+                .collect(Collectors.joining(", "));
+        String placeholders = Arrays
+                .stream(fieldNames)
                 .map(f -> "?")
-                .collect(Collectors.joining(","));
+                .collect(Collectors.joining(", "));
         return Optional.of("REPLACE INTO " + quoteIdentifier(tableName) +
-                "(" + columns + ") VALUES (" + placeholders + ")");
+                "(" + columns + ")" + " VALUES (" + placeholders + ")");
     }
 }
