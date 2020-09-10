@@ -140,7 +140,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                 if (MapUtils.isNotEmpty(values)) {
                     try {
                         Row row = fillData(input.row(), values);
-                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, values));
+                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
                         resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
