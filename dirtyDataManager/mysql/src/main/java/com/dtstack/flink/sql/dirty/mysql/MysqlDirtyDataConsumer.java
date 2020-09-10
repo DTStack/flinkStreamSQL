@@ -19,12 +19,15 @@
 package com.dtstack.flink.sql.dirty.mysql;
 
 import com.dtstack.flink.sql.dirtyManager.consumer.AbstractDirtyDataConsumer;
+import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author tiezhu
@@ -39,26 +42,27 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
 
     private final Object LOCK_STR = new Object();
 
-    private boolean isCreatedTable = false;
-
     private final String[] tableField = {"id", "dirtyData", "processTime", "cause", "field"};
 
-    private String SQL = "INSERT INTO ? (?, ?, ?, ?) VALUES (?, ?, ?, ?) ";
+    private final String SQL = "INSERT INTO ? (?, ?, ?, ?) VALUES (?, ?, ?, ?) ";
 
     private PreparedStatement statement;
 
     private Connection connection;
 
     private String tableName;
+    private final String defaultTable = "dirtyData_" + System.currentTimeMillis();
 
     private void setStatement(String url,
                               String userName,
-                              String password) throws ClassNotFoundException, SQLException {
+                              String password,
+                              String tableName) throws ClassNotFoundException, SQLException {
         synchronized (LOCK_STR) {
             Class.forName(DRIVER_NAME);
 
             connection = DriverManager.getConnection(url, userName, password);
             statement = connection.prepareStatement(SQL);
+            statement.setString(1, tableName);
         }
     }
 
@@ -71,11 +75,9 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
      *
      * @param tableName 表名
      * @return 是否创建成功
-     * @throws SQLException SQL异常
      */
     private boolean createTable(String tableName) {
         try {
-            String defaultTable = "";
             String sql =
                     "CREATE TABLE ` " + tableName + "` (" +
                             "  `id` int(11) not null AUTO_INCREMENT,\n" +
@@ -93,10 +95,8 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
 
     @Override
     public void consume() throws Exception {
-        if (!isCreatedTable) {
-            createTable(tableName);
-        }
-
+        DirtyDataEntity dataEntity = queue.take();
+        count++;
     }
 
     @Override
@@ -109,6 +109,8 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
             if (statement != null && !statement.isClosed()) {
                 statement.close();
             }
+
+            isRunning.compareAndSet(true, false);
         } catch (SQLException e) {
             throw new RuntimeException("close mysql resource error !");
         }
@@ -116,11 +118,19 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
 
     @Override
     public void init(Map<String, String> properties) throws Exception {
-        tableName = properties.get("tableName");
+        tableName = properties.get("tableName") == null ? defaultTable : properties.get("tableName");
         String userName = properties.get("userName");
         String password = properties.get("password");
         String url = properties.get("url");
-        isCreatedTable = Boolean.parseBoolean(properties.get("isCreatedTable"));
-        setStatement(url, userName, password);
+
+        boolean isCreatedTable = Boolean.parseBoolean(properties.get("isCreatedTable"));
+        if (!isCreatedTable) {
+            if (!createTable(tableName)) {
+                throw new RuntimeException("create table for dirty Data error, please check privilege for database");
+            }
+            LOG.info("create " + tableName + " succeed!");
+        }
+
+        setStatement(url, userName, password, tableName);
     }
 }

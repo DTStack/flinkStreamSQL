@@ -76,6 +76,7 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
             while (isRunning.get()) {
                 consume();
             }
+            LOG.info("consume dirty data end");
         } catch (Exception e) {
             LOG.error("consume dirtyData error");
             errorCount++;

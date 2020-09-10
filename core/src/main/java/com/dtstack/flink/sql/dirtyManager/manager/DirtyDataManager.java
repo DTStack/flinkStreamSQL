@@ -29,6 +29,9 @@ import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,7 +42,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * Date 2020/8/27 星期四
  */
 public class DirtyDataManager implements Serializable {
-    //TODO 需要确保产生脏数据后至少一次是成功发送给了consumer，至于consumer是否成功消费，manager不需要关心
     private static final long serialVersionUID = 7190970299538893497L;
 
     private static final Logger LOG = LoggerFactory.getLogger(DirtyDataManager.class);
@@ -70,7 +72,9 @@ public class DirtyDataManager implements Serializable {
      */
     private final AtomicLong errorCount = new AtomicLong(0);
 
-    public static AbstractDirtyDataConsumer consumer;
+    public AbstractDirtyDataConsumer consumer;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     /**
      * 通过参数生成manager实例，并同时将consumer实例化
@@ -78,11 +82,9 @@ public class DirtyDataManager implements Serializable {
     public static DirtyDataManager newInstance(Map<String, String> properties) throws Exception {
         DirtyDataManager manager = new DirtyDataManager();
         manager.blockingInterval = Long.parseLong(properties.getOrDefault("blockingInterval", "60"));
-        consumer = createConsumer(properties);
-        consumer.init(properties);
-        //TODO 使用线程池创建线程，不要用thread
-        Thread dirtyDataConsumer = new Thread(consumer.setQueue(manager.queue), "dirtyData Consumer");
-        dirtyDataConsumer.start();
+        manager.consumer = createConsumer(properties);
+        manager.consumer.init(properties);
+        manager.executor.execute(manager.consumer);
         return manager;
     }
 
@@ -105,12 +107,13 @@ public class DirtyDataManager implements Serializable {
     /**
      * 脏数据收集任务停止，任务停止之前，需要将队列中所有的数据清空
      */
-    public void close() throws Exception {
+    public void close() {
         if (!queue.isEmpty() && checkConsumer()) {
-            consumer.consume();
+            executor.shutdown();
         }
         LOG.info("dirty consumer is closing ...");
-        consumer.close();
+        this.consumer.isRunning.compareAndSet(true, false);
+        executor.shutdownNow();
     }
 
     /**
@@ -134,7 +137,7 @@ public class DirtyDataManager implements Serializable {
      * 查看consumer当前状态
      */
     public boolean checkConsumer() {
-        return consumer.isRunning();
+        return this.consumer.isRunning();
     }
 
     /**
