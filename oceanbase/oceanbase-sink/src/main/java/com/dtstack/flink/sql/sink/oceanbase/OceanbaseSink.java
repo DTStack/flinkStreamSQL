@@ -23,9 +23,12 @@ package com.dtstack.flink.sql.sink.oceanbase;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.RdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.RetractJDBCOutputFormat;
+import org.apache.commons.lang3.StringUtils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Date: 2020/2/03
@@ -60,20 +63,30 @@ public class OceanbaseSink extends RdbSink implements IStreamSinkGener<RdbSink> 
         return new RetractJDBCOutputFormat();
     }
 
-    public void buildInsertSql(String tableName, List<String> fields){
-        String sqlTmp = "replace into " +  tableName + " (${fields}) values (${placeholder})";
-        String fieldsStr = "";
-        String placeholder = "";
+    public void buildInsertSql(String tableName, List<String> fields) {
+        String[] fieldsName = fields.toArray(new String[fields.size()]);
 
-        for (String fieldName : fields) {
-            fieldsStr += ",`" + fieldName + "`";
-            placeholder += ",?";
-        }
+        String updateClause = Arrays.stream(fieldsName).map(f -> quoteIdentifier(f)
+                + "=IFNULL(VALUES(" + quoteIdentifier(f) + ")," + quoteIdentifier(f) + ")")
+                .collect(Collectors.joining(","));
 
-        fieldsStr = fieldsStr.replaceFirst(",", "");
-        placeholder = placeholder.replaceFirst(",", "");
+        this.sql = getInsertIntoStatement("", tableName, fieldsName, null) +
+                " ON DUPLICATE KEY UPDATE " + updateClause;
+    }
 
-        sqlTmp = sqlTmp.replace("${fields}", fieldsStr).replace("${placeholder}", placeholder);
-        this.sql = sqlTmp;
+    private String quoteIdentifier(String identifier) {
+        return "`" + identifier + "`";
+    }
+
+    private String getInsertIntoStatement(String schema, String tableName, String[] fieldNames, String[] partitionFields) {
+        String schemaInfo = StringUtils.isEmpty(schema) ? "" : quoteIdentifier(schema) + ".";
+        String columns = Arrays.stream(fieldNames)
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
+        String placeholders = Arrays.stream(fieldNames)
+                .map(f -> "?")
+                .collect(Collectors.joining(", "));
+        return "INSERT INTO " + schemaInfo + quoteIdentifier(tableName) +
+                "(" + columns + ")" + " VALUES (" + placeholders + ")";
     }
 }
