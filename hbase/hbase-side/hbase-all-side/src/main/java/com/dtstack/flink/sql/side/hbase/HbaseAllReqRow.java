@@ -26,8 +26,9 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
-import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
 import com.dtstack.flink.sql.util.RowDataComplete;
+import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -101,6 +102,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
                 obj = Timestamp.valueOf(((LocalDateTime) obj));
             }
+
             row.setField(entry.getKey(), obj);
         }
 

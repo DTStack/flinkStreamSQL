@@ -47,7 +47,7 @@ public class StandaloneExecutor {
 
     public void exec() throws Exception {
 
-        Preconditions.checkArgument(!StringUtils.equalsIgnoreCase(jobParamsInfo.getPluginLoadMode(), EPluginLoadMode.CLASSPATH.name()),
+        Preconditions.checkArgument(StringUtils.equalsIgnoreCase(jobParamsInfo.getPluginLoadMode(), EPluginLoadMode.CLASSPATH.name()),
                 "standalone only supports classpath mode");
 
         JobGraph jobGraph = JobGraphBuildUtil.buildJobGraph(jobParamsInfo);

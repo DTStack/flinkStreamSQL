@@ -79,7 +79,7 @@ public class YarnJobClusterExecutor {
         if (jobParamsInfo.getAddShipFile() != null) {
             List<String> addShipFilesPath = parsePathFromStr(jobParamsInfo.getAddShipFile());
             for (String path : addShipFilesPath) {
-                shipFiles.addAll(getShipFiles(path, jobParamsInfo.getPluginLoadMode(), jobGraph, clusterDescriptor));
+                shipFiles.add(getAddShipFile(path));
             }
         }
 
@@ -120,6 +120,18 @@ public class YarnJobClusterExecutor {
         dealFlinkLibJar(flinkJarPath, clusterDescriptor, shipFiles);
         dealUserJarByPluginLoadMode(pluginLoadMode, jobGraph, shipFiles);
         return shipFiles;
+    }
+
+    private File getAddShipFile(String addShipFile) {
+        if (StringUtils.isEmpty(addShipFile) || !new File(addShipFile).exists()) {
+            throw new RuntimeException("path " + addShipFile + " is not exist");
+        }
+        File shipFile = new File(addShipFile);
+        if (shipFile.isFile()) {
+            return shipFile;
+        } else {
+            throw new RuntimeException("addShipfile only supports file path,E.g : {\\\"a.keytab\\\",\\\"b.txt\\\"}");
+        }
     }
 
     private void dealFlinkLibJar(String flinkJarPath, YarnClusterDescriptor clusterDescriptor, List<File> shipFiles) throws MalformedURLException {

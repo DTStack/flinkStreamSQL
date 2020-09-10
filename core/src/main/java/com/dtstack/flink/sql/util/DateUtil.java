@@ -108,7 +108,20 @@ public class DateUtil {
     }
 
     public static LocalDateTime dateToLocalDateTime(Date date){
+        date = transformSqlDateToUtilDate(date);
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    }
+
+    /**
+     * 将java.sql.Date 转化为 java.util.Date
+     * @param date 不知道是java.sql.Date 还是 java.util.Date
+     * @return 最后返回 java.util.Date
+     */
+    public  static Date transformSqlDateToUtilDate(Date date) {
+        if (date instanceof java.sql.Date) {
+            date = new Date(date.getTime());
+        }
+        return date;
     }
 
     /**
