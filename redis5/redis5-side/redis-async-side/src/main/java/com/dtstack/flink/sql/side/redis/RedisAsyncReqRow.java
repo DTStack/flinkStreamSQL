@@ -21,9 +21,6 @@ package com.dtstack.flink.sql.side.redis;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.util.RowDataComplete;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -48,7 +45,6 @@ import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -75,7 +71,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
 
     public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
-        redisSideReqRow = new RedisSideReqRow(super.sideInfo);
+        redisSideReqRow = new RedisSideReqRow(super.sideInfo, (RedisSideTableInfo) sideTableInfo);
     }
 
     @Override
@@ -149,7 +145,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                     }
                 } else {
                     dealMissKey(input, resultFuture);
-                    dealCacheData(key,CacheMissVal.getMissKeyObj());
+                    dealCacheData(key, CacheMissVal.getMissKeyObj());
                 }
             }
         });
@@ -157,15 +153,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     public String buildCacheKey(Map<String, Object> refData) {
-        StringBuilder keyBuilder = new StringBuilder(redisSideTableInfo.getTableName());
-        List<String> primaryKeys = redisSideTableInfo.getPrimaryKeys();
-        for(String primaryKey : primaryKeys){
-            if(!refData.containsKey(primaryKey)){
-                return null;
-            }
-            keyBuilder.append("_").append(refData.get(primaryKey));
-        }
-        return keyBuilder.toString();
+        return redisSideReqRow.buildCacheKey(refData);
     }
 
     @Override
