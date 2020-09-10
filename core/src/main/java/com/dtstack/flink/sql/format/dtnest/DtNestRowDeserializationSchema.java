@@ -42,6 +42,7 @@ import java.sql.Timestamp;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * source data parse to json format
@@ -63,6 +64,9 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
     private TypeInformation<Row> typeInfo;
     private final List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos;
     private final String charsetName;
+
+    private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d+$");
+    private static final Pattern TIME_FORMAT_PATTERN = Pattern.compile("\\w+\\d+:\\d+:\\d+");
 
     public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping,
                                           List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos,
@@ -146,7 +150,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
             return Date.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
             // local zone
-            return Time.valueOf(node.asText());
+            return convertToTime(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIMESTAMP.getTypeClass())) {
             // local zone
             return convertToTimestamp(node.asText());
@@ -169,10 +173,23 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
      * 将 2020-09-07 14:49:10.0 和 1598446699685 两种格式都转化为 Timestamp
      */
     private Timestamp convertToTimestamp(String timestamp) {
-        if (timestamp.contains(" ")) {
+        if (TIMESTAMP_PATTERN.matcher(timestamp).find()) {
+            return new Timestamp(Long.parseLong(timestamp));
+        }
+        if (TIME_FORMAT_PATTERN.matcher(timestamp).find()) {
             return Timestamp.valueOf(timestamp);
         }
-        return new Timestamp(Long.parseLong(timestamp));
+        throw new IllegalArgumentException("Incorrect time format of timestamp");
+    }
+
+    private Time convertToTime(String timestamp) {
+        if (TIMESTAMP_PATTERN.matcher(timestamp).find()) {
+            return new Time(Long.parseLong(timestamp));
+        }
+        if (TIME_FORMAT_PATTERN.matcher(timestamp).find()) {
+            return Time.valueOf(timestamp);
+        }
+        throw new IllegalArgumentException("Incorrect time format of time");
     }
 
     private Row convertTopRow() {
