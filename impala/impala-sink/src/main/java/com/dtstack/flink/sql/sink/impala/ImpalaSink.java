@@ -45,7 +45,7 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
     }
 
     @Override
-    public JDBCUpsertOutputFormat getOutputFormat() {
+    public ImpalaOutputFormat getOutputFormat() {
         JDBCOptions jdbcOptions = JDBCOptions.builder()
                 .setDbUrl(getImpalaJdbcUrl())
                 .setDialect(new ImpalaDialect(getFieldTypes(), primaryKeys))
@@ -54,7 +54,7 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
                 .setTableName(tableName)
                 .build();
 
-        return JDBCUpsertOutputFormat.builder()
+        return ImpalaOutputFormat.impalaBuilder()
                 .setOptions(jdbcOptions)
                 .setFieldNames(fieldNames)
                 .setFlushMaxSize(batchNum)
@@ -64,9 +64,12 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
                 .setPartitionFields(impalaTableInfo.getPartitionFields())
                 .setAllReplace(allReplace)
                 .setUpdateMode(updateMode)
+                .setAuthMech(impalaTableInfo.getAuthMech())
+                .setKeytabPath(impalaTableInfo.getKeyTabFilePath())
+                .setKrb5confPath(impalaTableInfo.getKrb5FilePath())
+                .setPrincipal(impalaTableInfo.getPrincipal())
                 .build();
     }
-
 
     public String getImpalaJdbcUrl() {
         Integer authMech = impalaTableInfo.getAuthMech();
@@ -75,9 +78,7 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
         if (authMech == EAuthMech.NoAuthentication.getType()) {
             return newUrl;
         } else if (authMech == EAuthMech.Kerberos.getType()) {
-            String keyTabFilePath = impalaTableInfo.getKeyTabFilePath();
-            String krb5FilePath = impalaTableInfo.getKrb5FilePath();
-            String principal = impalaTableInfo.getPrincipal();
+
             String krbRealm = impalaTableInfo.getKrbRealm();
             String krbHostFqdn = impalaTableInfo.getKrbHostFQDN();
             String krbServiceName = impalaTableInfo.getKrbServiceName();
@@ -88,16 +89,6 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
                     .concat("KrbServiceName=").concat(krbServiceName).concat(";")
             );
             newUrl = urlBuffer.toString();
-
-            System.setProperty("java.security.krb5.conf", krb5FilePath);
-            Configuration configuration = new Configuration();
-            configuration.set("hadoop.security.authentication", "Kerberos");
-            UserGroupInformation.setConfiguration(configuration);
-            try {
-                UserGroupInformation.loginUserFromKeytab(principal, keyTabFilePath);
-            } catch (IOException e) {
-                throw new RuntimeException("loginUserFromKeytab error ..", e);
-            }
 
         } else if (authMech == EAuthMech.UserName.getType()) {
             urlBuffer.append(";"
