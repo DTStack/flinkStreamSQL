@@ -61,11 +61,15 @@ public class KingbaseDialect implements JDBCDialect {
                                                           String[] fieldNames,
                                                           String[] uniqueKeyFields) {
         String updateClause = Arrays.stream(fieldNames)
-                .map(f -> quoteIdentifier(f) + "=IFNULL(VALUES(" + quoteIdentifier(f) + ")," + quoteIdentifier(f) + ")")
+                .map(f -> quoteIdentifier(f) + "=EXCLUDED." + quoteIdentifier(f))
+                .collect(Collectors.joining(", "));
+
+        String uniqueColumns = Arrays.stream(uniqueKeyFields)
+                .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
 
         return Optional.of(getInsertIntoStatement("", tableName, fieldNames, null) +
-                " ON CONFLICT (" + Arrays.toString(uniqueKeyFields) + ") DO UPDATE SET " + updateClause
+                " ON CONFLICT (" + uniqueColumns + ") DO UPDATE SET " + updateClause
         );
     }
 }
