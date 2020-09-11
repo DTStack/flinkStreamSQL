@@ -18,10 +18,24 @@
 
 package com.dtstack.flink.sql.sink.kingbase.table;
 
+import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
+
+import java.util.Map;
+
 /**
  * Date: 2020/09/10
  * Company: www.dtstack.com
+ *
  * @author tiezhu
  */
-public class KingbaseSinkParser  {
+public class KingbaseSinkParser extends RdbSinkParser {
+    private static final String CURRENT_TYPE = "kingbase";
+
+    @Override
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        AbstractTableInfo kingbaseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+        kingbaseTableInfo.setType(CURRENT_TYPE);
+        return kingbaseTableInfo;
+    }
 }
