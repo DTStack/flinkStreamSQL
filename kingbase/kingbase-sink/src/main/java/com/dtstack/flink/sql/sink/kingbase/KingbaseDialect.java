@@ -49,27 +49,18 @@ public class KingbaseDialect implements JDBCDialect {
     }
 
     @Override
-    public Optional<String> getUpsertStatement(String schema,
-                                               String tableName,
-                                               String[] fieldNames,
-                                               String[] uniqueKeyFields,
-                                               boolean allReplace) {
-        return buildDuplicateUpsertStatement(tableName, fieldNames, uniqueKeyFields);
-    }
-
-    public Optional<String> buildDuplicateUpsertStatement(String tableName,
-                                                          String[] fieldNames,
-                                                          String[] uniqueKeyFields) {
-        String updateClause = Arrays.stream(fieldNames)
-                .map(f -> quoteIdentifier(f) + "=EXCLUDED." + quoteIdentifier(f))
-                .collect(Collectors.joining(", "));
-
+    public Optional<String> getUpsertStatement(String schema, String tableName, String[] fieldNames, String[] uniqueKeyFields, boolean allReplace) {
         String uniqueColumns = Arrays.stream(uniqueKeyFields)
                 .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
 
-        return Optional.of(getInsertIntoStatement("", tableName, fieldNames, null) +
-                " ON CONFLICT (" + uniqueColumns + ") DO UPDATE SET " + updateClause
+        String updateClause = Arrays.stream(fieldNames)
+                .map(f -> quoteIdentifier(f) + "=EXCLUDED." + quoteIdentifier(f))
+                .collect(Collectors.joining(", "));
+
+        return Optional.of(getInsertIntoStatement(schema, tableName, fieldNames, null) +
+                " ON CONFLICT (" + uniqueColumns + ")" +
+                " DO UPDATE SET " + updateClause
         );
     }
 }

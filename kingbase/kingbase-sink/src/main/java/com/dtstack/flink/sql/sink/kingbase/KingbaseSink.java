@@ -45,6 +45,7 @@ public class KingbaseSink extends AbstractRdbSink implements IStreamSinkGener<Ab
                 .setUsername(userName)
                 .setPassword(password)
                 .setTableName(tableName)
+                .setSchema(schema)
                 .build();
 
         return JDBCUpsertOutputFormat.builder()
