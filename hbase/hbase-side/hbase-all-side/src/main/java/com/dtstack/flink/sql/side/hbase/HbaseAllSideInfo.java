@@ -51,7 +51,7 @@ public class HbaseAllSideInfo extends BaseSideInfo {
             throw new RuntimeException("Primary key dimension table must be filled");
         }
 
-        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0));
+        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0), sideTableInfo);
 
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         colRefType = Maps.newHashMap();
