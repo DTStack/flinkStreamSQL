@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,8 +37,8 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
 
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractDirtyDataConsumer.class);
 
-    protected long errorLimit = 1000;
-    protected long errorCount = 0;
+    protected Long errorLimit = 1000L;
+    protected Long errorCount = 0L;
 
     protected long count = 0;
 
@@ -49,6 +48,8 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
 
     /**
      * 消费队列数据
+     *
+     * @throws Exception throw exception
      */
     public abstract void consume() throws Exception;
 
@@ -59,6 +60,9 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
 
     /**
      * 初始化消费者，初始化定时任务
+     *
+     * @param properties 任务参数
+     * @throws Exception throw exception
      */
     public abstract void init(Map<String, String> properties) throws Exception;
 
@@ -77,9 +81,9 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
                 consume();
             }
         } catch (Exception e) {
-            LOG.error("consume dirtyData error");
+            LOG.error("consume dirtyData error", e);
             errorCount++;
-            if (errorCount == errorLimit) {
+            if (errorCount.equals(errorLimit)) {
                 throw new RuntimeException("脏数据消费失败达到上限，任务失败");
             }
         }

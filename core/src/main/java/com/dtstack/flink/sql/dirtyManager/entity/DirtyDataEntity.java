@@ -94,4 +94,12 @@ public class DirtyDataEntity {
                 ", field='" + field + '\'' +
                 '}';
     }
+
+    /**
+     * 获取脏数据信息，返回字符数组
+     * @return 脏数据信息字符数组
+     */
+    public String[] get() {
+        return new String[] {dirtyData, String.valueOf(processDate), cause, field};
+    }
 }

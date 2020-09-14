@@ -19,12 +19,20 @@
 package com.dtstack.flink.sql.dirty.mysql;
 
 import com.dtstack.flink.sql.dirtyManager.consumer.AbstractDirtyDataConsumer;
+import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author tiezhu
@@ -32,77 +40,106 @@ import java.util.Map;
  * Date 2020/8/27 星期四
  */
 public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
-    //TODO 添加batchSize 和 定时任务
+
     private static final long serialVersionUID = -2959753658786001679L;
 
     private static final String DRIVER_NAME = "com.mysql.jdbc.Driver";
 
+    private static final int CONN_VALID_TIME = 1000;
+
+    private static final Integer FIELD_NUMBER = 5;
+
     private final Object LOCK_STR = new Object();
 
-    private boolean isCreatedTable = false;
-
     private final String[] tableField = {"id", "dirtyData", "processTime", "cause", "field"};
-
-    private String SQL = "INSERT INTO ? (?, ?, ?, ?) VALUES (?, ?, ?, ?) ";
 
     private PreparedStatement statement;
 
     private Connection connection;
 
-    private String tableName;
+    private Long batchSize;
 
-    private void setStatement(String url,
-                              String userName,
-                              String password) throws ClassNotFoundException, SQLException {
+    private void beforeConsume(String url,
+                               String userName,
+                               String password,
+                               String tableName,
+                               boolean isCreatedTable) throws ClassNotFoundException, SQLException {
         synchronized (LOCK_STR) {
             Class.forName(DRIVER_NAME);
-
             connection = DriverManager.getConnection(url, userName, password);
-            statement = connection.prepareStatement(SQL);
+
+            // create table for dirty data
+            if (!isCreatedTable) {
+                createTable(tableName);
+            }
+
+            String insertField = Arrays.stream(tableField)
+                    .map(this::quoteIdentifier)
+                    .collect(Collectors.joining(", "));
+            String insertSql = "INSERT INTO " + quoteIdentifier(tableName)
+                    + "(" + insertField + ") VALUES (?, ?, ?, ?, ?)";
+            statement = connection.prepareStatement(insertSql);
         }
     }
 
     private String quoteIdentifier(String tableName) {
-        return "\"" + tableName + "\"";
+        return "`" + tableName + "`";
     }
 
     /**
      * 创建存储脏数据的表
      *
      * @param tableName 表名
-     * @return 是否创建成功
      * @throws SQLException SQL异常
      */
-    private boolean createTable(String tableName) {
+    private void createTable(String tableName) throws SQLException {
+        Statement statement = null;
         try {
-            String defaultTable = "";
             String sql =
-                    "CREATE TABLE ` " + tableName + "` (" +
+                    "CREATE TABLE  IF NOT EXISTS  \n"
+                            + quoteIdentifier(tableName) + " (\n" +
                             "  `id` int(11) not null AUTO_INCREMENT,\n" +
-                            "  `dirtyData` varchar(100) DEFAULT NULL,\n" +
-                            "  `processTime` varchar(100) DEFAULT NULL,\n" +
-                            "  `cause` date DEFAULT NULL,\n" +
-                            "  `field` varchar(100) DEFAULT NULL,\n" +
+                            "  `dirtyData` varchar(255) DEFAULT NULL,\n" +
+                            "  `processTime` varchar(255) DEFAULT NULL,\n" +
+                            "  `cause` varchar(255) DEFAULT NULL,\n" +
+                            "  `field` varchar(255) DEFAULT NULL,\n" +
                             "  PRIMARY KEY (id)\n" +
                             ") DEFAULT CHARSET=utf8;";
-            return statement.execute(sql);
+            statement = connection.createStatement();
+            statement.execute(sql);
         } catch (SQLException e) {
             throw new RuntimeException("create table error !", e);
+        } finally {
+            if (statement != null && !statement.isClosed()) {
+                statement.close();
+            }
         }
     }
 
     @Override
     public void consume() throws Exception {
-        if (!isCreatedTable) {
-            createTable(tableName);
+        DirtyDataEntity entity = queue.take();
+        count++;
+        List<String> data = new ArrayList<>();
+        data.add(String.valueOf(count));
+        Collections.addAll(data, entity.get());
+        for (int i = 0; i < FIELD_NUMBER; i++) {
+            statement.setString(i + 1, data.get(i));
         }
 
+        statement.addBatch();
+
+        if (count % batchSize == 0) {
+            statement.executeBatch();
+        }
     }
 
     @Override
     public void close() {
+        isRunning.compareAndSet(true, false);
+
         try {
-            if (connection != null && !connection.isValid(1000)) {
+            if (connection != null && !connection.isValid(CONN_VALID_TIME)) {
                 connection.close();
             }
 
@@ -116,11 +153,18 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
 
     @Override
     public void init(Map<String, String> properties) throws Exception {
-        tableName = properties.get("tableName");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+        String tableName = properties.getOrDefault("tableName",
+                "DirtyDataFromMysql_" + timeFormat.format(System.currentTimeMillis()));
         String userName = properties.get("userName");
         String password = properties.get("password");
         String url = properties.get("url");
-        isCreatedTable = Boolean.parseBoolean(properties.get("isCreatedTable"));
-        setStatement(url, userName, password);
+        batchSize = Long.parseLong(properties.getOrDefault("batchSize", "10000"));
+        errorLimit = Long.parseLong(properties.getOrDefault("errorLimit", "1000"));
+
+        boolean isCreatedTable = Boolean.parseBoolean(
+                properties.getOrDefault("isCreatedTable", "false"));
+
+        beforeConsume(url, userName, password, tableName, isCreatedTable);
     }
 }
