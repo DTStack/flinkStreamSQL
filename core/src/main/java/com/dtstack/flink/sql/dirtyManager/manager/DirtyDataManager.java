@@ -55,7 +55,7 @@ public class DirtyDataManager implements Serializable {
     /**
      * 写入队列阻塞时间
      */
-    private long blockingInterval = 60;
+    private long blockingInterval;
 
     /**
      * 缓存脏数据信息队列
@@ -72,6 +72,8 @@ public class DirtyDataManager implements Serializable {
      */
     private final AtomicLong errorCount = new AtomicLong(0);
 
+    private double errorLimitRate;
+
     public static AbstractDirtyDataConsumer consumer;
 
     private static ThreadPoolExecutor dirtyDataConsumer;
@@ -82,12 +84,17 @@ public class DirtyDataManager implements Serializable {
 
     private final static String DEFAULT_TYPE = "console";
 
+    private final static String DEFAULT_ERROR_LIMIT_RATE = "0.8";
+
+    private final static String DEFAULT_BLOCKING_INTERVAL = "60";
+
     /**
      * 通过参数生成manager实例，并同时将consumer实例化
      */
     public static DirtyDataManager newInstance(Map<String, String> properties) throws Exception {
         DirtyDataManager manager = new DirtyDataManager();
-        manager.blockingInterval = Long.parseLong(properties.getOrDefault("blockingInterval", "60"));
+        manager.blockingInterval = Long.parseLong(properties.getOrDefault("blockingInterval", DEFAULT_BLOCKING_INTERVAL));
+        manager.errorLimitRate = Double.parseDouble(properties.getOrDefault("errorLimitRate", DEFAULT_ERROR_LIMIT_RATE));
         consumer = createConsumer(properties);
         consumer.init(properties);
         consumer.setQueue(manager.queue);
@@ -119,11 +126,10 @@ public class DirtyDataManager implements Serializable {
      */
     public void close() throws Exception {
         dirtyDataConsumer.shutdown();
-        if (!queue.isEmpty() && checkConsumer()) {
-            consumer.consume();
+        if (checkConsumer()) {
+            LOG.info("dirty consumer is closing ...");
+            consumer.close();
         }
-        LOG.info("dirty consumer is closing ...");
-        consumer.close();
     }
 
     /**
@@ -137,8 +143,7 @@ public class DirtyDataManager implements Serializable {
         } catch (Exception ignored) {
             LOG.warn("dirty Data insert error ... Failed number: " + errorCount.incrementAndGet());
             LOG.warn("error dirty data:" + dirtyDataEntity.toString());
-            // TODO 这个失败比例可以作出调整
-            if (errorCount.get() > Math.ceil(count.longValue() * 0.8)) {
+            if (errorCount.get() > Math.ceil(count.longValue() * errorLimitRate)) {
                 throw new RuntimeException("The number of failed number reaches the limit, manager fails");
             }
         }

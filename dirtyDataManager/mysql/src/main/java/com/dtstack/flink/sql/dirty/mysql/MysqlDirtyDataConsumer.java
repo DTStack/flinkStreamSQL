@@ -119,9 +119,10 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
     @Override
     public void consume() throws Exception {
         DirtyDataEntity entity = queue.take();
-        count++;
+        count.incrementAndGet();
+
         List<String> data = new ArrayList<>();
-        data.add(String.valueOf(count));
+        data.add(String.valueOf(count.get()));
         Collections.addAll(data, entity.get());
         for (int i = 0; i < FIELD_NUMBER; i++) {
             statement.setString(i + 1, data.get(i));
@@ -129,7 +130,7 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
 
         statement.addBatch();
 
-        if (count % batchSize == 0) {
+        if (count.get() % batchSize == 0) {
             statement.executeBatch();
         }
     }

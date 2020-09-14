@@ -26,6 +26,7 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author tiezhu
@@ -38,9 +39,9 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractDirtyDataConsumer.class);
 
     protected Long errorLimit = 1000L;
-    protected Long errorCount = 0L;
+    protected AtomicLong errorCount = new AtomicLong(0L);
 
-    protected long count = 0;
+    protected AtomicLong count = new AtomicLong(0L);
 
     public AtomicBoolean isRunning = new AtomicBoolean(true);
 
@@ -82,9 +83,9 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
             }
         } catch (Exception e) {
             LOG.error("consume dirtyData error", e);
-            errorCount++;
-            if (errorCount.equals(errorLimit)) {
-                throw new RuntimeException("脏数据消费失败达到上限，任务失败");
+            errorCount.incrementAndGet();
+            if (errorCount.get() == errorLimit) {
+                throw new RuntimeException("The task failed due to the number of dirty data consume failed reached the limit " + errorLimit);
             }
         }
     }

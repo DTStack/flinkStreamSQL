@@ -9,7 +9,7 @@ import java.util.Map;
  * Date 2020/8/28 星期五
  */
 public class TestMain {
-    private static final Integer DATA_NUMBER = 10000;
+    private static final Integer DATA_NUMBER = 1000;
 
     public static void main(String[] args) throws Exception {
         Map<String, String> properties = new HashMap<>(8);
@@ -27,7 +27,9 @@ public class TestMain {
             Thread.sleep(100);
             manager.collectDirtyData("testDirtyData" + i,
                     new Exception("testException" + i).getMessage(), "testField");
+            if (i == 500) {
+                manager.close();
+            }
         }
-        manager.close();
     }
 }
