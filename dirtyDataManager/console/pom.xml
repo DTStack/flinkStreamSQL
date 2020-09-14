@@ -8,7 +8,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-
+    <name>dirtyConsumer-console</name>
     <artifactId>dirtyConsumer.console</artifactId>
 
     <build>
@@ -58,7 +58,7 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <copy todir="${basedir}/../../sqlplugins/dirtyData/print">
+                                <copy todir="${basedir}/../../sqlplugins/dirtyData/console">
                                     <fileset dir="target/">
                                         <include name="${project.artifactId}-${project.version}.jar"/>
                                     </fileset>

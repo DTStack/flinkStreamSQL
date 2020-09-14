@@ -23,10 +23,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author tiezhu
@@ -38,10 +38,10 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
 
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractDirtyDataConsumer.class);
 
-    protected long errorLimit = 1000;
-    protected long errorCount = 0;
+    protected Long errorLimit = 1000L;
+    protected AtomicLong errorCount = new AtomicLong(0L);
 
-    protected long count = 0;
+    protected AtomicLong count = new AtomicLong(0L);
 
     public AtomicBoolean isRunning = new AtomicBoolean(true);
 
@@ -49,6 +49,8 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
 
     /**
      * 消费队列数据
+     *
+     * @throws Exception throw exception
      */
     public abstract void consume() throws Exception;
 
@@ -59,6 +61,9 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
 
     /**
      * 初始化消费者，初始化定时任务
+     *
+     * @param properties 任务参数
+     * @throws Exception throw exception
      */
     public abstract void init(Map<String, String> properties) throws Exception;
 
@@ -78,10 +83,10 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
             }
             LOG.info("consume dirty data end");
         } catch (Exception e) {
-            LOG.error("consume dirtyData error");
-            errorCount++;
-            if (errorCount == errorLimit) {
-                throw new RuntimeException("脏数据消费失败达到上限，任务失败");
+            LOG.error("consume dirtyData error", e);
+            errorCount.incrementAndGet();
+            if (errorCount.get() == errorLimit) {
+                throw new RuntimeException("The task failed due to the number of dirty data consume failed reached the limit " + errorLimit);
             }
         }
     }

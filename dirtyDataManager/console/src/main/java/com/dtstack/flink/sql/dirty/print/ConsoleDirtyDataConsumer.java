@@ -38,7 +38,7 @@ public class ConsoleDirtyDataConsumer extends AbstractDirtyDataConsumer {
     @Override
     public void consume() throws InterruptedException {
         DirtyDataEntity dataEntity = queue.take();
-        count++;
+        count.incrementAndGet();
         LOG.warn("get dirtyData: " + dataEntity.getDirtyData() + "\n"
                 + "cause: " + dataEntity.getCause() + "\n"
                 + "processTime: " + dataEntity.getProcessDate() + "\n"
