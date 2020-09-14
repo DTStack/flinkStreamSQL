@@ -79,7 +79,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public final static String DT_PROVIDER_CLASS = "com.dtstack.flink.sql.side.rdb.provider.DTC3P0DataSourceProvider";
 
-    public final static String PREFERRED_TEST_QUERY_SQL = "select 1";
+    public final static String PREFERRED_TEST_QUERY_SQL = "SELECT 1 FROM DUAL";
 
     private transient SQLClient rdbSqlClient;
 

@@ -142,7 +142,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                 if (MapUtils.isNotEmpty(values)) {
                     try {
                         Row row = fillData(input, values);
-                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.MultiLine, values));
+                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
                         RowDataComplete.completeRow(resultFuture, row);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
