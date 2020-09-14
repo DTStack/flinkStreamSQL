@@ -27,7 +27,7 @@ public class TestMain {
             Thread.sleep(100);
             manager.collectDirtyData("testDirtyData" + i,
                     new Exception("testException" + i).getMessage(), "testField");
-            if (i == 500) {
+            if (i == 50) {
                 manager.close();
             }
         }

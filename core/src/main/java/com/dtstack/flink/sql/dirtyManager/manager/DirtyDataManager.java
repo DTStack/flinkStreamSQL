@@ -123,12 +123,13 @@ public class DirtyDataManager implements Serializable {
 
     /**
      * 脏数据收集任务停止，任务停止之前，需要将队列中所有的数据清空
+     * TODO consumer 关闭时仍有数据没有消费到，假如有500条数据，在结束时实际消费数量可能只有493
      */
-    public void close() throws Exception {
-        dirtyDataConsumer.shutdown();
+    public void close() {
         if (checkConsumer()) {
             LOG.info("dirty consumer is closing ...");
             consumer.close();
+            dirtyDataConsumer.shutdownNow();
         }
     }
 

@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.dirtyManager.entity;
 
 import java.sql.Date;
+import java.text.SimpleDateFormat;
 
 /**
  * @author tiezhu
@@ -26,6 +27,7 @@ import java.sql.Date;
  * Date 2020/8/27 星期四
  */
 public class DirtyDataEntity {
+    private final SimpleDateFormat timeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     /**
      * 脏数据信息内容
      */
@@ -34,7 +36,7 @@ public class DirtyDataEntity {
     /**
      * 脏数据处理时间
      */
-    private Date processDate;
+    private String processDate;
 
     /**
      * 产生脏数据的原因
@@ -54,11 +56,11 @@ public class DirtyDataEntity {
         this.dirtyData = dirtyData;
     }
 
-    public Date getProcessDate() {
+    public String getProcessDate() {
         return processDate;
     }
 
-    public void setProcessDate(Date processDate) {
+    public void setProcessDate(String processDate) {
         this.processDate = processDate;
     }
 
@@ -80,7 +82,7 @@ public class DirtyDataEntity {
 
     public DirtyDataEntity(String dirtyData, Long processDate, String cause, String field) {
         this.dirtyData = dirtyData;
-        this.processDate = new Date(processDate);
+        this.processDate = timeFormat.format(processDate);
         this.cause = cause;
         this.field = field;
     }
