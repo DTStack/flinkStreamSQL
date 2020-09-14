@@ -22,12 +22,7 @@ import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
-import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.UserGroupInformation;
-
-import java.io.IOException;
 
 /**
  * Date: 2019/11/11
@@ -78,7 +73,6 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
         if (authMech == EAuthMech.NoAuthentication.getType()) {
             return newUrl;
         } else if (authMech == EAuthMech.Kerberos.getType()) {
-
             String krbRealm = impalaTableInfo.getKrbRealm();
             String krbHostFqdn = impalaTableInfo.getKrbHostFQDN();
             String krbServiceName = impalaTableInfo.getKrbServiceName();
@@ -89,7 +83,6 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
                     .concat("KrbServiceName=").concat(krbServiceName).concat(";")
             );
             newUrl = urlBuffer.toString();
-
         } else if (authMech == EAuthMech.UserName.getType()) {
             urlBuffer.append(";"
                     .concat("AuthMech=3;")

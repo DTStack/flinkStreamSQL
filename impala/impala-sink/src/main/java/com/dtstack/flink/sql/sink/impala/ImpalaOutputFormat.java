@@ -2,10 +2,11 @@ package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
-import org.apache.hadoop.conf.Configuration;
+import com.dtstack.flink.sql.util.Krb5Utils;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.util.List;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -52,17 +53,17 @@ public class ImpalaOutputFormat extends JDBCUpsertOutputFormat {
 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
-        super.open(taskNumber, numTasks);
         if (authMech == 1) {
-            System.setProperty("java.security.krb5.conf", krb5confPath);
-            Configuration configuration = new Configuration();
-            configuration.set("hadoop.security.authentication", "Kerberos");
-            UserGroupInformation.setConfiguration(configuration);
-            try {
-                UserGroupInformation.loginUserFromKeytab(principal, keytabPath);
-            } catch (IOException e) {
-                throw new RuntimeException("loginUserFromKeytab error ..", e);
-            }
+            UserGroupInformation ugi = Krb5Utils.getUgi(principal, keytabPath, krb5confPath);
+            ugi.doAs(new PrivilegedAction<Object>() {
+                @Override
+                public Object run() {
+                    openJdbc();
+                    return null;
+                }
+            });
+        } else {
+            super.open(taskNumber, numTasks);
         }
     }
     

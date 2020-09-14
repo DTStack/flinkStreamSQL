@@ -29,10 +29,12 @@ import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -108,6 +110,10 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
      */
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
+        openJdbc();
+    }
+
+    public void openJdbc() {
         try {
             establishConnection();
             initMetric();
@@ -118,11 +124,11 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
                 jdbcWriter = new AppendOnlyWriter(insertSql, fieldTypes, this);
             } else {
                 jdbcWriter = AbstractUpsertWriter.create(
-                        dialect, schema, tableName, fieldNames, fieldTypes, keyFields, partitionFields,
-                        getRuntimeContext().getExecutionConfig().isObjectReuseEnabled(), allReplace, this);
+                    dialect, schema, tableName, fieldNames, fieldTypes, keyFields, partitionFields,
+                    getRuntimeContext().getExecutionConfig().isObjectReuseEnabled(), allReplace, this);
             }
             jdbcWriter.open(connection);
-        } catch (SQLException sqe) {
+        } catch (SQLException | IOException sqe) {
             throw new IllegalArgumentException("open() failed.", sqe);
         } catch (ClassNotFoundException cnfe) {
             throw new IllegalArgumentException("JDBC driver class not found.", cnfe);
@@ -130,7 +136,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
         if (flushIntervalMills != 0) {
             this.scheduler = new ScheduledThreadPoolExecutor(1,
-                    new DTThreadFactory("jdbc-upsert-output-format"));
+                new DTThreadFactory("jdbc-upsert-output-format"));
             this.scheduledFuture = this.scheduler.scheduleWithFixedDelay(() -> {
                 synchronized (JDBCUpsertOutputFormat.this) {
                     if (closed) {

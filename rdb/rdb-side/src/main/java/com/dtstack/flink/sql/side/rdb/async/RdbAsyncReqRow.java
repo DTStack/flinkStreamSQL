@@ -40,10 +40,12 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.security.PrivilegedAction;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
@@ -89,6 +91,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private final static int MAX_TASK_QUEUE_SIZE = 100000;
 
+
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
@@ -109,13 +112,10 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture) {
-
-    }
+    protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture) { }
 
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
-
         AtomicLong networkLogCounter = new AtomicLong(0L);
         while (!connectionStatus.get()) {//network is unhealth
             if (networkLogCounter.getAndIncrement() % 1000 == 0) {
@@ -127,36 +127,67 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         executor.execute(() -> connectWithRetry(params, input, resultFuture, rdbSqlClient));
     }
 
+    protected void asyncQueryData(        Map<String, Object> inputParams,
+                                  Row input,
+                                  ResultFuture<BaseRow> resultFuture,
+                                  SQLClient rdbSqlClient,
+                                  AtomicLong failCounter,
+                                  AtomicBoolean finishFlag,
+                                  CountDownLatch latch) {
+        doAsyncQueryData(inputParams,
+            input, resultFuture,
+            rdbSqlClient,
+            failCounter,
+            finishFlag,
+            latch);
+    }
+
+    final protected void doAsyncQueryData(
+        Map<String, Object> inputParams,
+        Row input,
+        ResultFuture<BaseRow> resultFuture,
+        SQLClient rdbSqlClient,
+        AtomicLong failCounter,
+        AtomicBoolean finishFlag,
+        CountDownLatch latch) {
+        rdbSqlClient.getConnection(conn -> {
+            try {
+                if (conn.failed()) {
+                    connectionStatus.set(false);
+                    if (failCounter.getAndIncrement() % 1000 == 0) {
+                        LOG.error("getConnection error", conn.cause());
+                    }
+                    if (failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)) {
+                        resultFuture.completeExceptionally(conn.cause());
+                        finishFlag.set(true);
+                    }
+                    return;
+                }
+                connectionStatus.set(true);
+                registerTimerAndAddToHandler(input, resultFuture);
+
+                handleQuery(conn.result(), inputParams, input, resultFuture);
+                finishFlag.set(true);
+            } catch (Exception e) {
+                dealFillDataError(input, resultFuture, e);
+            } finally {
+                latch.countDown();
+            }
+        });
+    }
+
     private void connectWithRetry(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture, SQLClient rdbSqlClient) {
         AtomicLong failCounter = new AtomicLong(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while (!finishFlag.get()) {
             try {
                 CountDownLatch latch = new CountDownLatch(1);
-                rdbSqlClient.getConnection(conn -> {
-                    try {
-                        if (conn.failed()) {
-                            connectionStatus.set(false);
-                            if (failCounter.getAndIncrement() % 1000 == 0) {
-                                LOG.error("getConnection error", conn.cause());
-                            }
-                            if (failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)) {
-                                resultFuture.completeExceptionally(conn.cause());
-                                finishFlag.set(true);
-                            }
-                            return;
-                        }
-                        connectionStatus.set(true);
-                        registerTimerAndAddToHandler(input, resultFuture);
-
-                        handleQuery(conn.result(), inputParams, input, resultFuture);
-                        finishFlag.set(true);
-                    } catch (Exception e) {
-                        dealFillDataError(input, resultFuture, e);
-                    } finally {
-                        latch.countDown();
-                    }
-                });
+                asyncQueryData(inputParams,
+                    input, resultFuture,
+                    rdbSqlClient,
+                    failCounter,
+                    finishFlag,
+                    latch);
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
@@ -176,7 +207,6 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             }
         }
     }
-
 
     private Object convertDataType(Object val) {
         if (val == null) {
