@@ -25,6 +25,11 @@ import org.powermock.reflect.Whitebox;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @program: flink.sql
+ * @author: wuren
+ * @create: 2020/09/15
+ **/
 public class SqlParserTest {
 
     @Test
