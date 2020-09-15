@@ -24,7 +24,7 @@ import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.JDBCUtils;
-import com.dtstack.flink.sql.util.Krb5Utils;
+import com.dtstack.flink.sql.util.KrbUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -72,7 +72,7 @@ public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
                 String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
                 String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
                 String principal = impalaSideTableInfo.getPrincipal();
-                UserGroupInformation ugi = Krb5Utils.getUgi(principal, keyTabFilePath, krb5FilePath);
+                UserGroupInformation ugi = KrbUtils.getUgi(principal, keyTabFilePath, krb5FilePath);
                 connection = ugi.doAs(new PrivilegedAction<Connection>() {
                     @Override
                     public Connection run() {

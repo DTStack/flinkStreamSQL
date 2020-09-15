@@ -23,7 +23,7 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
-import com.dtstack.flink.sql.util.Krb5Utils;
+import com.dtstack.flink.sql.util.KrbUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -72,7 +72,7 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
             String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
             String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
             String principal = impalaSideTableInfo.getPrincipal();
-            ugi = Krb5Utils.getUgi(principal, keyTabFilePath, krb5FilePath);
+            ugi = KrbUtils.getUgi(principal, keyTabFilePath, krb5FilePath);
             openJdbc(parameters);
         } else {
             openJdbc(parameters);

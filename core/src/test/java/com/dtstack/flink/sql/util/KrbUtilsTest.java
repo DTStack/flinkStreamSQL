@@ -18,8 +18,8 @@
 
 package com.dtstack.flink.sql.util;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.UserGroupInformation;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.IOException;
 
@@ -28,17 +28,16 @@ import java.io.IOException;
  * @author: wuren
  * @create: 2020/09/14
  **/
-public class Krb5Utils {
-
-    public static final String KRB5_CONF_KEY = "java.security.krb5.conf";
-    public static final String HADOOP_AUTH_KEY = "hadoop.security.authentication";
-    public static final String KRB_STR = "Kerberos";
-
-    public static UserGroupInformation getUgi(String principal, String keytabPath, String krb5confPath) throws IOException {
-        System.setProperty(KRB5_CONF_KEY, krb5confPath);
-        Configuration configuration = new Configuration();
-        configuration.set(HADOOP_AUTH_KEY , KRB_STR);
-        UserGroupInformation.setConfiguration(configuration);
-        return UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytabPath);
+public class KrbUtilsTest {
+    @Test
+    public void testGetUgi() throws IOException {
+        String principal = "";
+        String keytabPath = "";
+        String krb5confPath = "";
+        try {
+            KrbUtils.getUgi(principal, keytabPath, krb5confPath);
+        } catch (IllegalArgumentException e) {
+            Assert.assertEquals(e.getMessage(), "Can't get Kerberos realm");
+        }
     }
 }

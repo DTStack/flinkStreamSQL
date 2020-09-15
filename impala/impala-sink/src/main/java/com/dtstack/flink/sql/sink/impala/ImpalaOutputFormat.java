@@ -2,7 +2,7 @@ package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
-import com.dtstack.flink.sql.util.Krb5Utils;
+import com.dtstack.flink.sql.util.KrbUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import java.io.IOException;
@@ -54,11 +54,15 @@ public class ImpalaOutputFormat extends JDBCUpsertOutputFormat {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         if (authMech == 1) {
-            UserGroupInformation ugi = Krb5Utils.getUgi(principal, keytabPath, krb5confPath);
+            UserGroupInformation ugi = KrbUtils.getUgi(principal, keytabPath, krb5confPath);
             ugi.doAs(new PrivilegedAction<Object>() {
                 @Override
                 public Object run() {
-                    openJdbc();
+                    try {
+                        openJdbc();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     return null;
                 }
             });

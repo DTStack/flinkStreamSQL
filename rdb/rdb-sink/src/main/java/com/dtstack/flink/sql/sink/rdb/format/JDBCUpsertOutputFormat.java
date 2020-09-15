@@ -113,11 +113,10 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         openJdbc();
     }
 
-    public void openJdbc() {
+    public void openJdbc() throws IOException {
         try {
             establishConnection();
             initMetric();
-
             if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || keyFields == null || keyFields.length == 0) {
                 String insertSql = dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields);
                 LOG.info("execute insert sql： {}", insertSql);
@@ -128,7 +127,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
                     getRuntimeContext().getExecutionConfig().isObjectReuseEnabled(), allReplace, this);
             }
             jdbcWriter.open(connection);
-        } catch (SQLException | IOException sqe) {
+        } catch (SQLException sqe) {
             throw new IllegalArgumentException("open() failed.", sqe);
         } catch (ClassNotFoundException cnfe) {
             throw new IllegalArgumentException("JDBC driver class not found.", cnfe);
