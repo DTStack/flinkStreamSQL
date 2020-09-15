@@ -20,21 +20,23 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.AuthUtil;
+import org.apache.hadoop.hbase.ChoreService;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.ScheduledChore;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,15 +44,22 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author: jingzhen@dtstack.com
  * date: 2017-6-29
  */
 public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
+
+    private static final long serialVersionUID = 3147774650287087471L;
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseOutputFormat.class);
 
@@ -59,7 +68,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private String rowkey;
     private String tableName;
     private String[] columnNames;
-    private String updateMode;
     private String[] columnTypes;
     private Map<String, String> columnNameFamily;
 
@@ -80,6 +88,14 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private transient ChoreService choreService;
 
+    private Integer batchSize;
+    private Long batchWaitInterval;
+
+    private transient ScheduledExecutorService executor;
+    private transient ScheduledFuture scheduledFuture;
+
+    private final List<Row> records  = new ArrayList<>();
+
     @Override
     public void configure(Configuration parameters) {
         LOG.warn("---configure---");
@@ -93,6 +109,19 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         table = conn.getTable(TableName.valueOf(tableName));
         LOG.warn("---open end(get table from hbase) ---");
         initMetric();
+        // 设置定时任务
+        if (batchWaitInterval > 0) {
+            this.executor = Executors.newScheduledThreadPool(
+                    1, new ExecutorThreadFactory("hbase-sink-flusher"));
+            this.scheduledFuture = this.executor.scheduleAtFixedRate(() -> {
+                if (!records.isEmpty()) {
+                    // 发送数据
+                    dealBatchOperation(records);
+                    // 清空数据
+                    records.clear();
+                }
+            }, batchWaitInterval, batchWaitInterval, TimeUnit.MILLISECONDS);
+        }
     }
 
     private void openConn(){
@@ -129,21 +158,18 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
         UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, clientPrincipal, clientKeytabFile);
         org.apache.hadoop.conf.Configuration finalConf = conf;
-        conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
-            @Override
-            public Connection run() {
-                try {
-                    ScheduledChore authChore = AuthUtil.getAuthChore(finalConf);
-                    if (authChore != null) {
-                        choreService = new ChoreService("hbaseKerberosSink");
-                        choreService.scheduleChore(authChore);
-                    }
-
-                    return ConnectionFactory.createConnection(finalConf);
-                } catch (IOException e) {
-                    LOG.error("Get connection fail with config:{}", finalConf);
-                    throw new RuntimeException(e);
+        conn = userGroupInformation.doAs((PrivilegedAction<Connection>) () -> {
+            try {
+                ScheduledChore authChore = AuthUtil.getAuthChore(finalConf);
+                if (authChore != null) {
+                    choreService = new ChoreService("hbaseKerberosSink");
+                    choreService.scheduleChore(authChore);
                 }
+
+                return ConnectionFactory.createConnection(finalConf);
+            } catch (IOException e) {
+                LOG.error("Get connection fail with config:{}", finalConf);
+                throw new RuntimeException(e);
             }
         });
     }
@@ -156,9 +182,21 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         Boolean retract = tupleTrans.f0;
         Row row = tupleTrans.f1;
         if (retract) {
-            dealInsert(row);
-        } else if (!retract && StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
-            dealDelete(row);
+            if (this.batchSize != 0) {
+                writeBatchRecord(row);
+            } else {
+                dealInsert(row);
+            }
+        }
+    }
+
+    public void writeBatchRecord(Row row) {
+        records.add(row);
+        // 数据累计到batchSize之后开始处理
+        if (records.size() == this.batchSize) {
+            dealBatchOperation(records);
+            // 添加完数据之后数据清空records
+            records.clear();
         }
     }
 
@@ -185,23 +223,35 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         outRecords.inc();
     }
 
-    protected void dealDelete(Row record) {
-        String rowKey = buildRowKey(record);
-        if (!StringUtils.isEmpty(rowKey)) {
-            Delete delete = new Delete(Bytes.toBytes(rowKey));
-            try {
-                table.delete(delete);
-            } catch (IOException e) {
-                if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                    LOG.error("record insert failed ..{}", record.toString());
-                    LOG.error("", e);
+    protected void dealBatchOperation(List<Row> records) {
+        // A null in the result array means that the call for that action failed, even after retries.
+        Object[] results = new Object[records.size()];
+        try {
+            List<Put> puts = new ArrayList<>();
+            for (Row record : records) {
+                puts.add(getPutByRow(record));
+            }
+            table.batch(puts, results);
+
+            // 判断数据是否插入成功
+            for (int i = 0; i < results.length; i++) {
+                if (results[i] == null) {
+                    if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                        LOG.error("record insert failed ..{}", records.get(i).toString());
+                    }
+                    // 脏数据记录
+                    outDirtyRecords.inc();
+                } else {
+                    // 输出结果条数记录
+                    outRecords.inc();
                 }
-                outDirtyRecords.inc();
             }
+            // 打印结果
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-                LOG.info(record.toString());
+                LOG.info(records.toString());
             }
-            outRecords.inc();
+        } catch (IOException | InterruptedException e) {
+            LOG.error("", e);
         }
     }
 
@@ -256,6 +306,13 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         if (conn != null) {
             conn.close();
             conn = null;
+        }
+
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(false);
+            if (executor != null) {
+                executor.shutdownNow();
+            }
         }
     }
     private HbaseOutputFormat() {
@@ -344,6 +401,15 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
+        public HbaseOutputFormatBuilder setBatchSize(Integer batchSize) {
+            format.batchSize = batchSize;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setBatchWaitInterval(Long batchWaitInterval) {
+            format.batchWaitInterval = batchWaitInterval;
+            return this;
+        }
 
         public HbaseOutputFormat finish() {
             Preconditions.checkNotNull(format.host, "zookeeperQuorum should be specified");
