@@ -36,7 +36,7 @@
         <module>polardb</module>
         <module>oceanbase</module>
         <module>tidb</module>
-        <!--        <module>localTest</module>-->
+        <module>localTest</module>
 
     </modules>
 

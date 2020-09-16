@@ -48,7 +48,10 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -117,7 +120,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
 
         AtomicLong networkLogCounter = new AtomicLong(0L);
-        while (!connectionStatus.get()) {//network is unhealth
+        //network is unhealthy
+        while (!connectionStatus.get()) {
             if (networkLogCounter.getAndIncrement() % 1000 == 0) {
                 LOG.info("network unhealth to block task");
             }
