@@ -7,6 +7,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -55,17 +56,17 @@ public class ImpalaOutputFormat extends JDBCUpsertOutputFormat {
     public void open(int taskNumber, int numTasks) throws IOException {
         if (authMech == 1) {
             UserGroupInformation ugi = KrbUtils.getUgi(principal, keytabPath, krb5confPath);
-            ugi.doAs(new PrivilegedAction<Object>() {
-                @Override
-                public Object run() {
-                    try {
+            try {
+                ugi.doAs(new PrivilegedExceptionAction<Void>() {
+                    @Override
+                    public Void run() throws IOException {
                         openJdbc();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        return null;
                     }
-                    return null;
-                }
-            });
+                });
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         } else {
             super.open(taskNumber, numTasks);
         }
