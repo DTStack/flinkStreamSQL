@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>sql.dameng</artifactId>
+        <groupId>com.dtstack.flink</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>sql.side.dameng</artifactId>
+    <packaging>pom</packaging>
+    <name>dameng-side</name>
+    <modules>
+        <module>dameng-all-side</module>
+        <module>dameng-side-core</module>
+        <module>dameng-async-side</module>
+    </modules>
+
+    <properties>
+        <rdb.side.version>1.0-SNAPSHOT</rdb.side.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.rdb</artifactId>
+            <version>${rdb.side.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>
