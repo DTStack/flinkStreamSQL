@@ -50,5 +50,5 @@ public class KrbUtils {
         UserGroupInformation.setConfiguration(configuration);
         return UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytabPath);
     }
-    
+
 }
