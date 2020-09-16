@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -73,15 +74,10 @@ public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
                 String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
                 String principal = impalaSideTableInfo.getPrincipal();
                 UserGroupInformation ugi = KrbUtils.getUgi(principal, keyTabFilePath, krb5FilePath);
-                connection = ugi.doAs(new PrivilegedAction<Connection>() {
+                connection = ugi.doAs(new PrivilegedExceptionAction<Connection>() {
                     @Override
-                    public Connection run() {
-                        try {
-                            return DriverManager.getConnection(url);
-                        } catch (SQLException e) {
-                            e.printStackTrace();
-                        }
-                        return null;
+                    public Connection run() throws SQLException {
+                        return DriverManager.getConnection(url);
                     }
                 });
             } else {
