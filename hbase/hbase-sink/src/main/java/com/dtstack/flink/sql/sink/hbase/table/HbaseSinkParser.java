@@ -97,7 +97,6 @@ public class HbaseSinkParser extends AbstractTableParser {
 
     public void parseFieldsInfo(String fieldsInfo, HbaseTableInfo tableInfo){
         List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
-        Map<String, String> columnFamilies = new LinkedHashMap<>();
         for(String fieldRow : fieldRows){
             fieldRow = fieldRow.trim();
 
@@ -128,8 +127,8 @@ public class HbaseSinkParser extends AbstractTableParser {
         tableInfo.finish();
     }
 
-    private Map<String, String> parseColumnFamily(Map<String, String> physicalFieldMap){
-        Map<String, String> columnFamiles = Maps.newLinkedHashMap();
+    private LinkedHashMap<String, String> parseColumnFamily(Map<String, String> physicalFieldMap){
+        LinkedHashMap<String, String> columnFamiles = Maps.newLinkedHashMap();
         physicalFieldMap.values().forEach(x -> {
             String[] columnFamily = StringUtils.split(x.trim(), ":");
             columnFamiles.put(x, columnFamily[1]);

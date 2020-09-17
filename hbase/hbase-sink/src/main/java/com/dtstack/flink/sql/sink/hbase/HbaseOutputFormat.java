@@ -28,7 +28,11 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.AuthUtil;
+import org.apache.hadoop.hbase.ChoreService;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.ScheduledChore;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
@@ -42,9 +46,10 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author: jingzhen@dtstack.com
@@ -61,7 +66,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private String[] columnNames;
     private String updateMode;
     private String[] columnTypes;
-    private Map<String, String> columnNameFamily;
+    private LinkedHashMap<String, String> columnNameFamily;
 
     private boolean kerberosAuthEnable;
     private String regionserverKeytabFile;
@@ -129,21 +134,18 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
         UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, clientPrincipal, clientKeytabFile);
         org.apache.hadoop.conf.Configuration finalConf = conf;
-        conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
-            @Override
-            public Connection run() {
-                try {
-                    ScheduledChore authChore = AuthUtil.getAuthChore(finalConf);
-                    if (authChore != null) {
-                        choreService = new ChoreService("hbaseKerberosSink");
-                        choreService.scheduleChore(authChore);
-                    }
-
-                    return ConnectionFactory.createConnection(finalConf);
-                } catch (IOException e) {
-                    LOG.error("Get connection fail with config:{}", finalConf);
-                    throw new RuntimeException(e);
+        conn = userGroupInformation.doAs((PrivilegedAction<Connection>) () -> {
+            try {
+                ScheduledChore authChore = AuthUtil.getAuthChore(finalConf);
+                if (authChore != null) {
+                    choreService = new ChoreService("hbaseKerberosSink");
+                    choreService.scheduleChore(authChore);
                 }
+
+                return ConnectionFactory.createConnection(finalConf);
+            } catch (IOException e) {
+                LOG.error("Get connection fail with config:{}", finalConf);
+                throw new RuntimeException(e);
             }
         });
     }
@@ -304,7 +306,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
-        public HbaseOutputFormatBuilder setColumnNameFamily(Map<String, String> columnNameFamily) {
+        public HbaseOutputFormatBuilder setColumnNameFamily(LinkedHashMap<String, String> columnNameFamily) {
             format.columnNameFamily = columnNameFamily;
             return this;
         }
@@ -355,8 +357,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             String[] qualifiers = new String[format.columnNames.length];
 
             if (format.columnNameFamily != null) {
-                Set<String> keySet = format.columnNameFamily.keySet();
-                String[] columns = keySet.toArray(new String[keySet.size()]);
+                List<String> keyList = new LinkedList<>(format.columnNameFamily.keySet());
+                String[] columns = keyList.toArray(new String[0]);
                 for (int i = 0; i < columns.length; ++i) {
                     String col = columns[i];
                     String[] part = col.split(":");

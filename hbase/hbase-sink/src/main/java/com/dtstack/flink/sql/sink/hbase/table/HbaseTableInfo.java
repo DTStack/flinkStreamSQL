@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -44,7 +45,7 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
 
     private String rowkey;
 
-    private Map<String, String> columnNameFamily;
+    private LinkedHashMap<String, String> columnNameFamily;
 
     private String[] columnNames;
 
@@ -116,11 +117,11 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
         this.rowkey = rowkey;
     }
 
-    public Map<String, String> getColumnNameFamily() {
+    public LinkedHashMap<String, String> getColumnNameFamily() {
         return columnNameFamily;
     }
 
-    public void setColumnNameFamily(Map<String, String> columnNameFamily) {
+    public void setColumnNameFamily(LinkedHashMap<String, String> columnNameFamily) {
         this.columnNameFamily = columnNameFamily;
     }
 
