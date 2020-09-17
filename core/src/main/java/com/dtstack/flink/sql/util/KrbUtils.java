@@ -20,6 +20,8 @@ package com.dtstack.flink.sql.util;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -30,12 +32,19 @@ import java.io.IOException;
  **/
 public class KrbUtils {
 
+    private static final Logger LOG = LoggerFactory.getLogger(KrbUtils.class);
+
     public static final String KRB5_CONF_KEY = "java.security.krb5.conf";
     public static final String HADOOP_AUTH_KEY = "hadoop.security.authentication";
     public static final String KRB_STR = "Kerberos";
+//    public static final String FALSE_STR = "false";
+//    public static final String SUBJECT_ONLY_KEY = "javax.security.auth.useSubjectCredsOnly";
 
     public static UserGroupInformation getUgi(String principal, String keytabPath, String krb5confPath) throws IOException {
+        LOG.info("Kerberos login with principal: {} and keytab: {}", principal, keytabPath);
         System.setProperty(KRB5_CONF_KEY, krb5confPath);
+        // TODO 尚未探索出此选项的意义，以后研究明白方可打开
+//        System.setProperty(SUBJECT_ONLY_KEY, FALSE_STR);
         Configuration configuration = new Configuration();
         configuration.set(HADOOP_AUTH_KEY , KRB_STR);
         UserGroupInformation.setConfiguration(configuration);
