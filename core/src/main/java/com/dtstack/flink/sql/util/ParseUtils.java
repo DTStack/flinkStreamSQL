@@ -74,7 +74,17 @@ public class ParseUtils {
 
     public static void parseJoinCompareOperate(SqlNode condition, List<String> sqlJoinCompareOperate) {
         SqlBasicCall joinCondition = (SqlBasicCall) condition;
-        if (joinCondition.getKind() == SqlKind.AND) {
+
+        // 跳过常量JOIN的等式
+        if (joinCondition.getKind() == SqlKind.EQUALS) {
+            SqlNode left = joinCondition.getOperands()[0];
+            SqlNode right = joinCondition.getOperands()[1];
+            if (left.getKind() != SqlKind.LITERAL &&
+                right.getKind() != SqlKind.LITERAL) {
+                String operator = transformNotEqualsOperator(joinCondition.getKind());
+                sqlJoinCompareOperate.add(operator);
+            }
+        } else if (joinCondition.getKind() == SqlKind.AND) {
             List<SqlNode> operandList = joinCondition.getOperandList();
             for (SqlNode sqlNode : operandList) {
                 parseJoinCompareOperate(sqlNode, sqlJoinCompareOperate);
