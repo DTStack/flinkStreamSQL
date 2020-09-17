@@ -16,17 +16,15 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.source.kafka.enums;
+package com.dtstack.flink.sql.constant;
 
 /**
- * Date: 2020/3/20
- * Company: www.dtstack.com
- * @author maqi
- */
-public enum EKafkaOffset {
-
-    LATEST,
-    EARLIEST,
-    TIMESTAMP,
-    NONE
+ * @program: flinkStreamSQL
+ * @author: wuren
+ * @create: 2020/09/15
+ **/
+public class PluginParamConsts {
+    public static final String PRINCIPAL = "principal";
+    public static final String KEYTAB = "keytab";
+    public static final String KRB5_CONF = "krb5conf";
 }

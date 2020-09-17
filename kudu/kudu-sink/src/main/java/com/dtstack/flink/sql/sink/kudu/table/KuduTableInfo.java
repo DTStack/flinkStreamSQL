@@ -1,10 +1,11 @@
 package com.dtstack.flink.sql.sink.kudu.table;
 
+import com.dtstack.flink.sql.krb.KerberosTable;
 import com.dtstack.flink.sql.sink.kudu.KuduOutputFormat;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 
-public class KuduTableInfo extends AbstractTargetTableInfo {
+public class KuduTableInfo extends AbstractTargetTableInfo implements KerberosTable {
 
     private static final String CURR_TYPE = "kudu";
 
@@ -20,10 +21,17 @@ public class KuduTableInfo extends AbstractTargetTableInfo {
 
     private Integer defaultSocketReadTimeoutMs;
 
+    /**
+     * kerberos
+     */
+    private String principal;
+    private String keytab;
+    private String krb5conf;
+    boolean enableKrb;
+
     public KuduTableInfo() {
         setType(CURR_TYPE);
     }
-
 
     public String getKuduMasters() {
         return kuduMasters;
@@ -84,4 +92,45 @@ public class KuduTableInfo extends AbstractTargetTableInfo {
     public String getType() {
         return super.getType().toLowerCase();
     }
+
+    @Override
+    public String getPrincipal() {
+        return principal;
+    }
+
+    @Override
+    public void setPrincipal(String principal) {
+        this.principal = principal;
+    }
+
+    @Override
+    public String getKeytab() {
+        return keytab;
+    }
+
+    @Override
+    public void setKeytab(String keytab) {
+        this.keytab = keytab;
+    }
+
+    @Override
+    public String getKrb5conf() {
+        return krb5conf;
+    }
+
+    @Override
+    public void setKrb5conf(String krb5conf) {
+        this.krb5conf = krb5conf;
+    }
+
+    @Override
+    public boolean isEnableKrb() {
+        return enableKrb;
+    }
+
+    @Override
+    public void setEnableKrb(boolean enableKrb) {
+        this.enableKrb = enableKrb;
+    }
+
 }

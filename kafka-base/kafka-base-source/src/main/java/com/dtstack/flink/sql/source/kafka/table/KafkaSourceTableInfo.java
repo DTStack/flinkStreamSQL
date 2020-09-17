@@ -55,6 +55,8 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     public static final String CHARSET_NAME_KEY = "charsetName";
 
+    public static final String TIMESTAMP_OFFSET = "timestampOffset";
+
     private String bootstrapServers;
 
     private String topic;
@@ -74,6 +76,8 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
     public Map<String, String> kafkaParams = new HashMap<>();
 
     public String charsetName;
+
+    private Long timestampOffset;
 
     public String getBootstrapServers() {
         return bootstrapServers;
@@ -158,6 +162,14 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 	public void setCharsetName(String charsetName) {
 		this.charsetName = charsetName;
 	}
+
+    public Long getTimestampOffset() {
+        return timestampOffset;
+    }
+
+    public void setTimestampOffset(Long timestampOffset) {
+        this.timestampOffset = timestampOffset;
+    }
 
 	@Override
 	public boolean check() {
