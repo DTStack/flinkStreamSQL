@@ -42,7 +42,11 @@ kudu 1.9.0+cdh6.2.0
 | defaultOperationTimeoutMs | 操作超时时间 |否|
 | defaultSocketReadTimeoutMs | socket读取超时时间 |否|
 | parallelism | 并行度设置|否|1|
-      
+| principal |kerberos用于登录的principal | 否||
+| keytab |keytab文件的路径 | 否||
+| krb5conf |conf文件路径 | 否||
+Kerberos三个参数全部设置则开启Kerberos认证，如果缺少任何一个则会提示缺少参数错误。
+如果全部未设置则不开启Kerberos连接Kudu集群。      
   
 ## 5.样例：
 ```
@@ -123,4 +127,21 @@ into
 ### 结果数据
 ```
 {"a":"2","b":"2","c":"3","d":"4"}
+```
+
+## 7.kerberos示例
+```
+create table dwd (
+    name varchar,
+    id int
+) WITH (
+    type='kudu',
+    kuduMasters='host1',
+    tableName='foo',
+    writeMode='insert',
+    parallelism ='1',
+    keytab='foo/foobar.keytab',
+    krb5conf='bar/krb5.conf',
+    principal='kudu/host1@DTSTACK.COM'
+);
 ```

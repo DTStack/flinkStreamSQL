@@ -140,7 +140,7 @@ public class SidePredicatesParser {
         }
     }
 
-    private void fillPredicateInfoToList(SqlBasicCall whereNode, List<PredicateInfo> predicatesInfoList, String operatorName, SqlKind operatorKind,
+    private void  fillPredicateInfoToList(SqlBasicCall whereNode, List<PredicateInfo> predicatesInfoList, String operatorName, SqlKind operatorKind,
                                          int fieldIndex, int conditionIndex) {
         SqlNode sqlNode = whereNode.getOperands()[fieldIndex];
         if (sqlNode.getKind() == SqlKind.IDENTIFIER) {
