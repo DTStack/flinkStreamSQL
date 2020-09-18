@@ -225,6 +225,13 @@ public class TableUtils {
                     queueInfo.offer(joinInfo.getLeftNode());
                 }
 
+                if(joinInfo.getLeftNode().getKind() == AS){
+                    SqlNode leftSqlNode = ((SqlBasicCall)joinInfo.getLeftNode()).getOperands()[0];
+                    if (leftSqlNode.getKind() == UNION){
+                        queueInfo.offer(joinInfo.getLeftNode());
+                    }
+                }
+
                 queueInfo.offer(joinInfo);
             } else {
                 //Determining right is not a simple table
