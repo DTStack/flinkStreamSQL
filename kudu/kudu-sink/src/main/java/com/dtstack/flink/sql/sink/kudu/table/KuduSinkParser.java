@@ -1,5 +1,6 @@
 package com.dtstack.flink.sql.sink.kudu.table;
 
+import com.dtstack.flink.sql.constant.PluginParamConsts;
 import com.dtstack.flink.sql.sink.kudu.KuduOutputFormat;
 import com.dtstack.flink.sql.table.AbstractTableParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
@@ -39,6 +40,18 @@ public class KuduSinkParser extends AbstractTableParser {
         kuduTableInfo.setWorkerCount(MathUtil.getIntegerVal(props.get(WORKER_COUNT.toLowerCase())));
         kuduTableInfo.setDefaultOperationTimeoutMs(MathUtil.getIntegerVal(props.get(OPERATION_TIMEOUT_MS.toLowerCase())));
         kuduTableInfo.setDefaultSocketReadTimeoutMs(MathUtil.getIntegerVal(props.get(SOCKET_READ_TIMEOUT_MS.toLowerCase())));
+
+        kuduTableInfo.setPrincipal(
+            MathUtil.getString(props.get(PluginParamConsts.PRINCIPAL))
+        );
+        kuduTableInfo.setKeytab(
+            MathUtil.getString(props.get(PluginParamConsts.KEYTAB))
+        );
+        kuduTableInfo.setKrb5conf(
+            MathUtil.getString(props.get(PluginParamConsts.KRB5_CONF))
+        );
+        kuduTableInfo.judgeKrbEnable();
+
         return kuduTableInfo;
     }
 
