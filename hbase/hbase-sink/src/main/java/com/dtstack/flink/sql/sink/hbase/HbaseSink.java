@@ -35,7 +35,7 @@ import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
-import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Date: 2018/09/14
@@ -45,7 +45,7 @@ import java.util.LinkedHashMap;
 public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<HbaseSink> {
 
     protected String[] fieldNames;
-    protected LinkedHashMap<String, String> columnNameFamily;
+    protected Map<String, String> columnNameFamily;
     TypeInformation<?>[] fieldTypes;
     protected String zookeeperQuorum;
     protected String port;

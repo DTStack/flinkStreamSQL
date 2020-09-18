@@ -45,7 +45,7 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
 
     private String rowkey;
 
-    private LinkedHashMap<String, String> columnNameFamily;
+    private Map<String, String> columnNameFamily;
 
     private String[] columnNames;
 
@@ -117,11 +117,11 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
         this.rowkey = rowkey;
     }
 
-    public LinkedHashMap<String, String> getColumnNameFamily() {
+    public Map<String, String> getColumnNameFamily() {
         return columnNameFamily;
     }
 
-    public void setColumnNameFamily(LinkedHashMap<String, String> columnNameFamily) {
+    public void setColumnNameFamily(Map<String, String> columnNameFamily) {
         this.columnNameFamily = columnNameFamily;
     }
 

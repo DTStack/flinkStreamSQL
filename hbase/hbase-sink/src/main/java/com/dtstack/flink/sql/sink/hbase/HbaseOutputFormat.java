@@ -66,7 +66,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private String[] columnNames;
     private String updateMode;
     private String[] columnTypes;
-    private LinkedHashMap<String, String> columnNameFamily;
+    private Map<String, String> columnNameFamily;
 
     private boolean kerberosAuthEnable;
     private String regionserverKeytabFile;
@@ -306,7 +306,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
-        public HbaseOutputFormatBuilder setColumnNameFamily(LinkedHashMap<String, String> columnNameFamily) {
+        public HbaseOutputFormatBuilder setColumnNameFamily(Map<String, String> columnNameFamily) {
             format.columnNameFamily = columnNameFamily;
             return this;
         }
