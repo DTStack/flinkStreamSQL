@@ -99,11 +99,13 @@ public class YarnJobClusterExecutor {
     }
 
     private void dumpSameKeytab(Configuration flinkConfiguration, List<File> shipFiles) {
-        String flinkKeytab = Stream
-                .of(flinkConfiguration.getString(SecurityOptions.KERBEROS_LOGIN_KEYTAB).split(File.separator))
-                .reduce((a, b) -> b)
-                .get();
-        shipFiles.removeIf(f -> f.getName().equals(flinkKeytab));
+        Optional.ofNullable(flinkConfiguration.getString(SecurityOptions.KERBEROS_LOGIN_KEYTAB))
+                .ifPresent(x ->
+                        shipFiles.removeIf(f ->
+                                f.getName().equals(Stream
+                                        .of(x.split(File.separator))
+                                        .reduce((a, b) -> b)
+                                        .get())));
     }
 
     private void appendApplicationConfig(Configuration flinkConfig, JobParamsInfo jobParamsInfo) {
