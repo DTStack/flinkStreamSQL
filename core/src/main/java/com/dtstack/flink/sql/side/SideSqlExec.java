@@ -409,10 +409,9 @@ public class SideSqlExec {
 
         RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getFieldTypes(), targetTable.getSchema().getFieldNames());
 
-        DataStream adaptStream = tableEnv.toRetractStream(targetTable, Row.class)
+        DataStream adaptStream = tableEnv.toRetractStream(targetTable, typeInfo)
                 .filter(f -> f.f0)
-                .map(f -> f.f1)
-                .returns(Row.class);
+                .map(f -> f.f1);
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if (sideTableInfo.isPartitionedJoin()) {
