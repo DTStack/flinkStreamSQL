@@ -47,11 +47,13 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 
 /**
  * @author: jingzhen@dtstack.com
@@ -421,8 +423,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             String[] qualifiers = new String[format.columnNames.length];
 
             if (format.columnNameFamily != null) {
-                Set<String> keySet = format.columnNameFamily.keySet();
-                String[] columns = keySet.toArray(new String[keySet.size()]);
+                List<String> keyList = new LinkedList<>(format.columnNameFamily.keySet());
+                String[] columns = keyList.toArray(new String[0]);
                 for (int i = 0; i < columns.length; ++i) {
                     String col = columns[i];
                     String[] part = col.split(":");

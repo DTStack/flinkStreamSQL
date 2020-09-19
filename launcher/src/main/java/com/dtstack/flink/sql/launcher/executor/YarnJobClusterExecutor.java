@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.yarn.YarnClusterDescriptor;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 
 /**
@@ -83,6 +85,8 @@ public class YarnJobClusterExecutor {
             }
         }
 
+        dumpSameKeytab(flinkConfiguration, shipFiles);
+
         clusterDescriptor.addShipFiles(shipFiles);
 
         ClusterSpecification clusterSpecification = YarnClusterClientFactory.INSTANCE.getClusterSpecification(flinkConfiguration);
@@ -92,6 +96,16 @@ public class YarnJobClusterExecutor {
         String flinkJobId = jobGraph.getJobID().toString();
 
         LOG.info(String.format("deploy per_job with appId: %s, jobId: %s", applicationId, flinkJobId));
+    }
+
+    private void dumpSameKeytab(Configuration flinkConfiguration, List<File> shipFiles) {
+        Optional.ofNullable(flinkConfiguration.getString(SecurityOptions.KERBEROS_LOGIN_KEYTAB))
+                .ifPresent(x ->
+                        shipFiles.removeIf(f ->
+                                f.getName().equals(Stream
+                                        .of(x.split(File.separator))
+                                        .reduce((a, b) -> b)
+                                        .get())));
     }
 
     private void appendApplicationConfig(Configuration flinkConfig, JobParamsInfo jobParamsInfo) {
