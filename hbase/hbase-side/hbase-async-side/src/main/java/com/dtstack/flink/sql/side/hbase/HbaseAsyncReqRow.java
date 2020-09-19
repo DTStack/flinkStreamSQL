@@ -31,12 +31,14 @@ import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import com.stumbleupon.async.Deferred;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
@@ -44,6 +46,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.security.krb5.KrbException;
 
+import java.io.File;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -105,15 +109,29 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
             config.overrideConfig(entity.getKey(), (String) entity.getValue());
         });
 
+        String principal = null;
+        String keyTab = null;
         if (HbaseConfigUtils.asyncOpenKerberos(hbaseConfig)) {
-            String jaasStr = HbaseConfigUtils.buildJaasStr(hbaseConfig);
+            principal = MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_PRINCIPAL);
+            keyTab = System.getProperty("user.dir") + File.separator + MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_KEY_TAB);
+            String jaasStr = HbaseConfigUtils.buildJaasStr(hbaseConfig, principal, keyTab);
             String jaasFilePath = HbaseConfigUtils.creatJassFile(jaasStr);
             System.setProperty(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
             config.overrideConfig(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
             refreshConfig();
         }
 
-        hBaseClient = new HBaseClient(config, executorService);
+        hBaseClient = null;
+        if (HbaseConfigUtils.asyncOpenKerberos(hbaseConfig)) {
+            hBaseClient = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keyTab).doAs(new PrivilegedExceptionAction<HBaseClient>() {
+                @Override
+                public HBaseClient run() throws Exception {
+                    return new HBaseClient(config, executorService);
+                }
+            });
+        } else {
+            hBaseClient = new HBaseClient(config, executorService);
+        }
 
         try {
             Deferred deferred = hBaseClient.ensureTableExists(tableName)
@@ -144,7 +162,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         sun.security.krb5.Config.refresh();
         KerberosName.resetDefaultRealm();
         //reload java.security.auth.login.config
-        javax.security.auth.login.Configuration.setConfiguration(null);
+        // javax.security.auth.login.Configuration.setConfiguration(null);
     }
 
     @Override
