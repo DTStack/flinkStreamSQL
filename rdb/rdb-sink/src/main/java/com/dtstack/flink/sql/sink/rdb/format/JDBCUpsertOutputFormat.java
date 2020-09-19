@@ -41,6 +41,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -76,6 +77,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture scheduledFuture;
+    private final AtomicBoolean flushFlag = new AtomicBoolean(true);
 
     public JDBCUpsertOutputFormat(
             JDBCOptions options,
@@ -141,6 +143,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
                     try {
                         flush();
                     } catch (Exception e) {
+                        flushFlag.set(false);
                         throw new RuntimeException("Writing records to JDBC failed.", e);
                     }
                 }
@@ -150,6 +153,9 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     @Override
     public synchronized void writeRecord(Tuple2<Boolean, Row> tuple2) throws IOException {
+        if(!flushFlag.get()){
+            throw new RuntimeException("connect exception,can not write record");
+        }
         checkConnectionOpen();
         try {
             if (outRecords.getCount() % RECEIVEDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
@@ -187,6 +193,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
     public synchronized void flush() throws Exception {
         jdbcWriter.executeBatch(connection);
         batchCount = 0;
+        flushFlag.set(true);
     }
 
     /**
