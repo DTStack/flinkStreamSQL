@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**

@@ -18,6 +18,8 @@
 
 package com.dtstack.flink.sql.side.hbase.utils;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -33,6 +35,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  *
@@ -45,6 +50,10 @@ import java.util.Map;
 public class HbaseConfigUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseConfigUtils.class);
+
+    private final static Pattern patternJaasFile = Pattern.compile("^JAAS.+?\\.conf$");
+    private final static Pattern patternJaasContext = Pattern.compile("Client\\s+\\{[\\s\\S]+\\};$");
+
     // sync side kerberos
     private final static String AUTHENTICATION_TYPE = "Kerberos";
     private final static String KEY_HBASE_SECURITY_AUTHENTICATION = "hbase.security.authentication";
@@ -169,8 +178,23 @@ public class HbaseConfigUtils {
         File krbConf = new File(fileName);
         File temp = File.createTempFile("JAAS", ".conf", krbConf);
         temp.deleteOnExit();
-        BufferedWriter out = new BufferedWriter(new FileWriter(temp, false));
-        out.write(configStr + "\n");
+        BufferedWriter out = new BufferedWriter(new FileWriter(temp, true));
+
+        // find if has jaas file
+        Optional<String> jaasFile = Stream
+                .of(krbConf.list())
+                .filter(x -> patternJaasFile.matcher(x).find())
+                .findFirst();
+
+        if (jaasFile.isPresent()) {
+            String jaasContext = Files.asCharSource(new File(fileName + File.separator + jaasFile.get()), Charsets.UTF_8).read();
+            // if jaas has no Client
+            if (!patternJaasContext.matcher(jaasContext).find()) {
+                out.write(jaasContext + "\n");
+            }
+        }
+
+        out.append(configStr + "\n");
         out.close();
         return temp.getAbsolutePath();
     }
