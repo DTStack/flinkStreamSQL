@@ -31,10 +31,14 @@ import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import com.stumbleupon.async.Deferred;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.security.DynamicConfiguration;
+import org.apache.flink.runtime.security.KerberosUtils;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -45,7 +49,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.security.krb5.KrbException;
 
+import javax.security.auth.login.AppConfigurationEntry;
+import java.io.File;
+import java.lang.reflect.Field;
+import java.security.PrivilegedExceptionAction;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -100,7 +109,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
         ExecutorService executorService =new ThreadPoolExecutor(DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE,
                 0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-aysnc"));
+                new LinkedBlockingQueue<>(), new DTThreadFactory("hbase-async"));
 
         Config config = new Config();
         config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
@@ -111,12 +120,15 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         });
 
         if (HbaseConfigUtils.asyncOpenKerberos(hbaseConfig)) {
-            String jaasStr = HbaseConfigUtils.buildJaasStr(hbaseConfig);
-            String jaasFilePath = HbaseConfigUtils.creatJassFile(jaasStr);
-            System.setProperty(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
-            config.overrideConfig(HbaseConfigUtils.KEY_JAVA_SECURITY_AUTH_LOGIN_CONF, jaasFilePath);
+            String principal = MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_PRINCIPAL);
+            String keytab = System.getProperty("user.dir") + File.separator + MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_KEY_TAB);
+            LOG.info("Kerberos login with keytab: {} and principal: {}", keytab, principal);
+            String name = "HBaseClient";
+            config.overrideConfig("hbase.sasl.clientconfig", name);
+            appendJaasConf(name, keytab, principal);
             refreshConfig();
         }
+
         hBaseClient = new HBaseClient(config, executorService);
 
         try {
@@ -144,11 +156,21 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         }
     }
 
+    private void appendJaasConf(String name, String keytab, String principal) {
+        javax.security.auth.login.Configuration priorConfig = javax.security.auth.login.Configuration.getConfiguration();
+        // construct a dynamic JAAS configuration
+        DynamicConfiguration currentConfig = new DynamicConfiguration(priorConfig);
+        // wire up the configured JAAS login contexts to use the krb5 entries
+        AppConfigurationEntry krb5Entry = KerberosUtils.keytabEntry(keytab, principal);
+        currentConfig.addAppConfigurationEntry(name, krb5Entry);
+        javax.security.auth.login.Configuration.setConfiguration(currentConfig);
+    }
+
     private void refreshConfig() throws KrbException {
         sun.security.krb5.Config.refresh();
         KerberosName.resetDefaultRealm();
         //reload java.security.auth.login.config
-        javax.security.auth.login.Configuration.setConfiguration(null);
+//        javax.security.auth.login.Configuration.setConfiguration(null);
     }
 
     @Override

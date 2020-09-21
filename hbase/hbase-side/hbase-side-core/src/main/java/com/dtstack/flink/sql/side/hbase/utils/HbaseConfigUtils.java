@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  *
@@ -60,7 +59,7 @@ public class HbaseConfigUtils {
     private final static String KEY_HBASE_SASL_CLIENTCONFIG = "hbase.sasl.clientconfig";
     private final static String KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL = "hbase.kerberos.regionserver.principal";
     public static final String KEY_KEY_TAB = "hbase.keytab";
-    private static final String KEY_PRINCIPAL = "hbase.principal";
+    public static final String KEY_PRINCIPAL = "hbase.principal";
 
     public final static String KEY_HBASE_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
     public final static String KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM = "hbase.zookeeper.znode.parent";
@@ -114,9 +113,6 @@ public class HbaseConfigUtils {
         }
         return AUTHENTICATION_TYPE.equalsIgnoreCase(MapUtils.getString(hbaseConfigMap, KEY_HBASE_SECURITY_AUTHENTICATION));
     }
-
-
-
 
     public static Configuration getHadoopConfiguration(Map<String, Object> hbaseConfigMap) {
         for (String key : KEYS_KERBEROS_REQUIRED) {
@@ -176,15 +172,12 @@ public class HbaseConfigUtils {
         return temp.getAbsolutePath();
     }
 
-    public static String buildJaasStr(Map<String, Object> kerberosConfig) {
+    public static String buildJaasStr(Map<String, Object> kerberosConfig,String principal,String keyTab) {
         for (String key : ASYNC_KEYS_KERBEROS_REQUIRED) {
             if (StringUtils.isEmpty(MapUtils.getString(kerberosConfig, key))) {
                 throw new IllegalArgumentException(String.format("Must provide [%s] when authentication is Kerberos", key));
             }
         }
-
-        String keyTab = System.getProperty("user.dir") + File.separator + MapUtils.getString(kerberosConfig, KEY_KEY_TAB);
-        String principal = MapUtils.getString(kerberosConfig, KEY_PRINCIPAL);
 
         StringBuilder jaasSB = new StringBuilder("Client {\n" +
                 "  com.sun.security.auth.module.Krb5LoginModule required\n" +
@@ -195,8 +188,6 @@ public class HbaseConfigUtils {
         jaasSB.append("};");
         return jaasSB.toString();
     }
-
-
 
     public static UserGroupInformation loginAndReturnUGI(Configuration conf, String principal, String keytab) throws IOException {
         if (conf == null) {
