@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.side.hbase.utils;
 
+import com.dtstack.flink.sql.util.DtFileUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -26,9 +27,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -57,7 +56,7 @@ public class HbaseConfigUtils {
     // async side kerberos
     private final static String KEY_HBASE_SECURITY_AUTH_ENABLE = "hbase.security.auth.enable";
     private final static String KEY_HBASE_SASL_CLIENTCONFIG = "hbase.sasl.clientconfig";
-    private final static String KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL = "hbase.kerberos.regionserver.principal";
+    public final static String KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL = "hbase.kerberos.regionserver.principal";
     public static final String KEY_KEY_TAB = "hbase.keytab";
     public static final String KEY_PRINCIPAL = "hbase.principal";
 
@@ -98,13 +97,6 @@ public class HbaseConfigUtils {
             }
         }
         return hConfiguration;
-    }
-
-    public static boolean openKerberos(Map<String, Object> hbaseConfigMap) {
-        if (!MapUtils.getBooleanValue(hbaseConfigMap, KEY_HBASE_SECURITY_AUTHORIZATION)) {
-            return false;
-        }
-        return AUTHENTICATION_TYPE.equalsIgnoreCase(MapUtils.getString(hbaseConfigMap, KEY_HBASE_SECURITY_AUTHENTICATION));
     }
 
     public static boolean asyncOpenKerberos(Map<String, Object> hbaseConfigMap) {
@@ -156,37 +148,11 @@ public class HbaseConfigUtils {
 
     public static void loadKrb5Conf(Map<String, Object> kerberosConfig) {
         String krb5FilePath = System.getProperty("user.dir") + File.separator + MapUtils.getString(kerberosConfig, KEY_JAVA_SECURITY_KRB5_CONF);
+        DtFileUtils.checkExists(krb5FilePath);
         if (!org.apache.commons.lang.StringUtils.isEmpty(krb5FilePath)) {
-            System.setProperty(KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);;
+            System.setProperty(KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);
+            LOG.info("{} is set to {}", KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);
         }
-    }
-
-    public static String creatJassFile(String configStr) throws IOException {
-        String fileName = System.getProperty("user.dir");
-        File krbConf = new File(fileName);
-        File temp = File.createTempFile("JAAS", ".conf", krbConf);
-        temp.deleteOnExit();
-        BufferedWriter out = new BufferedWriter(new FileWriter(temp, false));
-        out.write(configStr + "\n");
-        out.close();
-        return temp.getAbsolutePath();
-    }
-
-    public static String buildJaasStr(Map<String, Object> kerberosConfig,String principal,String keyTab) {
-        for (String key : ASYNC_KEYS_KERBEROS_REQUIRED) {
-            if (StringUtils.isEmpty(MapUtils.getString(kerberosConfig, key))) {
-                throw new IllegalArgumentException(String.format("Must provide [%s] when authentication is Kerberos", key));
-            }
-        }
-
-        StringBuilder jaasSB = new StringBuilder("Client {\n" +
-                "  com.sun.security.auth.module.Krb5LoginModule required\n" +
-                "  useKeyTab=true\n" +
-                "  useTicketCache=false\n");
-        jaasSB.append(" keyTab=\"").append(keyTab).append("\"").append("\n");
-        jaasSB.append(" principal=\"").append(principal).append("\"").append(";\n");
-        jaasSB.append("};");
-        return jaasSB.toString();
     }
 
     public static UserGroupInformation loginAndReturnUGI(Configuration conf, String principal, String keytab) throws IOException {

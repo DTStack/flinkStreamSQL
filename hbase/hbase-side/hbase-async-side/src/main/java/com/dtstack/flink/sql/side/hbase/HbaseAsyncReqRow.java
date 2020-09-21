@@ -30,6 +30,9 @@ import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
+import com.dtstack.flink.sql.util.DtFileUtils;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.stumbleupon.async.Deferred;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -114,14 +117,21 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
         Config config = new Config();
         config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
         config.overrideConfig(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
-        HbaseConfigUtils.loadKrb5Conf(hbaseConfig);
         hbaseConfig.entrySet().forEach(entity -> {
             config.overrideConfig(entity.getKey(), (String) entity.getValue());
         });
 
         if (HbaseConfigUtils.asyncOpenKerberos(hbaseConfig)) {
+            HbaseConfigUtils.loadKrb5Conf(hbaseConfig);
+
             String principal = MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_PRINCIPAL);
+            Preconditions.checkState(!Strings.isNullOrEmpty(principal), "%s must be set!", HbaseConfigUtils.KEY_PRINCIPAL);
+            String regionserver_principal = MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL);
+            Preconditions.checkState(!Strings.isNullOrEmpty(regionserver_principal), "%s must be set!", HbaseConfigUtils.KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL);
+
+            MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_KEY_TAB);
             String keytab = System.getProperty("user.dir") + File.separator + MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_KEY_TAB);
+            DtFileUtils.checkExists(keytab);
             LOG.info("Kerberos login with keytab: {} and principal: {}", keytab, principal);
             String name = "HBaseClient";
             config.overrideConfig("hbase.sasl.clientconfig", name);
