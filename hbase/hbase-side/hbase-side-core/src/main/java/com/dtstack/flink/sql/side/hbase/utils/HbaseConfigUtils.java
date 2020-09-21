@@ -19,6 +19,8 @@
 package com.dtstack.flink.sql.side.hbase.utils;
 
 import com.dtstack.flink.sql.util.DtFileUtils;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -146,13 +148,13 @@ public class HbaseConfigUtils {
         throw new IllegalArgumentException("");
     }
 
-    public static void loadKrb5Conf(Map<String, Object> kerberosConfig) {
-        String krb5FilePath = System.getProperty("user.dir") + File.separator + MapUtils.getString(kerberosConfig, KEY_JAVA_SECURITY_KRB5_CONF);
+    public static void loadKrb5Conf(Map<String, Object> config) {
+        String krb5conf = MapUtils.getString(config, KEY_JAVA_SECURITY_KRB5_CONF);
+        Preconditions.checkState(!Strings.isNullOrEmpty(krb5conf), "%s must be set!", KEY_JAVA_SECURITY_KRB5_CONF);
+        String krb5FilePath = System.getProperty("user.dir") + File.separator + MapUtils.getString(config, KEY_JAVA_SECURITY_KRB5_CONF);
         DtFileUtils.checkExists(krb5FilePath);
-        if (!org.apache.commons.lang.StringUtils.isEmpty(krb5FilePath)) {
-            System.setProperty(KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);
-            LOG.info("{} is set to {}", KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);
-        }
+        System.setProperty(KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);
+        LOG.info("{} is set to {}", KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);
     }
 
     public static UserGroupInformation loginAndReturnUGI(Configuration conf, String principal, String keytab) throws IOException {
