@@ -121,17 +121,17 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
             config.overrideConfig(entity.getKey(), (String) entity.getValue());
         });
 
-        if (HbaseConfigUtils.asyncOpenKerberos(hbaseConfig)) {
+        if (HbaseConfigUtils.isEnableKerberos(hbaseConfig)) {
             HbaseConfigUtils.loadKrb5Conf(hbaseConfig);
-
             String principal = MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_PRINCIPAL);
-            Preconditions.checkState(!Strings.isNullOrEmpty(principal), "%s must be set!", HbaseConfigUtils.KEY_PRINCIPAL);
-            String regionserver_principal = MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL);
-            Preconditions.checkState(!Strings.isNullOrEmpty(regionserver_principal), "%s must be set!", HbaseConfigUtils.KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL);
+            HbaseConfigUtils.checkOpt(principal, HbaseConfigUtils.KEY_PRINCIPAL);
+            String regionserverPrincipal = MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL);
+            HbaseConfigUtils.checkOpt(regionserverPrincipal, HbaseConfigUtils.KEY_HBASE_KERBEROS_REGIONSERVER_PRINCIPAL);
+            String keytab = MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_KEY_TAB);
+            HbaseConfigUtils.checkOpt(keytab, HbaseConfigUtils.KEY_KEY_TAB);
+            String keytabPath = System.getProperty("user.dir") + File.separator + keytab;
+            DtFileUtils.checkExists(keytabPath);
 
-            MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_KEY_TAB);
-            String keytab = System.getProperty("user.dir") + File.separator + MapUtils.getString(hbaseConfig, HbaseConfigUtils.KEY_KEY_TAB);
-            DtFileUtils.checkExists(keytab);
             LOG.info("Kerberos login with keytab: {} and principal: {}", keytab, principal);
             String name = "HBaseClient";
             config.overrideConfig("hbase.sasl.clientconfig", name);

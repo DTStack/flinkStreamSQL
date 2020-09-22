@@ -101,11 +101,27 @@ public class HbaseConfigUtils {
         return hConfiguration;
     }
 
-    public static boolean asyncOpenKerberos(Map<String, Object> hbaseConfigMap) {
-        if (!MapUtils.getBooleanValue(hbaseConfigMap, KEY_HBASE_SECURITY_AUTH_ENABLE)) {
-            return false;
+    public static boolean isEnableKerberos(Map<String, Object> hbaseConfigMap) {
+        boolean hasAuthorization = AUTHENTICATION_TYPE.equalsIgnoreCase(
+            MapUtils.getString(hbaseConfigMap, KEY_HBASE_SECURITY_AUTHORIZATION)
+        );
+        boolean hasAuthentication =  AUTHENTICATION_TYPE.equalsIgnoreCase(
+            MapUtils.getString(hbaseConfigMap, KEY_HBASE_SECURITY_AUTHENTICATION)
+        );
+        boolean hasAuthEnable = MapUtils.getBooleanValue(hbaseConfigMap, KEY_HBASE_SECURITY_AUTH_ENABLE);
+
+        if(hasAuthentication || hasAuthorization || hasAuthEnable) {
+            LOG.info("Enable kerberos for hbase.");
+            setKerberosConf(hbaseConfigMap);
+            return true;
         }
-        return AUTHENTICATION_TYPE.equalsIgnoreCase(MapUtils.getString(hbaseConfigMap, KEY_HBASE_SECURITY_AUTHENTICATION));
+        return false;
+    }
+
+    private static void setKerberosConf(Map<String,Object> hbaseConfigMap) {
+        hbaseConfigMap.put(KEY_HBASE_SECURITY_AUTHORIZATION, AUTHENTICATION_TYPE);
+        hbaseConfigMap.put(KEY_HBASE_SECURITY_AUTHENTICATION, AUTHENTICATION_TYPE);
+        hbaseConfigMap.put(KEY_HBASE_SECURITY_AUTH_ENABLE, true);
     }
 
     public static Configuration getHadoopConfiguration(Map<String, Object> hbaseConfigMap) {
@@ -150,11 +166,16 @@ public class HbaseConfigUtils {
 
     public static void loadKrb5Conf(Map<String, Object> config) {
         String krb5conf = MapUtils.getString(config, KEY_JAVA_SECURITY_KRB5_CONF);
-        Preconditions.checkState(!Strings.isNullOrEmpty(krb5conf), "%s must be set!", KEY_JAVA_SECURITY_KRB5_CONF);
+        checkOpt(krb5conf, KEY_JAVA_SECURITY_KRB5_CONF);
         String krb5FilePath = System.getProperty("user.dir") + File.separator + MapUtils.getString(config, KEY_JAVA_SECURITY_KRB5_CONF);
         DtFileUtils.checkExists(krb5FilePath);
         System.setProperty(KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);
         LOG.info("{} is set to {}", KEY_JAVA_SECURITY_KRB5_CONF, krb5FilePath);
+    }
+
+    // TODO 日后改造可以下沉到Core模块
+    public static void checkOpt(String opt, String key) {
+        Preconditions.checkState(!Strings.isNullOrEmpty(opt), "%s must be set!", key);
     }
 
     public static UserGroupInformation loginAndReturnUGI(Configuration conf, String principal, String keytab) throws IOException {
