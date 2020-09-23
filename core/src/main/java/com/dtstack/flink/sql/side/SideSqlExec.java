@@ -448,8 +448,8 @@ public class SideSqlExec {
 
         if (!tableExists) {
             Table joinTable = tableEnv.fromDataStream(dsOut);
-            tableEnv.createTemporaryView(targetTableName, joinTable);
-            localTableCache.put(joinInfo.getNewTableName(), joinTable);
+            tableEnv.createTemporaryView(targetTableAlias, joinTable);
+            localTableCache.put(joinInfo.getNewTableAlias(), joinTable);
         }
     }
 
