@@ -25,7 +25,6 @@ import com.dtstack.flink.sql.util.MD5Utils;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 
-import javax.xml.crypto.Data;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -45,9 +44,9 @@ public class RowKeyBuilder implements Serializable{
 
     private static final long serialVersionUID = 2058635242857937717L;
 
-    private static Pattern Md5Operator = Pattern.compile("(?i)^md5\\(\\s*(.*)\\s*\\)$");
+    private static final Pattern MD5_OPERATOR = Pattern.compile("(?i)^md5\\(\\s*(.*)\\s*\\)$");
 
-    private List<ReplaceInfo> operatorChain = Lists.newArrayList();
+    private final List<ReplaceInfo> operatorChain = Lists.newArrayList();
 
     public void init(String rowKeyTempl){
     	operatorChain.addAll(makeFormula(rowKeyTempl));
@@ -68,7 +67,7 @@ public class RowKeyBuilder implements Serializable{
         if(CollectionUtils.isEmpty(fieldList)){
             return "";
         }
-        StringBuffer sb = new StringBuffer("");
+        StringBuilder sb = new StringBuilder();
         for(ReplaceInfo replaceInfo : fieldList){
 
             if(replaceInfo.getType() == EReplaceType.CONSTANT){
@@ -134,7 +133,7 @@ public class RowKeyBuilder implements Serializable{
         }
         List<ReplaceInfo> result = Lists.newArrayList();
         for(String meta: splitIgnoreQuotaBrackets(formula, "\\+")){
-            Matcher matcher = Md5Operator.matcher(meta.trim());
+            Matcher matcher = MD5_OPERATOR.matcher(meta.trim());
             if(matcher.find()){
                 ReplaceInfo replaceInfo = new ReplaceInfo(EReplaceType.FUNC);
                 replaceInfo.setSubReplaceInfos(makeFormula(matcher.group(1)));

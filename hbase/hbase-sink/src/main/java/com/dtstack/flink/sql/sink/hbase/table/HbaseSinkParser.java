@@ -22,14 +22,13 @@ package com.dtstack.flink.sql.sink.hbase.table;
 
 
 import com.dtstack.flink.sql.enums.EUpdateMode;
-import com.dtstack.flink.sql.table.AbstractTableParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbstractTableParser;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.MathUtil;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,8 +46,6 @@ public class HbaseSinkParser extends AbstractTableParser {
 
     public static final String ZOOKEEPER_PARENT = "zookeeperParent";
 
-    public static final String HBASE_COLUMN_FAMILY = "columnFamily";
-
     public static final String HBASE_ROWKEY = "rowkey";
 
     public static final String TABLE_NAME_KEY = "tableName";
@@ -64,6 +61,8 @@ public class HbaseSinkParser extends AbstractTableParser {
     public static final String CLIENT_PRINCIPAL_KEY = "clientPrincipal";
     public static final String CLIENT_KEYTABFILE_KEY = "clientKeytabFile";
 
+    public static final String BATCH_SIZE = "batchSize";
+    public static final String BATCH_WAIT_INTERVAL = "batchWaitInterval";
 
     @Override
     protected boolean fieldNameNeedsUpperCase() {
@@ -92,6 +91,10 @@ public class HbaseSinkParser extends AbstractTableParser {
 
         hbaseTableInfo.setClientPrincipal((String) props.get(CLIENT_PRINCIPAL_KEY.toLowerCase()));
         hbaseTableInfo.setClientKeytabFile((String) props.get(CLIENT_KEYTABFILE_KEY.toLowerCase()));
+
+        hbaseTableInfo.setBatchSize(MathUtil.getString(props.getOrDefault(BATCH_SIZE.toLowerCase(), "100")));
+        hbaseTableInfo.setBatchWaitInterval(MathUtil.getString(props.getOrDefault(BATCH_WAIT_INTERVAL.toLowerCase(), "1000")));
+
         return hbaseTableInfo;
     }
 
