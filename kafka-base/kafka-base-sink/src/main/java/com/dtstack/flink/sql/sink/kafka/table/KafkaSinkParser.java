@@ -57,7 +57,7 @@ public class KafkaSinkParser extends AbstractTableParser {
         kafkaSinkTableInfo.setPartitionKeys(MathUtil.getString(props.get(KafkaSinkTableInfo.PARTITION_KEY.toLowerCase())));
         kafkaSinkTableInfo.setUpdateMode(MathUtil.getString(props.getOrDefault(KafkaSinkTableInfo.UPDATE_KEY.toLowerCase(), EUpdateMode.APPEND.name())));
 
-        Integer parallelism = MathUtil.getIntegerVal(props.get(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase()));
+        Integer parallelism = MathUtil.getIntegerVal(props.getOrDefault(KafkaSinkTableInfo.PARALLELISM_KEY.toLowerCase(), 1));
         kafkaSinkTableInfo.setParallelism(parallelism);
 
         for (String key : props.keySet()) {
