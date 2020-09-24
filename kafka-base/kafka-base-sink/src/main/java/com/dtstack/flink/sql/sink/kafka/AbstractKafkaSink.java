@@ -100,6 +100,7 @@ public abstract class AbstractKafkaSink implements RetractStreamTableSink<Row>, 
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         DataStream<CRow> mapDataStream = dataStream
                 .map((Tuple2<Boolean, Row> record) -> new CRow(record.f1, record.f0))
+                .filter(x -> x.change())
                 .returns(getRowTypeInfo())
                 .setParallelism(parallelism);
 
