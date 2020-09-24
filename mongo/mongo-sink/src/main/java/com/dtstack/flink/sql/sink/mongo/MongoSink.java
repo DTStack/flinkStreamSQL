@@ -33,6 +33,8 @@ import org.apache.flink.table.sinks.RetractStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
+import java.util.Objects;
+
 /**
  * Reason:
  * Date: 2018/11/6
@@ -48,6 +50,8 @@ public class MongoSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String userName;
     protected String password;
     protected String database;
+    protected Integer parallelism = 1;
+    protected String registerTableName;
 
     public MongoSink() {
         // TO DO NOTHING
@@ -61,6 +65,9 @@ public class MongoSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.userName = mongoTableInfo.getUserName();
         this.password = mongoTableInfo.getPassword();
         this.database = mongoTableInfo.getDatabase();
+        this.parallelism = Objects.isNull(mongoTableInfo.getParallelism()) ?
+                parallelism : mongoTableInfo.getParallelism();
+        this.registerTableName = mongoTableInfo.getName();
         return this;
     }
 
@@ -77,7 +84,9 @@ public class MongoSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
         MongoOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
-        dataStream.addSink(richSinkFunction);
+        dataStream.addSink(richSinkFunction)
+                .setParallelism(parallelism)
+                .name(registerTableName);
     }
 
     @Override
