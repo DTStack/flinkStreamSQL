@@ -19,8 +19,6 @@
 package com.dtstack.flink.sql.side.cassandra;
 
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 
@@ -45,10 +43,7 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
