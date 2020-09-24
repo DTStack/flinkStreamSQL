@@ -35,9 +35,11 @@ import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHost;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -68,6 +70,8 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     private TypeInformation[] fieldTypes;
 
     private int parallelism = -1;
+
+    protected String registerTableName;
 
     private ElasticsearchTableInfo esTableInfo;
 
@@ -142,6 +146,8 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         columnTypes = esTableInfo.getFieldTypes();
         esAddressList = Arrays.asList(esTableInfo.getAddress().split(","));
         String id = esTableInfo.getId();
+        registerTableName = esTableInfo.getName();
+        parallelism = Objects.isNull(esTableInfo.getParallelism()) ? parallelism : esTableInfo.getParallelism();
 
         if (!StringUtils.isEmpty(id)) {
             idIndexList = Arrays.stream(StringUtils.split(id, ",")).map(Integer::valueOf).collect(Collectors.toList());

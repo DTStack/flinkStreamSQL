@@ -55,6 +55,7 @@ public class RedisSinkParser extends AbstractTableParser {
             primaryKeysList = Arrays.asList(StringUtils.split(primaryKeysStr, ","));
         }
         redisTableInfo.setPrimaryKeys(primaryKeysList);
+        redisTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(RedisTableInfo.PARALLELISM_KEY.toLowerCase())));
 
         return redisTableInfo;
     }

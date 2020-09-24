@@ -56,6 +56,7 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.keytab = kuduTableInfo.getKeytab();
         this.krb5conf = kuduTableInfo.getKrb5conf();
         this.enableKrb = kuduTableInfo.isEnableKrb();
+        this.parallelism = kuduTableInfo.getParallelism();
 
         return this;
     }
