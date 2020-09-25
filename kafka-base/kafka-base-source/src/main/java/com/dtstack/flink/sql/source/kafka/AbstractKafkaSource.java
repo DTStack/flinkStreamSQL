@@ -54,6 +54,8 @@ public abstract class AbstractKafkaSource implements IStreamSourceGener<Table> {
 
         if (DtStringUtil.isJson(kafkaSourceTableInfo.getOffsetReset())) {
             props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, EKafkaOffset.NONE.name().toLowerCase());
+        } else if(StringUtils.equalsIgnoreCase(EKafkaOffset.TIMESTAMP.name().toLowerCase(),  kafkaSourceTableInfo.getOffsetReset())){
+                props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, EKafkaOffset.EARLIEST.name().toLowerCase());
         } else {
             props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, kafkaSourceTableInfo.getOffsetReset());
         }
@@ -95,10 +97,12 @@ public abstract class AbstractKafkaSource implements IStreamSourceGener<Table> {
         }
     }
 
-    protected void setStartPosition(String offset, String topicName, FlinkKafkaConsumerBase<Row> kafkaSrc) {
+    protected void setStartPosition(String offset, String topicName, FlinkKafkaConsumerBase<Row> kafkaSrc, Runnable runnable) {
         if (StringUtils.equalsIgnoreCase(offset, EKafkaOffset.EARLIEST.name())) {
             kafkaSrc.setStartFromEarliest();
-        } else if (DtStringUtil.isJson(offset)) {
+        } else if(StringUtils.equalsIgnoreCase(offset, EKafkaOffset.TIMESTAMP.name())) {
+            runnable.run();
+        }else if (DtStringUtil.isJson(offset)) {
             Map<KafkaTopicPartition, Long> specificStartupOffsets = buildOffsetMap(offset, topicName);
             kafkaSrc.setStartFromSpecificOffsets(specificStartupOffsets);
         } else {
