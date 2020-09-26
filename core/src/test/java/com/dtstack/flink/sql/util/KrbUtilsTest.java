@@ -30,12 +30,12 @@ import java.io.IOException;
  **/
 public class KrbUtilsTest {
     @Test
-    public void testGetUgi() throws IOException {
+    public void testLoginAndReturnUgi() throws IOException {
         String principal = "";
         String keytabPath = "";
         String krb5confPath = "";
         try {
-            KrbUtils.getUgi(principal, keytabPath, krb5confPath);
+            KrbUtils.loginAndReturnUgi(principal, keytabPath, krb5confPath);
         } catch (IllegalArgumentException e) {
             Assert.assertEquals(e.getMessage(), "Can't get Kerberos realm");
         }
