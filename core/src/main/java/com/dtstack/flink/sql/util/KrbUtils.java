@@ -40,7 +40,7 @@ public class KrbUtils {
 //    public static final String FALSE_STR = "false";
 //    public static final String SUBJECT_ONLY_KEY = "javax.security.auth.useSubjectCredsOnly";
 
-    public static UserGroupInformation getUgi(String principal, String keytabPath, String krb5confPath) throws IOException {
+    public static UserGroupInformation loginAndReturnUgi(String principal, String keytabPath, String krb5confPath) throws IOException {
         LOG.info("Kerberos login with principal: {} and keytab: {}", principal, keytabPath);
         System.setProperty(KRB5_CONF_KEY, krb5confPath);
         // TODO 尚未探索出此选项的意义，以后研究明白方可打开

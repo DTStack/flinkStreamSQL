@@ -55,7 +55,7 @@ public class ImpalaOutputFormat extends JDBCUpsertOutputFormat {
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         if (authMech == 1) {
-            UserGroupInformation ugi = KrbUtils.getUgi(principal, keytabPath, krb5confPath);
+            UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(principal, keytabPath, krb5confPath);
             try {
                 ugi.doAs(new PrivilegedExceptionAction<Void>() {
                     @Override
