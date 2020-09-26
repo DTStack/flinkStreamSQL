@@ -249,7 +249,7 @@ public class KuduAllReqRow extends BaseAllReqRow {
         }
 
         if (tableInfo.isEnableKrb()) {
-            UserGroupInformation ugi = KrbUtils.getUgi(tableInfo.getPrincipal(), tableInfo.getKeytab(), tableInfo.getKrb5conf());
+            UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(tableInfo.getPrincipal(), tableInfo.getKeytab(), tableInfo.getKrb5conf());
             return ugi.doAs(new PrivilegedAction<KuduClient>() {
                 @Override
                 public KuduClient run() {
