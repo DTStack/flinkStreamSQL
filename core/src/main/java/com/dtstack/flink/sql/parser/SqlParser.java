@@ -28,8 +28,11 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
 import com.google.common.base.Strings;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Reason:
@@ -51,6 +54,8 @@ public class SqlParser {
         LOCAL_SQL_PLUGIN_ROOT = localSqlPluginRoot;
     }
 
+    private static final Pattern ADD_FIlE_PATTERN = Pattern.compile("(?i).*add\\s+file\\s+.+");
+
     /**
      * flink support sql syntax
      * CREATE TABLE sls_stream() with ();
@@ -70,6 +75,7 @@ public class SqlParser {
                 .replace("\t", " ").trim();
 
         List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SQL_DELIMITER);
+        sqlArr = removeAddFileStmt(sqlArr);
         SqlTree sqlTree = new SqlTree();
         AbstractTableInfoParser tableInfoParser = new AbstractTableInfoParser();
         for(String childSql : sqlArr){
@@ -149,5 +155,19 @@ public class SqlParser {
         }
 
         return sqlTree;
+    }
+
+    /**
+     * remove add file with statment etc. add file /etc/krb5.conf;
+     */
+    private static List<String> removeAddFileStmt(List<String> stmts) {
+        List<String> cleanedStmts = new ArrayList<>();
+        for (String stmt : stmts) {
+            Matcher matcher = ADD_FIlE_PATTERN.matcher(stmt);
+            if(!matcher.matches()) {
+                cleanedStmts.add(stmt);
+            }
+        }
+        return cleanedStmts;
     }
 }
