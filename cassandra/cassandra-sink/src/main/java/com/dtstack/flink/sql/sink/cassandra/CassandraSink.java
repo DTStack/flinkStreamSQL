@@ -58,7 +58,7 @@ public class CassandraSink implements RetractStreamTableSink<Row>, IStreamSinkGe
     protected Integer readTimeoutMillis;
     protected Integer connectTimeoutMillis;
     protected Integer poolTimeoutMillis;
-    protected Integer parallelism = -1;
+    protected Integer parallelism = 1;
     protected String registerTableName;
 
     public CassandraSink() {

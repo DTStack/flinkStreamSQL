@@ -58,7 +58,7 @@ public abstract class AbstractKafkaSink implements RetractStreamTableSink<Row>, 
     protected String[] partitionKeys;
     protected String sinkOperatorName;
     protected Properties properties;
-    protected int parallelism = -1;
+    protected int parallelism = 1;
     protected String topic;
     protected String tableName;
     protected String updateMode;

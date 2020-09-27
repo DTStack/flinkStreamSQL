@@ -76,7 +76,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private TypeInformation[] fieldTypes;
 
-    private int parallelism = -1;
+    private int parallelism = 1;
 
     protected String registerTableName;
 

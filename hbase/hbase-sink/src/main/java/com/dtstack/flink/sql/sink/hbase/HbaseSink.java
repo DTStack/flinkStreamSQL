@@ -63,7 +63,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     private String clientPrincipal;
     private String clientKeytabFile;
-    private int parallelism = -1;
+    private int parallelism = 1;
 
 
     public HbaseSink() {
