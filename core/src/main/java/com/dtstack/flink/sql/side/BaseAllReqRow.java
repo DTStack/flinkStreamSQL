@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.TimeZone;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +52,8 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Row, BaseRow> im
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
     public static final long LOAD_DATA_ERROR_SLEEP_TIME = 5_000L;
+
+    public static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     protected BaseSideInfo sideInfo;
 
@@ -82,7 +85,8 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Row, BaseRow> im
 
         //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
         if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
-            obj = Timestamp.valueOf(((LocalDateTime) obj));
+            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
         }
         return obj;
     }
