@@ -40,6 +40,7 @@ public class KafkaSink extends AbstractKafkaSink {
 
         Properties kafkaProperties = getKafkaProperties(kafka10SinkTableInfo);
         this.tableName = kafka10SinkTableInfo.getName();
+        this.updateMode = kafka10SinkTableInfo.getUpdateMode();
         this.topic = kafka10SinkTableInfo.getTopic();
         this.partitioner = Optional.of(new CustomerFlinkPartition<>());
         this.partitionKeys = getPartitionKeys(kafka10SinkTableInfo);
