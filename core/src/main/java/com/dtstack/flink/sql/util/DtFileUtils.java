@@ -18,26 +18,19 @@
 
 package com.dtstack.flink.sql.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.apache.flink.util.Preconditions;
 
-import java.io.IOException;
+import java.io.File;
 
 /**
  * @program: flinkStreamSQL
  * @author: wuren
- * @create: 2020/09/14
+ * @create: 2020/09/21
  **/
-public class KrbUtilsTest {
-    @Test
-    public void testLoginAndReturnUgi() throws IOException {
-        String principal = "";
-        String keytabPath = "";
-        String krb5confPath = "";
-        try {
-            KrbUtils.loginAndReturnUgi(principal, keytabPath, krb5confPath);
-        } catch (IllegalArgumentException e) {
-            Assert.assertEquals(e.getMessage(), "Can't get Kerberos realm");
-        }
+public class DtFileUtils {
+    public static void checkExists(String path) {
+        File file = new File(path);
+        String errorMsg = "%s file is not exist!";
+        Preconditions.checkState(file.exists(), errorMsg, path);
     }
 }
