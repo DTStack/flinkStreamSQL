@@ -192,12 +192,11 @@ public class TableUtils {
         SqlOperator operator = new SqlAsOperator();
 
         SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
-        String newTableName = joinInfo.getNewTableName();
 
         String newTableAlias = !StringUtils.isEmpty(tableAlias) ? tableAlias : joinInfo.getNewTableAlias();
 
         if (null == sqlNode0) {
-            sqlNode0 = new SqlIdentifier(newTableName, null, sqlParserPos);
+            sqlNode0 = new SqlIdentifier(newTableAlias, null, sqlParserPos);
         }
 
         SqlIdentifier sqlIdentifierAlias = new SqlIdentifier(newTableAlias, null, sqlParserPos);
