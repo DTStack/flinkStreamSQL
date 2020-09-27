@@ -47,6 +47,8 @@ public class ElasticsearchSinkParser extends AbstractTableParser {
 
     private static final String KEY_ES6_PASSWORD = "password";
 
+    public static final String BATCH_SIZE_KEY = "batchSize";
+
     private static final String KEY_TRUE = "true";
 
     @Override
@@ -64,6 +66,7 @@ public class ElasticsearchSinkParser extends AbstractTableParser {
         elasticsearchTableInfo.setId((String) props.get(KEY_ES6_ID_FIELD_INDEX_LIST.toLowerCase()));
         elasticsearchTableInfo.setIndex((String) props.get(KEY_ES6_INDEX.toLowerCase()));
         elasticsearchTableInfo.setEsType((String) props.get(KEY_ES6_TYPE.toLowerCase()));
+        elasticsearchTableInfo.setBatchSize(MathUtil.getIntegerVal(props.getOrDefault(BATCH_SIZE_KEY.toLowerCase(), 500)));
 
         String authMeshStr = (String) props.get(KEY_ES6_AUTHMESH.toLowerCase());
         if (authMeshStr != null && StringUtils.equalsIgnoreCase(KEY_TRUE, authMeshStr)) {

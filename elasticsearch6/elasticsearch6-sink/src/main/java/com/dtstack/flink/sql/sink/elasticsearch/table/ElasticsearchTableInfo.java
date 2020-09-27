@@ -49,6 +49,8 @@ public class ElasticsearchTableInfo extends AbstractTargetTableInfo {
 
     private String password;
 
+    private Integer batchSize = 500;
+
     public String getEsType() {
         return esType;
     }
@@ -117,6 +119,14 @@ public class ElasticsearchTableInfo extends AbstractTargetTableInfo {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Integer getBatchSize() {
+        return batchSize;
+    }
+
+    public void setBatchSize(Integer batchSize) {
+        this.batchSize = batchSize;
     }
 
     public ElasticsearchTableInfo() {
