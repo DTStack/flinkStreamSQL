@@ -104,7 +104,7 @@ public class OracleDialect implements JDBCDialect {
 
 
     private String buildConnectionConditions(String[] uniqueKeyFields) {
-        return Arrays.stream(uniqueKeyFields).map(col -> "T1." + quoteIdentifier(col) + "=T2." + quoteIdentifier(col)).collect(Collectors.joining(","));
+        return Arrays.stream(uniqueKeyFields).map(col -> "T1." + quoteIdentifier(col) + "=T2." + quoteIdentifier(col)).collect(Collectors.joining(" AND "));
     }
 
     /**

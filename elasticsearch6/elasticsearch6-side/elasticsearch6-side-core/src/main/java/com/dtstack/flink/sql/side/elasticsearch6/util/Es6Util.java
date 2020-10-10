@@ -171,6 +171,9 @@ public class Es6Util {
                 return boolQueryBuilder.must(QueryBuilders.existsQuery(info.getFieldName()));
             case "=":
             case "EQUALS":
+                if(StringUtils.isBlank(info.getCondition())){
+                    return boolQueryBuilder;
+                }
                 return boolQueryBuilder.must(QueryBuilders.termQuery(textConvertToKeyword(info.getFieldName(), sideInfo), removeSpaceAndApostrophe(info.getCondition())[0]));
             case "<>":
             case "NOT_EQUALS":

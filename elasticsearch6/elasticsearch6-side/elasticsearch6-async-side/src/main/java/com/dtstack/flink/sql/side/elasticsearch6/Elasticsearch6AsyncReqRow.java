@@ -70,6 +70,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
     private transient RestHighLevelClient rhlClient;
     private SearchRequest searchRequest;
     private List<String> sqlJoinCompareOperate = Lists.newArrayList();
+    private static final Integer MAX_ROW_NUM = 50000;
 
     public Elasticsearch6AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new Elasticsearch6AsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -92,7 +93,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         String key = buildCacheKey(inputParams);
         BoolQueryBuilder boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
         boolQueryBuilder = setInputParams(inputParams, boolQueryBuilder);
-        SearchSourceBuilder searchSourceBuilder = initConfiguration();
+        SearchSourceBuilder searchSourceBuilder = initConfiguration(inputParams);
         searchSourceBuilder.query(boolQueryBuilder);
         searchRequest.source(searchSourceBuilder);
 
@@ -114,6 +115,11 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                             loadDataToCache(searchHits, rowList, cacheContent, input);
                             // determine if all results haven been ferched
                             if (searchHits.length < getFetchSize()) {
+                                break;
+                            }
+                            //protect memory
+                            if (rowList.size() >= MAX_ROW_NUM) {
+                                LOG.warn("row size beyond limit");
                                 break;
                             }
                             if (tableInfo == null && tmpRhlClient == null) {
@@ -225,10 +231,11 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
 
     }
 
-    private SearchSourceBuilder initConfiguration() {
+    private SearchSourceBuilder initConfiguration(Map<String, Object> inputParams) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.size(getFetchSize());
         searchSourceBuilder.sort("_id", SortOrder.DESC);
+        inputParams.keySet().stream().forEach(k ->  searchSourceBuilder.sort(k, SortOrder.DESC));
         String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
         searchSourceBuilder.fetchSource(sideFieldNames, null);
 
