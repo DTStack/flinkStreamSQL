@@ -27,5 +27,6 @@ public enum EKafkaOffset {
 
     LATEST,
     EARLIEST,
+    TIMESTAMP,
     NONE
 }

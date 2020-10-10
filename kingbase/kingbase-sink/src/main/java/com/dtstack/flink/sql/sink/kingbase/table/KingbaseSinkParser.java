@@ -15,7 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.dtstack.flink.sql.sink.ocean.table;
+
+package com.dtstack.flink.sql.sink.kingbase.table;
 
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
@@ -23,20 +24,18 @@ import com.dtstack.flink.sql.table.AbstractTableInfo;
 import java.util.Map;
 
 /**
- * @author : tiezhu
- * @date : 2020/3/24
+ * Date: 2020/09/10
+ * Company: www.dtstack.com
+ *
+ * @author tiezhu
  */
-public class OceanbaseSinkParser extends RdbSinkParser {
-
-    private static final String CURRENT_TYPE = "oceanbase";
+public class KingbaseSinkParser extends RdbSinkParser {
+    private static final String CURRENT_TYPE = "kingbase";
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-
-        AbstractTableInfo oceanbaseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-
-        oceanbaseTableInfo.setType(CURRENT_TYPE);
-
-        return oceanbaseTableInfo;
+        AbstractTableInfo kingbaseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+        kingbaseTableInfo.setType(CURRENT_TYPE);
+        return kingbaseTableInfo;
     }
 }
