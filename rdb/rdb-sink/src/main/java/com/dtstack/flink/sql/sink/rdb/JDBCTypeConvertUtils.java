@@ -204,6 +204,8 @@ public class JDBCTypeConvertUtils {
 				tmpFieldsType[i] = Types.TINYINT;
 			} else if (fieldType.equals(Short.class.getName())) {
 				tmpFieldsType[i] = Types.SMALLINT;
+			} else if(fieldType.equals(Character.class.getName())){
+				tmpFieldsType[i] = Types.CHAR;
 			} else if (fieldType.equals(String.class.getName())) {
 				tmpFieldsType[i] = Types.CHAR;
 			} else if (fieldType.equals(Byte.class.getName())) {

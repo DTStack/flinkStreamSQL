@@ -48,8 +48,10 @@ public class ClassUtil {
                 return Boolean.class;
 
             case "smallint":
+                return Short.class;
             case "smallintunsigned":
             case "tinyint":
+                return Byte.class;
             case "tinyintunsigned":
             case "mediumint":
             case "mediumintunsigned":
