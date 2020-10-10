@@ -68,9 +68,10 @@ public class ClassUtil {
 
             case "varchar":
             case "char":
-            case "text":
             case "string":
                 return String.class;
+            case "text":
+                throw new IllegalArgumentException(str + " type is not support, please use STRING. ");
 
             case "real":
             case "float":
