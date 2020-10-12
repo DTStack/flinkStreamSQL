@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.dtstack.flink.sql.sink.ocean.table;
+package com.dtstack.flink.sql.sink.oceanbase.table;
 
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;

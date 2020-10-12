@@ -73,7 +73,7 @@ public class RowKeyBuilder implements Serializable{
         if(CollectionUtils.isEmpty(fieldList)){
             return "";
         }
-        StringBuffer sb = new StringBuffer("");
+        StringBuilder sb = new StringBuilder("");
         for(ReplaceInfo replaceInfo : fieldList){
 
             if(replaceInfo.getType() == EReplaceType.CONSTANT){
@@ -109,7 +109,7 @@ public class RowKeyBuilder implements Serializable{
     public ReplaceInfo getReplaceInfo(String field){
 
         field = field.trim();
-        if(field.length() <= 2){
+        if(field.length() <= 0){
             throw new RuntimeException(field + " \n" +
                     "Format defined exceptions");
         }

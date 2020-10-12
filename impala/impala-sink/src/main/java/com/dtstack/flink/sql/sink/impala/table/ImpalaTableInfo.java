@@ -50,6 +50,10 @@ public class ImpalaTableInfo extends RdbTableInfo {
 
     public static final String PARTITIONFIELDS_KEY = "partitionFields";
 
+    public static final String STORE_TYPE_KEY = "storeType";
+
+    public static final String KUDU_TYPE = "kudu";
+
     private static final String CURR_TYPE = "impala";
 
     private static final String PARTITION_FIELD_SPLIT_REGEX = ",";
@@ -71,6 +75,11 @@ public class ImpalaTableInfo extends RdbTableInfo {
     private boolean enablePartition;
 
     private String[] partitionFields;
+
+    /**
+     * If the type of storage is kudu, the logic of partition is ignore
+     */
+    private String storeType;
 
     public ImpalaTableInfo() {
         setType(CURR_TYPE);
@@ -148,11 +157,20 @@ public class ImpalaTableInfo extends RdbTableInfo {
         this.partitionFields = StringUtils.split(partitionFields, PARTITION_FIELD_SPLIT_REGEX);
     }
 
+    public void setStoreType(String storeType) {
+        this.storeType = storeType;
+    }
+
+    public String getStoreType() {
+        return storeType;
+    }
+
     @Override
     public boolean check() {
         Preconditions.checkNotNull(this.getUrl(), "impala field of url is required");
         Preconditions.checkNotNull(this.getTableName(), "impala field of tableName is required");
         Preconditions.checkNotNull(this.getAuthMech(), "impala field of authMech is required");
+        Preconditions.checkNotNull(this.getStoreType(), "impala field of storeType is required");
         Integer authMech = getAuthMech();
 
         if (authMech == 1) {
@@ -163,12 +181,12 @@ public class ImpalaTableInfo extends RdbTableInfo {
             Preconditions.checkNotNull(this.getKrbServiceName(), "impala field of krbServiceName is required");
         } else if (authMech == 2) {
             Preconditions.checkNotNull(this.getUserName(), "impala field of userName is required");
-        }else if (authMech == 3) {
+        } else if (authMech == 3) {
             Preconditions.checkNotNull(this.getUserName(), "impala field of userName is required");
             Preconditions.checkNotNull(this.getPassword(), "impala field of password is required");
         }
 
-        if (isEnablePartition()) {
+        if (!this.getStoreType().equalsIgnoreCase(KUDU_TYPE) && isEnablePartition()) {
             Preconditions.checkArgument(this.getPartitionFields().length > 0, "impala field of partitionFields is required");
         }
 
