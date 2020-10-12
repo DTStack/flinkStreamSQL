@@ -6,7 +6,6 @@ import com.dtstack.flink.sql.util.KrbUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import java.io.IOException;
-import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 
@@ -24,28 +23,28 @@ public class ImpalaOutputFormat extends JDBCUpsertOutputFormat {
     private Integer authMech;
 
     public ImpalaOutputFormat(
-        JDBCOptions options,
-        String[] fieldNames,
-        String[] keyFields,
-        String[] partitionFields,
-        int[] fieldTypes,
-        int flushMaxSize,
-        long flushIntervalMills,
-        boolean allReplace,
-        String updateMode,
-        Integer authMech,
-        String keytabPath,
-        String krb5confPath,
-        String principal) {
+            JDBCOptions options,
+            String[] fieldNames,
+            String[] keyFields,
+            String[] partitionFields,
+            int[] fieldTypes,
+            int flushMaxSize,
+            long flushIntervalMills,
+            boolean allReplace,
+            String updateMode,
+            Integer authMech,
+            String keytabPath,
+            String krb5confPath,
+            String principal) {
         super(options,
-            fieldNames,
-            keyFields,
-            partitionFields,
-            fieldTypes,
-            flushMaxSize,
-            flushIntervalMills,
-            allReplace,
-            updateMode);
+                fieldNames,
+                keyFields,
+                partitionFields,
+                fieldTypes,
+                flushMaxSize,
+                flushIntervalMills,
+                allReplace,
+                updateMode);
         this.authMech = authMech;
         this.keytabPath = keytabPath;
         this.krb5confPath = krb5confPath;
@@ -71,11 +70,11 @@ public class ImpalaOutputFormat extends JDBCUpsertOutputFormat {
             super.open(taskNumber, numTasks);
         }
     }
-    
+
     public static Builder impalaBuilder() {
         return new Builder();
     }
-    
+
     public static class Builder {
         private Integer authMech;
         private String keytabPath;
@@ -178,24 +177,24 @@ public class ImpalaOutputFormat extends JDBCUpsertOutputFormat {
             this.principal = principal;
             return this;
         }
-        
+
         public ImpalaOutputFormat build() {
             checkNotNull(options, "No options supplied.");
             checkNotNull(fieldNames, "No fieldNames supplied.");
             return new ImpalaOutputFormat(
-                options,
-                fieldNames,
-                keyFields,
-                partitionFields,
-                fieldTypes,
-                flushMaxSize,
-                flushIntervalMills,
-                allReplace,
-                updateMode,
-                authMech,
-                keytabPath,
-                krb5confPath,
-                principal);
+                    options,
+                    fieldNames,
+                    keyFields,
+                    partitionFields,
+                    fieldTypes,
+                    flushMaxSize,
+                    flushIntervalMills,
+                    allReplace,
+                    updateMode,
+                    authMech,
+                    keytabPath,
+                    krb5confPath,
+                    principal);
         }
     }
 }

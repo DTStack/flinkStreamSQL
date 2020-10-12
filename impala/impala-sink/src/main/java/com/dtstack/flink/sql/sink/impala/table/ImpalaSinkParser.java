@@ -59,7 +59,7 @@ public class ImpalaSinkParser extends RdbSinkParser {
         Integer authMech = MathUtil.getIntegerVal(props.get(ImpalaTableInfo.AUTHMECH_KEY.toLowerCase()));
         authMech = authMech == null ? 0 : authMech;
         impalaTableInfo.setAuthMech(authMech);
-        List authMechs = Arrays.asList(new Integer[]{0, 1, 2, 3});
+        List<Integer> authMechs = Arrays.asList(0, 1, 2, 3);
 
         if (!authMechs.contains(authMech)) {
             throw new IllegalArgumentException("The value of authMech is illegal, Please select 0, 1, 2, 3");
@@ -79,20 +79,26 @@ public class ImpalaSinkParser extends RdbSinkParser {
             impalaTableInfo.setPassword(MathUtil.getString(props.get(ImpalaTableInfo.PASSWORD_KEY.toLowerCase())));
         }
 
+        String storeType = MathUtil.getString(props.get(ImpalaTableInfo.STORE_TYPE_KEY.toLowerCase()));
+        impalaTableInfo.setStoreType(storeType);
+
         String enablePartitionStr = (String) props.get(ImpalaTableInfo.ENABLEPARITION_KEY.toLowerCase());
         boolean enablePartition = MathUtil.getBoolean(enablePartitionStr == null ? "false" : enablePartitionStr);
         impalaTableInfo.setEnablePartition(enablePartition);
-        if (enablePartition) {
+
+        if (!storeType.equalsIgnoreCase(ImpalaTableInfo.KUDU_TYPE) && enablePartition) {
             String partitionFields = MathUtil.getString(props.get(ImpalaTableInfo.PARTITIONFIELDS_KEY.toLowerCase()));
             impalaTableInfo.setPartitionFields(partitionFields);
         }
+
+        impalaTableInfo.setType(CURR_TYPE);
 
         impalaTableInfo.check();
         return impalaTableInfo;
     }
 
     @Override
-    public  Class dbTypeConvertToJavaType(String fieldType) {
+    public Class dbTypeConvertToJavaType(String fieldType) {
         switch (fieldType.toLowerCase()) {
             case "boolean":
                 return Boolean.class;
