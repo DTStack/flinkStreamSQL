@@ -18,18 +18,23 @@
 
 package com.dtstack.flink.sql.sink.impala;
 
+import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Date: 2020/1/17
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class ImpalaDialect implements JDBCDialect {
@@ -41,9 +46,14 @@ public class ImpalaDialect implements JDBCDialect {
 
     private List<String> primaryKeys;
 
-    public ImpalaDialect(TypeInformation[] fieldTypes, List<String> primaryKeys){
+    private String storeType;
+
+    public ImpalaDialect(TypeInformation[] fieldTypes,
+                         List<String> primaryKeys,
+                         String storeType) {
         this.fieldTypes = fieldTypes;
         this.primaryKeys = primaryKeys;
+        this.storeType = storeType;
     }
 
     @Override
@@ -65,7 +75,7 @@ public class ImpalaDialect implements JDBCDialect {
     public String getUpdateStatement(String tableName, String[] fieldNames, String[] conditionFields) {
         //跳过primary key字段
         String setClause = Arrays.stream(fieldNames)
-                .filter(f -> CollectionUtils.isNotEmpty(primaryKeys) ? !primaryKeys.contains(f) : true)
+                .filter(f -> !CollectionUtils.isNotEmpty(primaryKeys) || !primaryKeys.contains(f))
                 .map(f -> quoteIdentifier(f) + "=?")
                 .collect(Collectors.joining(", "));
         String conditionClause = Arrays.stream(conditionFields)
@@ -83,6 +93,10 @@ public class ImpalaDialect implements JDBCDialect {
 
         List<String> partitionFieldsList = Objects.isNull(partitionFields) ? Lists.newArrayList() : Arrays.asList(partitionFields);
 
+        if (storeType.equalsIgnoreCase(ImpalaTableInfo.KUDU_TYPE)) {
+            return buildKuduInsertSql(schemaInfo, tableName, fieldNames, fieldTypes);
+        }
+
         String columns = Arrays.stream(fieldNames)
                 .filter(f -> !partitionFieldsList.contains(f))
                 .map(this::quoteIdentifier)
@@ -90,7 +104,7 @@ public class ImpalaDialect implements JDBCDialect {
 
         String placeholders = Arrays.stream(fieldTypes)
                 .map(f -> {
-                    if(String.class.getName().equals(f.getTypeClass().getName())){
+                    if (String.class.getName().equals(f.getTypeClass().getName())) {
                         return "cast( ? as string)";
                     }
                     return "?";
@@ -105,5 +119,21 @@ public class ImpalaDialect implements JDBCDialect {
 
         return "INSERT INTO " + schemaInfo + quoteIdentifier(tableName) +
                 "(" + columns + ")" + partitionStatement + " VALUES (" + placeholders + ")";
+    }
+
+    private String buildKuduInsertSql(String schemaInfo, String tableName, String[] fieldNames, TypeInformation[] fieldTypes) {  // kudu表的Insert语句
+        String columns = Arrays.stream(fieldNames)
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
+        String placeholders = Arrays.stream(fieldTypes)
+                .map(f -> {
+                    if (String.class.getName().equals(f.getTypeClass().getName())) {
+                        return "cast( ? as string)";
+                    }
+                    return "?";
+                })
+                .collect(Collectors.joining(", "));
+        return "INSERT INTO " + schemaInfo + quoteIdentifier(tableName) +
+                "(" + columns + ")" + " VALUES (" + placeholders + ")";
     }
 }
