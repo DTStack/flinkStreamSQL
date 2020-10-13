@@ -28,6 +28,7 @@ import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
+import com.dtstack.flink.sql.util.SqlCheckUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
@@ -131,7 +132,7 @@ public class SideSqlExec {
 
                 } else if (pollSqlNode.getKind() == SELECT) {
                     Preconditions.checkState(createView != null, "select sql must included by create view");
-                    Table table = tableEnv.sqlQuery(pollObj.toString());
+                    Table table = SqlCheckUtils.sqlQueryWithCheck(tableEnv, pollObj.toString());
 
                     if (createView.getFieldsInfoStr() == null) {
                         tableEnv.registerTable(createView.getTableName(), table);
