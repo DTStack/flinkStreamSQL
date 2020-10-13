@@ -49,7 +49,7 @@ public abstract class AbstractTableInfo implements Serializable {
     private final List<String> fieldList = Lists.newArrayList();
 
     /**key:别名, value: realField */
-    private Map<String, String> physicalFields = Maps.newHashMap();
+    private Map<String, String> physicalFields = Maps.newLinkedHashMap();
 
     private final List<String> fieldTypeList = Lists.newArrayList();
 
