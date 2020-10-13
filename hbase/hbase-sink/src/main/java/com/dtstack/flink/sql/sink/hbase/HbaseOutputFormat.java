@@ -27,7 +27,11 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.AuthUtil;
+import org.apache.hadoop.hbase.ChoreService;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.ScheduledChore;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Put;
@@ -39,9 +43,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author: jingzhen@dtstack.com
@@ -327,8 +331,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             String[] qualifiers = new String[format.columnNames.length];
 
             if (format.columnNameFamily != null) {
-                Set<String> keySet = format.columnNameFamily.keySet();
-                String[] columns = keySet.toArray(new String[keySet.size()]);
+                List<String> keyList = new LinkedList<>(format.columnNameFamily.keySet());
+                String[] columns = keyList.toArray(new String[0]);
                 for (int i = 0; i < columns.length; ++i) {
                     String col = columns[i];
                     String[] part = col.split(":");
