@@ -11,40 +11,18 @@
     <modules>
         <module>core</module>
         <module>kafka-base</module>
-        <module>kafka09</module>
-        <module>kafka10</module>
-        <module>kafka11</module>
         <module>kafka</module>
         <module>mysql</module>
-        <module>hbase</module>
-        <module>elasticsearch5</module>
-        <module>elasticsearch6</module>
-        <module>mongo</module>
-        <module>redis5</module>
         <module>launcher</module>
         <module>rdb</module>
-        <module>sqlserver</module>
-        <module>oracle</module>
-        <module>cassandra</module>
-        <module>kudu</module>
-        <module>postgresql</module>
-        <module>serversocket</module>
         <module>console</module>
-        <module>clickhouse</module>
-        <module>impala</module>
-        <module>db2</module>
-        <module>polardb</module>
-        <module>oceanbase</module>
-        <module>tidb</module>
-        <module>dameng</module>
-        <module>kingbase</module>
-        <!--        <module>localTest</module>-->
 
     </modules>
 
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <flink.version>1.10.0</flink.version>
+        <flink.version>1.11.1</flink.version>
         <hadoop.version>2.7.3</hadoop.version>
         <junit.version>4.12</junit.version>
         <mockito.version>2.21.0</mockito.version>

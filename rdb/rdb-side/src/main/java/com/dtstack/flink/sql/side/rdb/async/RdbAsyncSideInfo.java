@@ -18,13 +18,7 @@
 
 package com.dtstack.flink.sql.side.rdb.async;
 
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-
-import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.PredicateInfo;
-import com.dtstack.flink.sql.side.BaseSideInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.google.common.collect.Lists;
@@ -33,9 +27,11 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +51,9 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
     private static final long serialVersionUID = 1942629132469918611L;
     private static final Logger LOG = LoggerFactory.getLogger(RdbAsyncSideInfo.class);
 
+    public RdbAsyncSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
 
     public RdbAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
@@ -79,9 +78,19 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
 
         sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(StringUtils.split(sideSelectFields, ",")),
                 equalFieldList, sqlJoinCompareOperate, sideTableInfo.getPredicateInfoes());
-        LOG.info("----------dimension sql query-----------\n{}", sqlCondition);
+        LOG.info(String.format("--------dimension sql query: %s-------\n", sqlCondition));
     }
 
+    @Override
+    public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
+        flinkPlannerSqlCondition = getSelectFromStatement(
+                getTableName(rdbSideTableInfo)
+                , new ArrayList(sideTableInfo.getPhysicalFields().values())
+                , getRealLookupKeys(Arrays.asList(lookupKeys))
+                , sideTableInfo.getPredicateInfoes());
+        LOG.info(String.format("--------dimension sql query: %s-------\n", flinkPlannerSqlCondition));
+    }
 
     @Override
     public void dealOneEqualCon(SqlNode sqlNode, String sideTableName) {
@@ -148,6 +157,35 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
 
         String whereClause = conditionFields.stream()
                 .map(f -> quoteIdentifier(sideTableInfo.getPhysicalFields().getOrDefault(f, f)) + sqlJoinCompareOperate.get(conditionFields.indexOf(f)) + wrapperPlaceholder(f))
+                .collect(Collectors.joining(" AND "));
+
+        String predicateClause = predicateInfoes.stream()
+                .map(this::buildFilterCondition)
+                .collect(Collectors.joining(" AND "));
+
+        String dimQuerySql = "SELECT " + fromClause + " FROM " + tableName + (conditionFields.size() > 0 ? " WHERE " + whereClause : "")
+                + (predicateInfoes.size() > 0 ? " AND " + predicateClause : "") + getAdditionalWhereClause();
+
+        return dimQuerySql;
+    }
+
+    /**
+     * 构建异步维表的查询sql
+     *
+     * @param tableName       表名称
+     * @param selectFields    选择字段
+     * @param conditionFields 过滤字段
+     * @param predicateInfoes 谓词信息
+     * @return
+     */
+    public String getSelectFromStatement(String tableName, List<String> selectFields, List<String> conditionFields,
+                                         List<PredicateInfo> predicateInfoes) {
+        String fromClause = selectFields.stream()
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
+
+        String whereClause = conditionFields.stream()
+                .map(f -> quoteIdentifier(f) + "=?")
                 .collect(Collectors.joining(" AND "));
 
         String predicateClause = predicateInfoes.stream()

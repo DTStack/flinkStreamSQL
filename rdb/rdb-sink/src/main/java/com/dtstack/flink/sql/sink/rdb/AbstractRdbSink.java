@@ -115,12 +115,6 @@ public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Se
         return this;
     }
 
-
-    @Override
-    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        consumeDataStream(dataStream);
-    }
-
     @Override
     public DataStreamSink<?> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         DataStreamSink dataStreamSink = dataStream.addSink(new OutputFormatSinkFunction(getOutputFormat()))

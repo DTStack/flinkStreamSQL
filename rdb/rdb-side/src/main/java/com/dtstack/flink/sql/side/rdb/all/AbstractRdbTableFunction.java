@@ -18,45 +18,34 @@
 
 package com.dtstack.flink.sql.side.rdb.all;
 
-import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
+import com.dtstack.flink.sql.side.table.BaseTableFunction;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.configuration.Configuration;
+import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
+import org.apache.flink.types.RowKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
- * side operator with cache for all(period reload)
- * Date: 2018/11/26
- * Company: www.dtstack.com
- *
- * @author maqi
- */
-
-public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
-
-    private static final long serialVersionUID = 2098635140857937718L;
-
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractRdbAllReqRow.class);
+ * @author: chuixue
+ * @create: 2020-10-10 18:58
+ * @description:Rdb全量维表公共的类
+ **/
+abstract public class AbstractRdbTableFunction extends BaseTableFunction {
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractRdbTableFunction.class);
 
     private static final int CONN_RETRY_NUM = 3;
 
@@ -64,13 +53,13 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
-    public AbstractRdbAllReqRow(BaseSideInfo sideInfo) {
+    public AbstractRdbTableFunction(BaseSideInfo sideInfo) {
         super(sideInfo);
     }
 
     @Override
-    public void open(Configuration parameters) throws Exception {
-        super.open(parameters);
+    public void open(FunctionContext context) throws Exception {
+        super.open(context);
         RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         LOG.info("rdb dim table config info: {} ", tableInfo.toString());
     }
@@ -95,54 +84,38 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         LOG.info("----- rdb all cacheRef reload end:{}", Calendar.getInstance());
     }
 
-    @Override
-    public void flatMap(Row value, Collector<Row> out) throws Exception {
-        List<Integer> equalValIndex = sideInfo.getEqualValIndex();
-        ArrayList<Object> inputParams = equalValIndex.stream()
-                .map(value::getField)
-                .filter(object -> null != object)
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
-            Row row = fillData(value, null);
-            out.collect(row);
-            return;
-        }
-
-        String cacheKey = inputParams.stream()
+    /**
+     * 每条数据都会进入该方法
+     *
+     * @param keys 维表join key的值
+     */
+    public void eval(Object... keys) {
+        String cacheKey = Arrays.stream(keys)
                 .map(Object::toString)
                 .collect(Collectors.joining("_"));
-
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
-        if (CollectionUtils.isEmpty(cacheList) && sideInfo.getJoinType() == JoinType.LEFT) {
-            Row row = fillData(value, null);
-            out.collect(row);
-        } else if (!CollectionUtils.isEmpty(cacheList)) {
-            cacheList.stream().forEach(one -> out.collect((fillData(value, one))));
+        // 有数据才往下发，(左/内)连接flink会做相应的处理
+        if (!CollectionUtils.isEmpty(cacheList)) {
+            cacheList.stream().forEach(one -> collect(fillData(one)));
         }
     }
 
     @Override
-    public Row fillData(Row input, Object sideInput) {
+    public Row fillData(Object sideInput) {
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
-
-        for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            // origin value
-            Object obj = input.getField(entry.getValue());
-            obj = dealTimeAttributeType(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass(), obj);
-            row.setField(entry.getKey(), obj);
+        Collection<String> fields = sideInfo.getSideTableInfo().getPhysicalFields().values();
+        String[] fieldsArr = fields.toArray(new String[fields.size()]);
+        Row row = new Row(fieldsArr.length);
+        for (int i = 0; i < fieldsArr.length; i++) {
+            row.setField(i, cacheInfo.get(fieldsArr[i]));
         }
-
-        for (Map.Entry<Integer, String> entry : sideInfo.getSideFieldNameIndex().entrySet()) {
-            if (cacheInfo == null) {
-                row.setField(entry.getKey(), null);
-            } else {
-                row.setField(entry.getKey(), cacheInfo.get(entry.getValue()));
-            }
-
-        }
+        row.setKind(RowKind.INSERT);
         return row;
+    }
+
+    @Override
+    public Row fillData(Row input, Object sideInput) {
+        return null;
     }
 
     /**
@@ -157,7 +130,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
         if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
             //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+            obj = ((Timestamp) obj).getTime() + (long) LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
         }
         return obj;
     }
@@ -197,23 +170,28 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
     private void queryAndFillData(Map<String, List<Map<String, Object>>> tmpCache, Connection connection) throws SQLException {
         //load data from table
-        String sql = sideInfo.getSqlCondition();
+        String sql = sideInfo.getFlinkPlannerSqlCondition();
         Statement statement = connection.createStatement();
         statement.setFetchSize(getFetchSize());
         ResultSet resultSet = statement.executeQuery(sql);
 
-        String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
+        String[] sideFieldNames = sideInfo.getSideTableInfo().getPhysicalFields().values().stream().toArray(String[]::new);
         String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
         while (resultSet.next()) {
             Map<String, Object> oneRow = Maps.newHashMap();
-            for (String fieldName : sideFieldNames) {
-                Object object = resultSet.getObject(fieldName.trim());
-                int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
-                object = SwitchUtil.getTarget(object, fields[fieldIndex]);
-                oneRow.put(fieldName.trim(), object);
+            for (int i = 0; i < sideFieldNames.length; i++) {
+                Object object = resultSet.getObject(sideFieldNames[i].trim());
+                object = SwitchUtil.getTarget(object, fields[i]);
+                oneRow.put(sideFieldNames[i].trim(), object);
             }
 
-            String cacheKey = sideInfo.getEqualFieldList().stream()
+            // 拿到维表字段的物理类型
+            String[] lookupKeys = sideInfo.getLookupKeys();
+            List<String> physicalFields = Arrays.stream(lookupKeys)
+                    .map(sideInfo.getSideTableInfo().getPhysicalFields()::get)
+                    .collect(Collectors.toList());
+
+            String cacheKey = physicalFields.stream()
                     .map(oneRow::get)
                     .map(Object::toString)
                     .collect(Collectors.joining("_"));
@@ -230,11 +208,10 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     /**
      * get jdbc connection
      *
-     * @param dbURL
+     * @param dbUrl
      * @param userName
      * @param password
      * @return
      */
-    public abstract Connection getConn(String dbURL, String userName, String password);
-
+    public abstract Connection getConn(String dbUrl, String userName, String password);
 }

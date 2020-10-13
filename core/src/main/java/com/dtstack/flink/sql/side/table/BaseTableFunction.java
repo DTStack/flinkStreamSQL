@@ -16,16 +16,17 @@
  * limitations under the License.
  */
 
-
-package com.dtstack.flink.sql.side;
+package com.dtstack.flink.sql.side.table;
 
 import com.dtstack.flink.sql.factory.DTThreadFactory;
-import org.apache.calcite.sql.JoinType;
-import org.apache.flink.api.common.functions.RichFlatMapFunction;
-import org.apache.flink.configuration.Configuration;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAllReqRow;
+import com.dtstack.flink.sql.side.BaseSideInfo;
+import com.dtstack.flink.sql.side.ISideReqRow;
+import org.apache.flink.table.functions.FunctionContext;
+import org.apache.flink.table.functions.TableFunction;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,15 +39,11 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Reason:
- * Date: 2018/9/18
- * Company: www.dtstack.com
- *
- * @author xuchao
- */
-
-public abstract class BaseAllReqRow extends RichFlatMapFunction<Row, Row> implements ISideReqRow {
-
+ * @author: chuixue
+ * @create: 2020-10-10 19:11
+ * @description:全量维表公共的类
+ **/
+abstract public class BaseTableFunction extends TableFunction<Row> implements ISideReqRow {
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
     public static final long LOAD_DATA_ERROR_SLEEP_TIME = 5_000L;
@@ -57,25 +54,35 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Row, Row> implem
 
     private ScheduledExecutorService es;
 
-    public BaseAllReqRow(BaseSideInfo sideInfo) {
+    public BaseTableFunction(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
-
     }
 
+    /**
+     * 初始化加载数据库中数据
+     *
+     * @throws SQLException
+     */
     protected abstract void initCache() throws SQLException;
 
+    /**
+     * 定时加载数据库中数据
+     */
     protected abstract void reloadCache();
 
     @Override
-    public void open(Configuration parameters) throws Exception {
-        super.open(parameters);
+    public void open(FunctionContext context) throws Exception {
+        super.open(context);
         initCache();
         LOG.info("----- all cacheRef init end-----");
 
         //start reload cache thread
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         es = new ScheduledThreadPoolExecutor(1, new DTThreadFactory("cache-all-reload"));
-        es.scheduleAtFixedRate(() -> reloadCache(), sideTableInfo.getCacheTimeout(), sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS);
+        es.scheduleAtFixedRate(() -> reloadCache()
+                , sideTableInfo.getCacheTimeout()
+                , sideTableInfo.getCacheTimeout()
+                , TimeUnit.MILLISECONDS);
     }
 
     protected Object convertTimeIndictorTypeInfo(Integer index, Object obj) {
@@ -84,21 +91,13 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Row, Row> implem
         //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
         if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
             //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+            obj = ((Timestamp) obj).getTime() + (long) LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
         }
         return obj;
     }
 
-    protected void sendOutputRow(Row value, Object sideInput, Collector<Row> out) {
-        if (sideInput == null && sideInfo.getJoinType() != JoinType.LEFT) {
-            return;
-        }
-        Row row = fillData(value, sideInput);
-        out.collect(row);
-    }
-
     @Override
-    public void close() throws Exception {
+    public void close() {
         if (null != es && !es.isShutdown()) {
             es.shutdown();
         }

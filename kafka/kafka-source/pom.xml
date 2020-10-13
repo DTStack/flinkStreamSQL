@@ -18,6 +18,12 @@
     <dependencies>
         <dependency>
             <artifactId>sql.source.kafka-base</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>flink-connector-kafka_2.11</artifactId>
+                    <groupId>org.apache.flink</groupId>
+                </exclusion>
+            </exclusions>
             <groupId>com.dtstack.flink</groupId>
             <version>1.0-SNAPSHOT</version>
         </dependency>

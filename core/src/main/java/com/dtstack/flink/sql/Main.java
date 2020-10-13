@@ -24,6 +24,7 @@ package com.dtstack.flink.sql;
 import com.dtstack.flink.sql.exec.ExecuteProcessHelper;
 import com.dtstack.flink.sql.exec.ParamsInfo;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +39,7 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
-        StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
+        StreamTableEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
         env.execute(paramsInfo.getName());
         LOG.info("program {} execution success", paramsInfo.getName());
     }

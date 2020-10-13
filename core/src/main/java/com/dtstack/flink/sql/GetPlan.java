@@ -23,6 +23,10 @@ import com.dtstack.flink.sql.exec.ExecuteProcessHelper;
 import com.dtstack.flink.sql.exec.ParamsInfo;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
+import org.apache.flink.table.api.bridge.java.internal.StreamTableEnvironmentImpl;
+
+import java.lang.reflect.Field;
 
 /**
  *  local模式获取sql任务的执行计划
@@ -36,7 +40,13 @@ public class GetPlan {
         try {
             long start = System.currentTimeMillis();
             ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
-            StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
+            StreamTableEnvironment tableEnv = ExecuteProcessHelper.getStreamExecution(paramsInfo);
+
+            StreamTableEnvironmentImpl tableEnvImpl = (StreamTableEnvironmentImpl) tableEnv;
+            Field executionEnvironmentField = tableEnvImpl.getClass().getDeclaredField("executionEnvironment");
+            executionEnvironmentField.setAccessible(true);
+            StreamExecutionEnvironment env = (StreamExecutionEnvironment) executionEnvironmentField.get(tableEnvImpl);
+
             String executionPlan = env.getExecutionPlan();
             long end = System.currentTimeMillis();
             return ApiResult.createSuccessResultJsonStr(executionPlan, end - start);

@@ -21,9 +21,10 @@ package com.dtstack.flink.sql.launcher.factory;
 import org.apache.flink.client.deployment.ClusterDescriptor;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.ConfigurationUtils;
+import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.clusterframework.TaskExecutorProcessUtils;
+import org.apache.flink.runtime.jobmanager.JobManagerProcessUtils;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -38,8 +39,10 @@ public interface AbstractClusterClientFactory {
     default ClusterSpecification getClusterSpecification(Configuration configuration) {
         checkNotNull(configuration);
 
-        final int jobManagerMemoryMb = ConfigurationUtils
-                .getJobManagerHeapMemory(configuration)
+        final int jobManagerMemoryMb = JobManagerProcessUtils
+                .processSpecFromConfigWithNewOptionToInterpretLegacyHeap(configuration,
+                        JobManagerOptions.TOTAL_PROCESS_MEMORY)
+                .getTotalProcessMemorySize()
                 .getMebiBytes();
 
         final int taskManagerMemoryMb = TaskExecutorProcessUtils

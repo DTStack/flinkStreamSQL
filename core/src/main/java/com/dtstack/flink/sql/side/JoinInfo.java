@@ -25,7 +25,6 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlNode;
-import com.google.common.base.Strings;
 
 import java.io.Serializable;
 import java.util.Map;

@@ -16,55 +16,52 @@
  * limitations under the License.
  */
 
-
 package com.dtstack.flink.sql.side.rdb.async;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
-import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
+import com.dtstack.flink.sql.side.table.BaseAsyncTableFunction;
 import com.dtstack.flink.sql.util.DateUtil;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
+import org.apache.flink.types.RowKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * Date: 2018/11/26
- * Company: www.dtstack.com
- *
- * @author maqi
- */
-
-public class RdbAsyncReqRow extends BaseAsyncReqRow {
+ * @author: chuixue
+ * @create: 2020-10-12 19:00
+ * @description:Rdb异步维表公共的类
+ **/
+public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
 
     private static final long serialVersionUID = 2098635244857937720L;
 
-    private static final Logger LOG = LoggerFactory.getLogger(RdbAsyncReqRow.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RdbAsyncTableFunction.class);
 
     public final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 1;
 
@@ -90,15 +87,14 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private final static int MAX_TASK_QUEUE_SIZE = 100000;
 
-
     @Override
-    public void open(Configuration parameters) throws Exception {
-        super.open(parameters);
+    public void open(FunctionContext context) throws Exception {
+        super.open(context);
         executor = new ThreadPoolExecutor(MAX_DB_CONN_POOL_SIZE_LIMIT, MAX_DB_CONN_POOL_SIZE_LIMIT, 0, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE), new DTThreadFactory("rdbAsyncExec"), new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
-    public RdbAsyncReqRow(BaseSideInfo sideInfo) {
+    public RdbAsyncTableFunction(BaseSideInfo sideInfo) {
         super(sideInfo);
         init(sideInfo);
     }
@@ -114,7 +110,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     protected void preInvoke(Row input, ResultFuture<Row> resultFuture) { }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<Row> resultFuture) throws Exception {
+    public void handleAsyncInvoke(CompletableFuture<Collection<Row>> future, Object... keys) throws Exception {
         AtomicLong networkLogCounter = new AtomicLong(0L);
         //network is unhealthy
         while (!connectionStatus.get()) {
@@ -123,33 +119,44 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             }
             Thread.sleep(100);
         }
-        Map<String, Object> params = formatInputParam(inputParams);
-        executor.execute(() -> connectWithRetry(params, input, resultFuture, rdbSqlClient));
+        List<Object> convertKeys = Stream.of(keys)
+                .map(key -> convertDataType(key))
+                .collect(Collectors.toList());
+        executor.execute(() -> connectWithRetry(future, rdbSqlClient, convertKeys.toArray(new Object[convertKeys.size()])));
     }
 
-    protected void asyncQueryData(        Map<String, Object> inputParams,
-                                  Row input,
-                                  ResultFuture<Row> resultFuture,
+    /**
+     * 执行异步查询
+     *
+     * @param future
+     * @param rdbSqlClient 数据库客户端
+     * @param failCounter  失败次数
+     * @param finishFlag   完成标识
+     * @param latch        同步标识
+     * @param keys         关联字段值
+     */
+    protected void asyncQueryData(CompletableFuture<Collection<Row>> future,
                                   SQLClient rdbSqlClient,
                                   AtomicLong failCounter,
                                   AtomicBoolean finishFlag,
-                                  CountDownLatch latch) {
-        doAsyncQueryData(inputParams,
-            input, resultFuture,
-            rdbSqlClient,
-            failCounter,
-            finishFlag,
-            latch);
+                                  CountDownLatch latch,
+                                  Object... keys) {
+        doAsyncQueryData(
+                future,
+                rdbSqlClient,
+                failCounter,
+                finishFlag,
+                latch,
+                keys);
     }
 
     final protected void doAsyncQueryData(
-        Map<String, Object> inputParams,
-        Row input,
-        ResultFuture<Row> resultFuture,
-        SQLClient rdbSqlClient,
-        AtomicLong failCounter,
-        AtomicBoolean finishFlag,
-        CountDownLatch latch) {
+            CompletableFuture<Collection<Row>> future,
+            SQLClient rdbSqlClient,
+            AtomicLong failCounter,
+            AtomicBoolean finishFlag,
+            CountDownLatch latch,
+            Object... keys) {
         rdbSqlClient.getConnection(conn -> {
             try {
                 if (conn.failed()) {
@@ -158,36 +165,41 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                         LOG.error("getConnection error", conn.cause());
                     }
                     if (failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)) {
-                        resultFuture.completeExceptionally(conn.cause());
+                        future.completeExceptionally(conn.cause());
                         finishFlag.set(true);
                     }
                     return;
                 }
                 connectionStatus.set(true);
-                registerTimerAndAddToHandler(input, resultFuture);
 
-                handleQuery(conn.result(), inputParams, input, resultFuture);
+                handleQuery(conn.result(), future, keys);
                 finishFlag.set(true);
             } catch (Exception e) {
-                dealFillDataError(input, resultFuture, e);
+                dealFillDataError(future, e);
             } finally {
                 latch.countDown();
             }
         });
     }
 
-    private void connectWithRetry(Map<String, Object> inputParams, Row input, ResultFuture<Row> resultFuture, SQLClient rdbSqlClient) {
+    /**
+     * @param future
+     * @param rdbSqlClient 数据库客户端
+     * @param keys         关联字段值
+     */
+    private void connectWithRetry(CompletableFuture<Collection<Row>> future, SQLClient rdbSqlClient, Object... keys) {
         AtomicLong failCounter = new AtomicLong(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while (!finishFlag.get()) {
             try {
                 CountDownLatch latch = new CountDownLatch(1);
-                asyncQueryData(inputParams,
-                    input, resultFuture,
-                    rdbSqlClient,
-                    failCounter,
-                    finishFlag,
-                    latch);
+                asyncQueryData(
+                        future,
+                        rdbSqlClient,
+                        failCounter,
+                        finishFlag,
+                        latch,
+                        keys);
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
@@ -208,6 +220,12 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         }
     }
 
+    /**
+     * 数据类型转换
+     *
+     * @param val 原始类型
+     * @return 结果类型
+     */
     private Object convertDataType(Object val) {
         if (val == null) {
             // OK
@@ -245,33 +263,32 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public String buildCacheKey(Map<String, Object> inputParam) {
-        return StringUtils.join(inputParam.values(), "_");
+    public String buildCacheKey(Object... keys) {
+        return Arrays.stream(keys)
+                .map(Object::toString)
+                .collect(Collectors.joining("_"));
+    }
+
+    @Override
+    public Row fillData(Object sideInput) {
+        JsonArray jsonArray = (JsonArray) sideInput;
+        String[] fieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
+        Row row = new Row(fieldTypes.length);
+        if (jsonArray != null) {
+            for (int i = 0; i < fieldTypes.length; i++) {
+                String fieldType = fieldTypes[i];
+                Object object = SwitchUtil.getTarget(jsonArray.getValue(i), fieldType);
+                row.setField(i, object);
+            }
+        }
+        row.setKind(RowKind.INSERT);
+        return row;
     }
 
     @Override
     public Row fillData(Row input, Object line) {
-        JsonArray jsonArray = (JsonArray) line;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
-        for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            Object obj = input.getField(entry.getValue());
-            obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
-            row.setField(entry.getKey(), obj);
-        }
-
-        for (Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()) {
-            if (jsonArray == null) {
-                row.setField(entry.getKey(), null);
-            } else {
-                String fieldType = sideInfo.getSelectSideFieldType(entry.getValue());
-                Object object = SwitchUtil.getTarget(jsonArray.getValue(entry.getValue()), fieldType);
-                row.setField(entry.getKey(), object);
-            }
-        }
-
-        return row;
+        return null;
     }
-
 
     @Override
     public void close() throws Exception {
@@ -290,12 +307,20 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         this.rdbSqlClient = rdbSqlClient;
     }
 
-    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, Row input, ResultFuture<Row> resultFuture) {
-        String key = buildCacheKey(inputParams);
-        JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
-        connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {
+    /**
+     * 执行异步查询
+     *
+     * @param connection 连接
+     * @param future
+     * @param keys       关联健值
+     */
+    private void handleQuery(SQLConnection connection, CompletableFuture<Collection<Row>> future, Object... keys) {
+        String cacheKey = buildCacheKey(keys);
+        JsonArray params = new JsonArray();
+        Stream.of(keys).forEach(key -> params.add(key));
+        connection.queryWithParams(sideInfo.getFlinkPlannerSqlCondition(), params, rs -> {
             if (rs.failed()) {
-                dealFillDataError(input, resultFuture, rs.cause());
+                dealFillDataError(future, rs.cause());
                 return;
             }
 
@@ -306,7 +331,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 List<Row> rowList = Lists.newArrayList();
 
                 for (JsonArray line : rs.result().getResults()) {
-                    Row row = fillData(input, line);
+                    Row row = fillData(line);
                     if (openCache()) {
                         cacheContent.add(line);
                     }
@@ -314,13 +339,13 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 }
 
                 if (openCache()) {
-                    putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
+                    putCache(cacheKey, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                 }
-                resultFuture.complete(rowList);
+                future.complete(rowList);
             } else {
-                dealMissKey(input, resultFuture);
+                dealMissKey(future);
                 if (openCache()) {
-                    putCache(key, CacheMissVal.getMissKeyObj());
+                    putCache(cacheKey, CacheMissVal.getMissKeyObj());
                 }
             }
 
@@ -331,13 +356,5 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 }
             });
         });
-    }
-
-    private Map<String, Object> formatInputParam(Map<String, Object> inputParam) {
-        Map<String, Object> result = Maps.newHashMap();
-        inputParam.forEach((k, v) -> {
-            result.put(k, convertDataType(v));
-        });
-        return result;
     }
 }

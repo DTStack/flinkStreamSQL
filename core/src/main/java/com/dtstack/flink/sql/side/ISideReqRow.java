@@ -21,13 +21,29 @@ package com.dtstack.flink.sql.side;
 import org.apache.flink.types.Row;
 
 /**
- *
  * Date: 2018/12/4
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 public interface ISideReqRow {
 
+    /**
+     * 组拼返回结果的数据
+     *
+     * @param input     流中数据
+     * @param sideInput 维表数据
+     * @return
+     */
     Row fillData(Row input, Object sideInput);
 
+    /**
+     * 获取返回结果的数据
+     *
+     * @param sideInput 维表数据
+     * @return
+     */
+    default Row fillData(Object sideInput) {
+        return null;
+    }
 }

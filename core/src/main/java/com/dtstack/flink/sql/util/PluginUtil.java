@@ -125,6 +125,16 @@ public class PluginUtil {
         return CLASS_PRE_STR  + "." + type.toLowerCase() + "." +  pluginTypeName + "." + pluginClassName;
     }
 
+    public static String getTableFunctionClassName(String pluginTypeName, String type) {
+        String pluginClassName = upperCaseFirstChar(pluginTypeName) + "TableFunction";
+        return CLASS_PRE_STR + "." + type.toLowerCase() + "." + pluginTypeName + ".table." + pluginClassName;
+    }
+
+    public static String getAsyncTableFunctionClassName(String pluginTypeName, String type) {
+        String pluginClassName = upperCaseFirstChar(pluginTypeName) + "AsyncTableFunction";
+        return CLASS_PRE_STR + "." + type.toLowerCase() + "." + pluginTypeName + ".table." + pluginClassName;
+    }
+
     public static Map<String,Object> objectToMap(Object obj) throws Exception{
         return objectMapper.readValue(objectMapper.writeValueAsBytes(obj), Map.class);
     }

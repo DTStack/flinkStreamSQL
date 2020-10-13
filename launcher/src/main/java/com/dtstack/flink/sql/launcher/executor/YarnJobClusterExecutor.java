@@ -85,8 +85,6 @@ public class YarnJobClusterExecutor {
             }
         }
 
-        dumpSameKeytab(flinkConfiguration, shipFiles);
-
         clusterDescriptor.addShipFiles(shipFiles);
 
         ClusterSpecification clusterSpecification = YarnClusterClientFactory.INSTANCE.getClusterSpecification(flinkConfiguration);

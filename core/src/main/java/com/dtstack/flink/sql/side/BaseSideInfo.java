@@ -17,33 +17,29 @@
  */
 
 
-
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
-import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.calcite.sql.*;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.runtime.typeutils.RowDataTypeInfo;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Reason:
  * Date: 2018/9/18
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public abstract class BaseSideInfo implements Serializable{
+public abstract class BaseSideInfo implements Serializable {
 
     protected RowTypeInfo rowTypeInfo;
 
@@ -54,6 +50,8 @@ public abstract class BaseSideInfo implements Serializable{
     protected List<Integer> equalValIndex = Lists.newArrayList();
 
     protected String sqlCondition = "";
+
+    protected String flinkPlannerSqlCondition = "";
 
     protected String sideSelectFields = "";
 
@@ -74,8 +72,16 @@ public abstract class BaseSideInfo implements Serializable{
 
     protected AbstractSideCache sideCache;
 
+    protected String[] lookupKeys;
+
+    public BaseSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        this.lookupKeys = lookupKeys;
+        this.sideTableInfo = sideTableInfo;
+        buildEqualInfo(sideTableInfo);
+    }
+
     public BaseSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
-                        AbstractSideTableInfo sideTableInfo){
+                        AbstractSideTableInfo sideTableInfo) {
         this.rowTypeInfo = rowTypeInfo;
         this.outFieldInfoList = outFieldInfoList;
         this.joinType = joinInfo.getJoinType();
@@ -84,39 +90,39 @@ public abstract class BaseSideInfo implements Serializable{
         buildEqualInfo(joinInfo, sideTableInfo);
     }
 
-    public void parseSelectFields(JoinInfo joinInfo){
+    public void parseSelectFields(JoinInfo joinInfo) {
         String sideTableName = joinInfo.getSideTableName();
         String nonSideTableName = joinInfo.getNonSideTable();
         List<String> fields = Lists.newArrayList();
         int sideTableFieldIndex = 0;
 
-        for( int i=0; i<outFieldInfoList.size(); i++){
+        for (int i = 0; i < outFieldInfoList.size(); i++) {
             FieldInfo fieldInfo = outFieldInfoList.get(i);
-            if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
+            if (fieldInfo.getTable().equalsIgnoreCase(sideTableName)) {
                 String sideFieldName = sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName());
                 fields.add(sideFieldName);
                 sideSelectFieldsType.put(sideTableFieldIndex, getTargetFieldType(fieldInfo.getFieldName()));
                 sideFieldIndex.put(i, sideTableFieldIndex);
                 sideFieldNameIndex.put(i, sideFieldName);
                 sideTableFieldIndex++;
-            }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
+            } else if (fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)) {
                 int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
                 inFieldIndex.put(i, nonSideIndex);
-            }else{
+            } else {
                 throw new RuntimeException("unknown table " + fieldInfo.getTable());
             }
         }
 
-        if(fields.size() == 0){
-            throw new RuntimeException("select non field from table " +  sideTableName);
+        if (fields.size() == 0) {
+            throw new RuntimeException("select non field from table " + sideTableName);
         }
 
         sideSelectFields = String.join(",", fields);
     }
 
-    public String getTargetFieldType(String fieldName){
+    public String getTargetFieldType(String fieldName) {
         int fieldIndex = sideTableInfo.getFieldList().indexOf(fieldName);
-        if(fieldIndex == -1){
+        if (fieldIndex == -1) {
             throw new RuntimeException(sideTableInfo.getName() + "can't find field: " + fieldName);
         }
 
@@ -124,13 +130,13 @@ public abstract class BaseSideInfo implements Serializable{
     }
 
 
-    public void dealOneEqualCon(SqlNode sqlNode, String sideTableName){
-        if(!SqlKind.COMPARISON.contains(sqlNode.getKind())){
+    public void dealOneEqualCon(SqlNode sqlNode, String sideTableName) {
+        if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
             throw new RuntimeException("not compare operator.");
         }
 
-        SqlIdentifier left = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[0];
-        SqlIdentifier right = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[1];
+        SqlIdentifier left = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[0];
+        SqlIdentifier right = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[1];
 
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
@@ -138,43 +144,74 @@ public abstract class BaseSideInfo implements Serializable{
         String rightTableName = right.getComponent(0).getSimple();
         String rightField = right.getComponent(1).getSimple();
 
-        if(leftTableName.equalsIgnoreCase(sideTableName)){
+        if (leftTableName.equalsIgnoreCase(sideTableName)) {
             equalFieldList.add(leftField);
             int equalFieldIndex = -1;
-            for(int i=0; i<getFieldNames().length; i++){
+            for (int i = 0; i < getFieldNames().length; i++) {
                 String fieldName = getFieldNames()[i];
-                if(fieldName.equalsIgnoreCase(rightField)){
+                if (fieldName.equalsIgnoreCase(rightField)) {
                     equalFieldIndex = i;
                 }
             }
-            if(equalFieldIndex == -1){
+            if (equalFieldIndex == -1) {
                 throw new RuntimeException("can't find equal field " + rightField);
             }
 
             equalValIndex.add(equalFieldIndex);
 
-        }else if(rightTableName.equalsIgnoreCase(sideTableName)){
+        } else if (rightTableName.equalsIgnoreCase(sideTableName)) {
 
             equalFieldList.add(rightField);
             int equalFieldIndex = -1;
-            for(int i=0; i<getFieldNames().length; i++){
+            for (int i = 0; i < getFieldNames().length; i++) {
                 String fieldName = getFieldNames()[i];
-                if(fieldName.equalsIgnoreCase(leftField)){
+                if (fieldName.equalsIgnoreCase(leftField)) {
                     equalFieldIndex = i;
                 }
             }
-            if(equalFieldIndex == -1){
+            if (equalFieldIndex == -1) {
                 throw new RuntimeException("can't find equal field " + leftField);
             }
 
             equalValIndex.add(equalFieldIndex);
 
-        }else{
+        } else {
             throw new RuntimeException("resolve equalFieldList error:" + sqlNode.toString());
         }
     }
 
     public abstract void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo);
+
+    /**
+     * 构建维表查询的sql
+     * @param sideTableInfo
+     */
+    public abstract void buildEqualInfo(AbstractSideTableInfo sideTableInfo);
+
+    /**
+     * 获取真实的关联字段
+     *
+     * @param lookupKeys       sql中的join关联字段
+     * @return 表中真实的字段
+     */
+    protected List<String> getRealLookupKeys(List<String> lookupKeys) {
+        List<String> physicaFieldsList = sideTableInfo
+                .getPhysicalFields()
+                .entrySet()
+                .stream()
+                .filter(e -> lookupKeys.contains(e.getKey()))
+                .map(Map.Entry::getValue)
+                .collect(Collectors.toList());
+        return physicaFieldsList;
+    }
+
+    public String[] getLookupKeys() {
+        return lookupKeys;
+    }
+
+    public void setLookupKeys(String[] lookupKeys) {
+        this.lookupKeys = lookupKeys;
+    }
 
     public RowTypeInfo getRowTypeInfo() {
         return rowTypeInfo;
@@ -214,6 +251,14 @@ public abstract class BaseSideInfo implements Serializable{
 
     public void setSqlCondition(String sqlCondition) {
         this.sqlCondition = sqlCondition;
+    }
+
+    public String getFlinkPlannerSqlCondition() {
+        return flinkPlannerSqlCondition;
+    }
+
+    public void setFlinkPlannerSqlCondition(String flinkPlannerSqlCondition) {
+        this.flinkPlannerSqlCondition = flinkPlannerSqlCondition;
     }
 
     public String getSideSelectFields() {
@@ -280,21 +325,21 @@ public abstract class BaseSideInfo implements Serializable{
         this.sideSelectFieldsType = sideSelectFieldsType;
     }
 
-    public String getSelectSideFieldType(int index){
+    public String getSelectSideFieldType(int index) {
         return sideSelectFieldsType.get(index);
     }
 
-    public String[] getFieldNames(){
+    public String[] getFieldNames() {
 
         int fieldTypeLength = rowTypeInfo.getFieldTypes().length;
-        if( fieldTypeLength == 2
-                && rowTypeInfo.getFieldTypes()[1].getClass().equals(BaseRowTypeInfo.class)){
-            return ((BaseRowTypeInfo)rowTypeInfo.getFieldTypes()[1]).getFieldNames();
-        } else if(fieldTypeLength ==1
-                && rowTypeInfo.getFieldTypes()[0].getClass().equals(BaseRowTypeInfo.class)){
-            return  ((BaseRowTypeInfo)rowTypeInfo.getFieldTypes()[0]).getFieldNames();
-        }else {
-            return  rowTypeInfo.getFieldNames();
+        if (fieldTypeLength == 2
+                && rowTypeInfo.getFieldTypes()[1].getClass().equals(RowDataTypeInfo.class)) {
+            return ((RowDataTypeInfo) rowTypeInfo.getFieldTypes()[1]).getFieldNames();
+        } else if (fieldTypeLength == 1
+                && rowTypeInfo.getFieldTypes()[0].getClass().equals(RowDataTypeInfo.class)) {
+            return ((RowDataTypeInfo) rowTypeInfo.getFieldTypes()[0]).getFieldNames();
+        } else {
+            return rowTypeInfo.getFieldNames();
         }
     }
 }

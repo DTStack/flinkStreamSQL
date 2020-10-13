@@ -16,79 +16,65 @@
  * limitations under the License.
  */
 
-
-package com.dtstack.flink.sql.side;
+package com.dtstack.flink.sql.side.table;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.metric.MetricConstant;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseSideInfo;
+import com.dtstack.flink.sql.side.ISideReqRow;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
-import com.dtstack.flink.sql.util.ReflectionUtils;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
-import org.apache.commons.collections.MapUtils;
-import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
-import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
+import org.apache.flink.table.functions.AsyncTableFunction;
+import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * All interfaces inherit naming rules: type + "AsyncReqRow" such as == "MysqlAsyncReqRow
- * only support Left join / inner join(join),not support right join
- * Date: 2018/7/9
- * Company: www.dtstack.com
- *
- * @author xuchao
- */
-
-public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, Row> implements ISideReqRow {
-    private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncReqRow.class);
-    private static final long serialVersionUID = 2098635244857937717L;
-    private RuntimeContext runtimeContext;
+ * @author: chuixue
+ * @create: 2020-10-12 18:36
+ * @description:异步维表公共的类
+ **/
+abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> implements ISideReqRow {
+    private static final Logger LOG = LoggerFactory.getLogger(BaseAsyncTableFunction.class);
     private static int TIMEOUT_LOG_FLUSH_NUM = 10;
     private int timeOutNum = 0;
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
     private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
-    public BaseAsyncReqRow(BaseSideInfo sideInfo) {
+    public BaseAsyncTableFunction(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
     }
 
     @Override
-    public void setRuntimeContext(RuntimeContext runtimeContext) {
-        super.setRuntimeContext(runtimeContext);
-        this.runtimeContext = runtimeContext;
-    }
-
-    @Override
-    public void open(Configuration parameters) throws Exception {
-        super.open(parameters);
+    public void open(FunctionContext context) throws Exception {
+        super.open(context);
         initCache();
-        initMetric();
+        initMetric(context);
         LOG.info("async dim table config info: {} ", sideInfo.getSideTableInfo().toString());
     }
 
+    /**
+     * 初始化缓存
+     */
     private void initCache() {
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         if (sideTableInfo.getCacheType() == null || ECacheType.NONE.name().equalsIgnoreCase(sideTableInfo.getCacheType())) {
@@ -106,10 +92,14 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, Row> implem
         sideCache.initCache();
     }
 
-    private void initMetric() {
-        parseErrorRecords = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_SIDE_PARSE_ERROR_RECORDS);
+    /**
+     * 初始化Metric
+     *
+     * @param context 上下文
+     */
+    private void initMetric(FunctionContext context) {
+        parseErrorRecords = context.getMetricGroup().counter(MetricConstant.DT_NUM_SIDE_PARSE_ERROR_RECORDS);
     }
-
 
     protected Object convertTimeIndictorTypeInfo(Integer index, Object obj) {
         boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(index).getClass());
@@ -117,7 +107,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, Row> implem
         //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
         if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
             //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+            obj = ((Timestamp) obj).getTime() + (long) LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
         }
         return obj;
     }
@@ -134,17 +124,16 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, Row> implem
         return sideInfo.getSideCache() != null;
     }
 
-    protected void dealMissKey(Row input, ResultFuture<Row> resultFuture) {
-        if (sideInfo.getJoinType() == JoinType.LEFT) {
-            //Reserved left table data
-            try {
-                Row row = fillData(input, null);
-                resultFuture.complete(Collections.singleton(row));
-            } catch (Exception e) {
-                dealFillDataError(input, resultFuture, e);
-            }
-        } else {
-            resultFuture.complete(Collections.EMPTY_LIST);
+    /**
+     * 如果缓存获取不到，直接返回空即可，无需判别左/内连接
+     *
+     * @param future
+     */
+    protected void dealMissKey(CompletableFuture<Collection<Row>> future) {
+        try {
+            future.complete(Collections.emptyList());
+        } catch (Exception e) {
+            dealFillDataError(future, e);
         }
     }
 
@@ -154,7 +143,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, Row> implem
         }
     }
 
-    @Override
+    // @Override TODO 无法设置超时
     public void timeout(Row input, ResultFuture<Row> resultFuture) throws Exception {
 
         if (timeOutNum % TIMEOUT_LOG_FLUSH_NUM == 0) {
@@ -172,110 +161,113 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, Row> implem
         resultFuture.complete(Collections.EMPTY_LIST);
     }
 
+    /**
+     * 查询前置
+     *
+     * @param input
+     * @param resultFuture
+     * @throws InvocationTargetException
+     * @throws IllegalAccessException
+     */
     protected void preInvoke(Row input, ResultFuture<Row> resultFuture)
             throws InvocationTargetException, IllegalAccessException {
-        registerTimerAndAddToHandler(input, resultFuture);
     }
 
-    @Override
-    public void asyncInvoke(Row row, ResultFuture<Row> resultFuture) throws Exception {
-        Row input = Row.copy(row);
-        preInvoke(input, resultFuture);
-        Map<String, Object> inputParams = parseInputParam(input);
-        if (MapUtils.isEmpty(inputParams)) {
-            dealMissKey(input, resultFuture);
+    /**
+     * 异步查询数据
+     *
+     * @param future 发送到下游
+     * @param keys   关联数据
+     */
+    public void eval(CompletableFuture<Collection<Row>> future, Object... keys) throws Exception {
+        String cacheKey = buildCacheKey(keys);
+        // 缓存判断
+        if (isUseCache(cacheKey)) {
+            invokeWithCache(cacheKey, future);
             return;
         }
-        if (isUseCache(inputParams)) {
-            invokeWithCache(inputParams, input, resultFuture);
-            return;
-        }
-        handleAsyncInvoke(inputParams, input, resultFuture);
+        handleAsyncInvoke(future, keys);
     }
 
-    private Map<String, Object> parseInputParam(Row input) {
-        Map<String, Object> inputParams = Maps.newHashMap();
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.getField(conValIndex);
-            if (equalObj == null) {
-                return inputParams;
-            }
-            String columnName = sideInfo.getEqualFieldList().get(i);
-            inputParams.put(columnName, equalObj);
-        }
-        return inputParams;
+    /**
+     * 判断缓存是否存在
+     *
+     * @param cacheKey 缓存健
+     * @return
+     */
+    protected boolean isUseCache(String cacheKey) {
+        return openCache() && getFromCache(cacheKey) != null;
     }
 
-    protected boolean isUseCache(Map<String, Object> inputParams) {
-        return openCache() && getFromCache(buildCacheKey(inputParams)) != null;
-    }
-
-    private void invokeWithCache(Map<String, Object> inputParams, Row input, ResultFuture<Row> resultFuture) {
+    /**
+     * 从缓存中获取数据
+     *
+     * @param cacheKey 缓存健
+     * @param future
+     */
+    private void invokeWithCache(String cacheKey, CompletableFuture<Collection<Row>> future) {
         if (openCache()) {
-            CacheObj val = getFromCache(buildCacheKey(inputParams));
+            CacheObj val = getFromCache(cacheKey);
             if (val != null) {
                 if (ECacheContentType.MissVal == val.getType()) {
-                    dealMissKey(input, resultFuture);
+                    dealMissKey(future);
                     return;
                 } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
-                        Row row = fillData(input, val.getContent());
-                        resultFuture.complete(Collections.singleton(row));
+                        Row row = fillData(val.getContent());
+                        future.complete(Collections.singleton(row));
                     } catch (Exception e) {
-                        dealFillDataError(input, resultFuture, e);
+                        dealFillDataError(future, e);
                     }
                 } else if (ECacheContentType.MultiLine == val.getType()) {
                     try {
                         List<Row> rowList = Lists.newArrayList();
                         for (Object one : (List) val.getContent()) {
-                            Row row = fillData(input, one);
+                            Row row = fillData(one);
                             rowList.add(row);
                         }
-                        resultFuture.complete(rowList);
+                        future.complete(rowList);
                     } catch (Exception e) {
-                        dealFillDataError(input, resultFuture, e);
+                        dealFillDataError(future, e);
                     }
                 } else {
-                    resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
+                    future.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
                 }
                 return;
             }
         }
     }
 
-    public abstract void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<Row> resultFuture) throws Exception;
+    /**
+     * 请求数据库获取数据
+     *
+     * @param keys   关联字段数据
+     * @param future
+     * @throws Exception
+     */
+    public abstract void handleAsyncInvoke(CompletableFuture<Collection<Row>> future, Object... keys) throws Exception;
 
-    public abstract String buildCacheKey(Map<String, Object> inputParams);
+    /**
+     * 构建缓存key值
+     *
+     * @param keys
+     * @return
+     */
+    public abstract String buildCacheKey(Object... keys);
 
-    private ProcessingTimeService getProcessingTimeService() {
-        return ((StreamingRuntimeContext) this.runtimeContext).getProcessingTimeService();
-    }
-
-    protected ScheduledFuture<?> registerTimer(Row input, ResultFuture<Row> resultFuture) {
-        long timeoutTimestamp = sideInfo.getSideTableInfo().getAsyncTimeout() + getProcessingTimeService().getCurrentProcessingTime();
-        return getProcessingTimeService().registerTimer(
-                timeoutTimestamp,
-                timestamp -> timeout(input, resultFuture));
-    }
-
-    protected void registerTimerAndAddToHandler(Row input, ResultFuture<Row> resultFuture)
-            throws InvocationTargetException, IllegalAccessException {
-        ScheduledFuture<?> timeFuture = registerTimer(input, resultFuture);
-        // resultFuture 是ResultHandler 的实例
-        Method setTimeoutTimer = ReflectionUtils.getDeclaredMethod(resultFuture, "setTimeoutTimer", ScheduledFuture.class);
-        setTimeoutTimer.setAccessible(true);
-        setTimeoutTimer.invoke(resultFuture, timeFuture);
-    }
-
-
-    protected void dealFillDataError(Row input, ResultFuture<Row> resultFuture, Throwable e) {
+    /**
+     * 发送异常
+     *
+     * @param future
+     * @param e
+     */
+    protected void dealFillDataError(CompletableFuture<Collection<Row>> future, Throwable e) {
         parseErrorRecords.inc();
         if (parseErrorRecords.getCount() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)) {
             LOG.info("dealFillDataError", e);
-            resultFuture.completeExceptionally(e);
+            future.completeExceptionally(e);
         } else {
-            dealMissKey(input, resultFuture);
+            dealMissKey(future);
         }
     }
 

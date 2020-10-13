@@ -25,10 +25,18 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.shaded.guava18.com.google.common.base.Splitter;
 import org.apache.flink.table.api.Types;
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.logical.DecimalType;
+import org.apache.flink.table.types.utils.TypeConversions;
 
+import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.flink.table.api.DataTypes.DECIMAL;
+import static org.apache.flink.table.api.DataTypes.TIMESTAMP;
 
 /**
  * @program: flink.sql
@@ -162,6 +170,27 @@ public class DataTypeUtils {
             default:
                 throw new RuntimeException("type " + string + "not supported, please refer to the flink doc!");
         }
+    }
+
+    /**
+     * java数据类型转换成DataType
+     * @param fieldClasses
+     * @return
+     */
+    public static DataType[] classesToDataTypes(Class[] fieldClasses) {
+        DataType[] dataTypes = new DataType[fieldClasses.length];
+        for (int i = 0; i < fieldClasses.length; i++) {
+            if (fieldClasses[i].getName().equals(BigDecimal.class.getName())) {
+                dataTypes[i] = DECIMAL(DecimalType.MAX_PRECISION, 18);
+                continue;
+            }
+            if (fieldClasses[i].getName().equals(Timestamp.class.getName())) {
+                dataTypes[i] = TIMESTAMP(3);
+                continue;
+            }
+            dataTypes[i] = TypeConversions.fromClassToDataType(fieldClasses[i]).get();
+        }
+        return dataTypes;
     }
 
     private static Iterable<String> splitTypeInfo(String string) {

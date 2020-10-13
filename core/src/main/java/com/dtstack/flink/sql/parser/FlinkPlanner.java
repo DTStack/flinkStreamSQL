@@ -38,6 +38,7 @@ import static org.apache.calcite.jdbc.CalciteSchemaBuilder.asRootSchema;
  * 废弃。之后删除
  * Date: 2020/3/31
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class FlinkPlanner {
@@ -46,8 +47,13 @@ public class FlinkPlanner {
 
     private final Catalog catalog = new GenericInMemoryCatalog(EnvironmentSettings.DEFAULT_BUILTIN_CATALOG,
             EnvironmentSettings.DEFAULT_BUILTIN_DATABASE);
-    private final CatalogManager catalogManager =
-            new CatalogManager("builtin", catalog);
+    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    private final CatalogManager catalogManager = CatalogManager
+            .newBuilder()
+            .classLoader(classLoader)
+            .config(tableConfig.getConfiguration())
+            .defaultCatalog("builtin", catalog)
+            .build();
     private final ModuleManager moduleManager = new ModuleManager();
     private final FunctionCatalog functionCatalog = new FunctionCatalog(
             tableConfig,
@@ -64,7 +70,7 @@ public class FlinkPlanner {
     public FlinkPlanner() {
     }
 
-    public CalciteParser getParser(){
+    public CalciteParser getParser() {
         return getParserBySqlDialect(SqlDialect.DEFAULT);
     }
 

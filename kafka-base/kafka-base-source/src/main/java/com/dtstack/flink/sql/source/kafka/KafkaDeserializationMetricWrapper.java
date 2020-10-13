@@ -58,6 +58,10 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
 
     private Calculate calculate;
 
+    public KafkaDeserializationMetricWrapper(TypeInformation<Row> typeInfo, DeserializationSchema<Row> deserializationSchema) {
+        super(typeInfo, deserializationSchema);
+    }
+
     public KafkaDeserializationMetricWrapper(TypeInformation<Row> typeInfo, DeserializationSchema<Row> deserializationSchema, Calculate calculate) {
         super(typeInfo, deserializationSchema);
         this.calculate = calculate;

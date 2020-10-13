@@ -24,12 +24,11 @@ import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.runtime.typeutils.RowDataTypeInfo;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.utils.ClassDataTypeConverter;
-import org.apache.flink.table.types.utils.TypeConversions;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -104,7 +103,7 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         return new RowTypeInfo(types, fieldNames);
     }
 
-    public BaseRowTypeInfo getBaseRowTypeInfo(){
+    public RowDataTypeInfo getRowDataTypeInfo(){
         String[] fieldNames = getFields();
         Class[] fieldClass = getFieldClasses();
         LogicalType[] logicalTypes = new LogicalType[fieldClass.length];
@@ -122,7 +121,7 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
             logicalTypes[i] = optionalDataType.get().getLogicalType();
         }
 
-        return new BaseRowTypeInfo(logicalTypes, fieldNames);
+        return new RowDataTypeInfo(logicalTypes, fieldNames);
     }
 
     public String getCacheType() {

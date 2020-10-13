@@ -26,7 +26,6 @@ import com.dtstack.flink.sql.table.AbstractTableInfoParser;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
-import com.google.common.base.Strings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,7 +62,7 @@ public class SqlParser {
      * insert into tb1 select * from tb2;
      * @param sql
      */
-    public static SqlTree parseSql(String sql, String pluginLoadMode) throws Exception {
+    public static SqlTree parseSql(String sql, String pluginLoadMode, String planner) throws Exception {
 
         if(StringUtils.isBlank(sql)){
             throw new RuntimeException("sql is not null");
@@ -116,7 +115,7 @@ public class SqlParser {
                     }
 
                     AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
-                            createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode);
+                            createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode, planner);
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }
             }
@@ -129,7 +128,7 @@ public class SqlParser {
                     }
 
                     AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SINK.getType(),
-                            createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode);
+                            createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode, planner);
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }
             }
@@ -147,7 +146,7 @@ public class SqlParser {
                         }
                     } else {
                         AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
-                                createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode);
+                                createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode, planner);
                         sqlTree.addTableInfo(tableName, tableInfo);
                     }
                 }

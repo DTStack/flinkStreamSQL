@@ -37,7 +37,7 @@ import java.util.List;
  *
  * @author xuqianjin
  */
-public class ConsoleOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
+public class ConsoleOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean, Row>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsoleOutputFormat.class);
 
@@ -55,24 +55,23 @@ public class ConsoleOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     @Override
-    public void writeRecord(Tuple2 tuple2) throws IOException {
-        LOG.info("received oriainal data:{}" + tuple2);
-        Tuple2<Boolean, Row> tupleTrans = tuple2;
-        Boolean retract = tupleTrans.getField(0);
-        if (!retract) {
+    public void writeRecord(Tuple2<Boolean, Row> rowData) throws IOException {
+        LOG.info("received oriainal data:{}" + rowData);
+        Boolean change = rowData.f0;
+        if (!change) {
             return;
         }
 
-        Row record = tupleTrans.getField(1);
-        if (record.getArity() != fieldNames.length) {
+        Row row = rowData.f1;
+        if (row.getArity() != fieldNames.length) {
             return;
         }
 
         List<String[]> data = new ArrayList<>();
         data.add(fieldNames);
-        String[] recordStr = new String[record.getArity()];
-        for (int i=0; i < record.getArity(); i++) {
-            recordStr[i] = (String.valueOf(record.getField(i)));
+        String[] recordStr = new String[row.getArity()];
+        for (int i = 0; i < row.getArity(); i++) {
+            recordStr[i] = String.valueOf(row.getField(i));
         }
         data.add(recordStr);
         TablePrintUtil.build(data).print();

@@ -120,11 +120,6 @@ public abstract class AbstractKafkaSink implements RetractStreamTableSink<Row>, 
     }
 
     @Override
-    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        consumeDataStream(dataStream);
-    }
-
-    @Override
     public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;

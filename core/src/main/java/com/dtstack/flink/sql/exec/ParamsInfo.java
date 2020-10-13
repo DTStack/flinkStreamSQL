@@ -39,9 +39,10 @@ public class ParamsInfo {
     private String pluginLoadMode;
     private String deployMode;
     private Properties confProp;
+    private String planner;
 
     public ParamsInfo(String sql, String name, List<URL> jarUrlList, String localSqlPluginPath,
-                      String remoteSqlPluginPath, String pluginLoadMode, String deployMode, Properties confProp) {
+                      String remoteSqlPluginPath, String pluginLoadMode, String deployMode, Properties confProp, String planner) {
         this.sql = sql;
         this.name = name;
         this.jarUrlList = jarUrlList;
@@ -50,6 +51,7 @@ public class ParamsInfo {
         this.pluginLoadMode = pluginLoadMode;
         this.deployMode = deployMode;
         this.confProp = confProp;
+        this.planner = planner;
     }
 
     public String getSql() {
@@ -84,6 +86,10 @@ public class ParamsInfo {
         return confProp;
     }
 
+    public String getPlanner() {
+        return planner;
+    }
+
     @Override
     public String toString() {
         return "ParamsInfo{" +
@@ -95,6 +101,7 @@ public class ParamsInfo {
                 ", pluginLoadMode='" + pluginLoadMode + '\'' +
                 ", deployMode='" + deployMode + '\'' +
                 ", confProp=" + confProp +
+                ", planner=" + planner +
                 '}';
     }
 
@@ -115,6 +122,7 @@ public class ParamsInfo {
         private String pluginLoadMode;
         private String deployMode;
         private Properties confProp;
+        private String planner;
 
         public ParamsInfo.Builder setSql(String sql) {
             this.sql = sql;
@@ -157,9 +165,14 @@ public class ParamsInfo {
             return this;
         }
 
+        public ParamsInfo.Builder setPlanner(String planner) {
+            this.planner = planner;
+            return this;
+        }
+
         public ParamsInfo build() {
             return new ParamsInfo(sql, name, jarUrlList, localSqlPluginPath,
-                    remoteSqlPluginPath, pluginLoadMode, deployMode, confProp);
+                    remoteSqlPluginPath, pluginLoadMode, deployMode, confProp, planner);
         }
     }
 }

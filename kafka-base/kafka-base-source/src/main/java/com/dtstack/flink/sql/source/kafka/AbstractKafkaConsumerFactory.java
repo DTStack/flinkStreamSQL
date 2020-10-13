@@ -42,8 +42,14 @@ import java.util.Properties;
 public abstract class AbstractKafkaConsumerFactory {
 
     protected abstract FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo,
-                                                                          TypeInformation<Row> typeInformation,
-                                                                          Properties props);
+                                                                              TypeInformation<Row> typeInformation,
+                                                                              Properties props) throws NoSuchMethodException;
+
+    protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo,
+                                                                              TypeInformation<Row> typeInformation) {
+        return new KafkaDeserializationMetricWrapper(typeInformation,
+                createDeserializationSchema(kafkaSourceTableInfo, typeInformation));
+    }
 
     protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo,
                                                                               TypeInformation<Row> typeInformation,

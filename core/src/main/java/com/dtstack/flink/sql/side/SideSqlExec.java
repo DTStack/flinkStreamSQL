@@ -17,7 +17,6 @@
  */
 
 
-
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheType;
@@ -35,7 +34,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.calcite.sql.*;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -44,9 +42,9 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableSchema;
-import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.ObjectIdentifier;
-import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.runtime.typeutils.RowDataTypeInfo;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -86,7 +84,7 @@ public class SideSqlExec {
                      Map<String, Table> tableCache,
                      CreateTmpTableParser.SqlParserResult createView,
                      String scope) throws Exception {
-        if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && localSqlPluginPath == null ) {
+        if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && localSqlPluginPath == null) {
             throw new RuntimeException("need to set localSqlPluginPath");
         }
 
@@ -190,7 +188,7 @@ public class SideSqlExec {
     }
 
 
-    public AliasInfo parseASNode(SqlNode sqlNode) throws SqlParseException {
+    public AliasInfo parseASNode(SqlNode sqlNode) {
         SqlKind sqlKind = sqlNode.getKind();
         if (sqlKind != AS) {
             throw new RuntimeException(sqlNode + " is not 'as' operator");
@@ -206,9 +204,8 @@ public class SideSqlExec {
         return aliasInfo;
     }
 
-    public BaseRowTypeInfo buildOutRowTypeInfo(List<FieldInfo> sideJoinFieldInfo,
-                                               HashBasedTable<String, String, String> mappingTable) {
-        // TypeInformation[] sideOutTypes = new TypeInformation[sideJoinFieldInfo.size()];
+    public RowDataTypeInfo buildOutRowDataTypeInfo(List<FieldInfo> sideJoinFieldInfo,
+                                                   HashBasedTable<String, String, String> mappingTable) {
         LogicalType[] sideOutTypes = new LogicalType[sideJoinFieldInfo.size()];
         String[] sideOutNames = new String[sideJoinFieldInfo.size()];
         for (int i = 0; i < sideJoinFieldInfo.size(); i++) {
@@ -222,7 +219,24 @@ public class SideSqlExec {
             sideOutTypes[i] = fieldInfo.getLogicalType();
             sideOutNames[i] = mappingFieldName;
         }
-        return new BaseRowTypeInfo(sideOutTypes, sideOutNames);
+        return new RowDataTypeInfo(sideOutTypes, sideOutNames);
+    }
+
+    public RowTypeInfo buildOutRowTypeInfo(List<FieldInfo> sideJoinFieldInfo, HashBasedTable<String, String, String> mappingTable) {
+        TypeInformation[] sideOutTypes = new TypeInformation[sideJoinFieldInfo.size()];
+        String[] sideOutNames = new String[sideJoinFieldInfo.size()];
+        for (int i = 0; i < sideJoinFieldInfo.size(); i++) {
+            FieldInfo fieldInfo = sideJoinFieldInfo.get(i);
+            String tableName = fieldInfo.getTable();
+            String fieldName = fieldInfo.getFieldName();
+
+            String mappingFieldName = mappingTable.get(tableName, fieldName);
+            Preconditions.checkNotNull(mappingFieldName, fieldInfo + " not mapping any field! it may be frame bug");
+
+            sideOutTypes[i] = fieldInfo.getTypeInformation();
+            sideOutNames[i] = mappingFieldName;
+        }
+        return new RowTypeInfo(sideOutTypes, sideOutNames);
     }
 
 
@@ -325,7 +339,7 @@ public class SideSqlExec {
 
     protected void dealAsSourceTable(StreamTableEnvironment tableEnv,
                                      SqlNode pollSqlNode,
-                                     Map<String, Table> tableCache) throws SqlParseException {
+                                     Map<String, Table> tableCache) {
 
         AliasInfo aliasInfo = parseASNode(pollSqlNode);
         if (localTableCache.containsKey(aliasInfo.getName())) {
@@ -367,14 +381,14 @@ public class SideSqlExec {
 
         int length = leftTable.getSchema().getFieldDataTypes().length;
         LogicalType[] logicalTypes = new LogicalType[length];
-        for(int i=0; i<length; i++){
+        for (int i = 0; i < length; i++) {
             logicalTypes[i] = leftTable.getSchema().getFieldDataTypes()[i].getLogicalType();
         }
 
-        BaseRowTypeInfo leftBaseTypeInfo = new BaseRowTypeInfo(logicalTypes, leftTable.getSchema().getFieldNames());
+        RowDataTypeInfo leftBaseTypeInfo = new RowDataTypeInfo(logicalTypes, leftTable.getSchema().getFieldNames());
 
         leftScopeChild.setRowTypeInfo(leftTypeInfo);
-        leftScopeChild.setBaseRowTypeInfo(leftBaseTypeInfo);
+        leftScopeChild.setRowDataTypeInfo(leftBaseTypeInfo);
 
         JoinScope.ScopeChild rightScopeChild = new JoinScope.ScopeChild();
         rightScopeChild.setAlias(joinInfo.getRightTableAlias());
@@ -389,7 +403,7 @@ public class SideSqlExec {
         }
 
         rightScopeChild.setRowTypeInfo(sideTableInfo.getRowTypeInfo());
-        rightScopeChild.setBaseRowTypeInfo(sideTableInfo.getBaseRowTypeInfo());
+        rightScopeChild.setRowDataTypeInfo(sideTableInfo.getRowDataTypeInfo());
 
         joinScope.addScope(leftScopeChild);
         joinScope.addScope(rightScopeChild);
@@ -422,13 +436,13 @@ public class SideSqlExec {
         }
 
         DataStream dsOut = null;
-        if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
+        if (ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())) {
             dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo, pluginLoadMode);
-        }else{
+        } else {
             dsOut = SideAsyncOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo, pluginLoadMode);
         }
 
-        BaseRowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
+        RowTypeInfo sideOutTypeInfo = buildOutRowTypeInfo(sideJoinFieldInfo, mappingTable);
 
         dsOut.getTransformation().setOutputType(sideOutTypeInfo);
 

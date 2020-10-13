@@ -18,16 +18,15 @@
 
 package com.dtstack.flink.sql.exec;
 
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlInsert;
 import org.apache.flink.sql.parser.dml.RichSqlInsert;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.ValidationException;
+import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
+import org.apache.flink.table.api.bridge.java.internal.StreamTableEnvironmentImpl;
 import org.apache.flink.table.api.internal.TableEnvironmentImpl;
 import org.apache.flink.table.api.internal.TableImpl;
-import org.apache.flink.table.api.java.StreamTableEnvironment;
-import org.apache.flink.table.api.java.internal.StreamTableEnvironmentImpl;
-import org.apache.flink.table.catalog.CatalogManager;
 import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.operations.Operation;
 import org.apache.flink.table.operations.QueryOperation;
@@ -41,9 +40,9 @@ import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.Tuple2;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Map;
 
 
 /**
@@ -62,7 +61,7 @@ public class FlinkSQLExec {
         RichSqlInsert insert = (RichSqlInsert) flinkPlanner.validate(flinkPlanner.parser().parse(stmt));
         TableImpl queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
 
-        String targetTableName = ((SqlIdentifier) ((SqlInsert) insert).getTargetTable()).names.get(0);
+        String targetTableName = ((SqlIdentifier) insert.getTargetTable()).names.get(0);
         TableSink tableSink = getTableSinkByPlanner(streamPlanner, targetTableName);
 
         String[] sinkFieldNames = tableSink.getTableSchema().getFieldNames();
@@ -76,7 +75,7 @@ public class FlinkSQLExec {
         }
 
 
-        Table newTable = null;
+        Table newTable;
         try {
             newTable = queryResult.select(String.join(",", sinkFieldNames));
         } catch (Exception e) {
@@ -98,10 +97,11 @@ public class FlinkSQLExec {
 
     private static TableSink getTableSinkByPlanner(StreamPlanner streamPlanner, String targetTableName)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        Method getTableSink = PlannerBase.class.getDeclaredMethod("getTableSink", ObjectIdentifier.class);
+        Method getTableSink = PlannerBase.class.getDeclaredMethod("getTableSink", ObjectIdentifier.class, Map.class);
         getTableSink.setAccessible(true);
         ObjectIdentifier objectIdentifier = ObjectIdentifier.of(streamPlanner.catalogManager().getCurrentCatalog(), streamPlanner.catalogManager().getCurrentDatabase(), targetTableName);
-        Option tableSinkOption = (Option) getTableSink.invoke(streamPlanner, objectIdentifier);
+        Map<String, String> dynamicOptions = Maps.newHashMap();
+        Option tableSinkOption = (Option) getTableSink.invoke(streamPlanner, objectIdentifier, dynamicOptions);
         return (TableSink) ((Tuple2) tableSinkOption.get())._2;
     }
 

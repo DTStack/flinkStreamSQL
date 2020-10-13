@@ -16,36 +16,33 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.side.mysql;
+ 
 
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllSideInfo;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-
-import java.util.List;
+package com.dtstack.flink.sql.enums;
 
 /**
  * Reason:
- * Date: 2018/9/19
+ * Date: 2018/8/2
  * Company: www.dtstack.com
- *
  * @author xuchao
  */
+public enum PlannerType {
+    /**
+     * dtstack planner
+     */
+    DTSTACK,
+    /**
+     * flink planner
+     */
+    FLINK;
 
-public class MysqlAllSideInfo extends RdbAllSideInfo {
+    public static boolean isValid(String type){
+        for(PlannerType tmpType : PlannerType.values()){
+            if(tmpType.name().equalsIgnoreCase(type)){
+                return true;
+            }
+        }
 
-    public MysqlAllSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
-        super(sideTableInfo, lookupKeys);
-    }
-
-    public MysqlAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
-        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
-    }
-
-    @Override
-    public String quoteIdentifier(String identifier) {
-        return "`" + identifier + "`";
+        return false;
     }
 }

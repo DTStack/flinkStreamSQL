@@ -28,7 +28,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
-import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.runtime.typeutils.RowDataTypeInfo;
 import org.apache.flink.table.types.logical.LogicalType;
 
 import java.util.Iterator;
@@ -38,6 +38,7 @@ import java.util.List;
  * Need to consider is the direct return to the fields and then all wrapped in the outer layer of the original query?
  * Date: 2018/7/20
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -45,28 +46,29 @@ public class ParserJoinField {
 
 
     /**
-     *  build row by field
-     * @param sqlNode  select node
-     * @param scope    join left and right table all info
+     * build row by field
+     *
+     * @param sqlNode select node
+     * @param scope   join left and right table all info
      * @param getAll  true,get all fields from two tables; false, extract useful field from select node
      * @return
      */
-    public static List<FieldInfo> getRowTypeInfo(SqlNode sqlNode, JoinScope scope, boolean getAll){
+    public static List<FieldInfo> getRowTypeInfo(SqlNode sqlNode, JoinScope scope, boolean getAll) {
 
         List<FieldInfo> fieldInfoList = Lists.newArrayList();
-        if(getAll){
+        if (getAll) {
             return getAllField(scope);
         }
 
-        if(sqlNode.getKind() != SqlKind.SELECT){
+        if (sqlNode.getKind() != SqlKind.SELECT) {
             throw new RuntimeException("------not select node--------\n" + sqlNode.toString());
         }
 
-        SqlSelect sqlSelect = (SqlSelect)sqlNode;
+        SqlSelect sqlSelect = (SqlSelect) sqlNode;
         SqlNodeList sqlNodeList = sqlSelect.getSelectList();
-        for(SqlNode fieldNode : sqlNodeList.getList()){
-            SqlIdentifier identifier = (SqlIdentifier)fieldNode;
-            if(!identifier.isStar()) {
+        for (SqlNode fieldNode : sqlNodeList.getList()) {
+            SqlIdentifier identifier = (SqlIdentifier) fieldNode;
+            if (!identifier.isStar()) {
                 String tableName = identifier.getComponent(0).getSimple();
                 String fieldName = identifier.getComponent(1).getSimple();
                 TypeInformation<?> type = scope.getFieldType(tableName, fieldName);
@@ -81,23 +83,23 @@ public class ParserJoinField {
                 //处理
                 int identifierSize = identifier.names.size();
 
-                switch(identifierSize) {
+                switch (identifierSize) {
                     case 1:
                         fieldInfoList.addAll(getAllField(scope));
                         break;
                     default:
                         SqlIdentifier tableIdentify = identifier.skipLast(1);
                         JoinScope.ScopeChild scopeChild = scope.getScope(tableIdentify.getSimple());
-                        if(scopeChild == null){
+                        if (scopeChild == null) {
                             throw new RuntimeException("can't find table alias " + tableIdentify.getSimple());
                         }
 
                         RowTypeInfo field = scopeChild.getRowTypeInfo();
-                        BaseRowTypeInfo baseRowTypeInfo = scopeChild.getBaseRowTypeInfo();
+                        RowDataTypeInfo rowDataTypeInfo = scopeChild.getRowDataTypeInfo();
                         String[] fieldNames = field.getFieldNames();
                         TypeInformation<?>[] types = field.getFieldTypes();
-                        LogicalType[] logicalTypes = baseRowTypeInfo.getLogicalTypes();
-                        for(int i=0; i< field.getTotalFields(); i++){
+                        LogicalType[] logicalTypes = rowDataTypeInfo.getLogicalTypes();
+                        for (int i = 0; i < field.getTotalFields(); i++) {
                             String fieldName = fieldNames[i];
                             TypeInformation<?> type = types[i];
                             LogicalType logicalType = logicalTypes[i];
@@ -117,34 +119,34 @@ public class ParserJoinField {
     }
 
     //TODO 丢弃多余的PROCTIME
-    private static List<FieldInfo> getAllField(JoinScope scope){
+    private static List<FieldInfo> getAllField(JoinScope scope) {
         Iterator prefixId = scope.getChildren().iterator();
         List<FieldInfo> fieldInfoList = Lists.newArrayList();
-        while(true) {
+        while (true) {
             JoinScope.ScopeChild resolved;
-            BaseRowTypeInfo field;
-            BaseRowTypeInfo baseRowTypeInfo;
-            if(!prefixId.hasNext()) {
+            RowDataTypeInfo field;
+            RowDataTypeInfo rowDataTypeInfo;
+            if (!prefixId.hasNext()) {
                 return fieldInfoList;
             }
 
-            resolved = (JoinScope.ScopeChild)prefixId.next();
-            int fieldTypeLength = resolved.getBaseRowTypeInfo().getFieldTypes().length;
-            if(fieldTypeLength == 2
-                    && resolved.getRowTypeInfo().getFieldTypes()[1].getClass().equals(BaseRowTypeInfo.class)){
-                field = (BaseRowTypeInfo) resolved.getBaseRowTypeInfo().getFieldTypes()[1];
-            } else if(fieldTypeLength ==1
-                    && resolved.getRowTypeInfo().getFieldTypes()[0].getClass().equals(BaseRowTypeInfo.class)){
-                field = (BaseRowTypeInfo) resolved.getBaseRowTypeInfo().getFieldTypes()[0];
-            }else{
-                field = resolved.getBaseRowTypeInfo();
+            resolved = (JoinScope.ScopeChild) prefixId.next();
+            int fieldTypeLength = resolved.getRowDataTypeInfo().getFieldTypes().length;
+            if (fieldTypeLength == 2
+                    && resolved.getRowTypeInfo().getFieldTypes()[1].getClass().equals(RowDataTypeInfo.class)) {
+                field = (RowDataTypeInfo) resolved.getRowDataTypeInfo().getFieldTypes()[1];
+            } else if (fieldTypeLength == 1
+                    && resolved.getRowTypeInfo().getFieldTypes()[0].getClass().equals(RowDataTypeInfo.class)) {
+                field = (RowDataTypeInfo) resolved.getRowDataTypeInfo().getFieldTypes()[0];
+            } else {
+                field = resolved.getRowDataTypeInfo();
             }
 
-            baseRowTypeInfo = field;
+            rowDataTypeInfo = field;
             String[] fieldNames = field.getFieldNames();
             TypeInformation<?>[] types = field.getFieldTypes();
-            LogicalType[] logicalTypes = baseRowTypeInfo.getLogicalTypes();
-            for(int i=0; i< field.getTotalFields(); i++){
+            LogicalType[] logicalTypes = rowDataTypeInfo.getLogicalTypes();
+            for (int i = 0; i < field.getTotalFields(); i++) {
                 String fieldName = fieldNames[i];
                 TypeInformation<?> type = types[i];
                 LogicalType logicalType = logicalTypes[i];

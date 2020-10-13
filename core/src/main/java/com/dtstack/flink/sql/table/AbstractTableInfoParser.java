@@ -56,9 +56,19 @@ public class AbstractTableInfoParser {
 
     private  Map<String, AbstractTableParser> sideTableInfoMap = Maps.newConcurrentMap();
 
-    //Parsing loaded plugin
+    /**
+     * 解析sql生产对应的实体对象
+     *
+     * @param tableType       插件类型
+     * @param parserResult    表信息
+     * @param localPluginRoot 插件路径
+     * @param pluginLoadMode  插件模式
+     * @param planner         dtstack使用DtClassloader,flink使用AppClassLoader
+     * @return
+     * @throws Exception
+     */
     public AbstractTableInfo parseWithTableType(int tableType, CreateTableParser.SqlParserResult parserResult,
-                                                String localPluginRoot, String pluginLoadMode) throws Exception {
+                                                String localPluginRoot, String pluginLoadMode, String planner) throws Exception {
         AbstractTableParser absTableParser = null;
         Map<String, Object> props = parserResult.getPropMap();
         String type = MathUtil.getString(props.get(TYPE_KEY));
@@ -80,7 +90,7 @@ public class AbstractTableInfoParser {
                 absTableParser = sideTableInfoMap.get(type);
                 if(absTableParser == null){
                     String cacheType = MathUtil.getString(props.get(AbstractSideTableInfo.CACHE_KEY));
-                    absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType, pluginLoadMode);
+                    absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType, pluginLoadMode, planner);
                     sideTableInfoMap.put(type + cacheType, absTableParser);
                 }
             }

@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.option;
 
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
+import com.dtstack.flink.sql.enums.PlannerType;
 
 
 /**
@@ -71,6 +72,9 @@ public class Options {
     
     @OptionRequired(description = "file add to ship file")
     private  String addShipfile;
+
+    @OptionRequired(description = "sql planner")
+    private  String planner = PlannerType.FLINK.name();
 
 
     public String getMode() {
@@ -185,4 +189,12 @@ public class Options {
         this.addShipfile = addShipfile;
     }
 
+    public void setPlanner(String planner) {
+        this.planner = planner;
+    }
+
+    public String getPlanner() {
+        return planner;
+    }
 }
+

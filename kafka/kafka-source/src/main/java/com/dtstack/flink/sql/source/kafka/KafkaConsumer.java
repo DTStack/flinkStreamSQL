@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.metrics.MetricGroup;
@@ -71,8 +72,7 @@ public class KafkaConsumer extends FlinkKafkaConsumer<Row> {
     @Override
     protected AbstractFetcher<Row, ?> createFetcher(SourceFunction.SourceContext<Row> sourceContext,
                                                     Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets,
-                                                    SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic,
-                                                    SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated,
+                                                    SerializedValue<WatermarkStrategy<Row>> watermarkStrategy,
                                                     StreamingRuntimeContext runtimeContext,
                                                     OffsetCommitMode offsetCommitMode,
                                                     MetricGroup consumerMetricGroup,
@@ -80,8 +80,7 @@ public class KafkaConsumer extends FlinkKafkaConsumer<Row> {
 
         AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext,
                 assignedPartitionsWithInitialOffsets,
-                watermarksPeriodic,
-                watermarksPunctuated,
+                watermarkStrategy,
                 runtimeContext,
                 offsetCommitMode,
                 consumerMetricGroup,
