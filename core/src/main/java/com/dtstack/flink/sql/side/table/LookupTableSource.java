@@ -3,12 +3,12 @@ package com.dtstack.flink.sql.side.table;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import com.dtstack.flink.sql.util.TypeUtil;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.functions.AsyncTableFunction;
 import org.apache.flink.table.functions.TableFunction;
 import org.apache.flink.table.sources.LookupableTableSource;
+import org.apache.flink.table.types.DataType;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +34,7 @@ public class LookupTableSource implements
 
     // 跟维表关联的字段
     private final int[] selectFields;
-    private final RowTypeInfo returnType;
+    private final DataType producedDataType;
 
     private LookupTableSource(
             AbstractSideTableInfo abstractSideTableInfo
@@ -59,18 +59,19 @@ public class LookupTableSource implements
         this.pluginLoadMode = pluginLoadMode;
         this.selectFields = selectFields;
 
-        final TypeInformation<?>[] schemaTypeInfos = schema.getFieldTypes();
+        final DataType[] schemaDataTypes = schema.getFieldDataTypes();
         final String[] schemaFieldNames = schema.getFieldNames();
         if (selectFields != null) {
-            TypeInformation<?>[] typeInfos = new TypeInformation[selectFields.length];
-            String[] typeNames = new String[selectFields.length];
+            DataType[] dataTypes = new DataType[selectFields.length];
+            String[] fieldNames = new String[selectFields.length];
             for (int i = 0; i < selectFields.length; i++) {
-                typeInfos[i] = schemaTypeInfos[selectFields[i]];
-                typeNames[i] = schemaFieldNames[selectFields[i]];
+                dataTypes[i] = schemaDataTypes[selectFields[i]];
+                fieldNames[i] = schemaFieldNames[selectFields[i]];
             }
-            this.returnType = new RowTypeInfo(typeInfos, typeNames);
+            this.producedDataType =
+                    TableSchema.builder().fields(fieldNames, dataTypes).build().toRowDataType();
         } else {
-            this.returnType = new RowTypeInfo(schemaTypeInfos, schemaFieldNames);
+            this.producedDataType = schema.toRowDataType();
         }
     }
 
@@ -131,8 +132,8 @@ public class LookupTableSource implements
     }
 
     @Override
-    public TypeInformation<Row> getReturnType() {
-        return returnType;
+    public DataType getProducedDataType() {
+        return producedDataType;
     }
 
     @Override
@@ -153,7 +154,7 @@ public class LookupTableSource implements
                     Objects.equals(localSqlPluginPath, that.localSqlPluginPath) &&
                     Objects.equals(pluginLoadMode, that.pluginLoadMode) &&
                     Arrays.equals(selectFields, that.selectFields) &&
-                    Objects.equals(returnType, that.returnType);
+                    Objects.equals(producedDataType, that.producedDataType);
         } else {
             return false;
         }
@@ -175,7 +176,7 @@ public class LookupTableSource implements
         }
 
         public Builder setSchema(TableSchema schema) {
-            this.schema = schema;
+            this.schema = TypeUtil.normalizeTableSchema(schema);
             return this;
         }
 
