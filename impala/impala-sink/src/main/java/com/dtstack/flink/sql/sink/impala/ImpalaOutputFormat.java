@@ -1,200 +1,500 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.dtstack.flink.sql.sink.impala;
 
-import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
-import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
+import com.dtstack.flink.sql.factory.DTThreadFactory;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.sink.rdb.JDBCTypeConvertUtils;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.util.JDBCUtils;
 import com.dtstack.flink.sql.util.KrbUtils;
+import com.google.common.collect.Maps;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.types.Row;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.rmi.RemoteException;
 import java.security.PrivilegedExceptionAction;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * @program: flinkStreamSQL
- * @author: wuren
- * @create: 2020/09/11
- **/
-public class ImpalaOutputFormat extends JDBCUpsertOutputFormat {
-    private String keytabPath;
-    private String krb5confPath;
-    private String principal;
-    private Integer authMech;
+ * Date: 2020/10/14
+ * Company: www.dtstack.com
+ *
+ * @author tiezhu
+ */
+public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean, Row>> {
 
-    public ImpalaOutputFormat(
-            JDBCOptions options,
-            String[] fieldNames,
-            String[] keyFields,
-            String[] partitionFields,
-            int[] fieldTypes,
-            int flushMaxSize,
-            long flushIntervalMills,
-            boolean allReplace,
-            String updateMode,
-            Integer authMech,
-            String keytabPath,
-            String krb5confPath,
-            String principal) {
-        super(options,
-                fieldNames,
-                keyFields,
-                partitionFields,
-                fieldTypes,
-                flushMaxSize,
-                flushIntervalMills,
-                allReplace,
-                updateMode);
-        this.authMech = authMech;
-        this.keytabPath = keytabPath;
-        this.krb5confPath = krb5confPath;
-        this.principal = principal;
+    private static final Logger LOG = LoggerFactory.getLogger(ImpalaOutputFormat.class);
+
+    private static final long serialVersionUID = 1L;
+
+    // ${field}
+    private static final Pattern STATIC_PARTITION_PATTERN = Pattern.compile("\\$\\{([^}]*)}");
+
+    private static final Integer DEFAULT_CONN_TIME_OUT = 60;
+    private static final int RECEIVE_DATA_PRINT_FREQUENCY = 1000;
+
+    private static final String KUDU_TYPE = "kudu";
+    private static final String DYNAMIC_MODE = "dynamic";
+    private static final String STATIC_MODE = "static";
+    private static final String UPDATE_MODE = "update";
+    private static final String PARTITION_CONSTANT = "PARTITION";
+    private static final String STRING_TYPE = "STRING";
+    private static final String DRIVER_NAME = "com.cloudera.impala.jdbc41.Driver";
+
+    protected transient Connection connection;
+    protected transient PreparedStatement statement;
+
+    private transient volatile boolean closed = false;
+    private transient int batchCount = 0;
+
+    protected String keytabPath;
+    protected String krb5confPath;
+    protected String principal;
+    protected Integer authMech;
+    protected String dbUrl;
+    protected String userName;
+    protected String password;
+    protected int batchSize = 100;
+    protected long batchWaitInterval = 60 * 1000L;
+    protected String tableName;
+    protected List<String> primaryKeys;
+    protected String partitionFields;
+    protected Boolean enablePartition;
+    protected String schema;
+    protected String storeType;
+    protected String partitionMode;
+    protected String updateMode;
+    public List<String> fieldList;
+    public List<String> fieldTypeList;
+    public List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList;
+
+    // partition field of static partition which matched by ${field}
+    private List<String> staticPartitionField = new ArrayList<>();
+
+    private transient ScheduledExecutorService scheduler;
+    private transient ScheduledFuture scheduledFuture;
+
+    /**
+     * 具体需要执行的Sql列表
+     */
+    List<String> executeSql = new ArrayList<>();
+
+    @Override
+    public void configure(Configuration parameters) {
     }
 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
-        if (authMech == 1) {
-            UserGroupInformation ugi = KrbUtils.getUgi(principal, keytabPath, krb5confPath);
-            try {
-                ugi.doAs(new PrivilegedExceptionAction<Void>() {
-                    @Override
-                    public Void run() throws IOException {
-                        openJdbc();
-                        return null;
+        openConnect();
+        initScheduledTask(batchWaitInterval);
+        initMetric();
+    }
+
+    private void initScheduledTask(Long batchWaitInterval) {
+        if (batchWaitInterval != 0) {
+            this.scheduler = new ScheduledThreadPoolExecutor(1,
+                    new DTThreadFactory("impala-upsert-output-format"));
+            this.scheduledFuture = this.scheduler.scheduleWithFixedDelay(() -> {
+                synchronized (ImpalaOutputFormat.this) {
+                    if (closed) {
+                        return;
                     }
-                });
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        } else {
-            super.open(taskNumber, numTasks);
+                    try {
+                        flush();
+                    } catch (Exception e) {
+                        LOG.error("Writing records to impala jdbc failed.", e);
+                        throw new RuntimeException("Writing records to impala jdbc failed.", e);
+                    }
+                }
+            }, batchWaitInterval, batchWaitInterval, TimeUnit.MILLISECONDS);
         }
     }
 
-    public static Builder impalaBuilder() {
+    private void openConnect() throws IOException {
+        if (authMech == 1) {
+            UserGroupInformation ugi = KrbUtils.getUgi(principal, keytabPath, krb5confPath);
+            try {
+                ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+                    openJdbc();
+                    return null;
+                });
+            } catch (InterruptedException | IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            openJdbc();
+        }
+    }
+
+    /**
+     * get jdbc connection and create statement
+     */
+    private void openJdbc() {
+        JDBCUtils.forName(DRIVER_NAME, getClass().getClassLoader());
+        try {
+            connection = DriverManager.getConnection(dbUrl, userName, password);
+            connection.setAutoCommit(false);
+            // kudu
+            if (storeType.equalsIgnoreCase(KUDU_TYPE)) {
+                statement = connection.prepareStatement(
+                        buildKuduInsertSql(schema, tableName, fieldList, fieldTypeList)
+                );
+                return;
+            }
+
+            // match ${field} from partitionFields
+            Matcher matcher = STATIC_PARTITION_PATTERN.matcher(partitionFields);
+            while (matcher.find()) {
+                staticPartitionField.add(matcher.group(1));
+            }
+
+            // dynamic
+            if (enablePartition && staticPartitionField.isEmpty()) {
+                statement = connection.prepareStatement(
+                        buildDynamicInsertSql(schema, tableName, fieldList, fieldTypeList, partitionFields)
+                );
+            }
+            // static
+            if (enablePartition && !staticPartitionField.isEmpty()) {
+
+                return;
+            }
+
+        } catch (SQLException sqlException) {
+            throw new RuntimeException("get impala jdbc connection failed!");
+        }
+    }
+
+    private void flush() throws SQLException {
+        statement.executeBatch();
+    }
+
+    /**
+     * 通过impala写入数据，具体分三种情况
+     * 1.kudu 表 -> buildKuduInsertSql();
+     * 2.静态分区的方式 -> buildStaticInsertSql();
+     * 3.动态分区的方式 -> buildDynamicInsertSql();
+     * 静态分区的方式中，分区字段值需要通过record中对应字段来获取填充
+     *
+     * @param record 回撤流数据
+     * @throws IOException IOException
+     */
+    @Override
+    public void writeRecord(Tuple2<Boolean, Row> record) throws IOException {
+        try {
+            Map<String, Object> valueMap = Maps.newHashMap();
+
+            if (outRecords.getCount() % RECEIVE_DATA_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                LOG.info("Receive data : {}", record);
+            }
+            // Receive data
+            outRecords.inc();
+
+            Row copyRow = Row.copy(record.f1);
+
+            for (int i = 0; i < copyRow.getArity(); i++) {
+                valueMap.put(fieldList.get(i), copyRow.getField(i));
+            }
+
+            setRowToStatement(statement, fieldTypeList, copyRow);
+            statement.addBatch();
+
+            if (batchCount++ > batchSize) {
+                flush();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Writing records to impala failed.", e);
+        }
+    }
+
+    private void setRowToStatement(PreparedStatement statement, List<String> fieldTypeList, Row row) throws SQLException {
+        JDBCTypeConvertUtils.setRecordToStatement(statement, JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypeList), row);
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (closed) {
+            return;
+        }
+        // cancel scheduled task
+        if (this.scheduledFuture != null) {
+            scheduledFuture.cancel(false);
+            this.scheduler.shutdown();
+        }
+        // 将还未执行的SQL flush
+        if (!executeSql.isEmpty()) {
+            try {
+                flush();
+            } catch (Exception e) {
+                throw new RuntimeException("Writing records to impala failed.", e);
+            }
+        }
+        // close connection
+        try {
+            if (connection != null && connection.isValid(DEFAULT_CONN_TIME_OUT)) {
+                connection.close();
+            }
+        } catch (SQLException e) {
+            throw new RemoteException("impala connection close failed!");
+        } finally {
+            connection = null;
+        }
+        closed = true;
+    }
+
+    /**
+     * impala 写入 kudu 表SQL
+     *
+     * @param schema     schema
+     * @param tableName  tableName
+     * @param fieldList  fieldList
+     * @param fieldTypes fieldTypes
+     * @return INSERT INTO kuduTable(field1, fields2) VALUES ( v1, v2)
+     */
+    private String buildKuduInsertSql(String schema,
+                                      String tableName,
+                                      List<String> fieldList,
+                                      List<String> fieldTypes) {
+
+        String columns = fieldList.stream()
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
+
+        String placeholders = fieldTypes.stream().map(
+                f -> {
+                    if (STRING_TYPE.equals(f.toUpperCase())) {
+                        return "cast(? as string)";
+                    }
+                    return "?";
+                }).collect(Collectors.joining(", "));
+
+        return "INSERT INTO " + (Objects.isNull(schema) ? "" : quoteIdentifier(schema) + ".") + quoteIdentifier(tableName) +
+                "(" + columns + ")" + " VALUES (" + placeholders + ")";
+    }
+
+    /**
+     * impala 通过静态分区的方式写入数据 SQL
+     * 通过解析${pt}占位符的方式来做 pt=%s 替换，具体的分区值通过数据获取
+     *
+     * @return INSERT INTO tableName(field1, field2) PARTITION(pt=%s) VALUES (?, ?)
+     */
+    private String buildStaticInsertSql(String schema, String tableName, List<String> fieldNames, List<String> fieldTypes, String partitionFields) {
+        return "insert into table demoTwo(id, name) partition(year=2018) values ('001','张三');";
+    }
+
+    /**
+     * impala 通过动态分区的方式写入数据 SQL
+     *
+     * @return INSERT INTO tableName(field1, field2) PARTITION(pt) VALUES (?, ?)
+     */
+    private String buildDynamicInsertSql(String schema, String tableName, List<String> fieldList, List<String> fieldTypes, String partitionFields) {
+        String placeholders = fieldTypes.stream().map(
+                f -> {
+                    if (STRING_TYPE.equals(f.toUpperCase())) {
+                        return "cast(? as string)";
+                    }
+                    return "?";
+                }).collect(Collectors.joining(", "));
+
+        String columns = fieldList.stream()
+                .filter(f -> !partitionFields.contains(f))
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
+
+        String partitionCondition = PARTITION_CONSTANT + "(" + partitionFields + ")";
+
+        return "INSERT INTO " + (Objects.isNull(schema) ? "" : quoteIdentifier(schema) + ".") + quoteIdentifier(tableName) +
+                " (" + columns + ") " + partitionCondition + " VALUES (" + placeholders + ")";
+    }
+
+    /**
+     * impala update mode SQL
+     *
+     * @return UPDATE tableName SET setCondition WHERE whereCondition
+     */
+    private String buildUpdateSql(String schema, String tableName, String[] fieldNames, String[] partitionFields) {
+        return "update tableName set name='王五' where id='003";
+    }
+
+    public String quoteIdentifier(String identifier) {
+        return "`" + identifier + "`";
+    }
+
+    public static Builder getImpalaBuilder() {
         return new Builder();
     }
 
     public static class Builder {
-        private Integer authMech;
-        private String keytabPath;
-        private String krb5confPath;
-        private String principal;
+        private final ImpalaOutputFormat format = new ImpalaOutputFormat();
 
-        protected JDBCOptions options;
-        protected String[] fieldNames;
-        protected String[] keyFields;
-        protected String[] partitionFields;
-        protected int[] fieldTypes;
-        protected int flushMaxSize = DEFAULT_FLUSH_MAX_SIZE;
-        protected long flushIntervalMills = DEFAULT_FLUSH_INTERVAL_MILLS;
-        protected boolean allReplace = DEFAULT_ALLREPLACE_VALUE;
-        protected String updateMode;
-
-        /**
-         * required, jdbc options.
-         */
-        public Builder setOptions(JDBCOptions options) {
-            this.options = options;
+        public Builder setDbUrl(String dbUrl) {
+            format.dbUrl = dbUrl;
             return this;
         }
 
-        /**
-         * required, field names of this jdbc sink.
-         */
-        public Builder setFieldNames(String[] fieldNames) {
-            this.fieldNames = fieldNames;
+        public Builder setUserName(String userName) {
+            format.userName = userName;
             return this;
         }
 
-        /**
-         * required, upsert unique keys.
-         */
-        public Builder setKeyFields(List<String> keyFields) {
-            this.keyFields = keyFields == null ? null : keyFields.toArray(new String[keyFields.size()]);
+        public Builder setPassword(String password) {
+            format.password = password;
             return this;
         }
 
-        /**
-         * required, field types of this jdbc sink.
-         */
-        public Builder setFieldTypes(int[] fieldTypes) {
-            this.fieldTypes = fieldTypes;
+        public Builder setBatchSize(Integer batchSize) {
+            format.batchSize = batchSize;
             return this;
         }
 
-        /**
-         * optional, partition Fields
-         *
-         * @param partitionFields
-         * @return
-         */
-        public Builder setPartitionFields(String[] partitionFields) {
-            this.partitionFields = partitionFields;
+        public Builder setBatchWaitInterval(Long batchWaitInterval) {
+            format.batchWaitInterval = batchWaitInterval;
             return this;
         }
 
-        /**
-         * optional, flush max size (includes all append, upsert and delete records),
-         * over this number of records, will flush data.
-         */
-        public Builder setFlushMaxSize(int flushMaxSize) {
-            this.flushMaxSize = flushMaxSize;
+        public Builder setTableName(String tableName) {
+            format.tableName = tableName;
             return this;
         }
 
-        /**
-         * optional, flush interval mills, over this time, asynchronous threads will flush data.
-         */
-        public Builder setFlushIntervalMills(long flushIntervalMills) {
-            this.flushIntervalMills = flushIntervalMills;
+        public Builder setPartitionFields(String partitionFields) {
+            format.partitionFields = partitionFields;
             return this;
         }
 
-        public Builder setAllReplace(boolean allReplace) {
-            this.allReplace = allReplace;
+        public Builder setPrimaryKeys(List<String> primaryKeys) {
+            format.primaryKeys = primaryKeys;
+            return this;
+        }
+
+        public Builder setSchema(String schema) {
+            format.schema = schema;
+            return this;
+        }
+
+        public Builder setEnablePartition(Boolean enablePartition) {
+            format.enablePartition = enablePartition;
             return this;
         }
 
         public Builder setUpdateMode(String updateMode) {
-            this.updateMode = updateMode;
+            format.updateMode = updateMode;
+            return this;
+        }
+
+        public Builder setFieldList(List<String> fieldList) {
+            format.fieldList = fieldList;
+            return this;
+        }
+
+        public Builder setFieldTypeList(List<String> fieldTypeList) {
+            format.fieldTypeList = fieldTypeList;
+            return this;
+        }
+
+        public Builder setStoreType(String storeType) {
+            format.storeType = storeType;
+            return this;
+        }
+
+        public Builder setPartitionMode(String partitionMode) {
+            format.partitionMode = partitionMode;
+            return this;
+        }
+
+        public Builder setFieldExtraInfoList(List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList) {
+            format.fieldExtraInfoList = fieldExtraInfoList;
+            return this;
+        }
+
+        public Builder setKeyTabPath(String keyTabPath) {
+            format.keytabPath = keyTabPath;
+            return this;
+        }
+
+        public Builder setKrb5ConfPath(String krb5ConfPath) {
+            format.krb5confPath = krb5ConfPath;
+            return this;
+        }
+
+        public Builder setPrincipal(String principal) {
+            format.principal = principal;
             return this;
         }
 
         public Builder setAuthMech(Integer authMech) {
-            this.authMech = authMech;
-            return this;
-        }
-        public Builder setKeytabPath(String keytabPath) {
-            this.keytabPath = keytabPath;
-            return this;
-        }
-        public Builder setKrb5confPath(String krb5confPath) {
-            this.krb5confPath = krb5confPath;
-            return this;
-        }
-        public Builder setPrincipal(String principal) {
-            this.principal = principal;
+            format.authMech = authMech;
             return this;
         }
 
-        public ImpalaOutputFormat build() {
-            checkNotNull(options, "No options supplied.");
-            checkNotNull(fieldNames, "No fieldNames supplied.");
-            return new ImpalaOutputFormat(
-                    options,
-                    fieldNames,
-                    keyFields,
-                    partitionFields,
-                    fieldTypes,
-                    flushMaxSize,
-                    flushIntervalMills,
-                    allReplace,
-                    updateMode,
-                    authMech,
-                    keytabPath,
-                    krb5confPath,
-                    principal);
+        private boolean canHandle(String url) {
+            return url.startsWith("jdbc:impala:");
         }
+
+        public ImpalaOutputFormat build() {
+            if (!canHandle(format.dbUrl)) {
+                throw new IllegalArgumentException("impala dbUrl is illegal, check url: " + format.dbUrl);
+            }
+
+            if (format.authMech == EAuthMech.Kerberos.getType()) {
+                checkNotNull(format.krb5confPath,
+                        "When kerberos authentication is enabled, krb5confPath is required！");
+                checkNotNull(format.principal,
+                        "When kerberos authentication is enabled, principal is required！");
+                checkNotNull(format.keytabPath,
+                        "When kerberos authentication is enabled, keytabPath is required！");
+            }
+
+            if (format.authMech == EAuthMech.UserName.getType()) {
+                checkNotNull(format.userName, "userName is required!");
+            }
+
+            if (format.authMech == EAuthMech.NameANDPassword.getType()) {
+                checkNotNull(format.userName, "userName is required!");
+                checkNotNull(format.password, "password is required!");
+            }
+
+            return format;
+        }
+
     }
+
 }
