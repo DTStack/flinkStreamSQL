@@ -19,7 +19,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <junit.version>3.8.1</junit.version>
+        <junit.version>4.13.1</junit.version>
         <sql.core.version>1.0-SNAPSHOT</sql.core.version>
     </properties>
 
