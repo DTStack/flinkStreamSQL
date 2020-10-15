@@ -47,6 +47,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -72,18 +73,17 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private static final int RECEIVE_DATA_PRINT_FREQUENCY = 1000;
 
     private static final String KUDU_TYPE = "kudu";
-    private static final String DYNAMIC_MODE = "dynamic";
-    private static final String STATIC_MODE = "static";
     private static final String UPDATE_MODE = "update";
     private static final String PARTITION_CONSTANT = "PARTITION";
     private static final String STRING_TYPE = "STRING";
+    private static final String PARTITION_CONDITION = "$partitionCondition";
     private static final String DRIVER_NAME = "com.cloudera.impala.jdbc41.Driver";
 
     protected transient Connection connection;
     protected transient PreparedStatement statement;
 
     private transient volatile boolean closed = false;
-    private transient int batchCount = 0;
+    private final AtomicInteger batchCount = new AtomicInteger(0);
 
     protected String keytabPath;
     protected String krb5confPath;
@@ -109,13 +109,11 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     // partition field of static partition which matched by ${field}
     private List<String> staticPartitionField = new ArrayList<>();
 
+    // static partition sql like 'INSERT INTO tableName(field1, field2) PARTITION(pt=xx) VALUES(?, ?)'
+    private String staticPartitionSql;
+
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture scheduledFuture;
-
-    /**
-     * 具体需要执行的Sql列表
-     */
-    List<String> executeSql = new ArrayList<>();
 
     @Override
     public void configure(Configuration parameters) {
@@ -194,8 +192,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             }
             // static
             if (enablePartition && !staticPartitionField.isEmpty()) {
-
-                return;
+                staticPartitionSql = buildStaticInsertSql(schema, tableName, fieldList, fieldTypeList, partitionFields);
             }
 
         } catch (SQLException sqlException) {
@@ -204,7 +201,10 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     }
 
     private void flush() throws SQLException {
-        statement.executeBatch();
+        if (Objects.nonNull(statement)) {
+            statement.executeBatch();
+            batchCount.set(0);
+        }
     }
 
     /**
@@ -234,10 +234,23 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 valueMap.put(fieldList.get(i), copyRow.getField(i));
             }
 
-            setRowToStatement(statement, fieldTypeList, copyRow);
+            // build static partition statement from row data
+            if (!staticPartitionSql.isEmpty()) {
+                statement = connection.prepareStatement(
+                        staticPartitionSql.replace(PARTITION_CONDITION,
+                                buildStaticPartitionCondition(valueMap, staticPartitionField))
+                );
+            }
+
+            Row rowValue = new Row(fieldTypeList.size());
+            for (int i = 0; i < fieldTypeList.size(); i++) {
+                rowValue.setField(i, copyRow.getField(i));
+            }
+
+            setRowToStatement(statement, fieldTypeList, rowValue);
             statement.addBatch();
 
-            if (batchCount++ > batchSize) {
+            if (batchCount.incrementAndGet() > batchSize) {
                 flush();
             }
         } catch (Exception e) {
@@ -260,7 +273,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             this.scheduler.shutdown();
         }
         // 将还未执行的SQL flush
-        if (!executeSql.isEmpty()) {
+        if (batchCount.get() > 0) {
             try {
                 flush();
             } catch (Exception e) {
@@ -311,21 +324,35 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     }
 
     /**
-     * impala 通过静态分区的方式写入数据 SQL
-     * 通过解析${pt}占位符的方式来做 pt=%s 替换，具体的分区值通过数据获取
+     * get static partition value from rowData and build static partition condition
      *
-     * @return INSERT INTO tableName(field1, field2) PARTITION(pt=%s) VALUES (?, ?)
+     * @param rowData              the row data
+     * @param staticPartitionField static partition field
+     * @return partition condition like pt1=v1, pt2=v2
      */
-    private String buildStaticInsertSql(String schema, String tableName, List<String> fieldNames, List<String> fieldTypes, String partitionFields) {
-        return "insert into table demoTwo(id, name) partition(year=2018) values ('001','张三');";
+    private String buildStaticPartitionCondition(Map<String, Object> rowData, List<String> staticPartitionField) {
+        StringBuilder sb = new StringBuilder();
+        for (String key : staticPartitionField) {
+            Object value = rowData.get(key);
+            sb.append(key).append("=").append(value);
+        }
+        return sb.toString();
     }
 
     /**
-     * impala 通过动态分区的方式写入数据 SQL
+     * impala 通过静态分区的方式写入数据 SQL
      *
-     * @return INSERT INTO tableName(field1, field2) PARTITION(pt) VALUES (?, ?)
+     * @return INSERT INTO tableName(field1, field2) PARTITION($partitionCondition) VALUES (?, ?)
      */
-    private String buildDynamicInsertSql(String schema, String tableName, List<String> fieldList, List<String> fieldTypes, String partitionFields) {
+    private String buildStaticInsertSql(String schema, String tableName, List<String> fieldNames, List<String> fieldTypes, String partitionFields) {
+        List<String> copyFieldNames = new ArrayList<>(fieldNames);
+        for (int i = fieldNames.size() - 1; i >= 0; i--) {
+            if (partitionFields.contains(fieldNames.get(i))) {
+                copyFieldNames.remove(i);
+                fieldTypes.remove(i);
+            }
+        }
+
         String placeholders = fieldTypes.stream().map(
                 f -> {
                     if (STRING_TYPE.equals(f.toUpperCase())) {
@@ -334,7 +361,32 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                     return "?";
                 }).collect(Collectors.joining(", "));
 
-        String columns = fieldList.stream()
+        String columns = copyFieldNames.stream()
+                .map(this::quoteIdentifier)
+                .collect(Collectors.joining(", "));
+
+        String partitionCondition = PARTITION_CONSTANT + "(" + PARTITION_CONDITION + ")";
+
+        return "INSERT INTO " + (Objects.isNull(schema) ? "" : quoteIdentifier(schema) + ".") + quoteIdentifier(tableName) +
+                " (" + columns + ") " + partitionCondition + " VALUES (" + placeholders + ")";
+    }
+
+    /**
+     * impala 通过动态分区的方式写入数据 SQL
+     *
+     * @return INSERT INTO tableName(field1, field2) PARTITION(pt) VALUES (?, ?)
+     */
+    private String buildDynamicInsertSql(String schema, String tableName, List<String> fieldName, List<String> fieldTypes, String partitionFields) {
+
+        String placeholders = fieldTypes.stream().map(
+                f -> {
+                    if (STRING_TYPE.equals(f.toUpperCase())) {
+                        return "cast(? as string)";
+                    }
+                    return "?";
+                }).collect(Collectors.joining(", "));
+
+        String columns = fieldName.stream()
                 .filter(f -> !partitionFields.contains(f))
                 .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
@@ -350,7 +402,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      *
      * @return UPDATE tableName SET setCondition WHERE whereCondition
      */
-    private String buildUpdateSql(String schema, String tableName, String[] fieldNames, String[] partitionFields) {
+    private String buildUpdateSql(String schema, String tableName, String[] fieldNames, String[] partitionFields, Map<String, Object> replaceField) {
         return "update tableName set name='王五' where id='003";
     }
 
