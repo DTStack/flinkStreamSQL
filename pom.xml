@@ -37,7 +37,7 @@
         <module>oceanbase</module>
         <module>tidb</module>
         <module>kingbase</module>
-<!--        <module>localTest</module>-->
+        <module>localTest</module>
 
     </modules>
 

@@ -48,7 +48,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -84,7 +83,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     protected transient PreparedStatement statement;
 
     private transient volatile boolean closed = false;
-    private final AtomicInteger batchCount = new AtomicInteger(0);
+    private int batchCount = 0;
 
     protected String keytabPath;
     protected String krb5confPath;
@@ -216,7 +215,8 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private void flush() throws SQLException {
         if (Objects.nonNull(statement)) {
             statement.executeBatch();
-            batchCount.set(0);
+            batchCount = 0;
+            statement.clearBatch();
         }
     }
 
@@ -271,9 +271,10 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 setRowToStatement(statement, fieldTypeList, rowValue, null);
             }
 
+            batchCount++;
             statement.addBatch();
 
-            if (batchCount.incrementAndGet() >= batchSize) {
+            if (batchCount > batchSize) {
                 flush();
             }
         } catch (Exception e) {
@@ -296,7 +297,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             this.scheduler.shutdown();
         }
         // 将还未执行的SQL flush
-        if (batchCount.get() > 0) {
+        if (batchCount > 0) {
             try {
                 flush();
             } catch (Exception e) {

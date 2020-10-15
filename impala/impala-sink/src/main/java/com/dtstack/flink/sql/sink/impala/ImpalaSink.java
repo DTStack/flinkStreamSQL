@@ -60,7 +60,7 @@ public class ImpalaSink implements RetractStreamTableSink<Row>, IStreamSinkGener
     protected String principal;
 
     protected int batchSize = 100;
-    protected long batchWaitInterval = 10000;
+    protected long batchWaitInterval = 60 * 1000L;
     protected String tableName;
     protected String registerTabName;
     protected String storeType;
