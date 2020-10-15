@@ -74,8 +74,6 @@ public class ImpalaSinkParser extends AbstractTableParser {
 
     private static final String UPDATE_KEY = "updateMode";
 
-    private static final String PARTITION_MODE_KEY = "partitionMode";
-
     private static final String KUDU_TYPE = "kudu";
 
     private static final String STORE_TYPE_KEY = "storeType";
@@ -134,8 +132,6 @@ public class ImpalaSinkParser extends AbstractTableParser {
         if (!storeType.equalsIgnoreCase(KUDU_TYPE) && enablePartition) {
             String partitionFields = MathUtil.getString(props.get(PARTITION_FIELDS_KEY.toLowerCase()));
             impalaTableInfo.setPartitionFields(partitionFields);
-            String partitionMode = MathUtil.getString(props.get(PARTITION_MODE_KEY.toLowerCase()));
-            impalaTableInfo.setPartitionMode(partitionMode);
         }
 
         impalaTableInfo.setType(CURRENT_TYPE);

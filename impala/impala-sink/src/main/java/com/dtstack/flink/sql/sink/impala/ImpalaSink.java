@@ -64,7 +64,6 @@ public class ImpalaSink implements RetractStreamTableSink<Row>, IStreamSinkGener
     protected String tableName;
     protected String registerTabName;
     protected String storeType;
-    protected String partitionMode;
 
     protected List<String> primaryKeys;
     private int parallelism = 1;
@@ -113,8 +112,6 @@ public class ImpalaSink implements RetractStreamTableSink<Row>, IStreamSinkGener
 
         this.storeType = Objects.isNull(impalaTableInfo.getStoreType()) ?
                 DEFAULT_STORE_TYPE : impalaTableInfo.getStoreType();
-        this.partitionMode = Objects.isNull(impalaTableInfo.getPartitionMode()) ?
-                DEFAULT_PARTITION_MODE : impalaTableInfo.getPartitionMode();
         this.enablePartition = impalaTableInfo.isEnablePartition();
 
         return this;
@@ -181,7 +178,6 @@ public class ImpalaSink implements RetractStreamTableSink<Row>, IStreamSinkGener
                 .setFieldTypeList(fieldTypeList)
                 .setFieldExtraInfoList(fieldExtraInfoList)
                 .setStoreType(storeType)
-                .setPartitionMode(partitionMode)
                 .setEnablePartition(enablePartition)
                 .setUpdateMode(updateMode)
                 .setAuthMech(authMech)

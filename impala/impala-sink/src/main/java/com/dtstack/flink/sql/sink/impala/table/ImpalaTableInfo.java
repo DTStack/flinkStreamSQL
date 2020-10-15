@@ -77,8 +77,6 @@ public class ImpalaTableInfo extends AbstractTargetTableInfo {
 
     private String storeType;
 
-    private String partitionMode;
-
     public String getUrl() {
         return url;
     }
@@ -149,14 +147,6 @@ public class ImpalaTableInfo extends AbstractTargetTableInfo {
 
     public void setSchema(String schema) {
         this.schema = schema;
-    }
-
-    public boolean isAllReplace() {
-        return allReplace;
-    }
-
-    public void setAllReplace(boolean allReplace) {
-        this.allReplace = allReplace;
     }
 
     public String getUpdateMode() {
@@ -245,14 +235,6 @@ public class ImpalaTableInfo extends AbstractTargetTableInfo {
 
     public void setStoreType(String storeType) {
         this.storeType = storeType;
-    }
-
-    public String getPartitionMode() {
-        return partitionMode;
-    }
-
-    public void setPartitionMode(String partitionMode) {
-        this.partitionMode = partitionMode;
     }
 
     @Override

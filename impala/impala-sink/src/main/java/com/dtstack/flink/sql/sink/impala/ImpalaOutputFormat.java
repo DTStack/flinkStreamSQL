@@ -102,7 +102,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     protected Boolean enablePartition;
     protected String schema;
     protected String storeType;
-    protected String partitionMode;
     protected String updateMode;
     public List<String> fieldList;
     public List<String> fieldTypeList;
@@ -515,11 +514,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
         public Builder setStoreType(String storeType) {
             format.storeType = storeType;
-            return this;
-        }
-
-        public Builder setPartitionMode(String partitionMode) {
-            format.partitionMode = partitionMode;
             return this;
         }
 
