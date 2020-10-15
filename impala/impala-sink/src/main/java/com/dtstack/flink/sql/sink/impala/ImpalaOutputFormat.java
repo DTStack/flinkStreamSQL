@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.sink.rdb.JDBCTypeConvertUtils;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.JDBCUtils;
 import com.dtstack.flink.sql.util.KrbUtils;
@@ -37,6 +38,7 @@ import java.rmi.RemoteException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -53,6 +55,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static com.dtstack.flink.sql.sink.rdb.JDBCTypeConvertUtils.setRecordToStatement;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -89,6 +92,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
     protected transient Connection connection;
     protected transient Statement statement;
+    protected transient PreparedStatement updateStatement;
 
     private transient volatile boolean closed = false;
     private int batchCount = 0;
@@ -138,6 +142,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private List<String> valueFieldNames;
     private transient final AbstractDtRichOutputFormat<?> metricOutputFormat = this;
     private List<Tuple2<String, String>> rowDataList;
+    private List<Row> rows;
 
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture<?> scheduledFuture;
@@ -150,6 +155,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     public void open(int taskNumber, int numTasks) throws IOException {
         rowDataList = new ArrayList<>();
         rowDataMap = new HashMap<>();
+        rows = new ArrayList<>();
         openConnect();
         initScheduledTask(batchWaitInterval);
         init();
@@ -157,16 +163,24 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     }
 
     private void init() {
-        if (Objects.nonNull(partitionFields)) {
-            // match ${field} from partitionFields
-            Matcher matcher = STATIC_PARTITION_PATTERN.matcher(partitionFields);
-            while (matcher.find()) {
-                LOG.info("find static partition field: {}", matcher.group(1));
-                staticPartitionFields.add(matcher.group(1));
+        try {
+            if (Objects.nonNull(partitionFields)) {
+                // match ${field} from partitionFields
+                Matcher matcher = STATIC_PARTITION_PATTERN.matcher(partitionFields);
+                while (matcher.find()) {
+                    LOG.info("find static partition field: {}", matcher.group(1));
+                    staticPartitionFields.add(matcher.group(1));
+                }
             }
-        }
 
-        valueFieldNames = rebuildFieldNameListAndTypeList(fieldNames, staticPartitionFields, fieldTypes, partitionFields);
+            if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
+                updateStatement = connection.prepareStatement(buildUpdateSql(schema, tableName, fieldNames, primaryKeys));
+            }
+
+            valueFieldNames = rebuildFieldNameListAndTypeList(fieldNames, staticPartitionFields, fieldTypes, partitionFields);
+        } catch (Exception e) {
+            throw new RuntimeException("init impala job error", e);
+        }
     }
 
     private void initScheduledTask(Long batchWaitInterval) {
@@ -236,6 +250,74 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         }
     }
 
+    private void executeBatch() throws SQLException {
+        try {
+            rows.forEach(row -> {
+                try {
+                    Map<String, Object> valueMap = new HashMap<>();
+
+                    for (int i = 0; i < row.getArity(); i++) {
+                        valueMap.put(fieldNames.get(i), row.getField(i));
+                    }
+                    // 根据字段名对 row data 重组, 比如，原始 row data : (1, xxx, 20) -> (id, name, age)
+                    // 但是由于 partition，写入的field 顺序变成了 (name, id, age)，则需要对 row data 重组变成 (xxx, 1, 20)
+                    Row rowValue = new Row(fieldTypes.size());
+                    for (int i = 0; i < fieldTypes.size(); i++) {
+                        rowValue.setField(i, valueMap.get(valueFieldNames.get(i)));
+                    }
+
+                    if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
+                        JDBCTypeConvertUtils.setRecordToStatement(
+                                updateStatement,
+                                JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypes),
+                                rowValue,
+                                primaryKeys.stream().mapToInt(fieldNames::indexOf).toArray()
+                        );
+                    }
+                    updateStatement.addBatch();
+                } catch (Exception e) {
+                    throw new RuntimeException("impala jdbc execute batch error!", e);
+                }
+            });
+            updateStatement.executeBatch();
+            connection.commit();
+            rows.clear();
+        } catch (Exception e) {
+            LOG.debug("impala jdbc execute batch error ", e);
+            connection.rollback();
+            connection.commit();
+            cleanBatchWhenError();
+            executeUpdate(connection);
+        }
+    }
+
+    public void executeUpdate(Connection connection) {
+        rows.forEach(row -> {
+            try {
+                setRecordToStatement(updateStatement, JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypes), row);
+                updateStatement.executeUpdate();
+                connection.commit();
+            } catch (Exception e) {
+                try {
+                    connection.rollback();
+                    connection.commit();
+                } catch (SQLException e1) {
+                    throw new RuntimeException(e1);
+                }
+                if (metricOutputFormat.outDirtyRecords.getCount() % DIRTY_DATA_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                    LOG.error("record insert failed ,this row is {}", row.toString());
+                    LOG.error("", e);
+                }
+                metricOutputFormat.outDirtyRecords.inc();
+            }
+        });
+        rows.clear();
+    }
+
+    private void cleanBatchWhenError() throws SQLException {
+        updateStatement.clearBatch();
+    }
+
     private void putRowIntoMap(Map<String, ArrayList<String>> rowDataMap, Tuple2<String, String> rowData) {
         Set<String> keySet = rowDataMap.keySet();
         ArrayList<String> tempRowArray;
@@ -283,28 +365,32 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 LOG.info("Receive data : {}", record);
             }
 
-            Map<String, Object> valueMap = Maps.newHashMap();
-            Row row = Row.copy(record.f1);
-
-            for (int i = 0; i < row.getArity(); i++) {
-                valueMap.put(fieldNames.get(i), row.getField(i));
-            }
-
-            Tuple2<String, String> rowTuple2 = new Tuple2<>();
-            if (storeType.equalsIgnoreCase(KUDU_TYPE) || !enablePartition) {
-                rowTuple2.f0 = NO_PARTITION;
+            if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
+                rows.add(Row.copy(record.f1));
             } else {
-                rowTuple2.f0 = buildPartitionCondition(valueMap, partitionFields, staticPartitionFields);
-            }
+                Map<String, Object> valueMap = Maps.newHashMap();
+                Row row = Row.copy(record.f1);
 
-            // 根据字段名对 row data 重组, 比如，原始 row data : (1, xxx, 20) -> (id, name, age)
-            // 但是由于 partition，写入的field 顺序变成了 (name, id, age)，则需要对 row data 重组变成 (xxx, 1, 20)
-            Row rowValue = new Row(fieldTypes.size());
-            for (int i = 0; i < fieldTypes.size(); i++) {
-                rowValue.setField(i, valueMap.get(valueFieldNames.get(i)));
+                for (int i = 0; i < row.getArity(); i++) {
+                    valueMap.put(fieldNames.get(i), row.getField(i));
+                }
+
+                Tuple2<String, String> rowTuple2 = new Tuple2<>();
+                if (storeType.equalsIgnoreCase(KUDU_TYPE) || !enablePartition) {
+                    rowTuple2.f0 = NO_PARTITION;
+                } else {
+                    rowTuple2.f0 = buildPartitionCondition(valueMap, partitionFields, staticPartitionFields);
+                }
+
+                // 根据字段名对 row data 重组, 比如，原始 row data : (1, xxx, 20) -> (id, name, age)
+                // 但是由于 partition，写入的field 顺序变成了 (name, id, age)，则需要对 row data 重组变成 (xxx, 1, 20)
+                Row rowValue = new Row(fieldTypes.size());
+                for (int i = 0; i < fieldTypes.size(); i++) {
+                    rowValue.setField(i, valueMap.get(valueFieldNames.get(i)));
+                }
+                rowTuple2.f1 = buildValuesCondition(fieldTypes, rowValue);
+                rowDataList.add(rowTuple2);
             }
-            rowTuple2.f1 = buildValuesCondition(fieldTypes, rowValue);
-            rowDataList.add(rowTuple2);
 
             batchCount++;
 
