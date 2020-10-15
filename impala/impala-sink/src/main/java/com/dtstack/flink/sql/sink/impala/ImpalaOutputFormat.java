@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.JDBCUtils;
 import com.dtstack.flink.sql.util.KrbUtils;
 import com.google.common.collect.Maps;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
@@ -40,6 +41,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -107,13 +109,13 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     public List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList;
 
     // partition field of static partition which matched by ${field}
-    private List<String> staticPartitionField = new ArrayList<>();
+    private final List<String> staticPartitionField = new ArrayList<>();
 
     // static partition sql like 'INSERT INTO tableName(field1, field2) PARTITION(pt=xx) VALUES(?, ?)'
-    private String staticPartitionSql;
+    private String staticPartitionSql = "";
 
     private transient ScheduledExecutorService scheduler;
-    private transient ScheduledFuture scheduledFuture;
+    private transient ScheduledFuture<?> scheduledFuture;
 
     @Override
     public void configure(Configuration parameters) {
@@ -170,6 +172,15 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         try {
             connection = DriverManager.getConnection(dbUrl, userName, password);
             connection.setAutoCommit(false);
+
+            //update mode
+            if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
+                statement = connection.prepareStatement(
+                        buildUpdateSql(schema, tableName, fieldList, primaryKeys)
+                );
+                return;
+            }
+
             // kudu
             if (storeType.equalsIgnoreCase(KUDU_TYPE)) {
                 statement = connection.prepareStatement(
@@ -235,7 +246,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             }
 
             // build static partition statement from row data
-            if (!staticPartitionSql.isEmpty()) {
+            if (Objects.isNull(statement) || !staticPartitionSql.isEmpty()) {
                 statement = connection.prepareStatement(
                         staticPartitionSql.replace(PARTITION_CONDITION,
                                 buildStaticPartitionCondition(valueMap, staticPartitionField))
@@ -247,7 +258,12 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 rowValue.setField(i, copyRow.getField(i));
             }
 
-            setRowToStatement(statement, fieldTypeList, rowValue);
+            if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
+                setRowToStatement(statement, fieldTypeList, rowValue, primaryKeys.stream().mapToInt(fieldList::indexOf).toArray());
+            } else {
+                setRowToStatement(statement, fieldTypeList, rowValue);
+            }
+
             statement.addBatch();
 
             if (batchCount.incrementAndGet() > batchSize) {
@@ -260,6 +276,10 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
     private void setRowToStatement(PreparedStatement statement, List<String> fieldTypeList, Row row) throws SQLException {
         JDBCTypeConvertUtils.setRecordToStatement(statement, JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypeList), row);
+    }
+
+    private void setRowToStatement(PreparedStatement statement, List<String> fieldTypeList, Row row, int[] pkFields) throws SQLException {
+        JDBCTypeConvertUtils.setRecordToStatement(statement, JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypeList), row, pkFields);
     }
 
     @Override
@@ -402,8 +422,19 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      *
      * @return UPDATE tableName SET setCondition WHERE whereCondition
      */
-    private String buildUpdateSql(String schema, String tableName, String[] fieldNames, String[] partitionFields, Map<String, Object> replaceField) {
-        return "update tableName set name='王五' where id='003";
+    private String buildUpdateSql(String schema, String tableName, List<String> fieldNames, List<String> primaryKeys) {
+        //跳过primary key字段
+        String setClause = fieldNames.stream()
+                .filter(f -> !CollectionUtils.isNotEmpty(primaryKeys) || !primaryKeys.contains(f))
+                .map(f -> quoteIdentifier(f) + "=?")
+                .collect(Collectors.joining(", "));
+
+        String conditionClause = primaryKeys.stream()
+                .map(f -> quoteIdentifier(f) + "=?")
+                .collect(Collectors.joining(" AND "));
+
+        return "UPDATE " + (Objects.isNull(schema) ? "" : quoteIdentifier(schema) + ".")
+                + quoteIdentifier(tableName) + " SET " + setClause + " WHERE " + conditionClause;
     }
 
     public String quoteIdentifier(String identifier) {

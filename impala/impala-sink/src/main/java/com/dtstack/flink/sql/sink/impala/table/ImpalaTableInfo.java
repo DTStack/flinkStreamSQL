@@ -23,6 +23,8 @@ import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Objects;
+
 /**
  * Date: 2020/10/14
  * Company: www.dtstack.com
@@ -263,15 +265,15 @@ public class ImpalaTableInfo extends AbstractTargetTableInfo {
         Preconditions.checkNotNull(url, "impala field of URL is required");
         Preconditions.checkNotNull(tableName, "impala field of tableName is required");
 
-        if (null != batchSize) {
+        if (Objects.nonNull(batchSize)) {
             Preconditions.checkArgument(batchSize <= MAX_BATCH_SIZE, "batchSize must be less than " + MAX_BATCH_SIZE);
         }
 
         if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
-            Preconditions.checkArgument(null != getPrimaryKeys() && getPrimaryKeys().size() > 0, "updateMode  mode primary is required");
+            Preconditions.checkArgument(Objects.nonNull(getPrimaryKeys()) && getPrimaryKeys().size() > 0, "updateMode mode primary is required");
         }
 
-        if (null != getPrimaryKeys()) {
+        if (Objects.nonNull(getPrimaryKeys())) {
             getPrimaryKeys().forEach(pk -> {
                 Preconditions.checkArgument(getFieldList().contains(pk), "primary key " + pk + " not found in sink table field");
             });
