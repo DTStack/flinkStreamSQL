@@ -41,7 +41,6 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -110,8 +109,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     // partition field of static partition which matched by ${field}
     private final List<String> staticPartitionField = new ArrayList<>();
 
-    // static partition sql like 'INSERT INTO tableName(field1, field2) PARTITION(pt=xx) VALUES(?, ?)'
-    private String staticPartitionSql = "";
+    private String prepareStatementSql;
 
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture<?> scheduledFuture;
@@ -123,6 +121,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         openConnect();
+        setStatementSql();
         initScheduledTask(batchWaitInterval);
         initMetric();
     }
@@ -156,7 +155,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                     return null;
                 });
             } catch (InterruptedException | IOException e) {
-                e.printStackTrace();
+                throw new IllegalArgumentException("connect impala with kerberos error!", e);
             }
         } else {
             openJdbc();
@@ -164,47 +163,50 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     }
 
     /**
-     * get jdbc connection and create statement
+     * Choose different sentences according to different situations
+     */
+    private void setStatementSql() {
+        //update mode
+        if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
+            prepareStatementSql = buildUpdateSql(schema, tableName, fieldList, primaryKeys);
+            return;
+        }
+
+        // kudu
+        if (storeType.equalsIgnoreCase(KUDU_TYPE)) {
+            prepareStatementSql = buildKuduInsertSql(schema, tableName, fieldList, fieldTypeList);
+            return;
+        }
+
+        // match ${field} from partitionFields
+        Matcher matcher = STATIC_PARTITION_PATTERN.matcher(partitionFields);
+        while (matcher.find()) {
+            LOG.info("find static partition field: {}", matcher.group(1));
+            staticPartitionField.add(matcher.group(1));
+        }
+
+        // dynamic
+        if (enablePartition && staticPartitionField.isEmpty()) {
+            prepareStatementSql = buildDynamicInsertSql(schema, tableName, fieldList, fieldTypeList, partitionFields);
+        }
+        // static
+        if (enablePartition && !staticPartitionField.isEmpty()) {
+            prepareStatementSql = buildStaticInsertSql(schema, tableName, fieldList, fieldTypeList, partitionFields);
+        }
+
+        if (Objects.isNull(prepareStatementSql)) {
+            throw new IllegalArgumentException("build prepareStatement sql error!");
+        }
+    }
+
+    /**
+     * get jdbc connection
      */
     private void openJdbc() {
         JDBCUtils.forName(DRIVER_NAME, getClass().getClassLoader());
         try {
             connection = DriverManager.getConnection(dbUrl, userName, password);
             connection.setAutoCommit(false);
-
-            //update mode
-            if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
-                statement = connection.prepareStatement(
-                        buildUpdateSql(schema, tableName, fieldList, primaryKeys)
-                );
-                return;
-            }
-
-            // kudu
-            if (storeType.equalsIgnoreCase(KUDU_TYPE)) {
-                statement = connection.prepareStatement(
-                        buildKuduInsertSql(schema, tableName, fieldList, fieldTypeList)
-                );
-                return;
-            }
-
-            // match ${field} from partitionFields
-            Matcher matcher = STATIC_PARTITION_PATTERN.matcher(partitionFields);
-            while (matcher.find()) {
-                staticPartitionField.add(matcher.group(1));
-            }
-
-            // dynamic
-            if (enablePartition && staticPartitionField.isEmpty()) {
-                statement = connection.prepareStatement(
-                        buildDynamicInsertSql(schema, tableName, fieldList, fieldTypeList, partitionFields)
-                );
-            }
-            // static
-            if (enablePartition && !staticPartitionField.isEmpty()) {
-                staticPartitionSql = buildStaticInsertSql(schema, tableName, fieldList, fieldTypeList, partitionFields);
-            }
-
         } catch (SQLException sqlException) {
             throw new RuntimeException("get impala jdbc connection failed!");
         }
@@ -229,11 +231,17 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      */
     @Override
     public void writeRecord(Tuple2<Boolean, Row> record) throws IOException {
+        LOG.info("Receive data : {}", record);
         try {
+            if (!record.f0) {
+                return;
+            }
+
             Map<String, Object> valueMap = Maps.newHashMap();
 
             if (outRecords.getCount() % RECEIVE_DATA_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
                 LOG.info("Receive data : {}", record);
+                LOG.info("Statement Sql is: {}", prepareStatementSql);
             }
             // Receive data
             outRecords.inc();
@@ -244,37 +252,28 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 valueMap.put(fieldList.get(i), copyRow.getField(i));
             }
 
-            // build static partition statement from row data
-            if (Objects.isNull(statement) || !staticPartitionSql.isEmpty()) {
-                statement = connection.prepareStatement(
-                        staticPartitionSql.replace(PARTITION_CONDITION,
-                                buildStaticPartitionCondition(valueMap, staticPartitionField))
-                );
-            }
+            //replace $partitionCondition
+            statement = connection.prepareStatement(
+                    prepareStatementSql.replace(PARTITION_CONDITION,
+                            buildStaticPartitionCondition(valueMap, staticPartitionField))
+            );
 
             Row rowValue = new Row(fieldTypeList.size());
             for (int i = 0; i < fieldTypeList.size(); i++) {
                 rowValue.setField(i, copyRow.getField(i));
             }
 
-            if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
-                setRowToStatement(statement, fieldTypeList, rowValue, primaryKeys.stream().mapToInt(fieldList::indexOf).toArray());
-            } else {
-                setRowToStatement(statement, fieldTypeList, rowValue);
-            }
+            setRowToStatement(statement, fieldTypeList, rowValue, Objects.isNull(primaryKeys) ?
+                    null : primaryKeys.stream().mapToInt(fieldList::indexOf).toArray());
 
             statement.addBatch();
 
-            if (batchCount.incrementAndGet() > batchSize) {
+            if (batchCount.incrementAndGet() >= batchSize) {
                 flush();
             }
         } catch (Exception e) {
             throw new RuntimeException("Writing records to impala failed.", e);
         }
-    }
-
-    private void setRowToStatement(PreparedStatement statement, List<String> fieldTypeList, Row row) throws SQLException {
-        JDBCTypeConvertUtils.setRecordToStatement(statement, JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypeList), row);
     }
 
     private void setRowToStatement(PreparedStatement statement, List<String> fieldTypeList, Row row, int[] pkFields) throws SQLException {
@@ -319,7 +318,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * @param tableName  tableName
      * @param fieldList  fieldList
      * @param fieldTypes fieldTypes
-     * @return INSERT INTO kuduTable(field1, fields2) VALUES ( v1, v2)
+     * @return INSERT INTO kuduTable(field1, fields2) VALUES (?, ?)
      */
     private String buildKuduInsertSql(String schema,
                                       String tableName,
@@ -330,16 +329,8 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
 
-        String placeholders = fieldTypes.stream().map(
-                f -> {
-                    if (STRING_TYPE.equals(f.toUpperCase())) {
-                        return "cast(? as string)";
-                    }
-                    return "?";
-                }).collect(Collectors.joining(", "));
-
         return "INSERT INTO " + (Objects.isNull(schema) ? "" : quoteIdentifier(schema) + ".") + quoteIdentifier(tableName) +
-                "(" + columns + ")" + " VALUES (" + placeholders + ")";
+                "(" + columns + ")" + " VALUES (" + buildSqlPlaceholders(fieldTypes) + ")";
     }
 
     /**
@@ -372,14 +363,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             }
         }
 
-        String placeholders = fieldTypes.stream().map(
-                f -> {
-                    if (STRING_TYPE.equals(f.toUpperCase())) {
-                        return "cast(? as string)";
-                    }
-                    return "?";
-                }).collect(Collectors.joining(", "));
-
         String columns = copyFieldNames.stream()
                 .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
@@ -387,7 +370,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         String partitionCondition = PARTITION_CONSTANT + "(" + PARTITION_CONDITION + ")";
 
         return "INSERT INTO " + (Objects.isNull(schema) ? "" : quoteIdentifier(schema) + ".") + quoteIdentifier(tableName) +
-                " (" + columns + ") " + partitionCondition + " VALUES (" + placeholders + ")";
+                " (" + columns + ") " + partitionCondition + " VALUES (" + buildSqlPlaceholders(fieldTypes) + ")";
     }
 
     /**
@@ -397,14 +380,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      */
     private String buildDynamicInsertSql(String schema, String tableName, List<String> fieldName, List<String> fieldTypes, String partitionFields) {
 
-        String placeholders = fieldTypes.stream().map(
-                f -> {
-                    if (STRING_TYPE.equals(f.toUpperCase())) {
-                        return "cast(? as string)";
-                    }
-                    return "?";
-                }).collect(Collectors.joining(", "));
-
         String columns = fieldName.stream()
                 .filter(f -> !partitionFields.contains(f))
                 .map(this::quoteIdentifier)
@@ -413,7 +388,23 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         String partitionCondition = PARTITION_CONSTANT + "(" + partitionFields + ")";
 
         return "INSERT INTO " + (Objects.isNull(schema) ? "" : quoteIdentifier(schema) + ".") + quoteIdentifier(tableName) +
-                " (" + columns + ") " + partitionCondition + " VALUES (" + placeholders + ")";
+                " (" + columns + ") " + partitionCondition + " VALUES (" + buildSqlPlaceholders(fieldTypes) + ")";
+    }
+
+    /**
+     * according to field types, build the placeholders condition
+     *
+     * @param fieldTypes field types
+     * @return condition like '?, ?, cast(? as string)'
+     */
+    private String buildSqlPlaceholders(List<String> fieldTypes) {
+        return fieldTypes.stream().map(
+                f -> {
+                    if (STRING_TYPE.equals(f.toUpperCase())) {
+                        return "cast(? as string)";
+                    }
+                    return "?";
+                }).collect(Collectors.joining(", "));
     }
 
     /**
@@ -436,7 +427,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 + quoteIdentifier(tableName) + " SET " + setClause + " WHERE " + conditionClause;
     }
 
-    public String quoteIdentifier(String identifier) {
+    private String quoteIdentifier(String identifier) {
         return "`" + identifier + "`";
     }
 
