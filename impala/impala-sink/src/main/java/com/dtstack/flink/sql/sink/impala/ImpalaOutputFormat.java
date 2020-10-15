@@ -110,6 +110,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private final List<String> staticPartitionField = new ArrayList<>();
 
     private String prepareStatementSql;
+    private List<String> newFieldNames;
 
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture<?> scheduledFuture;
@@ -231,7 +232,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      */
     @Override
     public void writeRecord(Tuple2<Boolean, Row> record) throws IOException {
-        LOG.info("Receive data : {}", record);
         try {
             if (!record.f0) {
                 return;
@@ -258,13 +258,18 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                             buildStaticPartitionCondition(valueMap, staticPartitionField))
             );
 
+            // 根据字段名对 row data 重组, 比如，原始 row data : (1, xxx, 20) -> (id, name, age)
+            // 但是由于 partition，写入的field 顺序变成了 (name, id, age)，则需要对 row data 重组变成 (xxx, 1, 20)
             Row rowValue = new Row(fieldTypeList.size());
             for (int i = 0; i < fieldTypeList.size(); i++) {
-                rowValue.setField(i, copyRow.getField(i));
+                rowValue.setField(i, valueMap.get(newFieldNames.get(i)));
             }
 
-            setRowToStatement(statement, fieldTypeList, rowValue, Objects.isNull(primaryKeys) ?
-                    null : primaryKeys.stream().mapToInt(fieldList::indexOf).toArray());
+            if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
+                setRowToStatement(statement, fieldTypeList, rowValue, primaryKeys.stream().mapToInt(fieldList::indexOf).toArray());
+            } else {
+                setRowToStatement(statement, fieldTypeList, rowValue, null);
+            }
 
             statement.addBatch();
 
@@ -355,18 +360,19 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * @return INSERT INTO tableName(field1, field2) PARTITION($partitionCondition) VALUES (?, ?)
      */
     private String buildStaticInsertSql(String schema, String tableName, List<String> fieldNames, List<String> fieldTypes, String partitionFields) {
-        List<String> copyFieldNames = new ArrayList<>(fieldNames);
+        newFieldNames = new ArrayList<>(fieldNames);
         for (int i = fieldNames.size() - 1; i >= 0; i--) {
             if (partitionFields.contains(fieldNames.get(i))) {
-                copyFieldNames.remove(i);
+                newFieldNames.remove(i);
                 fieldTypes.remove(i);
             }
         }
 
-        String columns = copyFieldNames.stream()
+        String columns = newFieldNames.stream()
                 .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
 
+        // PARTITION($partition)
         String partitionCondition = PARTITION_CONSTANT + "(" + PARTITION_CONDITION + ")";
 
         return "INSERT INTO " + (Objects.isNull(schema) ? "" : quoteIdentifier(schema) + ".") + quoteIdentifier(tableName) +
@@ -378,9 +384,20 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      *
      * @return INSERT INTO tableName(field1, field2) PARTITION(pt) VALUES (?, ?)
      */
-    private String buildDynamicInsertSql(String schema, String tableName, List<String> fieldName, List<String> fieldTypes, String partitionFields) {
+    private String buildDynamicInsertSql(String schema, String tableName, List<String> fieldNames, List<String> fieldTypes, String partitionFields) {
+        // newFieldNames -> 重组之后的fieldNames，为了重组row data字段值对应
+        // 需要对partition字段做特殊处理，比如原来的字段顺序为(age, name, id)，但是因为partition，写入的SQL为
+        // INSERT INTO tableName(name, id) PARTITION(age) VALUES(?, ?, ?)
+        // 那么实际prepareStatement设置字段的顺序应该为(name, id, age)，同时，字段对应的type顺序也需要重组
+        newFieldNames = new ArrayList<>(fieldNames);
+        for (int i = fieldNames.size() - 1; i >= 0; i--) {
+            if (partitionFields.contains(fieldNames.get(i))) {
+                newFieldNames.add(newFieldNames.remove(i));
+                fieldTypes.add(fieldTypes.remove(i));
+            }
+        }
 
-        String columns = fieldName.stream()
+        String columns = fieldNames.stream()
                 .filter(f -> !partitionFields.contains(f))
                 .map(this::quoteIdentifier)
                 .collect(Collectors.joining(", "));
