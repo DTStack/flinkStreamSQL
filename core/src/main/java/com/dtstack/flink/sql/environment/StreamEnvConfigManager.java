@@ -87,8 +87,8 @@ public final class StreamEnvConfigManager {
         ExecutionConfig exeConfig = streamEnv.getConfig();
         if (exeConfig.getGlobalJobParameters() == null) {
             exeConfig.setGlobalJobParameters(globalJobParameters);
-        } else if (exeConfig.getGlobalJobParameters() instanceof Configuration) {
-            ((Configuration) exeConfig.getGlobalJobParameters()).addAll(globalJobParameters);
+        } else if (exeConfig.getGlobalJobParameters() instanceof ExecutionConfig.GlobalJobParameters) {
+            exeConfig.setGlobalJobParameters(globalJobParameters);
         }
 
         getEnvParallelism(confProperties).ifPresent(streamEnv::setParallelism);
