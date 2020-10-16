@@ -98,7 +98,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private int batchCount = 0;
 
     // |------------------------------------------------|
-    // |   partitionCondition   |   Array of row data   |
+    // |   partitionCondition   |Array of valueCondition|
     // |------------------------------------------------|
     // | ptOne, ptTwo, ptThree  | [(v1, v2, v3, v4, v5)]|   DP
     // |------------------------------------------------|
@@ -109,8 +109,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     // | noPartition            | [(v1, v2, v3, v4, v5)]|   kudu or disablePartition
     // |------------------------------------------------|
     private transient Map<String, ArrayList<String>> rowDataMap;
-
-    private final String templateSql = "INSERT INTO tableName ${tableFieldsCondition} PARTITION ${partitionCondition} VALUES ${valuesCondition}";
 
     protected String keytabPath;
     protected String krb5confPath;
@@ -140,7 +138,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     // INSERT INTO tableName(name, id) PARTITION(age) VALUES(?, ?, ?)
     // 那么实际executeSql设置字段的顺序应该为(name, id, age)，同时，字段对应的type顺序也需要重组
     private List<String> valueFieldNames;
-    private transient final AbstractDtRichOutputFormat<?> metricOutputFormat = this;
+    private transient AbstractDtRichOutputFormat<?> metricOutputFormat;
     private List<Tuple2<String, String>> rowDataList;
     private List<Row> rows;
 
@@ -156,6 +154,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         rowDataList = new ArrayList<>();
         rowDataMap = new HashMap<>();
         rows = new ArrayList<>();
+        metricOutputFormat = this;
         openConnect();
         initScheduledTask(batchWaitInterval);
         init();
@@ -175,6 +174,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
             if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
                 updateStatement = connection.prepareStatement(buildUpdateSql(schema, tableName, fieldNames, primaryKeys));
+                return;
             }
 
             valueFieldNames = rebuildFieldNameListAndTypeList(fieldNames, staticPartitionFields, fieldTypes, partitionFields);
@@ -231,49 +231,48 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     }
 
     private void flush() throws SQLException {
-        if (!rowDataList.isEmpty() && batchCount > 0) {
-            rowDataList.forEach(rowDataTuple2 -> putRowIntoMap(rowDataMap, rowDataTuple2));
-            executeBatchSql(
-                    statement,
-                    templateSql,
-                    schema,
-                    tableName,
-                    storeType,
-                    enablePartition,
-                    valueFieldNames,
-                    partitionFields,
-                    rowDataMap
-            );
-            rowDataList.clear();
-            rowDataMap.clear();
-            batchCount = 0;
+        if (batchCount > 0) {
+            if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
+                executeUpdateBatch();
+            }
+            if (!rowDataList.isEmpty()) {
+                String templateSql =
+                        "INSERT INTO tableName ${tableFieldsCondition} PARTITION ${partitionCondition} VALUES ${valuesCondition}";
+                rowDataList.forEach(rowDataTuple2 -> putRowIntoMap(rowDataMap, rowDataTuple2));
+                executeBatchSql(
+                        statement,
+                        templateSql,
+                        schema,
+                        tableName,
+                        storeType,
+                        enablePartition,
+                        valueFieldNames,
+                        partitionFields,
+                        rowDataMap
+                );
+                rowDataList.clear();
+                rowDataMap.clear();
+            }
         }
+        batchCount = 0;
+
     }
 
-    private void executeBatch() throws SQLException {
+    /**
+     * execute batch update statement
+     *
+     * @throws SQLException throw sql exception
+     */
+    private void executeUpdateBatch() throws SQLException {
         try {
             rows.forEach(row -> {
                 try {
-                    Map<String, Object> valueMap = new HashMap<>();
-
-                    for (int i = 0; i < row.getArity(); i++) {
-                        valueMap.put(fieldNames.get(i), row.getField(i));
-                    }
-                    // 根据字段名对 row data 重组, 比如，原始 row data : (1, xxx, 20) -> (id, name, age)
-                    // 但是由于 partition，写入的field 顺序变成了 (name, id, age)，则需要对 row data 重组变成 (xxx, 1, 20)
-                    Row rowValue = new Row(fieldTypes.size());
-                    for (int i = 0; i < fieldTypes.size(); i++) {
-                        rowValue.setField(i, valueMap.get(valueFieldNames.get(i)));
-                    }
-
-                    if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
-                        JDBCTypeConvertUtils.setRecordToStatement(
-                                updateStatement,
-                                JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypes),
-                                rowValue,
-                                primaryKeys.stream().mapToInt(fieldNames::indexOf).toArray()
-                        );
-                    }
+                    JDBCTypeConvertUtils.setRecordToStatement(
+                            updateStatement,
+                            JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypes),
+                            row,
+                            primaryKeys.stream().mapToInt(fieldNames::indexOf).toArray()
+                    );
                     updateStatement.addBatch();
                 } catch (Exception e) {
                     throw new RuntimeException("impala jdbc execute batch error!", e);
@@ -447,7 +446,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * @param fieldNames      field name list
      * @param partitionFields partition fields
      * @param rowDataMap      row data map
-     * @throws SQLException
+     * @throws SQLException throw sql exception
      */
     private void executeBatchSql(Statement statement,
                                  String tempSql,
