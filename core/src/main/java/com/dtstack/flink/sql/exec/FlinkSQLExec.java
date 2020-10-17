@@ -147,10 +147,9 @@ public class FlinkSQLExec {
      * @return
      */
     private static String buildErrorMsg() {
-        SqlFormatterUtil sqlFormatterUtil = new SqlFormatterUtil();
         return "\n"
-                + sqlFormatterUtil.format(CREATE_VIEW_ERR_SQL)
-                + "\n========== not support ,please use: ==========\n"
-                + sqlFormatterUtil.format(CREATE_VIEW_RIGHT_SQL);
+                + SqlFormatterUtil.format(CREATE_VIEW_ERR_SQL)
+                + "\n========== not support ,please use dimension table alias ==========\n"
+                + SqlFormatterUtil.format(CREATE_VIEW_RIGHT_SQL);
     }
 }

@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.parser;
 
+import com.dtstack.flink.sql.enums.PlannerType;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlJoin;
@@ -44,11 +45,11 @@ import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 public class CreateTmpTableParser implements IParser {
 
     //select table tableName as select
-    private static final String PATTERN_STR = "(?i)create\\s+view\\s+([^\\s]+)\\s+as\\s+select\\s+(.*)";
+    private static final String TEMPORARY_STR = "(?i)create\\s+(temporary\\s+)?view\\s+(if\\s+not\\s+exists\\s+)?([^\\s]+)\\s+as\\s+select\\s+(.*)";
 
     private static final String EMPTY_STR = "(?i)^\\screate\\s+view\\s+(\\S+)\\s*\\((.+)\\)$";
 
-    private static final Pattern NONEMPTYVIEW = Pattern.compile(PATTERN_STR);
+    private static final Pattern TEMPORARYVIEW = Pattern.compile(TEMPORARY_STR);
 
     private static final Pattern EMPTYVIEW = Pattern.compile(EMPTY_STR);
 
@@ -63,18 +64,18 @@ public class CreateTmpTableParser implements IParser {
         if (Pattern.compile(EMPTY_STR).matcher(sql).find()){
             return true;
         }
-        return NONEMPTYVIEW.matcher(sql).find();
+        return TEMPORARYVIEW.matcher(sql).find();
     }
 
     @Override
-    public void parseSql(String sql, SqlTree sqlTree) {
-        if (NONEMPTYVIEW.matcher(sql).find()){
-            Matcher matcher = NONEMPTYVIEW.matcher(sql);
+    public void parseSql(String sql, SqlTree sqlTree, String planner) {
+        if (TEMPORARYVIEW.matcher(sql).find()){
+            Matcher matcher = TEMPORARYVIEW.matcher(sql);
             String tableName = null;
             String selectSql = null;
             if(matcher.find()) {
-                tableName = matcher.group(1);
-                selectSql = "select " + matcher.group(2);
+                tableName = matcher.group(3);
+                selectSql = "select " + matcher.group(4);
             }
 
             SqlNode sqlNode = null;
@@ -88,13 +89,15 @@ public class CreateTmpTableParser implements IParser {
             parseNode(sqlNode, sqlParseResult);
 
             sqlParseResult.setTableName(tableName);
-            String transformSelectSql = DtStringUtil.replaceIgnoreQuota(sqlNode.toString(), "`", "");
-            sqlParseResult.setExecSql(transformSelectSql);
+            if (planner.equalsIgnoreCase(PlannerType.FLINK.name())) {
+                sqlParseResult.setExecSql(sql);
+            } else {
+                sqlParseResult.setExecSql(DtStringUtil.replaceIgnoreQuota(sqlNode.toString(), "`", ""));
+            }
             sqlTree.addTmpSql(sqlParseResult);
             sqlTree.addTmplTableInfo(tableName, sqlParseResult);
         } else {
-            if (EMPTYVIEW.matcher(sql).find())
-            {
+            if (EMPTYVIEW.matcher(sql).find()) {
                 Matcher matcher = EMPTYVIEW.matcher(sql);
                 String tableName = null;
                 String fieldsInfoStr = null;

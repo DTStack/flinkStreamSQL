@@ -42,7 +42,7 @@ public class CreateFuncParser implements IParser {
     }
 
     @Override
-    public void parseSql(String sql, SqlTree sqlTree) {
+    public void parseSql(String sql, SqlTree sqlTree, String planner) {
         Matcher matcher = FUNC_PATTERN.matcher(sql);
         if(matcher.find()){
             String type = matcher.group(1);

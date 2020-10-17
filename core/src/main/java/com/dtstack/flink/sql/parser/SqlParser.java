@@ -87,7 +87,7 @@ public class SqlParser {
                     continue;
                 }
 
-                sqlParser.parseSql(childSql, sqlTree);
+                sqlParser.parseSql(childSql, sqlTree, planner);
                 result = true;
                 break;
             }

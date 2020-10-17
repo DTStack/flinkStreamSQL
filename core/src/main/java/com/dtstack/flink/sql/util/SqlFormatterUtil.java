@@ -36,7 +36,7 @@ public class SqlFormatterUtil {
     private static final Set<String> DML = new HashSet<String>();
     private static final Set<String> MISC = new HashSet<String>();
 
-    public String format(String source) {
+    public static String format(String source) {
         return new FormatProcess(source).perform().trim();
     }
 
@@ -338,29 +338,5 @@ public class SqlFormatterUtil {
             }
             this.beginLine = true;
         }
-    }
-
-    public static void main(String[] args) {
-        System.out.println(new SqlFormatterUtil()
-                .format("create view view_out\n" +
-                        "  as\n" +
-                        "  select \n" +
-                        "  \tid,\n" +
-                        "    name\n" +
-                        "  from source\n" +
-                        "  left join side FOR SYSTEM_TIME AS OF source.PROCTIME\n" +
-                        "  on source.id = side.sid;"));
-
-        System.out.println("not support,please use:");
-
-        System.out.println(new SqlFormatterUtil()
-                .format("create view view_out\n" +
-                        "  as\n" +
-                        "  select \n" +
-                        "     u.id,\n" +
-                        "     u.name\n" +
-                        "  from source u\n" +
-                        "  left join side FOR SYSTEM_TIME AS OF u.PROCTIME AS s\n" +
-                        "  on u.id = s.sid;"));
     }
 }

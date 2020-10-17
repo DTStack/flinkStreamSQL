@@ -53,7 +53,7 @@ public class CreateTableParser implements IParser {
     }
 
     @Override
-    public void parseSql(String sql, SqlTree sqlTree) {
+    public void parseSql(String sql, SqlTree sqlTree, String planner) {
         Matcher matcher = PATTERN.matcher(sql);
         if(matcher.find()){
             String tableName = matcher.group(1);

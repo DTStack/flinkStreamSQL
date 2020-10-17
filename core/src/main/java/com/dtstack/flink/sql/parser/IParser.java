@@ -40,6 +40,7 @@ public interface IParser {
      * 解析sql
      * @param sql
      * @param sqlTree
+     * @param planner
      */
-    void parseSql(String sql, SqlTree sqlTree) throws Exception;
+    void parseSql(String sql, SqlTree sqlTree, String planner) throws Exception;
 }

@@ -39,6 +39,7 @@ import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
+import com.dtstack.flink.sql.util.SqlFormatterUtil;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
@@ -211,13 +212,13 @@ public class ExecuteProcessHelper {
         if (planner.equalsIgnoreCase(PlannerType.FLINK.name())) {
             for (CreateTmpTableParser.SqlParserResult view : sqlTree.getTmpSqlList()) {
                 if (LOG.isInfoEnabled()) {
-                    LOG.info("view-sql:\n" + view.getExecSql());
+                    LOG.info("view-sql:\n" + SqlFormatterUtil.format(view.getExecSql()));
                 }
-                tableEnv.sqlUpdate("CREATE VIEW " + view.getTableName() + " AS " + view.getExecSql());
+                tableEnv.sqlUpdate(view.getExecSql());
             }
             for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
                 if (LOG.isInfoEnabled()) {
-                    LOG.info("exe-sql:\n" + result.getExecSql());
+                    LOG.info("exe-sql:\n" + SqlFormatterUtil.format(result.getExecSql()));
                 }
                 FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
             }
@@ -234,7 +235,7 @@ public class ExecuteProcessHelper {
 
             for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
                 if (LOG.isInfoEnabled()) {
-                    LOG.info("exe-sql:\n" + result.getExecSql());
+                    LOG.info("exe-sql:\n" + SqlFormatterUtil.format(result.getExecSql()));
                 }
                 boolean isSide = false;
                 for (String tableName : result.getTargetTableList()) {
@@ -258,10 +259,10 @@ public class ExecuteProcessHelper {
                             sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, null, String.valueOf(scope));
                         } else {
                             LOG.info("----------exec sql without dimension join-----------");
-                            LOG.info("----------real sql exec is--------------------------\n{}", result.getExecSql());
+                            LOG.info("----------real sql exec is--------------------------\n{}", SqlFormatterUtil.format(result.getExecSql()));
                             FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql());
                             if (LOG.isInfoEnabled()) {
-                                LOG.info("exec sql: " + result.getExecSql());
+                                LOG.info("exec sql: " + SqlFormatterUtil.format(result.getExecSql()));
                             }
                         }
                     }

@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.parser;
 
+import com.dtstack.flink.sql.enums.PlannerType;
 import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
@@ -55,14 +56,18 @@ public class InsertSqlParser implements IParser {
     }
 
     @Override
-    public void parseSql(String sql, SqlTree sqlTree) throws Exception {
+    public void parseSql(String sql, SqlTree sqlTree, String planner) throws Exception {
 
 
         SqlNode sqlNode = flinkPlanner.getParser().parse(sql);
 
         SqlParseResult sqlParseResult = new SqlParseResult();
         parseNode(sqlNode, sqlParseResult);
-        sqlParseResult.setExecSql(sqlNode.toString());
+        if (planner.equalsIgnoreCase(PlannerType.FLINK.name())) {
+            sqlParseResult.setExecSql(sql);
+        } else {
+            sqlParseResult.setExecSql(sqlNode.toString());
+        }
         sqlTree.addExecSql(sqlParseResult);
     }
 
