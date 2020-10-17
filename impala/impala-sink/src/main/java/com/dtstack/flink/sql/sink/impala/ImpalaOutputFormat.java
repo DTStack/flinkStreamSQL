@@ -289,7 +289,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             LOG.debug("impala jdbc execute batch error ", e);
             connection.rollback();
             connection.commit();
-            cleanBatchWhenError();
+            updateStatement.clearBatch();
             executeUpdate(connection);
         }
     }
@@ -315,10 +315,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             }
         });
         rows.clear();
-    }
-
-    private void cleanBatchWhenError() throws SQLException {
-        updateStatement.clearBatch();
     }
 
     private void putRowIntoMap(Map<String, ArrayList<String>> rowDataMap, Tuple2<String, String> rowData) {
@@ -361,6 +357,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * Quote a specific type of value, like string, timestamp
      * before: 1, cast(tiezhu as string), cast(2001-01-09 01:05:01 as timestamp), cast(123 as int)
      * after: 1, cast('tiezhu' as string), cast('2001-01-09 01:05:01' as timestamp), cast(123 as int)
+     * if cast value is null, then cast(null as type)
      *
      * @param valueCondition original value condition
      * @return quoted condition
@@ -374,8 +371,11 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                     while (matcher.find()) {
                         String value = matcher.group(1);
                         String type = matcher.group(2);
+
                         if (Arrays.asList(NEED_QUOTE_TYPE).contains(type)) {
-                            valueConditionCopy[0] = valueConditionCopy[0].replace(value, "'" + value + "'");
+                            if (!"null".equals(value)) {
+                                valueConditionCopy[0] = valueConditionCopy[0].replace(value, "'" + value + "'");
+                            }
                         }
                     }
                 }
@@ -514,7 +514,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                     .replace(PARTITION_CONSTANT, "")
                     .replace(TABLE_FIELDS_CONDITION, tableFieldsCondition);
             String substring = executeSql.substring(0, executeSql.length() - 2);
-            LOG.info("current execute sql: {}", substring);
             statement.execute(substring);
             return;
         }
@@ -530,7 +529,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 executeSql = executeSql.replace(PARTITION_CONDITION, partitionCondition.toString())
                         .replace(TABLE_FIELDS_CONDITION, tableFieldsCondition)
                         .replace(VALUES_CONDITION, String.join(", ", valuesConditionList));
-                LOG.info("current execute sql: {}", executeSql);
                 statement.execute(executeSql);
                 partitionCondition.delete(0, partitionCondition.length());
             } catch (SQLException sqlException) {
@@ -582,21 +580,13 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private String buildValuesCondition(List<String> fieldTypes, Row row) {
         String valuesCondition = "(" + fieldTypes.stream().map(
                 f -> {
-                    switch (f.toUpperCase()) {
-                        case STRING_TYPE:
-                            return "cast(? as string)";
-                        case TIMESTAMP_TYPE:
-                            return "cast(? as timestamp)";
-                        default:
-                            return "?";
+                    if (Arrays.asList(NEED_QUOTE_TYPE).contains(f.toLowerCase())) {
+                        return String.format("cast(? as %s)", f.toLowerCase());
                     }
+                    return "?";
                 }).collect(Collectors.joining(", ")) + ")";
         for (int i = 0; i < row.getArity(); i++) {
             valuesCondition = valuesCondition.replaceFirst("\\?", Objects.isNull(row.getField(i)) ? "null" : row.getField(i).toString());
-        }
-        Matcher matcher = TYPE_PATTERN.matcher(valuesCondition);
-        while (matcher.find()) {
-            valuesCondition = valuesCondition.replace(matcher.group(1), "'" + matcher.group(1) + "'");
         }
         return valuesCondition;
     }
