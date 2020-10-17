@@ -380,7 +380,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                     }
                 }
         );
-        return valueConditionCopy[0];
+        return "(" + valueConditionCopy[0] + ")";
     }
 
     @Override
@@ -578,13 +578,13 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * @return condition like '(?, ?, cast(? as string))' and '?' will be replaced with row data
      */
     private String buildValuesCondition(List<String> fieldTypes, Row row) {
-        String valuesCondition = "(" + fieldTypes.stream().map(
+        String valuesCondition = fieldTypes.stream().map(
                 f -> {
                     if (Arrays.asList(NEED_QUOTE_TYPE).contains(f.toLowerCase())) {
                         return String.format("cast(? as %s)", f.toLowerCase());
                     }
                     return "?";
-                }).collect(Collectors.joining(", ")) + ")";
+                }).collect(Collectors.joining(", "));
         for (int i = 0; i < row.getArity(); i++) {
             valuesCondition = valuesCondition.replaceFirst("\\?", Objects.isNull(row.getField(i)) ? "null" : row.getField(i).toString());
         }
