@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import com.google.common.collect.Lists;
@@ -164,6 +165,10 @@ public class CreateTmpTableParser implements IParser {
             case MATCH_RECOGNIZE:
                 SqlMatchRecognize node = (SqlMatchRecognize) sqlNode;
                 sqlParseResult.addSourceTable(node.getTableRef().toString());
+                break;
+            case SNAPSHOT:
+                SqlSnapshot sqlSnapshot = (SqlSnapshot) sqlNode;
+                sqlParseResult.addSourceTable(sqlSnapshot.getTableRef().toString());
                 break;
             default:
                 //do nothing

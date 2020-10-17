@@ -209,6 +209,12 @@ public class ExecuteProcessHelper {
                                        String planner) throws Exception {
 
         if (planner.equalsIgnoreCase(PlannerType.FLINK.name())) {
+            for (CreateTmpTableParser.SqlParserResult view : sqlTree.getTmpSqlList()) {
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("view-sql:\n" + view.getExecSql());
+                }
+                tableEnv.sqlUpdate("CREATE VIEW " + view.getTableName() + " AS " + view.getExecSql());
+            }
             for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
                 if (LOG.isInfoEnabled()) {
                     LOG.info("exe-sql:\n" + result.getExecSql());
@@ -351,7 +357,7 @@ public class ExecuteProcessHelper {
                 String sideOperator = ECacheType.ALL.name().equalsIgnoreCase(((AbstractSideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
                 sideTableMap.put(tableInfo.getName(), (AbstractSideTableInfo) tableInfo);
 
-                if (planner.equals(PlannerType.FLINK.name())) {
+                if (planner.equalsIgnoreCase(PlannerType.FLINK.name())) {
                     TableSource tableSource = LookupTableSourceFactory.createLookupTableSource((AbstractSideTableInfo) tableInfo, localSqlPluginPath, pluginLoadMode);
                     tableEnv.registerTableSource(tableInfo.getName(), tableSource);
                 }

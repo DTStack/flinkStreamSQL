@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.exec;
 
+import com.dtstack.flink.sql.util.SqlFormatterUtil;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.flink.sql.parser.dml.RichSqlInsert;
@@ -34,6 +35,7 @@ import org.apache.flink.table.planner.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.planner.delegation.PlannerBase;
 import org.apache.flink.table.planner.delegation.StreamPlanner;
 import org.apache.flink.table.planner.operations.SqlToOperationConverter;
+import org.apache.flink.table.api.SqlParserException;
 import org.apache.flink.table.sinks.TableSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +54,10 @@ import java.util.Map;
  */
 public class FlinkSQLExec {
     private static final Logger LOG = LoggerFactory.getLogger(FlinkSQLExec.class);
+    // create view必须使用别名,flink bug
+    private static final String CREATE_VIEW_ERR_INFO = "SQL parse failed. Encountered \"FOR\"";
+    private static final String CREATE_VIEW_ERR_SQL = "CREATE VIEW view_out AS select id, name FROM source LEFT JOIN side FOR SYSTEM_TIME AS OF source.PROCTIME ON source.id = side.sid;";
+    private static final String CREATE_VIEW_RIGHT_SQL = "CREATE VIEW view_out AS select u.id, u.name FROM source u LEFT JOIN side FOR SYSTEM_TIME AS OF u.PROCTIME AS s ON u.id = s.sid;";
 
     public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt) throws Exception {
         StreamTableEnvironmentImpl tableEnvImpl = ((StreamTableEnvironmentImpl) tableEnv);
@@ -59,7 +65,16 @@ public class FlinkSQLExec {
         FlinkPlannerImpl flinkPlanner = streamPlanner.createFlinkPlanner();
 
         RichSqlInsert insert = (RichSqlInsert) flinkPlanner.validate(flinkPlanner.parser().parse(stmt));
-        TableImpl queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
+        TableImpl queryResult;
+        try {
+            queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
+        } catch (SqlParserException e) {
+            if (e.getMessage().contains(CREATE_VIEW_ERR_INFO)) {
+                throw new RuntimeException(buildErrorMsg());
+            } else {
+                throw new RuntimeException(e.getMessage());
+            }
+        }
 
         String targetTableName = ((SqlIdentifier) insert.getTargetTable()).names.get(0);
         TableSink tableSink = getTableSinkByPlanner(streamPlanner, targetTableName);
@@ -125,5 +140,17 @@ public class FlinkSQLExec {
             }
         }
         return newFieldNames;
+    }
+
+    /**
+     * create view 语法错误提示
+     * @return
+     */
+    private static String buildErrorMsg() {
+        SqlFormatterUtil sqlFormatterUtil = new SqlFormatterUtil();
+        return "\n"
+                + sqlFormatterUtil.format(CREATE_VIEW_ERR_SQL)
+                + "\n========== not support ,please use: ==========\n"
+                + sqlFormatterUtil.format(CREATE_VIEW_RIGHT_SQL);
     }
 }
