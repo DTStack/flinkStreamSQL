@@ -42,6 +42,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,8 +73,10 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
     // ${field}
     private static final Pattern STATIC_PARTITION_PATTERN = Pattern.compile("\\$\\{([^}]*)}");
-    // cast(value as string) -> cast('value' as string)
-    private static final Pattern STRING_TYPE_PATTERN = Pattern.compile("cast\\((.*) as string\\)");
+    // cast(value as string) -> cast('value' as string)  cast(value as timestamp) -> cast('value' as timestamp)
+    private static final Pattern TYPE_PATTERN = Pattern.compile("cast\\((.*) as (.*)\\)");
+    //specific type which values need to be quoted
+    private static final String[] NEED_QUOTE_TYPE = {"string", "timestamp"};
 
     private static final Integer DEFAULT_CONN_TIME_OUT = 60;
     private static final int RECEIVE_DATA_PRINT_FREQUENCY = 1000;
@@ -83,6 +86,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private static final String UPDATE_MODE = "update";
     private static final String PARTITION_CONSTANT = "PARTITION";
     private static final String STRING_TYPE = "STRING";
+    private static final String TIMESTAMP_TYPE = "TIMESTAMP";
     private static final String DRIVER_NAME = "com.cloudera.impala.jdbc41.Driver";
 
     private static final String VALUES_CONDITION = "${valuesCondition}";
@@ -353,6 +357,32 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         return valueFields;
     }
 
+    /**
+     * Quote a specific type of value, like string, timestamp
+     * before: 1, cast(tiezhu as string), cast(2001-01-09 01:05:01 as timestamp), cast(123 as int)
+     * after: 1, cast('tiezhu' as string), cast('2001-01-09 01:05:01' as timestamp), cast(123 as int)
+     *
+     * @param valueCondition original value condition
+     * @return quoted condition
+     */
+    private String valueConditionAddQuotation(String valueCondition) {
+        final String[] valueConditionCopy = {valueCondition};
+        String[] temps = valueCondition.split(",");
+        Arrays.stream(temps).forEach(
+                item -> {
+                    Matcher matcher = TYPE_PATTERN.matcher(item);
+                    while (matcher.find()) {
+                        String value = matcher.group(1);
+                        String type = matcher.group(2);
+                        if (Arrays.asList(NEED_QUOTE_TYPE).contains(type)) {
+                            valueConditionCopy[0] = valueConditionCopy[0].replace(value, "'" + value + "'");
+                        }
+                    }
+                }
+        );
+        return valueConditionCopy[0];
+    }
+
     @Override
     public synchronized void writeRecord(Tuple2<Boolean, Row> record) throws IOException {
         try {
@@ -387,7 +417,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 for (int i = 0; i < fieldTypes.size(); i++) {
                     rowValue.setField(i, valueMap.get(valueFieldNames.get(i)));
                 }
-                rowTuple2.f1 = buildValuesCondition(fieldTypes, rowValue);
+                rowTuple2.f1 = valueConditionAddQuotation(buildValuesCondition(fieldTypes, rowValue));
                 putRowIntoMap(rowDataMap, rowTuple2);
             }
 
@@ -552,15 +582,19 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private String buildValuesCondition(List<String> fieldTypes, Row row) {
         String valuesCondition = "(" + fieldTypes.stream().map(
                 f -> {
-                    if (STRING_TYPE.equals(f.toUpperCase())) {
-                        return "cast(? as string)";
+                    switch (f.toUpperCase()) {
+                        case STRING_TYPE:
+                            return "cast(? as string)";
+                        case TIMESTAMP_TYPE:
+                            return "cast(? as timestamp)";
+                        default:
+                            return "?";
                     }
-                    return "?";
                 }).collect(Collectors.joining(", ")) + ")";
         for (int i = 0; i < row.getArity(); i++) {
             valuesCondition = valuesCondition.replaceFirst("\\?", Objects.isNull(row.getField(i)) ? "null" : row.getField(i).toString());
         }
-        Matcher matcher = STRING_TYPE_PATTERN.matcher(valuesCondition);
+        Matcher matcher = TYPE_PATTERN.matcher(valuesCondition);
         while (matcher.find()) {
             valuesCondition = valuesCondition.replace(matcher.group(1), "'" + matcher.group(1) + "'");
         }
