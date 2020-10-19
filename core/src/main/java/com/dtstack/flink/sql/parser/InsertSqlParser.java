@@ -163,10 +163,17 @@ public class InsertSqlParser implements IParser {
 
         for (int index = 0; index < selectList.size(); index++) {
             if (selectList.get(index).getKind().equals(SqlKind.AS)
-                    || ((SqlIdentifier) selectList.get(index)).names.size() == 1) {
+                    || (selectList.get(index).getClass().equals(SqlIdentifier.class)
+                    && ((SqlIdentifier) selectList.get(index)).names.size() == 1)) {
                 sqlNodes.add(selectList.get(index));
                 continue;
             }
+
+            if (!selectList.get(index).getClass().equals(SqlIdentifier.class)) {
+                throw new RuntimeException(String.format("Illegal statement! Please check the statement: %s",
+                        selectList.get(index).toString()));
+            }
+
             sqlNodes.add(transformToAsNode(selectList.get(index)));
         }
         sqlSelect.setSelectList(sqlNodes);
