@@ -162,6 +162,7 @@ public class InsertSqlParser implements IParser {
         SqlNodeList sqlNodes = new SqlNodeList(selectList.getParserPosition());
 
         for (int index = 0; index < selectList.size(); index++) {
+
             if (selectList.get(index).getKind().equals(SqlKind.AS)
                     || (selectList.get(index).getClass().equals(SqlIdentifier.class)
                     && ((SqlIdentifier) selectList.get(index)).names.size() == 1)) {
