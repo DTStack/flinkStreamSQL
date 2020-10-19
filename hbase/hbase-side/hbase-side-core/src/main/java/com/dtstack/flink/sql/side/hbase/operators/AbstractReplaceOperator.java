@@ -21,7 +21,7 @@ package com.dtstack.flink.sql.side.hbase.operators;
 
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceOpType;
 
-import java.util.Map;
+import java.io.Serializable;
 import java.util.regex.Pattern;
 
 /**
@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  *
  * @author zhaown
  */
-public abstract class AbstractReplaceOperator {
+public abstract class AbstractReplaceOperator implements Serializable {
 
     private EReplaceOpType opType;
 

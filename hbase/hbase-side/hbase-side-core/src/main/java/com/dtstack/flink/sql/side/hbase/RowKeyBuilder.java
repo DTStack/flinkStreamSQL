@@ -22,7 +22,6 @@ package com.dtstack.flink.sql.side.hbase;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
 import com.dtstack.flink.sql.side.hbase.operators.AbstractReplaceOperator;
-import com.dtstack.flink.sql.util.MD5Utils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
