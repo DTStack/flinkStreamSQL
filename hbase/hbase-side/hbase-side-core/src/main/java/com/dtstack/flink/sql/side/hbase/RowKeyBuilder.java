@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.side.hbase;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
+import com.dtstack.flink.sql.side.hbase.operators.AbstractReplaceOperator;
 import com.dtstack.flink.sql.util.MD5Utils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.collect.Lists;
@@ -33,25 +33,28 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.dtstack.flink.sql.side.hbase.factory.ReplaceOperatorFactory.createAllOperators;
+
 /**
  * rowkey rule
  * Date: 2018/8/23
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public class RowKeyBuilder implements Serializable{
+public class RowKeyBuilder implements Serializable {
 
     private static final long serialVersionUID = 2058635242857937717L;
-
-    private static Pattern Md5Operator = Pattern.compile("(?i)^md5\\(\\s*(.*)\\s*\\)$");
 
     private List<ReplaceInfo> operatorChain = Lists.newArrayList();
 
     private AbstractSideTableInfo sideTableInfo;
 
+    private List<AbstractReplaceOperator> operators = createAllOperators();
+
     public void init(String rowKeyTempl) {
-    	operatorChain.addAll(makeFormula(rowKeyTempl));
+        operatorChain.addAll(makeFormula(rowKeyTempl));
     }
 
     public void init(String rowKeyTempl, AbstractSideTableInfo sideTableInfo) {
@@ -60,33 +63,33 @@ public class RowKeyBuilder implements Serializable{
     }
 
     /**
-     *
      * @param refData
      * @return
      */
     public String getRowKey(Map<String, Object> refData) {
         TableUtils.addConstant(refData, sideTableInfo);
-    	return buildStr(operatorChain, refData);
+        return buildStr(operatorChain, refData);
     }
 
-    private String buildStr(List<ReplaceInfo> fieldList, Map<String, Object> refData){
-        if(CollectionUtils.isEmpty(fieldList)){
+    private String buildStr(List<ReplaceInfo> fieldList, Map<String, Object> refData) {
+        if (CollectionUtils.isEmpty(fieldList)) {
             return "";
         }
         StringBuilder sb = new StringBuilder("");
-        for(ReplaceInfo replaceInfo : fieldList){
+        for (ReplaceInfo replaceInfo : fieldList) {
 
-            if(replaceInfo.getType() == EReplaceType.CONSTANT){
+            if (replaceInfo.getType() == EReplaceType.CONSTANT) {
                 sb.append(replaceInfo.getParam());
                 continue;
             }
 
-            if(replaceInfo.getType() == EReplaceType.FUNC){
-                sb.append(MD5Utils.getMD5String(buildStr(replaceInfo.getSubReplaceInfos(), refData)));
+            if (replaceInfo.getType() == EReplaceType.FUNC) {
+                AbstractReplaceOperator operator = replaceInfo.getOperator();
+                sb.append(operator.doFunc(buildStr(replaceInfo.getSubReplaceInfos(), refData)));
                 continue;
             }
             String replaceName = replaceInfo.getParam();
-            if(!refData.containsKey(replaceName)){
+            if (!refData.containsKey(replaceName)) {
                 throw new RuntimeException(String.format("build rowKey with field %s which value not found.", replaceName));
             }
 
@@ -96,26 +99,25 @@ public class RowKeyBuilder implements Serializable{
         return sb.toString();
     }
 
-    public static String[] splitIgnoreQuotaBrackets(String str, String delimiter){
+    public static String[] splitIgnoreQuotaBrackets(String str, String delimiter) {
         String splitPatternStr = delimiter + "(?![^()]*+\\))(?![^{}]*+})(?![^\\[\\]]*+\\])";
         return str.split(splitPatternStr);
     }
 
     /**
-     *
      * @param field
      * @return
      */
-    public ReplaceInfo getReplaceInfo(String field){
+    public ReplaceInfo getReplaceInfo(String field) {
 
         field = field.trim();
-        if(field.length() <= 0){
+        if (field.length() <= 0) {
             throw new RuntimeException(field + " \n" +
                     "Format defined exceptions");
         }
 
         //判断是不是常量==>''包裹的标识
-        if(field.startsWith("'") && field.endsWith("'")){
+        if (field.startsWith("'") && field.endsWith("'")) {
             ReplaceInfo replaceInfo = new ReplaceInfo(EReplaceType.CONSTANT);
             field = field.substring(1, field.length() - 1);
             replaceInfo.setParam(field);
@@ -127,20 +129,28 @@ public class RowKeyBuilder implements Serializable{
         return replaceInfo;
     }
 
-    private List<ReplaceInfo> makeFormula(String formula){
-        if(formula == null || formula.length() <= 0){
+    private List<ReplaceInfo> makeFormula(String formula) {
+        if (formula == null || formula.length() <= 0) {
             return Lists.newArrayList();
         }
 
         List<ReplaceInfo> result = Lists.newArrayList();
-        for(String meta: splitIgnoreQuotaBrackets(formula, "\\+")){
-            Matcher matcher = Md5Operator.matcher(meta.trim());
-            if(matcher.find()){
-                ReplaceInfo replaceInfo = new ReplaceInfo(EReplaceType.FUNC);
-                replaceInfo.setSubReplaceInfos(makeFormula(matcher.group(1)));
-                result.add(replaceInfo);
-            } else {
-                result.add(getReplaceInfo(meta));
+        for (String meta : splitIgnoreQuotaBrackets(formula, "\\+")) {
+            boolean isFunc = false;
+            for (AbstractReplaceOperator operator : operators) {
+                Pattern pattern = operator.getPattern();
+                Matcher matcher = pattern.matcher(meta.trim());
+                if (matcher.find()) {
+                    ReplaceInfo replaceInfo = new ReplaceInfo(EReplaceType.FUNC);
+                    replaceInfo.setOperator(operator);
+                    replaceInfo.setSubReplaceInfos(makeFormula(matcher.group(1)));
+                    result.add(replaceInfo);
+                    isFunc = true;
+                }
+
+                if (!isFunc) {
+                    result.add(getReplaceInfo(meta));
+                }
             }
         }
         return result;
