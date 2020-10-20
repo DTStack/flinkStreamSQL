@@ -385,10 +385,7 @@ public class SideSqlExec {
             logicalTypes[i] = leftTable.getSchema().getFieldDataTypes()[i].getLogicalType();
         }
 
-        RowDataTypeInfo leftBaseTypeInfo = new RowDataTypeInfo(logicalTypes, leftTable.getSchema().getFieldNames());
-
         leftScopeChild.setRowTypeInfo(leftTypeInfo);
-        leftScopeChild.setRowDataTypeInfo(leftBaseTypeInfo);
 
         JoinScope.ScopeChild rightScopeChild = new JoinScope.ScopeChild();
         rightScopeChild.setAlias(joinInfo.getRightTableAlias());

@@ -28,12 +28,14 @@ import org.apache.flink.table.api.Types;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.utils.TypeConversions;
+import org.apache.flink.types.Row;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 import static org.apache.flink.table.api.DataTypes.DECIMAL;
 import static org.apache.flink.table.api.DataTypes.TIMESTAMP;
@@ -110,6 +112,37 @@ public class DataTypeUtils {
         Iterable<String> fieldInfoStrs = splitCompositeTypeField(elementTypeStr);
         Tuple2<TypeInformation[], String[]> info = genFieldInfo(fieldInfoStrs);
         return new RowTypeInfo(info.f0, info.f1);
+    }
+    /**
+     * class 转成 TypeInformation
+     * @param fieldTypes
+     * @return
+     */
+    public static TypeInformation[] transformTypes(Class[] fieldTypes) {
+        TypeInformation[] types = new TypeInformation[fieldTypes.length];
+        for (int i = 0; i < fieldTypes.length; i++) {
+            types[i] = TypeInformation.of(fieldTypes[i]);
+        }
+
+        return types;
+    }
+
+    /**
+     * class 转成 TypeInformation<Row>
+     * @param fieldTypes
+     * @param fieldClasses
+     * @return
+     */
+    public static TypeInformation<Row> getRowTypeInformation(String[] fieldTypes, Class<?>[] fieldClasses) {
+        TypeInformation[] types =
+                IntStream.range(0, fieldClasses.length)
+                        .mapToObj(i -> {
+                            return TypeInformation.of(fieldClasses[i]);
+                        })
+                        .toArray(TypeInformation[]::new);
+
+
+        return new RowTypeInfo(types, fieldTypes);
     }
 
     private static Tuple2<TypeInformation[], String[]> genFieldInfo(Iterable<String> fieldInfoStrs) {

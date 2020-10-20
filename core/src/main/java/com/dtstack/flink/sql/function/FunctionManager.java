@@ -123,14 +123,4 @@ public class FunctionManager {
             throw new RuntimeException("register Aggregate UDF exception:", e);
         }
     }
-
-
-    public static TypeInformation[] transformTypes(Class[] fieldTypes) {
-        TypeInformation[] types = new TypeInformation[fieldTypes.length];
-        for (int i = 0; i < fieldTypes.length; i++) {
-            types[i] = TypeInformation.of(fieldTypes[i]);
-        }
-
-        return types;
-    }
 }

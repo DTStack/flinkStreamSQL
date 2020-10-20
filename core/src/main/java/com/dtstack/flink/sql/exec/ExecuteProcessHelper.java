@@ -37,6 +37,7 @@ import com.dtstack.flink.sql.source.StreamSourceFactory;
 import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.dtstack.flink.sql.util.DataTypeUtils;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
 import com.dtstack.flink.sql.util.SqlFormatterUtil;
@@ -52,6 +53,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -63,6 +65,7 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.api.bridge.java.internal.StreamTableEnvironmentImpl;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.table.sources.TableSource;
+import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -326,7 +329,9 @@ public class ExecuteProcessHelper {
                 Table adaptTable = adaptSql == null ? table : tableEnv.sqlQuery(adaptSql);
 
                 RowTypeInfo typeInfo = new RowTypeInfo(adaptTable.getSchema().getFieldTypes(), adaptTable.getSchema().getFieldNames());
-                DataStream adaptStream = tableEnv.toAppendStream(adaptTable, typeInfo);
+                DataStream adaptStream = tableEnv.toRetractStream(adaptTable, typeInfo)
+                        .map((Tuple2<Boolean, Row> f0) -> f0.f1)
+                        .returns(typeInfo);
 
                 String fields = String.join(",", typeInfo.getFieldNames());
 
@@ -349,7 +354,7 @@ public class ExecuteProcessHelper {
             } else if (tableInfo instanceof AbstractTargetTableInfo) {
 
                 TableSink tableSink = StreamSinkFactory.getTableSink((AbstractTargetTableInfo) tableInfo, localSqlPluginPath, pluginLoadMode);
-                TypeInformation[] flinkTypes = FunctionManager.transformTypes(tableInfo.getFieldClasses());
+                TypeInformation[] flinkTypes = DataTypeUtils.transformTypes(tableInfo.getFieldClasses());
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
 
                 URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractTargetTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);

@@ -18,10 +18,11 @@
 
 package com.dtstack.flink.sql.exec;
 
-import com.dtstack.flink.sql.util.SqlFormatterUtil;
+import com.dtstack.flink.sql.constant.SqlExecConsts;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.flink.sql.parser.dml.RichSqlInsert;
+import org.apache.flink.table.api.SqlParserException;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
@@ -35,7 +36,6 @@ import org.apache.flink.table.planner.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.planner.delegation.PlannerBase;
 import org.apache.flink.table.planner.delegation.StreamPlanner;
 import org.apache.flink.table.planner.operations.SqlToOperationConverter;
-import org.apache.flink.table.api.SqlParserException;
 import org.apache.flink.table.sinks.TableSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,10 +54,6 @@ import java.util.Map;
  */
 public class FlinkSQLExec {
     private static final Logger LOG = LoggerFactory.getLogger(FlinkSQLExec.class);
-    // create view必须使用别名,flink bug
-    private static final String CREATE_VIEW_ERR_INFO = "SQL parse failed. Encountered \"FOR\"";
-    private static final String CREATE_VIEW_ERR_SQL = "CREATE VIEW view_out AS select id, name FROM source LEFT JOIN side FOR SYSTEM_TIME AS OF source.PROCTIME ON source.id = side.sid;";
-    private static final String CREATE_VIEW_RIGHT_SQL = "CREATE VIEW view_out AS select u.id, u.name FROM source u LEFT JOIN side FOR SYSTEM_TIME AS OF u.PROCTIME AS s ON u.id = s.sid;";
 
     public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt) throws Exception {
         StreamTableEnvironmentImpl tableEnvImpl = ((StreamTableEnvironmentImpl) tableEnv);
@@ -69,8 +65,8 @@ public class FlinkSQLExec {
         try {
             queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
         } catch (SqlParserException e) {
-            if (e.getMessage().contains(CREATE_VIEW_ERR_INFO)) {
-                throw new RuntimeException(buildErrorMsg());
+            if (e.getMessage().contains(SqlExecConsts.CREATE_VIEW_ERR_INFO)) {
+                throw new RuntimeException(SqlExecConsts.buildCreateViewErrorMsg());
             } else {
                 throw new RuntimeException(e.getMessage());
             }
@@ -140,16 +136,5 @@ public class FlinkSQLExec {
             }
         }
         return newFieldNames;
-    }
-
-    /**
-     * create view 语法错误提示
-     * @return
-     */
-    private static String buildErrorMsg() {
-        return "\n"
-                + SqlFormatterUtil.format(CREATE_VIEW_ERR_SQL)
-                + "\n========== not support ,please use dimension table alias ==========\n"
-                + SqlFormatterUtil.format(CREATE_VIEW_RIGHT_SQL);
     }
 }
