@@ -170,6 +170,10 @@ public class InsertSqlParser implements IParser {
             }
 
             if (!selectList.get(index).getClass().equals(SqlIdentifier.class)) {
+                if (selectList.get(index).getKind().equals(SqlKind.LITERAL)) {
+                    throw new IllegalArgumentException(String.format("Constants %s in the SELECT statement must be aliased!",
+                            selectList.get(index).toString()));
+                }
                 throw new RuntimeException(String.format("Illegal statement! Please check the statement: %s",
                         selectList.get(index).toString()));
             }

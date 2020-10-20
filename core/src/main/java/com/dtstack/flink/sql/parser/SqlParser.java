@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.parser;
 
@@ -27,6 +27,8 @@ import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
 import com.google.common.base.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,7 @@ import java.util.regex.Pattern;
  */
 
 public class SqlParser {
+    private static final Logger LOG = LoggerFactory.getLogger(SqlParser.class);
 
     private static final char SQL_DELIMITER = ';';
 
@@ -84,13 +87,18 @@ public class SqlParser {
             }
             boolean result = false;
             for(IParser sqlParser : sqlParserList){
-                if(!sqlParser.verify(childSql)){
-                    continue;
-                }
+                try {
+                    if (!sqlParser.verify(childSql)) {
+                        continue;
+                    }
 
-                sqlParser.parseSql(childSql, sqlTree);
-                result = true;
-                break;
+                    sqlParser.parseSql(childSql, sqlTree);
+                    result = true;
+                    break;
+                } catch (Exception e) {
+                    LOG.error("'{}' parser error, detail info: {}", childSql, e.getMessage(), e);
+                    throw e;
+                }
             }
 
             if(!result){
