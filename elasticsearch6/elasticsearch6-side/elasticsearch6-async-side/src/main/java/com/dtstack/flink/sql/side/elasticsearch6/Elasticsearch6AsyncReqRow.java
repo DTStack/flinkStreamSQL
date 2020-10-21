@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.side.elasticsearch6;
 
+import com.dtstack.flink.sql.side.elasticsearch6.util.Es6Util;
 import com.dtstack.flink.sql.util.RowDataComplete;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
@@ -30,8 +31,6 @@ import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
-import com.dtstack.flink.sql.side.elasticsearch6.util.Es6Util;
-import com.dtstack.flink.sql.side.elasticsearch6.util.SwitchUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlNode;
@@ -110,7 +109,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                             if (searchHits.length < getFetchSize()) {
                                 break;
                             }
-                            if (tableInfo == null && tmpRhlClient == null) {
+                            if (tableInfo == null) {
                                 // create new connection to fetch data
                                 tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
                                 tmpRhlClient = Es6Util.getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
@@ -201,7 +200,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
             if (cacheInfo == null) {
                 row.setField(entry.getKey(), null);
             } else {
-                Object object = SwitchUtil.getTarget(cacheInfo.get(sideInfo.getSideFieldNameIndex().get(entry.getKey())), fields[entry.getValue()]);
+                Object object = Es6Util.getTarget(cacheInfo.get(sideInfo.getSideFieldNameIndex().get(entry.getKey())), fields[entry.getValue()]);
                 row.setField(entry.getKey(), object);
             }
         }
