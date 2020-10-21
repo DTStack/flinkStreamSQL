@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.side.elasticsearch6.util;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
+import com.dtstack.flink.sql.util.MathUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -40,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * @author yinxi
@@ -49,7 +51,7 @@ public class Es6Util {
 
     private static final Logger LOG = LoggerFactory.getLogger(Es6Util.class);
     private static final String KEY_WORD_TYPE = ".keyword";
-    private static final String APOSTROPHE = "\'";
+    private static final String APOSTROPHE = "'";
 
     // connect to the elasticsearch
     public static RestHighLevelClient getClient(String esAddress, Boolean isAuthMesh, String userName, String password) {
@@ -60,12 +62,12 @@ public class Es6Util {
             int port = 9200;
             String host = infoArray[0].trim();
             if (infoArray.length > 1) {
-                port = Integer.valueOf(infoArray[1].trim());
+                port = Integer.parseInt(infoArray[1].trim());
             }
             httpHostList.add(new HttpHost(host, port, "http"));
         }
 
-        RestClientBuilder restClientBuilder = RestClient.builder(httpHostList.toArray(new HttpHost[httpHostList.size()]));
+        RestClientBuilder restClientBuilder = RestClient.builder(httpHostList.toArray(new HttpHost[0]));
 
         if (isAuthMesh) {
             // 进行用户和密码认证
@@ -171,6 +173,9 @@ public class Es6Util {
                 return boolQueryBuilder.must(QueryBuilders.existsQuery(info.getFieldName()));
             case "=":
             case "EQUALS":
+                if (StringUtils.isBlank(info.getCondition())) {
+                    return boolQueryBuilder;
+                }
                 return boolQueryBuilder.must(QueryBuilders.termQuery(textConvertToKeyword(info.getFieldName(), sideInfo), removeSpaceAndApostrophe(info.getCondition())[0]));
             case "<>":
             case "NOT_EQUALS":
@@ -199,7 +204,7 @@ public class Es6Util {
         String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
         int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
         String fieldType = sideFieldTypes[fieldIndex];
-        switch (fieldType.toLowerCase()) {
+        switch (fieldType.toLowerCase(Locale.ENGLISH)) {
             case "varchar":
             case "char":
             case "text":
@@ -207,5 +212,60 @@ public class Es6Util {
             default:
                 return fieldName;
         }
+    }
+
+    public static Object getTarget(Object obj, String targetType) {
+        switch (targetType.toLowerCase(Locale.ENGLISH)) {
+
+            case "smallint":
+            case "smallintunsigned":
+            case "tinyint":
+            case "tinyintunsigned":
+            case "mediumint":
+            case "mediumintunsigned":
+            case "integer":
+            case "int":
+                return MathUtil.getIntegerVal(obj);
+
+            case "bigint":
+            case "bigintunsigned":
+            case "intunsigned":
+            case "integerunsigned":
+                return MathUtil.getLongVal(obj);
+
+            case "boolean":
+                return MathUtil.getBoolean(obj);
+
+            case "blob":
+                return MathUtil.getByte(obj);
+
+            case "varchar":
+            case "char":
+            case "text":
+                return MathUtil.getString(obj);
+
+            case "real":
+            case "float":
+            case "realunsigned":
+            case "floatunsigned":
+                return MathUtil.getFloatVal(obj);
+
+            case "double":
+            case "doubleunsigned":
+                return MathUtil.getDoubleVal(obj);
+
+            case "decimal":
+            case "decimalunsigned":
+                return MathUtil.getBigDecimal(obj);
+
+            case "date":
+                return MathUtil.getDate(obj);
+
+            case "timestamp":
+            case "datetime":
+                return MathUtil.getTimestamp(obj);
+            default:
+        }
+        return obj;
     }
 }

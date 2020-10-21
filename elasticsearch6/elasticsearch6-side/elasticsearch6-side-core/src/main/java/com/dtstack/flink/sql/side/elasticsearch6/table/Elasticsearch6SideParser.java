@@ -18,9 +18,9 @@
 
 package com.dtstack.flink.sql.side.elasticsearch6.table;
 
-import com.dtstack.flink.sql.side.elasticsearch6.util.ClassUtil;
 import com.dtstack.flink.sql.table.AbstractSideTableParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.MathUtil;
 import org.apache.commons.lang3.StringUtils;
 
