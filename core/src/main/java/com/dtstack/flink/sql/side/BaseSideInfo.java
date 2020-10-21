@@ -17,13 +17,20 @@
  */
 
 
+
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
+import com.google.common.base.Preconditions;
+import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.calcite.sql.*;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.runtime.typeutils.RowDataTypeInfo;
 
 import java.io.Serializable;
@@ -35,11 +42,10 @@ import java.util.stream.Collectors;
  * Reason:
  * Date: 2018/9/18
  * Company: www.dtstack.com
- *
  * @author xuchao
  */
 
-public abstract class BaseSideInfo implements Serializable {
+public abstract class BaseSideInfo implements Serializable{
 
     protected RowTypeInfo rowTypeInfo;
 
@@ -72,6 +78,8 @@ public abstract class BaseSideInfo implements Serializable {
 
     protected AbstractSideCache sideCache;
 
+    protected JoinInfo joinInfo;
+
     protected String[] lookupKeys;
 
     public BaseSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
@@ -81,63 +89,87 @@ public abstract class BaseSideInfo implements Serializable {
     }
 
     public BaseSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
-                        AbstractSideTableInfo sideTableInfo) {
+                        AbstractSideTableInfo sideTableInfo){
         this.rowTypeInfo = rowTypeInfo;
         this.outFieldInfoList = outFieldInfoList;
         this.joinType = joinInfo.getJoinType();
         this.sideTableInfo = sideTableInfo;
+        this.joinInfo = joinInfo;
         parseSelectFields(joinInfo);
         buildEqualInfo(joinInfo, sideTableInfo);
     }
 
-    public void parseSelectFields(JoinInfo joinInfo) {
+    public void parseSelectFields(JoinInfo joinInfo){
         String sideTableName = joinInfo.getSideTableName();
         String nonSideTableName = joinInfo.getNonSideTable();
         List<String> fields = Lists.newArrayList();
         int sideTableFieldIndex = 0;
 
-        for (int i = 0; i < outFieldInfoList.size(); i++) {
+        for( int i=0; i<outFieldInfoList.size(); i++){
             FieldInfo fieldInfo = outFieldInfoList.get(i);
-            if (fieldInfo.getTable().equalsIgnoreCase(sideTableName)) {
+            if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
                 String sideFieldName = sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName());
                 fields.add(sideFieldName);
                 sideSelectFieldsType.put(sideTableFieldIndex, getTargetFieldType(fieldInfo.getFieldName()));
                 sideFieldIndex.put(i, sideTableFieldIndex);
                 sideFieldNameIndex.put(i, sideFieldName);
                 sideTableFieldIndex++;
-            } else if (fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)) {
+            }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
                 int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
                 inFieldIndex.put(i, nonSideIndex);
-            } else {
+            }else{
                 throw new RuntimeException("unknown table " + fieldInfo.getTable());
             }
         }
 
-        if (fields.size() == 0) {
-            throw new RuntimeException("select non field from table " + sideTableName);
+        if(fields.size() == 0){
+            throw new RuntimeException("select non field from table " +  sideTableName);
         }
 
         sideSelectFields = String.join(",", fields);
     }
 
-    public String getTargetFieldType(String fieldName) {
+    public String getTargetFieldType(String fieldName){
         int fieldIndex = sideTableInfo.getFieldList().indexOf(fieldName);
-        if (fieldIndex == -1) {
+        if(fieldIndex == -1){
             throw new RuntimeException(sideTableInfo.getName() + "can't find field: " + fieldName);
         }
 
         return sideTableInfo.getFieldTypes()[fieldIndex];
     }
 
-
     public void dealOneEqualCon(SqlNode sqlNode, String sideTableName) {
         if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
             throw new RuntimeException("not compare operator.");
         }
 
-        SqlIdentifier left = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[0];
-        SqlIdentifier right = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[1];
+        SqlNode leftNode = ((SqlBasicCall) sqlNode).getOperands()[0];
+        SqlNode rightNode = ((SqlBasicCall) sqlNode).getOperands()[1];
+        if (leftNode.getKind() == SqlKind.LITERAL) {
+            evalConstantEquation(
+                (SqlLiteral) leftNode,
+                (SqlIdentifier) rightNode
+            );
+        } else if (rightNode.getKind() == SqlKind.LITERAL) {
+            evalConstantEquation(
+                (SqlLiteral) rightNode,
+                (SqlIdentifier) leftNode
+            );
+        } else {
+            SqlIdentifier left = (SqlIdentifier) leftNode;
+            SqlIdentifier right = (SqlIdentifier) rightNode;
+            evalEquation(left, right, sideTableName, sqlNode);
+        }
+    }
 
+    /**
+     * deal normal equation etc. foo.id = bar.id
+     * @param left
+     * @param right
+     * @param sideTableName
+     * @param sqlNode
+     */
+    private void evalEquation(SqlIdentifier left, SqlIdentifier right, String sideTableName, SqlNode sqlNode) {
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
 
@@ -145,39 +177,63 @@ public abstract class BaseSideInfo implements Serializable {
         String rightField = right.getComponent(1).getSimple();
 
         if (leftTableName.equalsIgnoreCase(sideTableName)) {
-            equalFieldList.add(leftField);
-            int equalFieldIndex = -1;
-            for (int i = 0; i < getFieldNames().length; i++) {
-                String fieldName = getFieldNames()[i];
-                if (fieldName.equalsIgnoreCase(rightField)) {
-                    equalFieldIndex = i;
-                }
-            }
-            if (equalFieldIndex == -1) {
-                throw new RuntimeException("can't find equal field " + rightField);
-            }
-
-            equalValIndex.add(equalFieldIndex);
-
+            associateField(rightField, leftField, sqlNode);
         } else if (rightTableName.equalsIgnoreCase(sideTableName)) {
-
-            equalFieldList.add(rightField);
-            int equalFieldIndex = -1;
-            for (int i = 0; i < getFieldNames().length; i++) {
-                String fieldName = getFieldNames()[i];
-                if (fieldName.equalsIgnoreCase(leftField)) {
-                    equalFieldIndex = i;
-                }
-            }
-            if (equalFieldIndex == -1) {
-                throw new RuntimeException("can't find equal field " + leftField);
-            }
-
-            equalValIndex.add(equalFieldIndex);
-
+            associateField(leftField, rightField, sqlNode);
         } else {
             throw new RuntimeException("resolve equalFieldList error:" + sqlNode.toString());
         }
+    }
+
+    /**
+     * deal with equation with constant etc. foo.id = 1
+     * @param literal
+     * @param identifier
+     */
+    private void evalConstantEquation(SqlLiteral literal, SqlIdentifier identifier) {
+        String tableName = identifier.getComponent(0).getSimple();
+        checkSupport(identifier);
+        String fieldName = identifier.getComponent(1).getSimple();
+        Object constant = literal.getValue();
+        List<PredicateInfo> predicateInfos = sideTableInfo.getPredicateInfoes();
+        PredicateInfo predicate = PredicateInfo.builder()
+            .setOperatorName("=")
+            .setOperatorKind("EQUALS")
+            .setOwnerTable(tableName)
+            .setFieldName(fieldName)
+            .setCondition(constant.toString())
+            .build();
+        predicateInfos.add(predicate);
+    }
+
+    private void checkSupport(SqlIdentifier identifier) {
+        String tableName = identifier.getComponent(0).getSimple();
+        String sideTableName;
+        String sideTableAlias;
+        if (joinInfo.isLeftIsSideTable()) {
+            sideTableName = joinInfo.getLeftTableName();
+            sideTableAlias = joinInfo.getLeftTableAlias();
+        } else {
+            sideTableName = joinInfo.getRightTableName();
+            sideTableAlias = joinInfo.getRightTableAlias();
+        }
+        boolean isSide = tableName.equals(sideTableName) || tableName.equals(sideTableAlias);
+        String errorMsg = "only support set side table constant field, error field " + identifier;
+        Preconditions.checkState(isSide, errorMsg);
+    }
+
+    private void associateField(String sourceTableField, String sideTableField, SqlNode sqlNode) {
+        String errorMsg = "can't deal equal field: " + sqlNode;
+        equalFieldList.add(sideTableField);
+        int equalFieldIndex = -1;
+        for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
+            String fieldName = rowTypeInfo.getFieldNames()[i];
+            if (fieldName.equalsIgnoreCase(sourceTableField)) {
+                equalFieldIndex = i;
+            }
+        }
+        Preconditions.checkState(equalFieldIndex != -1, errorMsg);
+        equalValIndex.add(equalFieldIndex);
     }
 
     public abstract void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo);

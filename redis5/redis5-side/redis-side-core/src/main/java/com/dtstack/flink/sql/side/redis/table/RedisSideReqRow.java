@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.side.redis.table;
 
 import com.dtstack.flink.sql.side.ISideReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
+import com.dtstack.flink.sql.util.TableUtils;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
@@ -28,6 +29,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,8 +45,11 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
 
     private BaseSideInfo sideInfo;
 
-    public RedisSideReqRow(BaseSideInfo sideInfo){
+    private RedisSideTableInfo sideTableInfo;
+
+    public RedisSideReqRow(BaseSideInfo sideInfo, RedisSideTableInfo sideTableInfo) {
         this.sideInfo = sideInfo;
+        this.sideTableInfo = sideTableInfo;
     }
 
     @Override
@@ -71,6 +76,19 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
         }
 
         return row;
+    }
+
+    public String buildCacheKey(Map<String, Object> refData) {
+        TableUtils.addConstant(refData, sideTableInfo);
+        StringBuilder keyBuilder = new StringBuilder(sideTableInfo.getTableName());
+        List<String> primaryKeys = sideTableInfo.getPrimaryKeys();
+        for(String primaryKey : primaryKeys){
+            if(!refData.containsKey(primaryKey)){
+                return null;
+            }
+            keyBuilder.append("_").append(refData.get(primaryKey));
+        }
+        return keyBuilder.toString();
     }
 
     public void setRowField(Row row, Integer index, BaseSideInfo sideInfo, String value) {

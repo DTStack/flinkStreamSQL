@@ -41,7 +41,7 @@ public class HbaseAsyncSideInfo extends BaseSideInfo {
         }
 
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0));
+        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0), sideTableInfo);
 
         colRefType = Maps.newHashMap();
         for(int i=0; i<hbaseSideTableInfo.getColumnRealNames().length; i++){

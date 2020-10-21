@@ -54,15 +54,15 @@ public class JoinInfo implements Serializable {
 
     private String rightTableAlias;
 
-    private SqlNode leftNode;
+    private transient SqlNode leftNode;
 
-    private SqlNode rightNode;
+    private transient SqlNode rightNode;
 
-    private SqlNode condition;
+    private transient SqlNode condition;
 
-    private SqlNode selectFields;
+    private transient SqlNode selectFields;
 
-    private SqlNode selectNode;
+    private transient SqlNode selectNode;
 
     private JoinType joinType;
 
