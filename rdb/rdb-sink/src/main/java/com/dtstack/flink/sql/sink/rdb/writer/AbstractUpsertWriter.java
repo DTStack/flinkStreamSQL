@@ -170,8 +170,16 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                     connection.commit();
                 } catch (Exception e) {
                     // deal pg error: current transaction is aborted, commands ignored until end of transaction block
-                    connection.rollback();
-                    connection.commit();
+                    try {
+                        connection.rollback();
+                        connection.commit();
+                    } catch (SQLException e1) {
+                        throw new RuntimeException(e1);
+                    }
+
+                    if(e.getMessage().contains("doesn't exist")){
+                        throw new RuntimeException(e);
+                    }
                     if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
                         LOG.error("record insert failed ,this row is {}", entry.getValue());
                         LOG.error("", e);
