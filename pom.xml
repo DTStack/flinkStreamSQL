@@ -10,11 +10,13 @@
     <url>http://maven.apache.org</url>
     <modules>
         <module>core</module>
+        <module>launcher</module>
         <module>kafka-base</module>
         <module>kafka</module>
-        <module>mysql</module>
-        <module>launcher</module>
         <module>rdb</module>
+        <module>mysql</module>
+        <module>oracle</module>
+        <module>sqlserver</module>
         <module>console</module>
 
     </modules>

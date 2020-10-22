@@ -18,9 +18,9 @@
 
 package com.dtstack.flink.sql.side.oracle;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
@@ -33,6 +33,10 @@ import java.util.List;
 
 public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
 
+    public OracleAsyncSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
+
     public OracleAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
@@ -43,7 +47,7 @@ public class OracleAsyncSideInfo extends RdbAsyncSideInfo {
     }
 
     @Override
-    public  String quoteIdentifier(String identifier) {
+    public String quoteIdentifier(String identifier) {
         return "\"" + identifier + "\"";
     }
 
