@@ -21,7 +21,10 @@ package com.dtstack.flink.sql.side.redis;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import io.lettuce.core.KeyValue;
+import io.lettuce.core.RedisURI;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.api.async.RedisStringAsyncCommands;
+import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -87,35 +90,32 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
     private void buildRedisClient(RedisSideTableInfo tableInfo){
         String url = redisSideTableInfo.getUrl();
         String password = redisSideTableInfo.getPassword();
-        if (password != null){
-            password = password + "@";
-        } else {
-            password = "";
-        }
         String database = redisSideTableInfo.getDatabase();
         if (database == null){
             database = "0";
         }
         switch (RedisType.parse(tableInfo.getRedisType())){
             case STANDALONE:
-                StringBuilder redisUri = new StringBuilder();
-                redisUri.append("redis://").append(password).append(url).append("/").append(database);
-                redisClient = RedisClient.create(redisUri.toString());
+                RedisURI redisURI = RedisURI.create("redis://" + url);
+                redisURI.setPassword(password);
+                redisURI.setDatabase(Integer.valueOf(database));
+                redisClient = RedisClient.create(redisURI);
                 connection = redisClient.connect();
                 async = connection.async();
                 break;
             case SENTINEL:
-                StringBuilder sentinelUri = new StringBuilder();
-                sentinelUri.append("redis-sentinel://").append(password)
-                        .append(url).append("/").append(database).append("#").append(redisSideTableInfo.getMasterName());
-                redisClient = RedisClient.create(sentinelUri.toString());
+                RedisURI redisSentinelURI = RedisURI.create("redis-sentinel://" + url);
+                redisSentinelURI.setPassword(password);
+                redisSentinelURI.setDatabase(Integer.valueOf(database));
+                redisSentinelURI.setSentinelMasterId(redisSideTableInfo.getMasterName());
+                redisClient = RedisClient.create(redisSentinelURI);
                 connection = redisClient.connect();
                 async = connection.async();
                 break;
             case CLUSTER:
-                StringBuilder clusterUri = new StringBuilder();
-                clusterUri.append("redis://").append(password).append(url);
-                clusterClient = RedisClusterClient.create(clusterUri.toString());
+                RedisURI clusterURI = RedisURI.create("redis://" + url);
+                clusterURI.setPassword(password);
+                clusterClient = RedisClusterClient.create(clusterURI);
                 clusterConnection = clusterClient.connect();
                 async = clusterConnection.async();
             default:
