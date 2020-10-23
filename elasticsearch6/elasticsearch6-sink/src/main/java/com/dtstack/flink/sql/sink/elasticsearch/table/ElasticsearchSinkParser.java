@@ -47,6 +47,8 @@ public class ElasticsearchSinkParser extends AbstractTableParser {
 
     private static final String KEY_ES6_PASSWORD = "password";
 
+    public static final String BATCH_SIZE_KEY = "batchSize";
+
     private static final String KEY_TRUE = "true";
 
     private static final String KEY_PARALLELISM = "parallelism";
@@ -67,6 +69,7 @@ public class ElasticsearchSinkParser extends AbstractTableParser {
         elasticsearchTableInfo.setIndex((String) props.get(KEY_ES6_INDEX.toLowerCase()));
         elasticsearchTableInfo.setEsType((String) props.get(KEY_ES6_TYPE.toLowerCase()));
         elasticsearchTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KEY_PARALLELISM)));
+        elasticsearchTableInfo.setBatchSize(MathUtil.getIntegerVal(props.getOrDefault(BATCH_SIZE_KEY.toLowerCase(), 500)));
 
         String authMeshStr = (String) props.get(KEY_ES6_AUTHMESH.toLowerCase());
         if (authMeshStr != null && StringUtils.equalsIgnoreCase(KEY_TRUE, authMeshStr)) {

@@ -138,6 +138,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         type = esTableInfo.getEsType();
         columnTypes = esTableInfo.getFieldTypes();
         esAddressList = Arrays.asList(esTableInfo.getAddress().split(","));
+        this.bulkFlushMaxActions = esTableInfo.getBatchSize();
         String id = esTableInfo.getId();
         parallelism = Objects.isNull(esTableInfo.getParallelism()) ?
                 parallelism : esTableInfo.getParallelism();
