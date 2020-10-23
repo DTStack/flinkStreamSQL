@@ -49,6 +49,8 @@ public class ElasticsearchSinkParser extends AbstractTableParser {
 
     private static final String KEY_TRUE = "true";
 
+    private static final String KEY_PARALLELISM = "parallelism";
+
     @Override
     protected boolean fieldNameNeedsUpperCase() {
         return false;
@@ -64,6 +66,7 @@ public class ElasticsearchSinkParser extends AbstractTableParser {
         elasticsearchTableInfo.setId((String) props.get(KEY_ES6_ID_FIELD_INDEX_LIST.toLowerCase()));
         elasticsearchTableInfo.setIndex((String) props.get(KEY_ES6_INDEX.toLowerCase()));
         elasticsearchTableInfo.setEsType((String) props.get(KEY_ES6_TYPE.toLowerCase()));
+        elasticsearchTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KEY_PARALLELISM)));
 
         String authMeshStr = (String) props.get(KEY_ES6_AUTHMESH.toLowerCase());
         if (authMeshStr != null && StringUtils.equalsIgnoreCase(KEY_TRUE, authMeshStr)) {

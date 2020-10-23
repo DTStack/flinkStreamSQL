@@ -33,6 +33,8 @@ import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
 import java.util.List;
+import java.util.Objects;
+
 /**
  * @author yanxi
  */
@@ -64,6 +66,10 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     protected String masterName;
 
+    protected Integer parallelism = 1;
+
+    protected String registerTableName;
+
     public RedisSink(){
 
     }
@@ -82,6 +88,9 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.minIdle = redisTableInfo.getMinIdle();
         this.masterName = redisTableInfo.getMasterName();
         this.timeout = redisTableInfo.getTimeout();
+        this.parallelism = Objects.isNull(redisTableInfo.getParallelism()) ?
+                parallelism : redisTableInfo.getParallelism();
+        this.registerTableName = redisTableInfo.getName();
         return this;
     }
 
@@ -108,7 +117,7 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
                 .setMasterName(this.masterName);
         RedisOutputFormat redisOutputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(redisOutputFormat);
-        dataStream.addSink(richSinkFunction);
+        dataStream.addSink(richSinkFunction).setParallelism(parallelism).name(registerTableName);
     }
 
     @Override

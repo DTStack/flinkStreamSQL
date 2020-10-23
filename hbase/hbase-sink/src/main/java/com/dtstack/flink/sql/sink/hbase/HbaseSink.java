@@ -62,7 +62,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     private String clientPrincipal;
     private String clientKeytabFile;
-    private int parallelism = -1;
+    private int parallelism = 1;
 
 
     public HbaseSink() {
@@ -115,7 +115,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
-        dataStream.addSink(richSinkFunction);
+        dataStream.addSink(richSinkFunction).setParallelism(parallelism).name(registerTabName);
     }
 
     @Override
