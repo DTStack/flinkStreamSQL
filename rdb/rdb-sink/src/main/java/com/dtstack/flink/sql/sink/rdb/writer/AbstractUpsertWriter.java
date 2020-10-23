@@ -170,8 +170,16 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                     connection.commit();
                 } catch (Exception e) {
                     // deal pg error: current transaction is aborted, commands ignored until end of transaction block
-                    connection.rollback();
-                    connection.commit();
+                    try {
+                        connection.rollback();
+                        connection.commit();
+                    } catch (SQLException e1) {
+                        throw new RuntimeException(e1);
+                    }
+
+                    if(e.getMessage().contains("doesn't exist")){
+                        throw new RuntimeException(e);
+                    }
                     if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
                         LOG.error("record insert failed ,this row is {}", entry.getValue());
                         LOG.error("", e);
@@ -268,6 +276,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
         private final String existSql;
         private final String insertSql;
         private final String updateSql;
+        private final int[] pkFields;
 
         private transient PreparedStatement existStatement;
         private transient PreparedStatement insertStatement;
@@ -287,6 +296,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
             this.existSql = existSql;
             this.insertSql = insertSql;
             this.updateSql = updateSql;
+            this.pkFields = pkFields;
         }
 
         @Override
@@ -310,7 +320,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
             resultSet.close();
             if (exist) {
                 // do update
-                setRecordToStatement(updateStatement, fieldTypes, row);
+                setRecordToStatement(updateStatement, fieldTypes, row, pkFields);
                 updateStatement.addBatch();
             } else {
                 // do insert

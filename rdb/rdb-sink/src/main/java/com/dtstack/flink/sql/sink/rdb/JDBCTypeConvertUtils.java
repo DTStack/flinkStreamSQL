@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.rdb;
 
+import com.google.common.collect.Lists;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,10 @@ public class JDBCTypeConvertUtils {
 	 * @see PreparedStatement
 	 */
 	public static void setRecordToStatement(PreparedStatement upload, int[] typesArray, Row row) throws SQLException {
+		setRecordToStatement(upload, typesArray, row, null);
+	}
+
+	public static void setRecordToStatement(PreparedStatement upload, int[] typesArray, Row row, int[] pkFieldIndices) throws SQLException {
 		if (typesArray != null && typesArray.length > 0 && typesArray.length != row.getArity()) {
 			LOG.warn("Column SQL types array doesn't match arity of passed Row! Check the passed array...");
 		}
@@ -62,10 +67,34 @@ public class JDBCTypeConvertUtils {
 			}
 		} else {
 			// types provided
+			int placeIndex = 0;
 			for (int i = 0; i < row.getArity(); i++) {
-				setField(upload, typesArray[i], row.getField(i), i);
+				if(isPrimaryKeyField(pkFieldIndices, i)){
+					continue;
+				}
+				setField(upload, typesArray[i], row.getField(i), placeIndex ++);
+			}
+
+			//填充whereClause中的主键占位符
+			if (pkFieldIndices != null && pkFieldIndices.length > 0) {
+				for (int j = 0; j < pkFieldIndices.length; j++) {
+					int pkIndex = pkFieldIndices[j];
+					setField(upload, typesArray[pkIndex], row.getField(pkIndex), placeIndex + j);
+				}
 			}
 		}
+	}
+
+	private static boolean isPrimaryKeyField(int[] pkFieldIndices, int fieldIndex) {
+		if (pkFieldIndices == null || pkFieldIndices.length <= 0) {
+			return false;
+		}
+		for (int index : pkFieldIndices) {
+			if (index == fieldIndex) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public static void setField(PreparedStatement upload, int type, Object field, int index) throws SQLException {
@@ -175,6 +204,8 @@ public class JDBCTypeConvertUtils {
 				tmpFieldsType[i] = Types.TINYINT;
 			} else if (fieldType.equals(Short.class.getName())) {
 				tmpFieldsType[i] = Types.SMALLINT;
+			} else if(fieldType.equals(Character.class.getName())){
+				tmpFieldsType[i] = Types.CHAR;
 			} else if (fieldType.equals(String.class.getName())) {
 				tmpFieldsType[i] = Types.CHAR;
 			} else if (fieldType.equals(Byte.class.getName())) {

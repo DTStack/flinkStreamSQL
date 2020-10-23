@@ -101,10 +101,6 @@ public class RowKeyBuilder implements Serializable{
     public ReplaceInfo getReplaceInfo(String field){
 
         field = field.trim();
-        if(field.length() <= 2){
-            throw new RuntimeException(field + " \n" +
-                    "Format defined exceptions");
-        }
 
         //判断是不是常量==>''包裹的标识
         if(field.startsWith("'") && field.endsWith("'")){

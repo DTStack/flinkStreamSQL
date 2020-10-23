@@ -26,8 +26,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.typesafe.config.ConfigException;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -41,6 +39,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.api.Table;
 
@@ -189,25 +188,13 @@ public class TableUtils {
         }
     }
 
-    public static String buildInternalTableName(String left, char split, String right) {
-        StringBuilder sb = new StringBuilder();
-        return sb.append(left).append(split).append(right).toString();
-    }
-
     public static SqlBasicCall buildAsNodeByJoinInfo(JoinInfo joinInfo, SqlNode sqlNode0, String tableAlias) {
         SqlOperator operator = new SqlAsOperator();
 
         SqlParserPos sqlParserPos = new SqlParserPos(0, 0);
         String newTableName = joinInfo.getNewTableName();
-        String lefTbAlias = joinInfo.getLeftTableAlias();
 
-        if(Strings.isNullOrEmpty(lefTbAlias)){
-            Set<String> fromTableSet = Sets.newHashSet();
-            TableUtils.getFromTableInfo(joinInfo.getLeftNode(), fromTableSet);
-            lefTbAlias = StringUtils.join(fromTableSet, "_");
-        }
-
-        String newTableAlias = !StringUtils.isEmpty(tableAlias) ? tableAlias : buildInternalTableName(lefTbAlias, SPLIT, joinInfo.getRightTableAlias());
+        String newTableAlias = !StringUtils.isEmpty(tableAlias) ? tableAlias : joinInfo.getNewTableAlias();
 
         if (null == sqlNode0) {
             sqlNode0 = new SqlIdentifier(newTableName, null, sqlParserPos);
@@ -243,6 +230,13 @@ public class TableUtils {
                 //Determining right is not a simple table
                 if (joinInfo.getRightNode().getKind() == SELECT) {
                     queueInfo.offer(joinInfo.getLeftNode());
+                }
+
+                if (joinInfo.getLeftNode().getKind() == AS) {
+                    SqlNode leftSqlNode = ((SqlBasicCall) joinInfo.getLeftNode()).getOperands()[0];
+                    if (leftSqlNode.getKind() == UNION) {
+                        queueInfo.offer(joinInfo.getLeftNode());
+                    }
                 }
 
                 queueInfo.offer(joinInfo);
@@ -708,6 +702,21 @@ public class TableUtils {
         }
 
         return tableName + "_" + scope;
+    }
+
+    public static String buildTableNameWithScope(String leftTableName, String leftTableAlias, String rightTableName, String scope, Set<String> existTableNames){
+        //兼容左边表是as 的情况
+        String leftStr = Strings.isNullOrEmpty(leftTableName) ? leftTableAlias : leftTableName;
+        String newName = leftStr + "_" + rightTableName;
+        if (CollectionUtils.isEmpty(existTableNames)) {
+            return TableUtils.buildTableNameWithScope(newName, scope);
+        }
+
+        if (!existTableNames.contains(newName)) {
+            return TableUtils.buildTableNameWithScope(newName, scope);
+        }
+
+        return TableUtils.buildTableNameWithScope(newName, scope) + "_" + System.currentTimeMillis();
     }
 
 }

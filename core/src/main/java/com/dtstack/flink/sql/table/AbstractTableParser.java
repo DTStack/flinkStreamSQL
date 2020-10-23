@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-
-
 package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.util.ClassUtil;
@@ -26,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.java.tuple.Tuple2;
 
 import java.util.List;
 import java.util.Map;
@@ -46,9 +45,11 @@ public abstract class AbstractTableParser {
     private static final String CHAR_TYPE_NO_LENGTH = "CHAR";
 
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
-    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(\\w+)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
+    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+?)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
     private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
     private static Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
+    private static Pattern typePattern = Pattern.compile("(\\S+)\\s+(\\w+.*)");
+
 
     private Map<String, Pattern> patternMap = Maps.newHashMap();
 
@@ -84,34 +85,27 @@ public abstract class AbstractTableParser {
         return false;
     }
 
-    public void parseFieldsInfo(String fieldsInfo, AbstractTableInfo tableInfo){
+    public void parseFieldsInfo(String fieldsInfo, AbstractTableInfo tableInfo) {
 
-        List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
-        for(String fieldRow : fieldRows){
+        List<String> fieldRows = DtStringUtil.splitField(fieldsInfo);
+
+        for (String fieldRow : fieldRows) {
             fieldRow = fieldRow.trim();
 
-            if(StringUtils.isBlank(fieldRow)){
+            if (StringUtils.isBlank(fieldRow)) {
                 throw new RuntimeException(String.format("table [%s],exists field empty.", tableInfo.getName()));
             }
 
-            String[] filedInfoArr = fieldRow.split("\\s+");
-            if(filedInfoArr.length < 2 ){
-                throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
-            }
-
             boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
-            if(isMatcherKey){
+            if (isMatcherKey) {
                 continue;
             }
 
-            //Compatible situation may arise in space in the fieldName
-            String[] filedNameArr = new String[filedInfoArr.length - 1];
-            System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
-            String fieldName = String.join(" ", filedNameArr);
-            String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
+            Tuple2<String, String> t = extractType(fieldRow, tableInfo.getName());
+            String fieldName = t.f0;
+            String fieldType = t.f1;
 
-
-            Class fieldClass = null;
+            Class fieldClass;
             AbstractTableInfo.FieldExtraInfo fieldExtraInfo = null;
 
             Matcher matcher = charTypePattern.matcher(fieldType);
@@ -123,7 +117,7 @@ public abstract class AbstractTableParser {
                 fieldClass = dbTypeConvertToJavaType(fieldType);
             }
 
-            tableInfo.addPhysicalMappings(filedInfoArr[0],filedInfoArr[0]);
+            tableInfo.addPhysicalMappings(fieldName, fieldName);
             tableInfo.addField(fieldName);
             tableInfo.addFieldClass(fieldClass);
             tableInfo.addFieldType(fieldType);
@@ -133,11 +127,23 @@ public abstract class AbstractTableParser {
         tableInfo.finish();
     }
 
-    public void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo){
+    private Tuple2<String, String> extractType(String fieldRow, String tableName) {
+        Matcher matcher = typePattern.matcher(fieldRow);
+        if (matcher.matches()) {
+            String fieldName = matcher.group(1);
+            String fieldType = matcher.group(2);
+            return Tuple2.of(fieldName, fieldType);
+        } else {
+            String errorMsg = String.format("table [%s] field [%s] format error.", tableName, fieldRow);
+            throw new RuntimeException(errorMsg);
+        }
+    }
+
+    public void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo) {
         String primaryFields = matcher.group(1).trim();
-        String[] splitArry = primaryFields.split(",");
-        List<String> primaryKes = Lists.newArrayList(splitArry);
-        tableInfo.setPrimaryKeys(primaryKes);
+        String[] splitArray = primaryFields.split(",");
+        List<String> primaryKeys = Lists.newArrayList(splitArray);
+        tableInfo.setPrimaryKeys(primaryKeys);
     }
 
     /**
@@ -172,4 +178,5 @@ public abstract class AbstractTableParser {
         patternMap.put(parserName, pattern);
         handlerMap.put(parserName, handler);
     }
+
 }

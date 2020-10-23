@@ -57,6 +57,7 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * @author yinxi
@@ -65,9 +66,11 @@ import java.util.Map;
 public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch6AsyncReqRow.class);
+    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
     private transient RestHighLevelClient rhlClient;
     private SearchRequest searchRequest;
     private List<String> sqlJoinCompareOperate = Lists.newArrayList();
+    private static final Integer MAX_ROW_NUM = 50000;
 
     public Elasticsearch6AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new Elasticsearch6AsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -90,7 +93,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         String key = buildCacheKey(inputParams);
         BoolQueryBuilder boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
         boolQueryBuilder = setInputParams(inputParams, boolQueryBuilder);
-        SearchSourceBuilder searchSourceBuilder = initConfiguration();
+        SearchSourceBuilder searchSourceBuilder = initConfiguration(inputParams);
         searchSourceBuilder.query(boolQueryBuilder);
         searchRequest.source(searchSourceBuilder);
 
@@ -112,6 +115,11 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                             loadDataToCache(searchHits, rowList, cacheContent, input);
                             // determine if all results haven been ferched
                             if (searchHits.length < getFetchSize()) {
+                                break;
+                            }
+                            //protect memory
+                            if (rowList.size() >= MAX_ROW_NUM) {
+                                LOG.warn("row size beyond limit");
                                 break;
                             }
                             if (tableInfo == null && tmpRhlClient == null) {
@@ -195,7 +203,8 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
             Object obj = input.getField(entry.getValue());
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
             if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-                obj = ((Timestamp) obj).getTime();
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
 
             row.setField(entry.getKey(), obj);
@@ -222,10 +231,11 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
 
     }
 
-    private SearchSourceBuilder initConfiguration() {
+    private SearchSourceBuilder initConfiguration(Map<String, Object> inputParams) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.size(getFetchSize());
         searchSourceBuilder.sort("_id", SortOrder.DESC);
+        inputParams.keySet().stream().forEach(k ->  searchSourceBuilder.sort(k, SortOrder.DESC));
         String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
         searchSourceBuilder.fetchSource(sideFieldNames, null);
 

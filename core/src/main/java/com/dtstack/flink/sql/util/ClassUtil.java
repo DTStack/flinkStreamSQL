@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.util;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -34,14 +35,23 @@ import java.sql.Timestamp;
 public class ClassUtil {
 
     public static Class<?> stringConvertClass(String str) {
-        switch (str.toLowerCase()) {
+
+        // 这部分主要是告诉Class转TypeInfomation的方法，字段是Array类型
+        String lowerStr = str.toLowerCase().trim();
+        if (lowerStr.startsWith("array")) {
+            return Array.newInstance(Integer.class, 0).getClass();
+        }
+
+        switch (lowerStr) {
             case "boolean":
             case "bit":
                 return Boolean.class;
 
             case "smallint":
+                return Short.class;
             case "smallintunsigned":
             case "tinyint":
+                return Byte.class;
             case "tinyintunsigned":
             case "mediumint":
             case "mediumintunsigned":
@@ -60,8 +70,10 @@ public class ClassUtil {
 
             case "varchar":
             case "char":
-            case "text":
+            case "string":
                 return String.class;
+            case "text":
+                throw new IllegalArgumentException(str + " type is not support, please use STRING. ");
 
             case "real":
             case "float":

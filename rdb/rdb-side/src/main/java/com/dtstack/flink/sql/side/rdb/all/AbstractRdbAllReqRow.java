@@ -166,7 +166,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     protected Object dealTimeAttributeType(Class<? extends TypeInformation> entry, Object obj) {
         boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
         if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
-            obj = ((Timestamp) obj).getTime();
+            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
         }
         return obj;
     }

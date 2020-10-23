@@ -38,6 +38,7 @@ import org.apache.http.HttpHost;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -67,7 +68,9 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private TypeInformation[] fieldTypes;
 
-    private int parallelism = -1;
+    private int parallelism = 1;
+
+    private String registerTableName;
 
     private ElasticsearchTableInfo esTableInfo;
 
@@ -121,7 +124,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         RichSinkFunction richSinkFunction = createEsSinkFunction();
-        DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
+        DataStreamSink streamSink = dataStream.addSink(richSinkFunction).name(registerTableName);
         if (parallelism > 0) {
             streamSink.setParallelism(parallelism);
         }
@@ -135,7 +138,11 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         type = esTableInfo.getEsType();
         columnTypes = esTableInfo.getFieldTypes();
         esAddressList = Arrays.asList(esTableInfo.getAddress().split(","));
+        this.bulkFlushMaxActions = esTableInfo.getBatchSize();
         String id = esTableInfo.getId();
+        parallelism = Objects.isNull(esTableInfo.getParallelism()) ?
+                parallelism : esTableInfo.getParallelism();
+        registerTableName = esTableInfo.getName();
 
         if (!StringUtils.isEmpty(id)) {
             idIndexList = Arrays.stream(StringUtils.split(id, ",")).map(Integer::valueOf).collect(Collectors.toList());

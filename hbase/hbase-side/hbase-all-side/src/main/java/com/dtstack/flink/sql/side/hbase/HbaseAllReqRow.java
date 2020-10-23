@@ -26,11 +26,11 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
+import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
-import org.apache.commons.lang.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Maps;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -38,20 +38,13 @@ import org.apache.flink.util.Collector;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedAction;
 import java.sql.SQLException;
@@ -98,8 +91,10 @@ public class HbaseAllReqRow extends BaseAllReqRow {
 
             //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
             if(obj instanceof Timestamp && isTimeIndicatorTypeInfo){
-                obj = ((Timestamp)obj).getTime();
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
+
             row.setField(entry.getKey(), obj);
         }
 
@@ -175,6 +170,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
 
     private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+        Map<String, String> colRefType = ((HbaseAllSideInfo)sideInfo).getColRefType();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         boolean openKerberos = hbaseSideTableInfo.isKerberosAuthEnable();
         int loadDataCount = 0;
@@ -211,14 +207,12 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             resultScanner = table.getScanner(new Scan());
             for (Result r : resultScanner) {
                 Map<String, Object> kv = new HashedMap();
-                for (Cell cell : r.listCells())
-                {
+                for (Cell cell : r.listCells()) {
                     String family = Bytes.toString(CellUtil.cloneFamily(cell));
                     String qualifier = Bytes.toString(CellUtil.cloneQualifier(cell));
-                    String value = Bytes.toString(CellUtil.cloneValue(cell));
                     StringBuilder key = new StringBuilder();
                     key.append(family).append(":").append(qualifier);
-
+                    Object value = HbaseUtils.convertByte(CellUtil.cloneValue(cell), colRefType.get(key.toString()));
                     kv.put(aliasNameInversion.get(key.toString()), value);
                 }
                 loadDataCount++;

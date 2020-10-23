@@ -162,7 +162,7 @@ public abstract class BaseSideInfo implements Serializable{
                 }
             }
             if(equalFieldIndex == -1){
-                throw new RuntimeException("can't find equal field " + rightField);
+                throw new RuntimeException("can't find equal field " + leftField);
             }
 
             equalValIndex.add(equalFieldIndex);

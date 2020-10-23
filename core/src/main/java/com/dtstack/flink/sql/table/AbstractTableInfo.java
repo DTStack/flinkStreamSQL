@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
- 
-
 package com.dtstack.flink.sql.table;
 
 import com.google.common.collect.Lists;
@@ -51,7 +49,7 @@ public abstract class AbstractTableInfo implements Serializable {
     private final List<String> fieldList = Lists.newArrayList();
 
     /**key:别名, value: realField */
-    private Map<String, String> physicalFields = Maps.newHashMap();
+    private Map<String, String> physicalFields = Maps.newLinkedHashMap();
 
     private final List<String> fieldTypeList = Lists.newArrayList();
 
@@ -178,9 +176,9 @@ public abstract class AbstractTableInfo implements Serializable {
     }
 
     public void finish(){
-        this.fields = fieldList.toArray(new String[fieldList.size()]);
-        this.fieldClasses = fieldClassList.toArray(new Class[fieldClassList.size()]);
-        this.fieldTypes = fieldTypeList.toArray(new String[fieldTypeList.size()]);
+        this.fields = fieldList.toArray(new String[0]);
+        this.fieldClasses = fieldClassList.toArray(new Class[0]);
+        this.fieldTypes = fieldTypeList.toArray(new String[0]);
     }
 
     /**

@@ -20,7 +20,6 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
@@ -28,13 +27,15 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.AuthUtil;
+import org.apache.hadoop.hbase.ChoreService;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.ScheduledChore;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,9 +43,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author: jingzhen@dtstack.com
@@ -111,7 +112,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
 
     }
-    private void openKerberosConn() throws IOException {
+    private void openKerberosConn() throws Exception {
         conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
         conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
 
@@ -153,13 +154,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     @Override
     public void writeRecord(Tuple2 tuple2) {
         Tuple2<Boolean, Row> tupleTrans = tuple2;
-        Boolean retract = tupleTrans.f0;
         Row row = tupleTrans.f1;
-        if (retract) {
-            dealInsert(row);
-        } else if (!retract && StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
-            dealDelete(row);
-        }
+        dealInsert(row);
     }
 
     protected void dealInsert(Row record) {
@@ -185,26 +181,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         outRecords.inc();
     }
 
-    protected void dealDelete(Row record) {
-        String rowKey = buildRowKey(record);
-        if (!StringUtils.isEmpty(rowKey)) {
-            Delete delete = new Delete(Bytes.toBytes(rowKey));
-            try {
-                table.delete(delete);
-            } catch (IOException e) {
-                if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                    LOG.error("record insert failed ..{}", record.toString());
-                    LOG.error("", e);
-                }
-                outDirtyRecords.inc();
-            }
-            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-                LOG.info(record.toString());
-            }
-            outRecords.inc();
-        }
-    }
-
     private Put getPutByRow(Row record) {
         String rowKey = buildRowKey(record);
         if (StringUtils.isEmpty(rowKey)) {
@@ -213,10 +189,10 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         Put put = new Put(rowKey.getBytes());
         for (int i = 0; i < record.getArity(); ++i) {
             Object fieldVal = record.getField(i);
-            if (fieldVal == null) {
-                continue;
+            byte[] val = null;
+            if (fieldVal != null) {
+                val = HbaseUtil.toByte(fieldVal);
             }
-            byte[] val = fieldVal.toString().getBytes();
             byte[] cf = families[i].getBytes();
             byte[] qualifier = qualifiers[i].getBytes();
 
@@ -355,8 +331,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             String[] qualifiers = new String[format.columnNames.length];
 
             if (format.columnNameFamily != null) {
-                Set<String> keySet = format.columnNameFamily.keySet();
-                String[] columns = keySet.toArray(new String[keySet.size()]);
+                List<String> keyList = new LinkedList<>(format.columnNameFamily.keySet());
+                String[] columns = keyList.toArray(new String[0]);
                 for (int i = 0; i < columns.length; ++i) {
                     String col = columns[i];
                     String[] part = col.split(":");
