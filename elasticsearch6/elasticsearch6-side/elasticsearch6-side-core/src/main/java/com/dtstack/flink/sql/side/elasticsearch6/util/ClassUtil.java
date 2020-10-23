@@ -15,12 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 package com.dtstack.flink.sql.side.elasticsearch6.util;
 
 import com.dtstack.flink.sql.util.DateUtil;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -30,13 +29,19 @@ import java.sql.Timestamp;
  * Reason: TODO ADD REASON(可选)
  * Date: 2017年03月10日 下午1:16:37
  * Company: www.dtstack.com
- *
  * @author sishu.yss
  */
 public class ClassUtil {
 
     public static Class<?> stringConvertClass(String str) {
-        switch (str.toLowerCase()) {
+
+        // 这部分主要是告诉Class转TypeInfomation的方法，字段是Array类型
+        String lowerStr = str.toLowerCase().trim();
+        if (lowerStr.startsWith("array")) {
+            return Array.newInstance(Integer.class, 0).getClass();
+        }
+
+        switch (lowerStr) {
             case "boolean":
             case "bit":
                 return Boolean.class;
@@ -54,7 +59,6 @@ public class ClassUtil {
             case "blob":
                 return Byte.class;
 
-            case "long":
             case "bigint":
             case "intunsigned":
             case "integerunsigned":
@@ -63,8 +67,10 @@ public class ClassUtil {
 
             case "varchar":
             case "char":
-            case "text":
+            case "string":
                 return String.class;
+            case "text":
+                throw new IllegalArgumentException(str + " type is not support, please use STRING. ");
 
             case "real":
             case "float":
@@ -90,9 +96,10 @@ public class ClassUtil {
             case "decimalunsigned":
                 return BigDecimal.class;
             default:
-                throw new RuntimeException("不支持 " + str + " 类型");
+                break;
         }
 
+        throw new RuntimeException("不支持 " + str + " 类型");
     }
 
     public static Object convertType(Object field, String fromType, String toType) {
