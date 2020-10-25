@@ -73,7 +73,7 @@ public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
                 String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
                 String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
                 String principal = impalaSideTableInfo.getPrincipal();
-                UserGroupInformation ugi = KrbUtils.getUgi(principal, keyTabFilePath, krb5FilePath);
+                UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(principal, keyTabFilePath, krb5FilePath);
                 connection = ugi.doAs(new PrivilegedExceptionAction<Connection>() {
                     @Override
                     public Connection run() throws SQLException {

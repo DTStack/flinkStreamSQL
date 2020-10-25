@@ -208,7 +208,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
     private void openConnect() throws IOException {
         if (authMech == 1) {
-            UserGroupInformation ugi = KrbUtils.getUgi(principal, keytabPath, krb5confPath);
+            UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(principal, keytabPath, krb5confPath);
             try {
                 ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
                     openJdbc();
