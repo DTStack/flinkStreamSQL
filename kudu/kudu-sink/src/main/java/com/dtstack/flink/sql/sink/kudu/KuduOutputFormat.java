@@ -19,10 +19,12 @@
 package com.dtstack.flink.sql.sink.kudu;
 
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.util.KrbUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kudu.client.AsyncKuduClient;
 import org.apache.kudu.client.AsyncKuduSession;
 import org.apache.kudu.client.KuduClient;
@@ -35,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.security.PrivilegedAction;
 import java.sql.Timestamp;
 import java.util.Date;
 
@@ -77,6 +80,13 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private Integer defaultSocketReadTimeoutMs;
 
+    /**
+     * kerberos
+     */
+    private String principal;
+    private String keytab;
+    private String krb5conf;
+    boolean enableKrb;
 
     private KuduOutputFormat() {
     }
@@ -92,8 +102,7 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         initMetric();
     }
 
-
-    private void establishConnection() throws KuduException {
+    private void establishConnection() throws IOException {
         AsyncKuduClient.AsyncKuduClientBuilder asyncKuduClientBuilder = new AsyncKuduClient.AsyncKuduClientBuilder(kuduMasters);
         if (null != workerCount) {
             asyncKuduClientBuilder.workerCount(workerCount);
@@ -105,9 +114,25 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         if (null != defaultOperationTimeoutMs) {
             asyncKuduClientBuilder.workerCount(defaultOperationTimeoutMs);
         }
-        client = asyncKuduClientBuilder.build();
-        KuduClient syncClient = client.syncClient();
 
+        if (enableKrb) {
+            UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(
+                principal,
+                keytab,
+                krb5conf
+            );
+            client = ugi.doAs(
+                new PrivilegedAction<AsyncKuduClient>() {
+                    @Override
+                    public AsyncKuduClient run() {
+                        return asyncKuduClientBuilder.build();
+                    }
+                });
+        } else {
+            client = asyncKuduClientBuilder.build();
+        }
+        LOG.info("connect kudu is successed!");
+        KuduClient syncClient = client.syncClient();
         if (syncClient.tableExists(tableName)) {
             table = syncClient.openTable(tableName);
         }
@@ -215,6 +240,25 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
+        public KuduOutputFormatBuilder setPrincipal(String principal) {
+            kuduOutputFormat.principal = principal;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setKeytab(String keytab) {
+            kuduOutputFormat.keytab = keytab;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setKrb5conf(String krb5conf) {
+            kuduOutputFormat.krb5conf = krb5conf;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setEnableKrb(boolean enableKrb) {
+            kuduOutputFormat.enableKrb = enableKrb;
+            return this;
+        }
 
         public KuduOutputFormat finish() {
             if (kuduOutputFormat.kuduMasters == null) {

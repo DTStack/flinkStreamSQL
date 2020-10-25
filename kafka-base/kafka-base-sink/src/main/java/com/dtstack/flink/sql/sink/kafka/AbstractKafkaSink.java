@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.kafka;
 
+import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
 import org.apache.commons.lang3.StringUtils;
@@ -60,6 +61,7 @@ public abstract class AbstractKafkaSink implements RetractStreamTableSink<Row>, 
     protected int parallelism;
     protected String topic;
     protected String tableName;
+    protected String updateMode;
 
     protected TableSchema schema;
     protected SinkFunction<Tuple2<Boolean,Row>> kafkaProducer011;
@@ -107,6 +109,9 @@ public abstract class AbstractKafkaSink implements RetractStreamTableSink<Row>, 
 
     @Override
     public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        if (updateMode.equalsIgnoreCase(EUpdateMode.APPEND.name())) {
+            dataStream = dataStream.filter((Tuple2<Boolean, Row> record) -> record.f0);
+        }
         DataStreamSink<Tuple2<Boolean, Row>> dataStreamSink = dataStream.addSink(kafkaProducer011).name(sinkOperatorName);
         if (parallelism > 0) {
             dataStreamSink.setParallelism(parallelism);

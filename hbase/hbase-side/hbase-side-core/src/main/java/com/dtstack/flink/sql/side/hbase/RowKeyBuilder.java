@@ -20,8 +20,10 @@
 
 package com.dtstack.flink.sql.side.hbase;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
 import com.dtstack.flink.sql.util.MD5Utils;
+import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 
@@ -46,8 +48,15 @@ public class RowKeyBuilder implements Serializable{
 
     private List<ReplaceInfo> operatorChain = Lists.newArrayList();
 
-    public void init(String rowKeyTempl){
+    private AbstractSideTableInfo sideTableInfo;
+
+    public void init(String rowKeyTempl) {
     	operatorChain.addAll(makeFormula(rowKeyTempl));
+    }
+
+    public void init(String rowKeyTempl, AbstractSideTableInfo sideTableInfo) {
+        this.init(rowKeyTempl);
+        this.sideTableInfo = sideTableInfo;
     }
 
     /**
@@ -55,17 +64,16 @@ public class RowKeyBuilder implements Serializable{
      * @param refData
      * @return
      */
-    public String getRowKey(Map<String, Object> refData){
+    public String getRowKey(Map<String, Object> refData) {
+        TableUtils.addConstant(refData, sideTableInfo);
     	return buildStr(operatorChain, refData);
     }
-
-
 
     private String buildStr(List<ReplaceInfo> fieldList, Map<String, Object> refData){
         if(CollectionUtils.isEmpty(fieldList)){
             return "";
         }
-        StringBuffer sb = new StringBuffer("");
+        StringBuilder sb = new StringBuilder("");
         for(ReplaceInfo replaceInfo : fieldList){
 
             if(replaceInfo.getType() == EReplaceType.CONSTANT){
@@ -101,7 +109,7 @@ public class RowKeyBuilder implements Serializable{
     public ReplaceInfo getReplaceInfo(String field){
 
         field = field.trim();
-        if(field.length() <= 2){
+        if(field.length() <= 0){
             throw new RuntimeException(field + " \n" +
                     "Format defined exceptions");
         }

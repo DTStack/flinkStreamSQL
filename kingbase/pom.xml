@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>flink.sql</artifactId>
+        <groupId>com.dtstack.flink</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>sql.kingbase</artifactId>
+    <packaging>pom</packaging>
+    <modules>
+        <module>kingbase-sink</module>
+        <module>kingbase-side</module>
+    </modules>
+
+    <properties>
+        <kingbase.connector.version>8.2.0</kingbase.connector.version>
+        <sql.core.version>1.0-SNAPSHOT</sql.core.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.kingbase8</groupId>
+            <artifactId>kingbase8</artifactId>
+            <version>${kingbase.connector.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.core</artifactId>
+            <version>${sql.core.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+    </dependencies>
+
+</project>

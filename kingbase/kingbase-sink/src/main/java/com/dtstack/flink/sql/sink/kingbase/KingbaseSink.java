@@ -15,7 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.dtstack.flink.sql.sink.ocean;
+
+package com.dtstack.flink.sql.sink.kingbase;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
@@ -23,27 +24,32 @@ import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
 
 /**
- * @author : tiezhu
- * @date : 2020/3/24
+ * Date: 2020/09/10
+ * Company: www.dtstack.com
+ *
+ * @author tiezhu
  */
-public class OceanbaseSink extends AbstractRdbSink implements IStreamSinkGener<AbstractRdbSink> {
+public class KingbaseSink extends AbstractRdbSink implements IStreamSinkGener<AbstractRdbSink> {
 
-    public OceanbaseSink() {
-        super(new OceanbaseDialect());
+    private static final long serialVersionUID = 6999055592225653354L;
+
+    public KingbaseSink() {
+        super(new KingbaseDialect());
     }
 
     @Override
     public JDBCUpsertOutputFormat getOutputFormat() {
-        JDBCOptions oceanbaseOptions = JDBCOptions.builder()
+        JDBCOptions jdbcOptions = JDBCOptions.builder()
                 .setDbUrl(dbUrl)
                 .setDialect(jdbcDialect)
                 .setUsername(userName)
                 .setPassword(password)
                 .setTableName(tableName)
+                .setSchema(schema)
                 .build();
 
         return JDBCUpsertOutputFormat.builder()
-                .setOptions(oceanbaseOptions)
+                .setOptions(jdbcOptions)
                 .setFieldNames(fieldNames)
                 .setFlushMaxSize(batchNum)
                 .setFlushIntervalMills(batchWaitInterval)

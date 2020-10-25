@@ -32,7 +32,6 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Maps;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
