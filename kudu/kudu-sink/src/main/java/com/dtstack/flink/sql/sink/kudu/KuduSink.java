@@ -38,6 +38,11 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
 
     private int parallelism = -1;
 
+    private String principal;
+    private String keytab;
+    private String krb5conf;
+    boolean enableKrb;
+
     @Override
     public KuduSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         KuduTableInfo kuduTableInfo = (KuduTableInfo) targetTableInfo;
@@ -47,12 +52,20 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.defaultSocketReadTimeoutMs = kuduTableInfo.getDefaultSocketReadTimeoutMs();
         this.workerCount = kuduTableInfo.getWorkerCount();
         this.writeMode = kuduTableInfo.getWriteMode();
+        this.principal = kuduTableInfo.getPrincipal();
+        this.keytab = kuduTableInfo.getKeytab();
+        this.krb5conf = kuduTableInfo.getKrb5conf();
+        this.enableKrb = kuduTableInfo.isEnableKrb();
 
         return this;
     }
 
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        consumeDataStream(dataStream);
+    }
+
+    public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         KuduOutputFormat.KuduOutputFormatBuilder builder = KuduOutputFormat.buildKuduOutputFormat();
         builder.setKuduMasters(this.kuduMasters)
                 .setTableName(this.tableName)
@@ -61,7 +74,11 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
                 .setDefaultOperationTimeoutMs(this.defaultOperationTimeoutMs)
                 .setDefaultSocketReadTimeoutMs(this.defaultSocketReadTimeoutMs)
                 .setFieldNames(this.fieldNames)
-                .setFieldTypes(this.fieldTypes);
+                .setFieldTypes(this.fieldTypes)
+                .setPrincipal(this.principal)
+                .setKeytab(this.keytab)
+                .setKrb5conf(this.krb5conf)
+                .setEnableKrb(this.enableKrb);
         KuduOutputFormat kuduOutputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(kuduOutputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
@@ -69,6 +86,7 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         if (parallelism > 0) {
             dataStreamSink.setParallelism(parallelism);
         }
+        return dataStreamSink;
     }
 
     @Override

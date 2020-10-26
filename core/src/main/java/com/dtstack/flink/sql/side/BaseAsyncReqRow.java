@@ -243,12 +243,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
         long timeoutTimestamp = sideInfo.getSideTableInfo().getAsyncTimeout() + getProcessingTimeService().getCurrentProcessingTime();
         return getProcessingTimeService().registerTimer(
                 timeoutTimestamp,
-                new ProcessingTimeCallback() {
-                    @Override
-                    public void onProcessingTime(long timestamp) throws Exception {
-                        timeout(input, resultFuture);
-                    }
-                });
+                timestamp -> timeout(input, resultFuture));
     }
 
     protected void cancelTimerWhenComplete(ResultFuture<CRow> resultFuture, ScheduledFuture<?> timerFuture){

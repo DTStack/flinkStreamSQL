@@ -29,19 +29,18 @@ import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.sql.ResultSet;
+import java.security.PrivilegedAction;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -77,7 +76,6 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture scheduledFuture;
-    private final AtomicBoolean flushFlag = new AtomicBoolean(true);
 
     public JDBCUpsertOutputFormat(
             JDBCOptions options,
@@ -112,10 +110,13 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
      */
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
+        openJdbc();
+    }
+
+    public void openJdbc() throws IOException {
         try {
             establishConnection();
             initMetric();
-
             if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || keyFields == null || keyFields.length == 0) {
                 String insertSql = dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields);
                 LOG.info("execute insert sql： {}", insertSql);
@@ -143,7 +144,6 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
                     try {
                         flush();
                     } catch (Exception e) {
-                        flushFlag.set(false);
                         throw new RuntimeException("Writing records to JDBC failed.", e);
                     }
                 }
@@ -153,9 +153,6 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     @Override
     public synchronized void writeRecord(Tuple2<Boolean, Row> tuple2) throws IOException {
-        if(!flushFlag.get()){
-            throw new RuntimeException("connect exception,can not write record");
-        }
         checkConnectionOpen();
         try {
             if (outRecords.getCount() % RECEIVEDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
@@ -193,7 +190,6 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
     public synchronized void flush() throws Exception {
         jdbcWriter.executeBatch(connection);
         batchCount = 0;
-        flushFlag.set(true);
     }
 
     /**

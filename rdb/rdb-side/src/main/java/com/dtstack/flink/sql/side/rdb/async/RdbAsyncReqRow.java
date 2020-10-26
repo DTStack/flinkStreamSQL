@@ -49,7 +49,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -112,7 +115,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    protected void preInvoke(CRow input, ResultFuture<CRow> resultFuture){
+    protected void preInvoke(CRow input, ResultFuture<CRow> resultFuture) {
 
     }
 
@@ -120,8 +123,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     public void handleAsyncInvoke(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) throws Exception {
 
         AtomicLong networkLogCounter = new AtomicLong(0L);
-        while (!connectionStatus.get()){//network is unhealth
-            if(networkLogCounter.getAndIncrement() % 1000 == 0){
+        while (!connectionStatus.get()) {//network is unhealth
+            if (networkLogCounter.getAndIncrement() % 1000 == 0) {
                 LOG.info("network unhealth to block task");
             }
             Thread.sleep(100);
@@ -133,51 +136,82 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     private void connectWithRetry(Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture, SQLClient rdbSqlClient) {
         AtomicLong failCounter = new AtomicLong(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
-        while(!finishFlag.get()){
-            try{
+        while (!finishFlag.get()) {
+            try {
                 CountDownLatch latch = new CountDownLatch(1);
-                rdbSqlClient.getConnection(conn -> {
-                    try {
-                        if(conn.failed()){
-                            connectionStatus.set(false);
-                            if(failCounter.getAndIncrement() % 1000 == 0){
-                                LOG.error("getConnection error", conn.cause());
-                            }
-                            if(failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)){
-                                resultFuture.completeExceptionally(conn.cause());
-                                finishFlag.set(true);
-                            }
-                            return;
-                        }
-                        connectionStatus.set(true);
-                        ScheduledFuture<?> timerFuture = registerTimer(input, resultFuture);
-                        cancelTimerWhenComplete(resultFuture, timerFuture);
-                        handleQuery(conn.result(), inputParams, input, resultFuture);
-                        finishFlag.set(true);
-                    } catch (Exception e) {
-                        dealFillDataError(input, resultFuture, e);
-                    } finally {
-                        latch.countDown();
-                    }
-                });
+                asyncQueryData(inputParams,
+                        input, resultFuture,
+                        rdbSqlClient,
+                        failCounter,
+                        finishFlag,
+                        latch);
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
                     LOG.error("", e);
                 }
 
-            } catch (Exception e){
+            } catch (Exception e) {
                 //数据源队列溢出情况
                 connectionStatus.set(false);
             }
-            if(!finishFlag.get()){
+            if (!finishFlag.get()) {
                 try {
                     Thread.sleep(3000);
-                } catch (Exception e){
+                } catch (Exception e) {
                     LOG.error("", e);
                 }
             }
         }
+    }
+
+    protected void asyncQueryData(Map<String, Object> inputParams,
+                                  CRow input,
+                                  ResultFuture<CRow> resultFuture,
+                                  SQLClient rdbSqlClient,
+                                  AtomicLong failCounter,
+                                  AtomicBoolean finishFlag,
+                                  CountDownLatch latch) {
+        doAsyncQueryData(inputParams,
+                input, resultFuture,
+                rdbSqlClient,
+                failCounter,
+                finishFlag,
+                latch);
+    }
+
+    final protected void doAsyncQueryData(
+            Map<String, Object> inputParams,
+            CRow input,
+            ResultFuture<CRow> resultFuture,
+            SQLClient rdbSqlClient,
+            AtomicLong failCounter,
+            AtomicBoolean finishFlag,
+            CountDownLatch latch) {
+        rdbSqlClient.getConnection(conn -> {
+            try {
+                if (conn.failed()) {
+                    connectionStatus.set(false);
+                    if (failCounter.getAndIncrement() % 1000 == 0) {
+                        LOG.error("getConnection error", conn.cause());
+                    }
+                    if (failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)) {
+                        resultFuture.completeExceptionally(conn.cause());
+                        finishFlag.set(true);
+                    }
+                    return;
+                }
+                connectionStatus.set(true);
+                preInvoke(input, resultFuture);
+
+                handleQuery(conn.result(), inputParams, input, resultFuture);
+                finishFlag.set(true);
+            } catch (Exception e) {
+                dealFillDataError(input, resultFuture, e);
+            } finally {
+                latch.countDown();
+            }
+        });
     }
 
 
@@ -219,7 +253,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     public String buildCacheKey(Map<String, Object> inputParam) {
-        return StringUtils.join(inputParam.values(),"_");
+        return StringUtils.join(inputParam.values(), "_");
     }
 
     @Override
@@ -231,7 +265,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
             if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
                 //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+                obj = ((Timestamp) obj).getTime() + (long) LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
 
             row.setField(entry.getKey(), obj);
@@ -258,7 +292,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             rdbSqlClient.close();
         }
 
-        if(executor != null){
+        if (executor != null) {
             executor.shutdown();
         }
 
@@ -268,7 +302,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         this.rdbSqlClient = rdbSqlClient;
     }
 
-    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture){
+    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, CRow input, ResultFuture<CRow> resultFuture) {
         String key = buildCacheKey(inputParams);
         JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
         connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {
@@ -312,9 +346,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         });
     }
 
-    private Map<String, Object> formatInputParam(Map<String, Object> inputParam){
+    private Map<String, Object> formatInputParam(Map<String, Object> inputParam) {
         Map<String, Object> result = Maps.newHashMap();
-        inputParam.forEach((k,v) -> {
+        inputParam.forEach((k, v) -> {
             result.put(k, convertDataType(v));
         });
         return result;
