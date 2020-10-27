@@ -122,7 +122,9 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
         // we don't need perform a deep copy, because jdbc field are immutable object.
         Tuple2<Boolean, Row> tuple2 = objectReuse ? new Tuple2<>(record.f0, Row.copy(record.f1)) : record;
         // add records to buffer
-        keyToRows.put(getPrimaryKey(tuple2.f1), tuple2);
+        if (tuple2.f0) {
+            keyToRows.put(getPrimaryKey(tuple2.f1), tuple2);
+        }
     }
 
     @Override
