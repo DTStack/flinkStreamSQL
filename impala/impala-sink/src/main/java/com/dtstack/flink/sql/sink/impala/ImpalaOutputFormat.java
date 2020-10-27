@@ -76,7 +76,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     // cast(value as string) -> cast('value' as string)  cast(value as timestamp) -> cast('value' as timestamp)
     private static final Pattern TYPE_PATTERN = Pattern.compile("cast\\((.*) as (.*)\\)");
     //specific type which values need to be quoted
-    private static final String[] NEED_QUOTE_TYPE = {"string", "timestamp"};
+    private static final String[] NEED_QUOTE_TYPE = {"string", "timestamp", "varchar"};
 
     private static final Integer DEFAULT_CONN_TIME_OUT = 60;
     private static final int RECEIVE_DATA_PRINT_FREQUENCY = 1000;
@@ -85,8 +85,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private static final String KUDU_TYPE = "kudu";
     private static final String UPDATE_MODE = "update";
     private static final String PARTITION_CONSTANT = "PARTITION";
-    private static final String STRING_TYPE = "STRING";
-    private static final String TIMESTAMP_TYPE = "TIMESTAMP";
     private static final String DRIVER_NAME = "com.cloudera.impala.jdbc41.Driver";
 
     private static final String VALUES_CONDITION = "${valuesCondition}";
@@ -363,8 +361,8 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * @return quoted condition
      */
     private String valueConditionAddQuotation(String valueCondition) {
-        final String[] valueConditionCopy = {valueCondition};
         String[] temps = valueCondition.split(",");
+        List<String> replacedItem = new ArrayList<>();
         Arrays.stream(temps).forEach(
                 item -> {
                     Matcher matcher = TYPE_PATTERN.matcher(item);
@@ -374,13 +372,15 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
                         if (Arrays.asList(NEED_QUOTE_TYPE).contains(type)) {
                             if (!"null".equals(value)) {
-                                valueConditionCopy[0] = valueConditionCopy[0].replace(value, "'" + value + "'");
+                                item = item.replace(value, "'" + value + "'");
                             }
                         }
                     }
+                    replacedItem.add(item);
                 }
         );
-        return "(" + valueConditionCopy[0] + ")";
+
+        return "(" + String.join(", ", replacedItem) + ")";
     }
 
     @Override
@@ -744,6 +744,8 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 checkNotNull(format.userName, "userName is required!");
                 checkNotNull(format.password, "password is required!");
             }
+
+            checkNotNull(format.storeType, "storeType is required!");
 
             return format;
         }
