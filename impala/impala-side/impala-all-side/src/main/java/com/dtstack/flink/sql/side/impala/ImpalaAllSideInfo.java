@@ -18,9 +18,9 @@
 
 package com.dtstack.flink.sql.side.impala;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.RdbAllSideInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -30,6 +30,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ImpalaAllSideInfo extends RdbAllSideInfo {
+
+    public ImpalaAllSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
 
     public ImpalaAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);

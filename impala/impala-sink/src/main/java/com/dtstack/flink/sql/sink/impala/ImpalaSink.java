@@ -188,11 +188,6 @@ public class ImpalaSink implements RetractStreamTableSink<Row>, IStreamSinkGener
     }
 
     @Override
-    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        consumeDataStream(dataStream);
-    }
-
-    @Override
     public DataStreamSink<?> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         ImpalaOutputFormat outputFormat = buildImpalaOutputFormat();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);

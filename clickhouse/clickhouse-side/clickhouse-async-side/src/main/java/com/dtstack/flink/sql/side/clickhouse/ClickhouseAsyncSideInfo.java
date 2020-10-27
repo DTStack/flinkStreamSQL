@@ -18,9 +18,9 @@
 
 package com.dtstack.flink.sql.side.clickhouse;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
@@ -28,6 +28,10 @@ import java.util.List;
 
 
 public class ClickhouseAsyncSideInfo extends RdbAsyncSideInfo {
+
+    public ClickhouseAsyncSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
 
     public ClickhouseAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);

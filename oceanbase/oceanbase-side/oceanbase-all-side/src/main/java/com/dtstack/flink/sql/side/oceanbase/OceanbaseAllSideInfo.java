@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstatck.flink.sql.side.oceanbase;
+package com.dtstack.flink.sql.side.oceanbase;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
@@ -31,6 +31,10 @@ import java.util.List;
  * @date : 2020/3/26
  */
 public class OceanbaseAllSideInfo extends RdbAllSideInfo {
+    public OceanbaseAllSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
+
     public OceanbaseAllSideInfo(RowTypeInfo rowTypeInfo,
                                 JoinInfo joinInfo,
                                 List<FieldInfo> outFieldInfoList,

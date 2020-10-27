@@ -38,6 +38,10 @@ public class KingbaseAsyncSideInfo extends RdbAsyncSideInfo {
 
     private static final long serialVersionUID = -1893856733189188893L;
 
+    public KingbaseAsyncSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
+
     public KingbaseAsyncSideInfo(RowTypeInfo rowTypeInfo,
                                  JoinInfo joinInfo,
                                  List<FieldInfo> outFieldInfoList,

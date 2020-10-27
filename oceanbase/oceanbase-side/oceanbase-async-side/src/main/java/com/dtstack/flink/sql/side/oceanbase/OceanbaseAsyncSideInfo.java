@@ -31,10 +31,14 @@ import java.util.List;
  */
 public class OceanbaseAsyncSideInfo extends RdbAsyncSideInfo {
 
+    public OceanbaseAsyncSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
+
     public OceanbaseAsyncSideInfo(RowTypeInfo rowTypeInfo,
                                   JoinInfo joinInfo,
                                   List<FieldInfo> outfieldsInfoList,
-                                  AbstractSideTableInfo sideTableInfo){
+                                  AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outfieldsInfoList, sideTableInfo);
     }
 }

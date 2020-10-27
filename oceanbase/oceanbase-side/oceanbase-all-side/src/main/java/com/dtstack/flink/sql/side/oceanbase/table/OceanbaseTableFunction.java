@@ -16,38 +16,32 @@
  * limitations under the License.
  */
 
-package com.dtstatck.flink.sql.side.oceanbase;
+package com.dtstack.flink.sql.side.oceanbase.table;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
+import com.dtstack.flink.sql.side.rdb.all.AbstractRdbTableFunction;
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.dtstack.flink.sql.side.oceanbase.OceanbaseAllSideInfo;
 import com.google.common.collect.Maps;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.List;
 import java.util.Map;
 
 /**
- * @author : tiezhu
- * @date : 2020/3/26
- */
-public class OceanbaseAllReqRow extends AbstractRdbAllReqRow {
-
-    private static final Logger LOG = LoggerFactory.getLogger(OceanbaseAllReqRow.class);
+ * @author: chuixue
+ * @create: 2020-10-27 14:23
+ * @description:
+ **/
+public class OceanbaseTableFunction extends AbstractRdbTableFunction {
+    private static final Logger LOG = LoggerFactory.getLogger(OceanbaseTableFunction.class);
 
     private static final String OCEAN_BASE_DRIVER = "com.mysql.jdbc.Driver";
 
-    public OceanbaseAllReqRow(RowTypeInfo rowTypeInfo,
-                              JoinInfo joinInfo,
-                              List<FieldInfo> outFieldInfoList,
-                              AbstractSideTableInfo sideTableInfo) {
-        super(new OceanbaseAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
+    public OceanbaseTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(new OceanbaseAllSideInfo(sideTableInfo, lookupKeys));
     }
 
     @Override

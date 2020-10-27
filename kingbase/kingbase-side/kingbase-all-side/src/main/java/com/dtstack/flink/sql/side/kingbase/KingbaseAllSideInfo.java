@@ -38,6 +38,10 @@ public class KingbaseAllSideInfo extends RdbAllSideInfo {
 
     private static final long serialVersionUID = 3486920874840522682L;
 
+    public KingbaseAllSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
+
     public KingbaseAllSideInfo(RowTypeInfo rowTypeInfo,
                                JoinInfo joinInfo,
                                List<FieldInfo> outFieldInfoList,

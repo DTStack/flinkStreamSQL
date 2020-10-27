@@ -17,9 +17,9 @@
  */
 package com.dtstack.flink.sql.side.polardb;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncSideInfo;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
@@ -28,9 +28,14 @@ import java.util.List;
 /**
  * Date: 2019/12/20
  * Company: www.dtstack.com
+ *
  * @author yinxi
  */
 public class PolardbAsyncSideInfo extends RdbAsyncSideInfo {
+
+    public PolardbAsyncSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
 
     public PolardbAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
