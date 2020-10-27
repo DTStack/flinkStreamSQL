@@ -43,6 +43,7 @@ import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -52,6 +53,9 @@ import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.runtime.typeutils.BigDecimalTypeInfo;
+import org.apache.flink.table.types.logical.DecimalType;
+import org.apache.flink.table.types.logical.LegacyTypeInformationType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -59,9 +63,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
-import static org.apache.calcite.sql.SqlKind.*;
+import static org.apache.calcite.sql.SqlKind.AS;
+import static org.apache.calcite.sql.SqlKind.INSERT;
+import static org.apache.calcite.sql.SqlKind.SELECT;
+import static org.apache.calcite.sql.SqlKind.WITH_ITEM;
 
 /**
  * Reason:
@@ -284,10 +296,7 @@ public class SideSqlExec {
      */
     private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias, AbstractSideTableInfo sideTableInfo) {
         List<String> conditionFields = getConditionFields(conditionNode, sideTableAlias, sideTableInfo);
-        if (CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo))) {
-            return true;
-        }
-        return false;
+        return CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo));
     }
 
     private List<String> convertPrimaryAlias(AbstractSideTableInfo sideTableInfo) {
@@ -372,8 +381,12 @@ public class SideSqlExec {
 
         int length = leftTable.getSchema().getFieldDataTypes().length;
         LogicalType[] logicalTypes = new LogicalType[length];
-        for(int i=0; i<length; i++){
+        for (int i = 0; i < length; i++) {
             logicalTypes[i] = leftTable.getSchema().getFieldDataTypes()[i].getLogicalType();
+            if (logicalTypes[i] instanceof LegacyTypeInformationType &&
+                    ((LegacyTypeInformationType<?>) logicalTypes[i]).getTypeInformation().getClass().equals(BigDecimalTypeInfo.class)) {
+                logicalTypes[i] = new DecimalType(38, 18);
+            }
         }
 
         BaseRowTypeInfo leftBaseTypeInfo = new BaseRowTypeInfo(logicalTypes, leftTable.getSchema().getFieldNames());
@@ -412,7 +425,14 @@ public class SideSqlExec {
             targetTable = localTableCache.get(joinInfo.getLeftTableName());
         }
 
-        RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getFieldTypes(), targetTable.getSchema().getFieldNames());
+        TypeInformation[] fieldDataTypes = targetTable.getSchema().getFieldTypes();
+        for (int i = 0; i < fieldDataTypes.length; i++) {
+            if (fieldDataTypes[i].getClass().equals(BigDecimalTypeInfo.class)) {
+                fieldDataTypes[i] = BasicTypeInfo.BIG_DEC_TYPE_INFO;
+            }
+        }
+
+        RowTypeInfo typeInfo = new RowTypeInfo(fieldDataTypes, targetTable.getSchema().getFieldNames());
 
         DataStream adaptStream = tableEnv.toRetractStream(targetTable, typeInfo)
                 .filter(f -> f.f0)
@@ -484,9 +504,7 @@ public class SideSqlExec {
                 String fieldType = filed[filed.length - 1].trim();
                 Class fieldClass = ClassUtil.stringConvertClass(fieldType);
                 Class tableField = table.getSchema().getFieldType(i).get().getTypeClass();
-                if (fieldClass == tableField) {
-                    continue;
-                } else {
+                if (fieldClass != tableField) {
                     return false;
                 }
             }
