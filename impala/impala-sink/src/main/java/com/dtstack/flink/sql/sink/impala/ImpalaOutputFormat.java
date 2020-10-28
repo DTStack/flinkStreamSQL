@@ -52,6 +52,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -370,9 +371,11 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                         String value = matcher.group(1);
                         String type = matcher.group(2);
 
-                        if (Arrays.asList(NEED_QUOTE_TYPE).contains(type)) {
-                            if (!"null".equals(value)) {
-                                item = item.replace(value, "'" + value + "'");
+                        for (String needQuoteType : NEED_QUOTE_TYPE) {
+                            if (type.contains(needQuoteType)) {
+                                if (!"null".equals(value)) {
+                                    item = item.replace(value, "'" + value + "'");
+                                }
                             }
                         }
                     }
@@ -580,8 +583,10 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private String buildValuesCondition(List<String> fieldTypes, Row row) {
         String valuesCondition = fieldTypes.stream().map(
                 f -> {
-                    if (Arrays.asList(NEED_QUOTE_TYPE).contains(f.toLowerCase())) {
-                        return String.format("cast(? as %s)", f.toLowerCase());
+                    for(String item : NEED_QUOTE_TYPE) {
+                        if (f.toLowerCase().contains(item)) {
+                            return String.format("cast(? as %s)", f.toLowerCase());
+                        }
                     }
                     return "?";
                 }).collect(Collectors.joining(", "));
