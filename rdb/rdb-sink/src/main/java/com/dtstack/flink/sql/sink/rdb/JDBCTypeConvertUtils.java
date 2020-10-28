@@ -228,4 +228,59 @@ public class JDBCTypeConvertUtils {
 		return tmpFieldsType;
 	}
 
+	/**
+	 * according to Java type, get the corresponding SQL type
+	 *
+	 * @param fieldTypeList the Java type
+	 * @return the type number of the corresponding type
+	 */
+	public static int[] getSqlTypeFromFieldType(List<String> fieldTypeList) {
+		int[] tmpFieldsType = new int[fieldTypeList.size()];
+		for (int i = 0; i < fieldTypeList.size(); i++) {
+			String fieldType = fieldTypeList.get(i).toUpperCase();
+			switch (fieldType) {
+				case "INT":
+					tmpFieldsType[i] = Types.INTEGER;
+					break;
+				case "BOOLEAN":
+					tmpFieldsType[i] = Types.BOOLEAN;
+					break;
+				case "BIGINT":
+					tmpFieldsType[i] = Types.BIGINT;
+					break;
+				case "SHORT":
+					tmpFieldsType[i] = Types.SMALLINT;
+					break;
+				case "STRING":
+				case "CHAR":
+					tmpFieldsType[i] = Types.CHAR;
+					break;
+				case "BYTE":
+					tmpFieldsType[i] = Types.BINARY;
+					break;
+				case "FLOAT":
+					tmpFieldsType[i] = Types.FLOAT;
+					break;
+				case "DOUBLE":
+					tmpFieldsType[i] = Types.DOUBLE;
+					break;
+				case "TIMESTAMP":
+					tmpFieldsType[i] = Types.TIMESTAMP;
+					break;
+				case "BIGDECIMAL":
+					tmpFieldsType[i] = Types.DECIMAL;
+					break;
+				case "DATE":
+					tmpFieldsType[i] = Types.DATE;
+					break;
+				case "TIME":
+					tmpFieldsType[i] = Types.TIME;
+					break;
+				default:
+					throw new RuntimeException("no support field type for sql. the input type:" + fieldType);
+			}
+		}
+		return tmpFieldsType;
+	}
+
 }
