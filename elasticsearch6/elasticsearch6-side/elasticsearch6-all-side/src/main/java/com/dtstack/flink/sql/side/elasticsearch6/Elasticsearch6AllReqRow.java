@@ -24,7 +24,6 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.util.Es6Util;
-import com.dtstack.flink.sql.side.elasticsearch6.util.SwitchUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
@@ -235,7 +234,7 @@ public class Elasticsearch6AllReqRow extends BaseAllReqRow implements Serializab
             for (String fieldName : sideFieldNames) {
                 Object object = searchHit.getSourceAsMap().get(fieldName.trim());
                 int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
-                object = SwitchUtil.getTarget(object, sideFieldTypes[fieldIndex]);
+                object = Es6Util.getTarget(object, sideFieldTypes[fieldIndex]);
                 oneRow.put(fieldName.trim(), object);
             }
 
