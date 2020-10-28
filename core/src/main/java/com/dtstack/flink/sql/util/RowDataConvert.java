@@ -45,7 +45,9 @@ public class RowDataConvert {
         int length = row.getArity();
         GenericRow genericRow = new GenericRow(length);
         for (int i = 0; i < length; i++) {
-            if (row.getField(i) instanceof String) {
+            if (row.getField(i) == null) {
+                genericRow.setField(i, row.getField(i));
+            } else if (row.getField(i) instanceof String) {
                 genericRow.setField(i, BinaryString.fromString((String) row.getField(i)));
             } else if (row.getField(i) instanceof Timestamp) {
                 SqlTimestamp newTimestamp = SqlTimestamp.fromTimestamp(((Timestamp) row.getField(i)));
