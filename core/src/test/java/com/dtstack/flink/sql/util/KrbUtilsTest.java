@@ -35,7 +35,7 @@ public class KrbUtilsTest {
         String keytabPath = "";
         String krb5confPath = "";
         try {
-            KrbUtils.getUgi(principal, keytabPath, krb5confPath);
+            KrbUtils.loginAndReturnUgi(principal, keytabPath, krb5confPath);
         } catch (IllegalArgumentException e) {
             Assert.assertEquals(e.getMessage(), "Can't get Kerberos realm");
         }

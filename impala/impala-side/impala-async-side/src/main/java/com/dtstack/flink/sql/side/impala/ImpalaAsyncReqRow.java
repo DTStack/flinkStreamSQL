@@ -33,7 +33,6 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.types.Row;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +70,7 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
             String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
             String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
             String principal = impalaSideTableInfo.getPrincipal();
-            ugi = KrbUtils.getUgi(principal, keyTabFilePath, krb5FilePath);
+            ugi = KrbUtils.loginAndReturnUgi(principal, keyTabFilePath, krb5FilePath);
         }
         openJdbc(parameters);
     }

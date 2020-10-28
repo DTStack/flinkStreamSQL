@@ -116,7 +116,7 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
 
         if (enableKrb) {
-            UserGroupInformation ugi = KrbUtils.getUgi(
+            UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(
                     principal,
                     keytab,
                     krb5conf

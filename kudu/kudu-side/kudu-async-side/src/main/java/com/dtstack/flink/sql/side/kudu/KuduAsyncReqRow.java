@@ -15,7 +15,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-import io.vertx.core.json.JsonArray;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
@@ -134,7 +133,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         }
 
         if (kuduSideTableInfo.isEnableKrb()) {
-            UserGroupInformation ugi = KrbUtils.getUgi(
+            UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(
                     kuduSideTableInfo.getPrincipal(),
                     kuduSideTableInfo.getKeytab(),
                     kuduSideTableInfo.getKrb5conf()
