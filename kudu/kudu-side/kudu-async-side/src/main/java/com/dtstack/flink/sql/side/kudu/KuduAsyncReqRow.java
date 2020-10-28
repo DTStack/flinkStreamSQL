@@ -132,7 +132,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         }
 
         if (kuduSideTableInfo.isEnableKrb()) {
-            UserGroupInformation ugi = KrbUtils.getUgi(
+            UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(
                 kuduSideTableInfo.getPrincipal(),
                 kuduSideTableInfo.getKeytab(),
                 kuduSideTableInfo.getKrb5conf()
