@@ -44,6 +44,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.LocalTimeTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -54,9 +55,11 @@ import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
 import org.apache.flink.table.runtime.typeutils.BigDecimalTypeInfo;
+import org.apache.flink.table.runtime.typeutils.LegacyLocalDateTimeTypeInfo;
 import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LegacyTypeInformationType;
 import org.apache.flink.table.types.logical.LogicalType;
+import org.apache.flink.table.types.logical.TimestampType;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -387,6 +390,11 @@ public class SideSqlExec {
                     ((LegacyTypeInformationType<?>) logicalTypes[i]).getTypeInformation().getClass().equals(BigDecimalTypeInfo.class)) {
                 logicalTypes[i] = new DecimalType(38, 18);
             }
+
+            if (logicalTypes[i] instanceof LegacyTypeInformationType &&
+                    (((LegacyTypeInformationType<?>) logicalTypes[i]).getTypeInformation().getClass().equals(LegacyLocalDateTimeTypeInfo.class))) {
+                logicalTypes[i] = new TimestampType(TimestampType.MAX_PRECISION);
+            }
         }
 
         BaseRowTypeInfo leftBaseTypeInfo = new BaseRowTypeInfo(logicalTypes, leftTable.getSchema().getFieldNames());
@@ -425,10 +433,14 @@ public class SideSqlExec {
             targetTable = localTableCache.get(joinInfo.getLeftTableName());
         }
 
-        TypeInformation[] fieldDataTypes = targetTable.getSchema().getFieldTypes();
+        TypeInformation<?>[] fieldDataTypes = targetTable.getSchema().getFieldTypes();
         for (int i = 0; i < fieldDataTypes.length; i++) {
             if (fieldDataTypes[i].getClass().equals(BigDecimalTypeInfo.class)) {
                 fieldDataTypes[i] = BasicTypeInfo.BIG_DEC_TYPE_INFO;
+            }
+
+            if (fieldDataTypes[i].getClass().equals(LegacyLocalDateTimeTypeInfo.class)) {
+                fieldDataTypes[i] = LocalTimeTypeInfo.LOCAL_DATE_TIME;
             }
         }
 
