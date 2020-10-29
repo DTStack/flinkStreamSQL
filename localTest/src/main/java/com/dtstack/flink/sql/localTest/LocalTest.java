@@ -50,7 +50,7 @@ public class LocalTest {
         setLogLevel("INFO");
 
         List<String> propertiesList = new ArrayList<>();
-        String sqlPath = "/Users/wtz/dtstack/job/flinkStreamSQL/sql/impalaDemoThree.sql";
+        String sqlPath = "/Users/wtz/dtstack/job/flinkStreamSQL/sql/TestDemo/JoinDemoTwo.sql";
         Map<String, Object> conf = new HashMap<>();
         JSONObject properties = new JSONObject();
 
