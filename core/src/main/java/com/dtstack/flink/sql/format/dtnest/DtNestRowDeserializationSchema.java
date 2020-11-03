@@ -42,6 +42,7 @@ import java.sql.Timestamp;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * source data parse to json format
@@ -62,6 +63,15 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
     private final TypeInformation<?>[] fieldTypes;
     private final List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos;
     private final String charsetName;
+
+    private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d+$");
+    private static final Pattern TIMESTAMP_FORMAT_PATTERN = Pattern.compile("\\d+-\\d+-\\d+\\s+\\d+:\\d+:\\d+");
+    private static final Pattern TIME_FORMAT_PATTERN = Pattern.compile("\\w+\\d+:\\d+:\\d+");
+    private static final Pattern DATE_FORMAT_PATTERN = Pattern.compile("\\w+\\d+-\\d+-\\d+");
+
+    private static final String TIMESTAMP_TYPE = "timestamp";
+    private static final String TIME_TYPE = "time";
+    private static final String DATE_TYPE = "date";
 
     public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping,
                                           List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos,
@@ -141,14 +151,14 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
                 return node.asText();
             }
         } else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
-            return Date.valueOf(node.asText());
+            return convertToTimestamp(node.asText(), DATE_TYPE);
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
             // local zone
-            return Time.valueOf(node.asText());
+            return convertToTimestamp(node.asText(), TIME_TYPE);
         } else if (info.getTypeClass().equals(Types.SQL_TIMESTAMP.getTypeClass())) {
             // local zone
-            return Timestamp.valueOf(node.asText());
-        }  else if (info instanceof RowTypeInfo) {
+            return convertToTimestamp(node.asText(), TIMESTAMP_TYPE);
+        } else if (info instanceof RowTypeInfo) {
             return convertRow(node, (RowTypeInfo) info);
         } else if (info instanceof ObjectArrayTypeInfo) {
             return convertObjectArray(node, ((ObjectArrayTypeInfo) info).getComponentInfo());
@@ -163,6 +173,38 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         }
     }
 
+    /**
+     * 将 2020-09-07 14:49:10.0 和 1598446699685 两种格式都转化为 Timestamp、Time、Date
+     */
+    private static Object convertToTimestamp(String timestamp, String type) {
+        if (TIMESTAMP_PATTERN.matcher(timestamp).find()) {
+            switch (type.toLowerCase()) {
+                case (TIMESTAMP_TYPE):
+                    return new Timestamp(Long.parseLong(timestamp));
+                case (DATE_TYPE):
+                    return new Date(new Timestamp(Long.parseLong(timestamp)).getTime());
+                case (TIME_TYPE):
+                    return new Time(new Timestamp(Long.parseLong(timestamp)).getTime());
+                default:
+                    throw new RuntimeException(String.format("%s transform to %s error!", timestamp, type));
+            }
+        }
+
+        if (TIMESTAMP_FORMAT_PATTERN.matcher(timestamp).find() && TIMESTAMP_TYPE.equalsIgnoreCase(type)) {
+            return Timestamp.valueOf(timestamp);
+        }
+
+        if (TIME_FORMAT_PATTERN.matcher(timestamp).find() && TIME_TYPE.equalsIgnoreCase(type)) {
+            return Time.valueOf(timestamp);
+        }
+
+        if (DATE_FORMAT_PATTERN.matcher(timestamp).find() && DATE_TYPE.equalsIgnoreCase(type)) {
+            return Date.valueOf(timestamp);
+        }
+
+        throw new IllegalArgumentException("Incorrect time format of timestamp, input: " + timestamp);
+    }
+
     private Row convertTopRow() {
         Row row = new Row(fieldNames.length);
         try {
@@ -173,7 +215,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
                 if (node == null) {
                     if (fieldExtraInfo != null && fieldExtraInfo.getNotNull()) {
                         throw new IllegalStateException("Failed to find field with name '"
-                            + fieldNames[i] + "'.");
+                                + fieldNames[i] + "'.");
                     } else {
                         row.setField(i, null);
                     }
