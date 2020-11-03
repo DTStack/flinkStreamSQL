@@ -18,21 +18,27 @@
 
 package com.dtstack.flink.sql.side.rdb.all;
 
-import com.dtstack.flink.sql.side.*;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
+import com.dtstack.flink.sql.side.BaseSideInfo;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Reason:
@@ -58,7 +64,18 @@ public class RdbAllSideInfo extends BaseSideInfo {
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
-        sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), Arrays.asList(StringUtils.split(sideSelectFields, ",")), sideTableInfo.getPredicateInfoes());
+        List<String> selectFields = Lists.newArrayList();
+        Map<String, String> physicalFields = rdbSideTableInfo.getPhysicalFields();
+        physicalFields.keySet().forEach(
+                item -> {
+                    if (Objects.isNull(physicalFields.get(item))) {
+                        selectFields.add(quoteIdentifier(item));
+                    } else {
+                        selectFields.add(quoteIdentifier(physicalFields.get(item)) + " AS " + quoteIdentifier(item));
+                    }
+                }
+        );
+        sqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), selectFields, sideTableInfo.getPredicateInfoes());
         LOG.info(String.format("--------dimension sql query: %s-------\n", sqlCondition));
     }
 
@@ -75,7 +92,7 @@ public class RdbAllSideInfo extends BaseSideInfo {
     }
 
     private String getSelectFromStatement(String tableName, List<String> selectFields, List<PredicateInfo> predicateInfoes) {
-        String fromClause = selectFields.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
+        String fromClause = String.join(", ", selectFields);
         String predicateClause = predicateInfoes.stream().map(this::buildFilterCondition).collect(Collectors.joining(" AND "));
         String whereClause = buildWhereClause(predicateClause);
         return "SELECT " + fromClause + " FROM " + tableName + whereClause;
