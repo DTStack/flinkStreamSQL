@@ -46,7 +46,6 @@ import java.util.Objects;
 public class ImpalaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<ImpalaSink> {
 
     private static final String DEFAULT_STORE_TYPE = "kudu";
-    private static final String DEFAULT_PARTITION_MODE = "dynamic";
 
     protected String[] fieldNames;
     TypeInformation<?>[] fieldTypes;

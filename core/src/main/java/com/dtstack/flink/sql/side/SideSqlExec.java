@@ -84,7 +84,7 @@ public class SideSqlExec {
                      Map<String, Table> tableCache,
                      CreateTmpTableParser.SqlParserResult createView,
                      String scope) throws Exception {
-        if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && localSqlPluginPath == null) {
+        if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && localSqlPluginPath == null ) {
             throw new RuntimeException("need to set localSqlPluginPath");
         }
 
@@ -293,10 +293,7 @@ public class SideSqlExec {
      */
     private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias, AbstractSideTableInfo sideTableInfo) {
         List<String> conditionFields = getConditionFields(conditionNode, sideTableAlias, sideTableInfo);
-        if (CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo))) {
-            return true;
-        }
-        return false;
+        return CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo));
     }
 
     private List<String> convertPrimaryAlias(AbstractSideTableInfo sideTableInfo) {
@@ -490,9 +487,7 @@ public class SideSqlExec {
                 String fieldType = filed[filed.length - 1].trim();
                 Class fieldClass = ClassUtil.stringConvertClass(fieldType);
                 Class tableField = table.getSchema().getFieldType(i).get().getTypeClass();
-                if (fieldClass == tableField) {
-                    continue;
-                } else {
+                if (fieldClass != tableField) {
                     return false;
                 }
             }

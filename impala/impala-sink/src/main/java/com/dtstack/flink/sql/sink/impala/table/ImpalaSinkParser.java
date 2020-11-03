@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.util.MathUtil;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Date: 2020/10/14
@@ -76,6 +77,8 @@ public class ImpalaSinkParser extends AbstractTableParser {
 
     private static final String KUDU_TYPE = "kudu";
 
+    private static final String DEFAULT_STORE_TYPE = "kudu";
+
     private static final String STORE_TYPE_KEY = "storeType";
 
     private static final String KRB_DEFAULT_REALM = "HADOOP.COM";
@@ -123,13 +126,13 @@ public class ImpalaSinkParser extends AbstractTableParser {
         }
 
         String storeType = MathUtil.getString(props.get(STORE_TYPE_KEY.toLowerCase()));
-        impalaTableInfo.setStoreType(storeType);
+        impalaTableInfo.setStoreType(Objects.isNull(storeType) ? DEFAULT_STORE_TYPE : storeType);
 
         String enablePartitionStr = (String) props.get(ENABLE_PARTITION_KEY.toLowerCase());
         boolean enablePartition = MathUtil.getBoolean(enablePartitionStr == null ? "false" : enablePartitionStr);
         impalaTableInfo.setEnablePartition(enablePartition);
 
-        if (!storeType.equalsIgnoreCase(KUDU_TYPE) && enablePartition) {
+        if (!impalaTableInfo.getStoreType().equalsIgnoreCase(KUDU_TYPE) && enablePartition) {
             String partitionFields = MathUtil.getString(props.get(PARTITION_FIELDS_KEY.toLowerCase()));
             impalaTableInfo.setPartitionFields(partitionFields);
         }

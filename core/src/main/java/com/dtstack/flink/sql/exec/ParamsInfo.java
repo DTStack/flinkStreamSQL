@@ -40,6 +40,7 @@ public class ParamsInfo {
     private String deployMode;
     private Properties confProp;
     private String planner;
+    private boolean getPlan = false;
 
     public ParamsInfo(String sql, String name, List<URL> jarUrlList, String localSqlPluginPath,
                       String remoteSqlPluginPath, String pluginLoadMode, String deployMode, Properties confProp, String planner) {
@@ -52,6 +53,14 @@ public class ParamsInfo {
         this.deployMode = deployMode;
         this.confProp = confProp;
         this.planner = planner;
+    }
+
+    public boolean isGetPlan() {
+        return getPlan;
+    }
+
+    public void setGetPlan(boolean getPlan) {
+        this.getPlan = getPlan;
     }
 
     public String getSql() {

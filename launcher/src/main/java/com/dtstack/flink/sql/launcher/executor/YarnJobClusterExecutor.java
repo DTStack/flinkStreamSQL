@@ -105,7 +105,6 @@ public class YarnJobClusterExecutor {
                                         .reduce((a, b) -> b)
                                         .get())));
     }
-
     private void appendApplicationConfig(Configuration flinkConfig, JobParamsInfo jobParamsInfo) {
         if (!StringUtils.isEmpty(jobParamsInfo.getName())) {
             flinkConfig.setString(YarnConfigOptions.APPLICATION_NAME, jobParamsInfo.getName());

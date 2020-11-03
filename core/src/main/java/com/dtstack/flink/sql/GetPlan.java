@@ -27,6 +27,8 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.api.bridge.java.internal.StreamTableEnvironmentImpl;
 
 import java.lang.reflect.Field;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  local模式获取sql任务的执行计划
@@ -36,10 +38,13 @@ import java.lang.reflect.Field;
  */
 public class GetPlan {
 
+    private static final Logger LOG = LoggerFactory.getLogger(GetPlan.class);
+
     public static String getExecutionPlan(String[] args) {
         try {
             long start = System.currentTimeMillis();
             ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
+            paramsInfo.setGetPlan(true);
             StreamTableEnvironment tableEnv = ExecuteProcessHelper.getStreamExecution(paramsInfo);
 
             StreamTableEnvironmentImpl tableEnvImpl = (StreamTableEnvironmentImpl) tableEnv;
@@ -51,6 +56,7 @@ public class GetPlan {
             long end = System.currentTimeMillis();
             return ApiResult.createSuccessResultJsonStr(executionPlan, end - start);
         } catch (Exception e) {
+            LOG.error("Get plan error", e);
             return ApiResult.createErrorResultJsonStr(ExceptionUtils.getFullStackTrace(e));
         }
     }

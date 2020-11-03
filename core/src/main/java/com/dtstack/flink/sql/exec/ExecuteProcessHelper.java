@@ -162,7 +162,7 @@ public class ExecuteProcessHelper {
         Map<String, Table> registerTableCache = Maps.newHashMap();
 
         //register udf
-        ExecuteProcessHelper.registerUserDefinedFunction(sqlTree, paramsInfo.getJarUrlList(), tableEnv);
+        ExecuteProcessHelper.registerUserDefinedFunction(sqlTree, paramsInfo.getJarUrlList(), tableEnv, paramsInfo.isGetPlan());
         //register table schema
         Set<URL> classPathSets = ExecuteProcessHelper.registerTable(sqlTree
                 , env
@@ -276,13 +276,19 @@ public class ExecuteProcessHelper {
         }
     }
 
-    public static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv)
+    public static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv, boolean getPlan)
             throws IllegalAccessException, InvocationTargetException {
         // udf和tableEnv须由同一个类加载器加载
         ClassLoader levelClassLoader = tableEnv.getClass().getClassLoader();
         URLClassLoader classLoader = null;
         List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
         for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
+            // 构建plan的情况下，udf和tableEnv不需要是同一个类加载器
+            if (getPlan) {
+                URL[] urls = jarUrlList.toArray(new URL[0]);
+                classLoader = URLClassLoader.newInstance(urls);
+            }
+
             //classloader
             if (classLoader == null) {
                 classLoader = ClassLoaderManager.loadExtraJar(jarUrlList, (URLClassLoader) levelClassLoader);

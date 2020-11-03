@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.sink.hbase;
 
@@ -65,7 +65,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     private String clientPrincipal;
     private String clientKeytabFile;
-    private int parallelism = -1;
+    private int parallelism = 1;
 
 
     public HbaseSink() {
@@ -124,7 +124,12 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
                 .finish();
 
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
-        DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
+        DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction).name(registerTabName);
+
+        if (parallelism > 0) {
+            dataStreamSink.setParallelism(parallelism);
+        }
+        
         return dataStreamSink;
     }
 

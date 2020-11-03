@@ -72,7 +72,7 @@ public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Se
 
     private TypeInformation[] fieldTypes;
 
-    private int parallelism = -1;
+    private int parallelism = 1;
 
     protected String schema;
 
