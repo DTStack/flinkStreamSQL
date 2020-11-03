@@ -1,9 +1,11 @@
 package com.dtstack.flink.sql.side.table;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.util.DataTypeUtils;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.sources.LookupableTableSource;
+
+import static com.dtstack.flink.sql.util.DataTypeUtils.getFieldNames;
+import static com.dtstack.flink.sql.util.DataTypeUtils.getFieldTypes;
 
 /**
  * @author: chuixue
@@ -41,8 +43,8 @@ public class LookupTableSourceFactory {
         TableSchema tableSinkSchema = TableSchema
                 .builder()
                 .fields(
-                        sideTableInfo.getFields(),
-                        DataTypeUtils.classesToDataTypes(sideTableInfo.getFieldClasses())
+                        getFieldNames(sideTableInfo),
+                        getFieldTypes(sideTableInfo)
                 )
                 .build();
         return tableSinkSchema;

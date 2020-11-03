@@ -129,7 +129,7 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
      *
      * @param future
      */
-    protected void dealMissKey(CompletableFuture<Collection<Row>> future) {
+    public void dealMissKey(CompletableFuture<Collection<Row>> future) {
         try {
             future.complete(Collections.emptyList());
         } catch (Exception e) {

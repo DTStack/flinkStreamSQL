@@ -16,29 +16,25 @@
  * limitations under the License.
  */
 
-
-package com.dtstack.flink.sql.side.hbase;
+package com.dtstack.flink.sql.side.hbase.table;
 
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.BaseAsyncReqRow;
-import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.hbase.HbaseAsyncSideInfo;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.AbstractRowKeyModeDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
-import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
+import com.dtstack.flink.sql.side.table.BaseAsyncTableFunction;
+import com.dtstack.flink.sql.util.DataTypeUtils;
 import com.dtstack.flink.sql.util.DtFileUtils;
 import com.stumbleupon.async.Deferred;
 import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.security.DynamicConfiguration;
 import org.apache.flink.runtime.security.KerberosUtils;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
+import org.apache.flink.types.RowKind;
 import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
@@ -48,25 +44,23 @@ import sun.security.krb5.KrbException;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import java.io.File;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
- * Date: 2018/8/21
- * Company: www.dtstack.com
- *
- * @author xuchao
- */
-
-public class HbaseAsyncReqRow extends BaseAsyncReqRow {
+ * @author: chuixue
+ * @create: 2020-10-29 16:08
+ * @description:
+ **/
+public class HbaseAsyncTableFunction extends BaseAsyncTableFunction {
 
     private static final long serialVersionUID = 2098635104857937717L;
 
-    private static final Logger LOG = LoggerFactory.getLogger(HbaseAsyncReqRow.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HbaseAsyncTableFunction.class);
 
     //match to the rule of netty3
     private static final int DEFAULT_BOSS_THREADS = 1;
@@ -83,17 +77,16 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
     private String[] colNames;
 
-    public HbaseAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
-        super(new HbaseAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
+    public HbaseAsyncTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(new HbaseAsyncSideInfo(sideTableInfo, lookupKeys));
 
         tableName = ((HbaseSideTableInfo) sideTableInfo).getTableName();
-        colNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
+        colNames = DataTypeUtils.getPhysicalFieldNames(sideInfo.getSideTableInfo());
     }
 
-
     @Override
-    public void open(Configuration parameters) throws Exception {
-        super.open(parameters);
+    public void open(FunctionContext context) throws Exception {
+        super.open(context);
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         Map<String, Object> hbaseConfig = hbaseSideTableInfo.getHbaseConfig();
@@ -131,9 +124,9 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
         try {
             Deferred deferred = hBaseClient.ensureTableExists(tableName)
-                    .addCallbacks(arg -> new CheckResult(true, ""), arg -> new CheckResult(false, arg.toString()));
+                    .addCallbacks(arg -> new HbaseAsyncTableFunction.CheckResult(true, ""), arg -> new HbaseAsyncTableFunction.CheckResult(false, arg.toString()));
 
-            CheckResult result = (CheckResult) deferred.join();
+            HbaseAsyncTableFunction.CheckResult result = (HbaseAsyncTableFunction.CheckResult) deferred.join();
             if (!result.isConnect()) {
                 throw new RuntimeException(result.getExceptionMsg());
             }
@@ -144,13 +137,19 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
 
         HbaseAsyncSideInfo hbaseAsyncSideInfo = (HbaseAsyncSideInfo) sideInfo;
         if (hbaseSideTableInfo.isPreRowKey()) {
-            rowKeyMode = new PreRowKeyModeDealerDealer(hbaseAsyncSideInfo.getColRefType(), colNames, hBaseClient,
-                    openCache(), sideInfo.getJoinType(), sideInfo.getOutFieldInfoList(),
-                    sideInfo.getInFieldIndex(), sideInfo.getSideFieldIndex());
+            rowKeyMode = new PreRowKeyModeDealerDealer(hbaseAsyncSideInfo.getColRefType()
+                    , colNames
+                    , hBaseClient
+                    , openCache()
+                    , sideInfo
+                    , this);
         } else {
-            rowKeyMode = new RowKeyEqualModeDealer(hbaseAsyncSideInfo.getColRefType(), colNames, hBaseClient,
-                    openCache(), sideInfo.getJoinType(), sideInfo.getOutFieldInfoList(),
-                    sideInfo.getInFieldIndex(), sideInfo.getSideFieldIndex());
+            rowKeyMode = new RowKeyEqualModeDealer(hbaseAsyncSideInfo.getColRefType()
+                    , colNames
+                    , hBaseClient
+                    , openCache()
+                    , sideInfo
+                    , this);
         }
     }
 
@@ -172,34 +171,36 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<Row> resultFuture) throws Exception {
-        rowKeyMode.asyncGetData(tableName, buildCacheKey(inputParams), input, resultFuture, sideInfo.getSideCache());
+    public void handleAsyncInvoke(CompletableFuture<Collection<Row>> future, Object... keys) throws Exception {
+        rowKeyMode.asyncGetData(tableName, buildCacheKey(keys), future, sideInfo.getSideCache());
     }
 
     @Override
-    public String buildCacheKey(Map<String, Object> inputParams) {
-        return ((HbaseAsyncSideInfo) sideInfo).getRowKeyBuilder().getRowKey(inputParams);
+    public String buildCacheKey(Object... keys) {
+        HbaseAsyncSideInfo hbaseAsyncSideInfo = (HbaseAsyncSideInfo) this.sideInfo;
+        String[] lookupKeys = hbaseAsyncSideInfo.getLookupKeys();
+        Map<String, Object> refData = IntStream
+                .range(0, lookupKeys.length)
+                .boxed()
+                .collect(Collectors.toMap(i -> lookupKeys[i], i -> keys[i]));
+        return ((HbaseAsyncSideInfo) sideInfo).getRowKeyBuilder().getRowKey(refData);
+    }
+
+    @Override
+    public Row fillData(Object sideInput) {
+        List<Object> sideInputList = (List<Object>) sideInput;
+        Row row = new Row(colNames.length);
+        for (int i = 0; i < colNames.length; i++) {
+            Object object = sideInputList.get(i);
+            row.setField(i, object);
+        }
+        row.setKind(RowKind.INSERT);
+        return row;
     }
 
     @Override
     public Row fillData(Row input, Object sideInput) {
-        List<Object> sideInputList = (List<Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
-        for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            Object obj = input.getField(entry.getValue());
-            obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
-            row.setField(entry.getKey(), obj);
-        }
-
-        for (Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()) {
-            if (sideInputList == null) {
-                row.setField(entry.getKey(), null);
-            } else {
-                row.setField(entry.getKey(), sideInputList.get(entry.getValue()));
-            }
-        }
-
-        return row;
+        return null;
     }
 
     @Override

@@ -16,23 +16,19 @@
  * limitations under the License.
  */
 
-
-package com.dtstack.flink.sql.side.hbase;
+package com.dtstack.flink.sql.side.hbase.table;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.BaseAllReqRow;
-import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.hbase.table.HbaseSideTableInfo;
+import com.dtstack.flink.sql.side.hbase.HbaseAllSideInfo;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseUtils;
+import com.dtstack.flink.sql.side.table.BaseTableFunction;
+import com.dtstack.flink.sql.util.DataTypeUtils;
 import com.google.common.collect.Maps;
-import org.apache.calcite.sql.JoinType;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.collections.map.HashedMap;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
-import org.apache.flink.util.Collector;
+import org.apache.flink.types.RowKind;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -46,17 +42,19 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.security.PrivilegedAction;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-public class HbaseAllReqRow extends BaseAllReqRow {
+/**
+ * @author: chuixue
+ * @create: 2020-10-29 15:26
+ * @description:
+ **/
+public class HbaseTableFunction extends BaseTableFunction {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HbaseAllReqRow.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HbaseTableFunction.class);
 
     private String tableName;
 
@@ -68,8 +66,8 @@ public class HbaseAllReqRow extends BaseAllReqRow {
     private ResultScanner resultScanner = null;
     private Configuration conf = null;
 
-    public HbaseAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
-        super(new HbaseAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
+    public HbaseTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(new HbaseAllSideInfo(sideTableInfo, lookupKeys));
         tableName = ((HbaseSideTableInfo) sideTableInfo).getTableName();
 
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
@@ -78,35 +76,6 @@ public class HbaseAllReqRow extends BaseAllReqRow {
         for (Map.Entry<String, String> entry : aliasNameRef.entrySet()) {
             aliasNameInversion.put(entry.getValue(), entry.getKey());
         }
-    }
-
-    @Override
-    public Row fillData(Row input, Object sideInput) {
-        Map<String, Object> sideInputList = (Map<String, Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
-        for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            Object obj = input.getField(entry.getValue());
-            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
-
-            //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
-            if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
-                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-                obj = ((Timestamp) obj).getTime() + (long) LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
-            }
-
-            row.setField(entry.getKey(), obj);
-        }
-
-        for (Map.Entry<Integer, Integer> entry : sideInfo.getSideFieldIndex().entrySet()) {
-            if (sideInputList == null) {
-                row.setField(entry.getKey(), null);
-            } else {
-                String key = sideInfo.getSideFieldNameIndex().get(entry.getKey());
-                key = aliasNameInversion.get(key);
-                row.setField(entry.getKey(), sideInputList.get(key));
-            }
-        }
-        return row;
     }
 
     @Override
@@ -129,42 +98,42 @@ public class HbaseAllReqRow extends BaseAllReqRow {
         LOG.info("----- HBase all cacheRef reload end:{}", Calendar.getInstance());
     }
 
+    /**
+     * 每条数据都会进入该方法
+     *
+     * @param keys 维表join key的值
+     */
+    public void eval(Object... keys) {
+        HbaseAllSideInfo hbaseAllSideInfo = ((HbaseAllSideInfo) sideInfo);
+        String[] lookupKeys = hbaseAllSideInfo.getLookupKeys();
+        Map<String, Object> refData = IntStream
+                .range(0, lookupKeys.length)
+                .boxed()
+                .collect(Collectors.toMap(i -> lookupKeys[i], i -> keys[i]));
+        String rowKeyStr = hbaseAllSideInfo.getRowKeyBuilder().getRowKey(refData);
+        Map<String, Object> cacheList = cacheRef.get().get(rowKeyStr);
+        // 有数据才往下发，(左/内)连接flink会做相应的处理
+        if (!MapUtils.isEmpty(cacheList)) {
+            collect(fillData(cacheList));
+        }
+    }
+
     @Override
-    public void flatMap(Row input, Collector<Row> out) throws Exception {
-        Map<String, Object> refData = Maps.newHashMap();
-        for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
-            Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.getField(conValIndex);
-            if (equalObj == null) {
-                if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input, null);
-                    out.collect(data);
-                }
-                return;
-            }
-            refData.put(sideInfo.getEqualFieldList().get(i), equalObj);
+    public Row fillData(Object sideInput) {
+        Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
+        Collection<String> fields = new ArrayList<>(Arrays.asList(DataTypeUtils.getFieldNames(sideInfo.getSideTableInfo())));
+        String[] fieldsArr = fields.toArray(new String[fields.size()]);
+        Row row = new Row(fieldsArr.length);
+        for (int i = 0; i < fieldsArr.length; i++) {
+            row.setField(i, cacheInfo.get(fieldsArr[i]));
         }
+        row.setKind(RowKind.INSERT);
+        return row;
+    }
 
-        String rowKeyStr = ((HbaseAllSideInfo) sideInfo).getRowKeyBuilder().getRowKey(refData);
-
-        Map<String, Object> cacheList = null;
-
-        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
-        HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        if (hbaseSideTableInfo.isPreRowKey()) {
-            for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()) {
-                if (entry.getKey().startsWith(rowKeyStr)) {
-                    cacheList = cacheRef.get().get(entry.getKey());
-                    Row row = fillData(input, cacheList);
-                    out.collect(row);
-                }
-            }
-        } else {
-            cacheList = cacheRef.get().get(rowKeyStr);
-            Row row = fillData(input, cacheList);
-            out.collect(row);
-        }
-
+    @Override
+    public Row fillData(Row input, Object sideInput) {
+        return null;
     }
 
     private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
@@ -214,6 +183,9 @@ public class HbaseAllReqRow extends BaseAllReqRow {
                     Object value = HbaseUtils.convertByte(CellUtil.cloneValue(cell), colRefType.get(key.toString()));
                     kv.put(aliasNameInversion.get(key.toString()), value);
                 }
+                for (String primaryKey : hbaseSideTableInfo.getPrimaryKeys()) {
+                    kv.put(primaryKey, HbaseUtils.convertByte(r.getRow(), "string"));
+                }
                 loadDataCount++;
                 tmpCache.put(new String(r.getRow()), kv);
             }
@@ -238,5 +210,4 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             }
         }
     }
-
 }

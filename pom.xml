@@ -25,6 +25,9 @@
         <module>polardb</module>
         <module>postgresql</module>
         <module>tidb</module>
+        <module>console</module>
+        <module>hbase</module>
+<!--        <module>localTest</module>-->
 
     </modules>
 
