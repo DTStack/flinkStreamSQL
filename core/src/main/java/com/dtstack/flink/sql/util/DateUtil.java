@@ -59,6 +59,7 @@ public class DateUtil {
 
     private static final Pattern DATETIME = Pattern.compile("^\\d{4}-(?:0[0-9]|1[0-2])-[0-9]{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3,9})?Z$");
     private static final Pattern DATE = Pattern.compile("^\\d{4}-(?:0[0-9]|1[0-2])-[0-9]{2}$");
+    private static final Pattern TIME = Pattern.compile("^\\d{2}:\\d{2}:\\d{2}(\\.\\d{3,9})?Z$");
     private static final int MILLIS_PER_SECOND = 1000;
 
 
@@ -832,4 +833,16 @@ public class DateUtil {
         return null == date ? null : new java.sql.Date(date.getTime());
     }
 
+    public static java.sql.Time getTimeFromStr(String dateStr) {
+        if (TIME.matcher(dateStr).matches()) {
+            dateStr = dateStr.substring(0,dateStr.length()-1);
+            Instant instant = LocalTime.parse(dateStr).atDate(LocalDate.now()).toInstant(ZoneOffset.UTC);
+            return new java.sql.Time(instant.toEpochMilli());
+        } else if (DATETIME.matcher(dateStr).matches()) {
+            Instant instant = Instant.from(ISO_INSTANT.parse(dateStr));
+            return new java.sql.Time(instant.toEpochMilli());
+        }
+        Date date = stringToDate(dateStr);
+        return null == date ? null : new java.sql.Time(date.getTime());
+    }
 }
