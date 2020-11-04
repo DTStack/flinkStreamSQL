@@ -27,7 +27,6 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
-import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
@@ -42,7 +41,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -92,7 +90,7 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<Row> resultFuture) throws Exception {
         Row inputCopy = Row.copy(input);
         BasicDBObject basicDbObject = new BasicDBObject();
         try {
@@ -122,7 +120,7 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
                 if (openCache()) {
                     cacheContent.add(document);
                 }
-                RowDataComplete.completeRow(resultFuture, row);
+                resultFuture.complete(Collections.singleton(row));
             }
         };
         SingleResultCallback<Void> callbackWhenFinished = new SingleResultCallback<Void>() {
@@ -185,9 +183,9 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
         }
     }
 
-    private String getConnectionUrl(String address, String userName, String password){
-        if(address.startsWith("mongodb://") || address.startsWith("mongodb+srv://")){
-            return  address;
+    private String getConnectionUrl(String address, String userName, String password) {
+        if (address.startsWith("mongodb://") || address.startsWith("mongodb+srv://")) {
+            return address;
         }
         if (StringUtils.isNotBlank(userName) && StringUtils.isNotBlank(password)) {
             return String.format("mongodb://%s:%s@%s", userName, password, address);

@@ -60,4 +60,9 @@ public class MongoAsyncSideInfo extends BaseSideInfo {
         }
     }
 
+    @Override
+    public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+
+    }
+
 }

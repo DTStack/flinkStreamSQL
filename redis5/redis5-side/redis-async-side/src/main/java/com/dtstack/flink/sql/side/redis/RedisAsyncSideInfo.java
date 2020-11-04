@@ -51,4 +51,9 @@ public class RedisAsyncSideInfo extends BaseSideInfo {
             dealOneEqualCon(sqlNode, sideTableName);
         }
     }
+
+    @Override
+    public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+
+    }
 }

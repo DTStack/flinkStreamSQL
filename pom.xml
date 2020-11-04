@@ -27,6 +27,8 @@
         <module>tidb</module>
         <module>console</module>
         <module>hbase</module>
+        <module>mongo</module>
+        <module>redis5</module>
 <!--        <module>localTest</module>-->
 
     </modules>

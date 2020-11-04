@@ -18,15 +18,15 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.BaseSideInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -49,29 +49,34 @@ public class MongoAllSideInfo extends BaseSideInfo {
     }
 
     @Override
-    public void parseSelectFields(JoinInfo joinInfo){
+    public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+
+    }
+
+    @Override
+    public void parseSelectFields(JoinInfo joinInfo) {
         String sideTableName = joinInfo.getSideTableName();
         String nonSideTableName = joinInfo.getNonSideTable();
         List<String> fields = Lists.newArrayList();
 
         int sideIndex = 0;
-        for( int i=0; i<outFieldInfoList.size(); i++){
+        for (int i = 0; i < outFieldInfoList.size(); i++) {
             FieldInfo fieldInfo = outFieldInfoList.get(i);
-            if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
+            if (fieldInfo.getTable().equalsIgnoreCase(sideTableName)) {
                 fields.add(fieldInfo.getFieldName());
                 sideFieldIndex.put(i, sideIndex);
                 sideFieldNameIndex.put(i, fieldInfo.getFieldName());
                 sideIndex++;
-            }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
+            } else if (fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)) {
                 int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
                 inFieldIndex.put(i, nonSideIndex);
-            }else{
+            } else {
                 throw new RuntimeException("unknown table " + fieldInfo.getTable());
             }
         }
 
-        if(fields.size() == 0){
-            throw new RuntimeException("select non field from table " +  sideTableName);
+        if (fields.size() == 0) {
+            throw new RuntimeException("select non field from table " + sideTableName);
         }
 
         //add join on condition field to select fields
@@ -80,16 +85,16 @@ public class MongoAllSideInfo extends BaseSideInfo {
         List<SqlNode> sqlNodeList = Lists.newArrayList();
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
 
-        for(SqlNode sqlNode : sqlNodeList){
+        for (SqlNode sqlNode : sqlNodeList) {
             dealOneEqualCon(sqlNode, sideTableName);
         }
 
-        if(CollectionUtils.isEmpty(equalFieldList)){
+        if (CollectionUtils.isEmpty(equalFieldList)) {
             throw new RuntimeException("no join condition found after table " + joinInfo.getLeftTableName());
         }
 
-        for(String equalField : equalFieldList){
-            if(fields.contains(equalField)){
+        for (String equalField : equalFieldList) {
+            if (fields.contains(equalField)) {
                 continue;
             }
 
