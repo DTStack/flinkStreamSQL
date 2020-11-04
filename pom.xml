@@ -29,6 +29,8 @@
         <module>hbase</module>
         <module>mongo</module>
         <module>redis5</module>
+        <module>elasticsearch5</module>
+        <module>elasticsearch6</module>
 <!--        <module>localTest</module>-->
 
     </modules>

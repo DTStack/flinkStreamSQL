@@ -48,6 +48,11 @@ public class Elasticsearch6AllSideInfo extends BaseSideInfo {
 
     }
 
+    @Override
+    public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+
+    }
+
 
     @Override
     public void parseSelectFields(JoinInfo joinInfo) {

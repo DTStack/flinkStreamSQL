@@ -18,11 +18,11 @@
 
 package com.dtstack.flink.sql.sink.elasticsearch;
 
+import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchApiCallBridge;
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkBase;
 import org.apache.flink.util.Preconditions;
-
-import com.dtstack.flink.sql.sink.elasticsearch.table.ElasticsearchTableInfo;
+import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -40,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -135,6 +134,22 @@ public class ExtendEs6ApiCallBridge implements ElasticsearchApiCallBridge<RestHi
         }
 
         builder.setBackoffPolicy(backoffPolicy);
+    }
+
+    @Override
+    public void verifyClientConnection(RestHighLevelClient client) throws IOException {
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Pinging Elasticsearch cluster via hosts {} ...", this.HttpAddresses);
+        }
+
+        if (!client.ping(new Header[0])) {
+            throw new RuntimeException("There are no reachable Elasticsearch nodes!");
+        } else {
+            if (LOG.isInfoEnabled()) {
+                LOG.info("Elasticsearch RestHighLevelClient is connected to {}", this.HttpAddresses);
+            }
+
+        }
     }
 
 }

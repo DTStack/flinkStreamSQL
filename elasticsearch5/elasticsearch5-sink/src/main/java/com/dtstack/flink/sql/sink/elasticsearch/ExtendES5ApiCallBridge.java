@@ -27,17 +27,16 @@ import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.transport.Netty3Plugin;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
@@ -134,5 +133,18 @@ public class ExtendES5ApiCallBridge implements ElasticsearchApiCallBridge<Transp
         }
 
         builder.setBackoffPolicy(backoffPolicy);
+    }
+
+    @Override
+    public void verifyClientConnection(TransportClient client) throws IOException {
+        if (client.connectedNodes().isEmpty()) {
+            IOUtils.closeQuietly(client);
+            throw new RuntimeException("Elasticsearch client is not connected to any Elasticsearch nodes!");
+        } else {
+            if (LOG.isInfoEnabled()) {
+                LOG.info("Elasticsearch TransportClient is connected to nodes {}", client.connectedNodes());
+            }
+
+        }
     }
 }
