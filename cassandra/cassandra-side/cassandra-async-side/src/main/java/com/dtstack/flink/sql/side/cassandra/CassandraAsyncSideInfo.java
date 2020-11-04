@@ -72,4 +72,9 @@ public class CassandraAsyncSideInfo extends BaseSideInfo {
         LOG.info("---------side_exe_sql-----\n{}" + sqlCondition);
     }
 
+    @Override
+    public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+
+    }
+
 }

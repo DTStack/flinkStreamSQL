@@ -1,14 +1,9 @@
 package com.dtstack.flink.sql.side.kudu;
 
-import com.dtstack.flink.sql.side.BaseAllReqRow;
-import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.PredicateInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.*;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
 import com.dtstack.flink.sql.util.KrbUtils;
-import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -16,31 +11,19 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
-import org.apache.kudu.client.KuduClient;
-import org.apache.kudu.client.KuduException;
-import org.apache.kudu.client.KuduPredicate;
-import org.apache.kudu.client.KuduScanner;
-import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.PartialRow;
-import org.apache.kudu.client.RowResult;
-import org.apache.kudu.client.RowResultIterator;
+import org.apache.kudu.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class KuduAllReqRow extends BaseAllReqRow {
@@ -88,7 +71,7 @@ public class KuduAllReqRow extends BaseAllReqRow {
 
 
     @Override
-    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
+    public void flatMap(Row input, Collector<Row> out) throws Exception {
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = input.getField(conValIndex);
@@ -103,14 +86,14 @@ public class KuduAllReqRow extends BaseAllReqRow {
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
                 Row row = fillData(input, null);
-                RowDataComplete.collectRow(out, row);
+                out.collect(row);
             }
             return;
         }
 
         for (Map<String, Object> one : cacheList) {
             Row row = fillData(input, one);
-            RowDataComplete.collectRow(out, row);
+            out.collect(row);
         }
     }
 

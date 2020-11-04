@@ -42,4 +42,9 @@ public class KuduAsyncSideInfo extends BaseSideInfo {
         System.out.println("---------side_exe_sql-----\n" + sqlCondition);
     }
 
+    @Override
+    public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+
+    }
+
 }

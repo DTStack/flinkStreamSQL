@@ -55,6 +55,11 @@ public class CassandraAllSideInfo extends BaseSideInfo {
     }
 
     @Override
+    public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+
+    }
+
+    @Override
     public void parseSelectFields(JoinInfo joinInfo) {
         String sideTableName = joinInfo.getSideTableName();
         String nonSideTableName = joinInfo.getNonSideTable();

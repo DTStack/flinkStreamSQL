@@ -86,11 +86,6 @@ public class CassandraSink implements RetractStreamTableSink<Row>, IStreamSinkGe
     }
 
     @Override
-    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-        consumeDataStream(dataStream);
-    }
-
-    @Override
     public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         CassandraOutputFormat.CassandraFormatBuilder builder = CassandraOutputFormat.buildOutputFormat();
         builder.setAddress(this.address)

@@ -31,6 +31,8 @@
         <module>redis5</module>
         <module>elasticsearch5</module>
         <module>elasticsearch6</module>
+        <module>cassandra</module>
+        <module>kudu</module>
 <!--        <module>localTest</module>-->
 
     </modules>
