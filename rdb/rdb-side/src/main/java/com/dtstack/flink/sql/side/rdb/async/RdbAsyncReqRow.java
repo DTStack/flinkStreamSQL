@@ -347,7 +347,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     private Map<String, Object> formatInputParam(Map<String, Object> inputParam) {
-        Map<String, Object> result = Maps.newHashMap();
+        Map<String, Object> result = Maps.newLinkedHashMap();
         inputParam.forEach((k, v) -> {
             result.put(k, convertDataType(v));
         });
