@@ -54,7 +54,7 @@ public class KafkaProducer010 extends FlinkKafkaProducer010<Tuple2<Boolean,Row>>
     }
 
     @Override
-    public void open(Configuration configuration) {
+    public void open(Configuration configuration) throws Exception {
         LOG.info("----open KafkaProducer010 --");
         RuntimeContext runtimeContext = getRuntimeContext();
         serializationMetricWrapper.setRuntimeContext(runtimeContext);

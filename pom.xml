@@ -12,28 +12,8 @@
         <module>core</module>
         <module>launcher</module>
         <module>kafka-base</module>
-        <module>kafka</module>
-        <module>rdb</module>
-        <module>mysql</module>
-        <module>oracle</module>
-        <module>sqlserver</module>
-        <module>clickhouse</module>
-        <module>db2</module>
-        <module>impala</module>
-        <module>kingbase</module>
-        <module>oceanbase</module>
-        <module>polardb</module>
-        <module>postgresql</module>
-        <module>tidb</module>
-        <module>console</module>
-        <module>hbase</module>
-        <module>mongo</module>
-        <module>redis5</module>
-        <module>elasticsearch5</module>
-        <module>elasticsearch6</module>
-        <module>cassandra</module>
-        <module>kudu</module>
-<!--        <module>localTest</module>-->
+        <module>kafka10</module>
+        <module>kafka11</module>
 
     </modules>
 
