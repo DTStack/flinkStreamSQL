@@ -473,7 +473,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 updateStatement.close();
             }
         } catch (SQLException e) {
-            throw new RemoteException("impala connection close failed!", e);
+            throw new RuntimeException("impala connection close failed!", e);
         } finally {
             connection = null;
             statement = null;
@@ -531,7 +531,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         // partition sql
         Set<String> keySet = rowDataMap.keySet();
         String finalTempSql = tempSql;
-        keySet.forEach(key -> {
+        for (String key : keySet) {
             try {
                 String executeSql = String.copyValueOf(finalTempSql.toCharArray());
                 ArrayList<String> valuesConditionList = rowDataMap.get(key);
@@ -544,7 +544,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             } catch (SQLException sqlException) {
                 throw new RuntimeException("execute impala SQL error! ", sqlException);
             }
-        });
+        }
     }
 
     /**
