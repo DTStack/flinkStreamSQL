@@ -72,7 +72,7 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
             String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
             String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
             String principal = impalaSideTableInfo.getPrincipal();
-            ugi = KrbUtils.getUgi(principal, keyTabFilePath, krb5FilePath);
+            ugi = KrbUtils.loginAndReturnUgi(principal, keyTabFilePath, krb5FilePath);
             openJdbc(parameters);
         } else {
             openJdbc(parameters);
