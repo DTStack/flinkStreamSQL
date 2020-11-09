@@ -10,11 +10,11 @@ import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
+import com.dtstack.flink.sql.util.KrbUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-import io.vertx.core.json.JsonArray;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
@@ -23,6 +23,7 @@ import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.AsyncKuduClient;
@@ -35,6 +36,8 @@ import org.apache.kudu.client.RowResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -80,25 +83,10 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
      *
      * @throws KuduException
      */
-    private void connKuDu() throws KuduException {
+    private void connKuDu() throws IOException {
         if (null == table) {
-            String kuduMasters = kuduSideTableInfo.getKuduMasters();
             String tableName = kuduSideTableInfo.getTableName();
-            Integer workerCount = kuduSideTableInfo.getWorkerCount();
-            Integer defaultSocketReadTimeoutMs = kuduSideTableInfo.getDefaultSocketReadTimeoutMs();
-            Integer defaultOperationTimeoutMs = kuduSideTableInfo.getDefaultOperationTimeoutMs();
-
-            Preconditions.checkNotNull(kuduMasters, "kuduMasters could not be null");
-
-            AsyncKuduClient.AsyncKuduClientBuilder asyncKuduClientBuilder = new AsyncKuduClient.AsyncKuduClientBuilder(kuduMasters);
-            if (null != workerCount) {
-                asyncKuduClientBuilder.workerCount(workerCount);
-            }
-
-            if (null != defaultOperationTimeoutMs) {
-                asyncKuduClientBuilder.defaultOperationTimeoutMs(defaultOperationTimeoutMs);
-            }
-            asyncClient = asyncKuduClientBuilder.build();
+            asyncClient = getClient();
             if (!asyncClient.syncClient().tableExists(tableName)) {
                 throw new IllegalArgumentException("Table Open Failed , please check table exists");
             }
@@ -126,6 +114,40 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
 
         List<String> projectColumns = Arrays.asList(sideFieldNames);
         scannerBuilder.setProjectedColumnNames(projectColumns);
+    }
+
+    private AsyncKuduClient getClient() throws IOException {
+        String kuduMasters = kuduSideTableInfo.getKuduMasters();
+        Integer workerCount = kuduSideTableInfo.getWorkerCount();
+        Integer defaultOperationTimeoutMs = kuduSideTableInfo.getDefaultOperationTimeoutMs();
+
+        Preconditions.checkNotNull(kuduMasters, "kuduMasters could not be null");
+
+        AsyncKuduClient.AsyncKuduClientBuilder asyncKuduClientBuilder = new AsyncKuduClient.AsyncKuduClientBuilder(kuduMasters);
+        if (null != workerCount) {
+            asyncKuduClientBuilder.workerCount(workerCount);
+        }
+
+        if (null != defaultOperationTimeoutMs) {
+            asyncKuduClientBuilder.defaultOperationTimeoutMs(defaultOperationTimeoutMs);
+        }
+
+        if (kuduSideTableInfo.isEnableKrb()) {
+            UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(
+                    kuduSideTableInfo.getPrincipal(),
+                    kuduSideTableInfo.getKeytab(),
+                    kuduSideTableInfo.getKrb5conf()
+            );
+            return ugi.doAs(
+                    new PrivilegedAction<AsyncKuduClient>() {
+                        @Override
+                        public AsyncKuduClient run() {
+                            return asyncKuduClientBuilder.build();
+                        }
+                    });
+        } else {
+            return asyncKuduClientBuilder.build();
+        }
     }
 
     @Override

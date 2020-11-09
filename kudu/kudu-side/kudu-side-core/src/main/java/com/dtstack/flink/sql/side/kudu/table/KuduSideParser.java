@@ -1,5 +1,6 @@
 package com.dtstack.flink.sql.side.kudu.table;
 
+import com.dtstack.flink.sql.constrant.PluginParamConsts;
 import com.dtstack.flink.sql.table.AbstractSideTableParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
@@ -71,6 +72,18 @@ public class KuduSideParser extends AbstractSideTableParser {
         kuduSideTableInfo.setPrimaryKey(MathUtil.getString(props.get(PRIMARY_KEY.toLowerCase())));
         kuduSideTableInfo.setLowerBoundPrimaryKey(MathUtil.getString(props.get(LOWER_BOUND_PRIMARY_KEY.toLowerCase())));
         kuduSideTableInfo.setUpperBoundPrimaryKey(MathUtil.getString(props.get(UPPER_BOUND_PRIMARY_KEY.toLowerCase())));
+
+        kuduSideTableInfo.setPrincipal(
+                MathUtil.getString(props.get(PluginParamConsts.PRINCIPAL))
+        );
+        kuduSideTableInfo.setKeytab(
+                MathUtil.getString(props.get(PluginParamConsts.KEYTAB))
+        );
+        kuduSideTableInfo.setKrb5conf(
+                MathUtil.getString(props.get(PluginParamConsts.KRB5_CONF))
+        );
+        kuduSideTableInfo.judgeKrbEnable();
+
         return kuduSideTableInfo;
 
     }

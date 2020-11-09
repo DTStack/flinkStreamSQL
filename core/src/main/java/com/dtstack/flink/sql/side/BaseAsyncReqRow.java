@@ -181,7 +181,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     }
 
     private Map<String, Object> parseInputParam(CRow input){
-        Map<String, Object> inputParams = Maps.newHashMap();
+        Map<String, Object> inputParams = Maps.newLinkedHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.row().getField(conValIndex);
@@ -243,12 +243,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
         long timeoutTimestamp = sideInfo.getSideTableInfo().getAsyncTimeout() + getProcessingTimeService().getCurrentProcessingTime();
         return getProcessingTimeService().registerTimer(
                 timeoutTimestamp,
-                new ProcessingTimeCallback() {
-                    @Override
-                    public void onProcessingTime(long timestamp) throws Exception {
-                        timeout(input, resultFuture);
-                    }
-                });
+                timestamp -> timeout(input, resultFuture));
     }
 
     protected void cancelTimerWhenComplete(ResultFuture<CRow> resultFuture, ScheduledFuture<?> timerFuture){
