@@ -42,8 +42,10 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -103,7 +105,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         List<Integer> equalValIndex = sideInfo.getEqualValIndex();
         ArrayList<Object> inputParams = equalValIndex.stream()
                 .map(value::getField)
-                .filter(object -> null != object)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
@@ -121,29 +123,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
             Row row = fillData(value, null);
             RowDataComplete.collectRow(out, row);
         } else if (!CollectionUtils.isEmpty(cacheList)) {
-            cacheList.stream().forEach(one -> out.collect(RowDataConvert.convertToBaseRow(fillData(value, one))));
-        }
-    }
-
-    @Override
-    public Row fillData(Row input, Object sideInput) {
-        Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
-
-        for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            // origin value
-            Object obj = input.getField(entry.getValue());
-            obj = dealTimeAttributeType(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass(), obj);
-            row.setField(entry.getKey(), obj);
-        }
-
-        for (Map.Entry<Integer, String> entry : sideInfo.getSideFieldNameIndex().entrySet()) {
-            if (cacheInfo == null) {
-                row.setField(entry.getKey(), null);
-            } else {
-                row.setField(entry.getKey(), cacheInfo.get(entry.getValue()));
-            }
-
+            cacheList.forEach(one -> out.collect(RowDataConvert.convertToBaseRow(fillData(value, one))));
         }
         return row;
     }
@@ -206,13 +186,17 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         ResultSet resultSet = statement.executeQuery(sql);
 
         String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
-        String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
+        String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
+        Map<String, String> sideFieldNamesAndTypes = Maps.newHashMap();
+        for (int i = 0; i < sideFieldNames.length; i++) {
+            sideFieldNamesAndTypes.put(sideFieldNames[i], sideFieldTypes[i]);
+        }
+
         while (resultSet.next()) {
             Map<String, Object> oneRow = Maps.newHashMap();
             for (String fieldName : sideFieldNames) {
                 Object object = resultSet.getObject(fieldName.trim());
-                int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
-                object = SwitchUtil.getTarget(object, fields[fieldIndex]);
+                object = SwitchUtil.getTarget(object, sideFieldNamesAndTypes.get(fieldName));
                 oneRow.put(fieldName.trim(), object);
             }
 

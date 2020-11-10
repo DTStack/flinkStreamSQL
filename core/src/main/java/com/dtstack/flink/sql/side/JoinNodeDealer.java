@@ -490,13 +490,27 @@ public class JoinNodeDealer {
             }
 
             if(tableRef.containsKey(field.f0)){
-                if(fromTableNameSet.contains(tableRef.get(field.f0))){
+                if(checkContainIterationTableName(fromTableNameSet, field.f0, tableRef)){
                     extractFieldList.add(tableRef.get(field.f0) + "." + field.f1);
                 }
             }
         }
 
         return extractFieldList;
+    }
+
+    private boolean checkContainIterationTableName(Set<String> fromTableNameSet, String checkTableName, Map<String, String> mappingTableName) {
+        for (int i = 0; i < mappingTableName.size() + 1; i++) {
+            if (fromTableNameSet.contains(checkTableName)) {
+                return true;
+            }
+
+            checkTableName = mappingTableName.get(checkTableName);
+            if (checkTableName == null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private Set<String> extractFieldFromGroupByList(SqlNodeList parentGroupByList,

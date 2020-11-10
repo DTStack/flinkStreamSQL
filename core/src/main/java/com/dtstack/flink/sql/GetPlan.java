@@ -23,6 +23,8 @@ import com.dtstack.flink.sql.exec.ExecuteProcessHelper;
 import com.dtstack.flink.sql.exec.ParamsInfo;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  local模式获取sql任务的执行计划
@@ -32,15 +34,19 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
  */
 public class GetPlan {
 
+    private static final Logger LOG = LoggerFactory.getLogger(GetPlan.class);
+
     public static String getExecutionPlan(String[] args) {
         try {
             long start = System.currentTimeMillis();
             ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
+            paramsInfo.setGetPlan(true);
             StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
             String executionPlan = env.getExecutionPlan();
             long end = System.currentTimeMillis();
             return ApiResult.createSuccessResultJsonStr(executionPlan, end - start);
         } catch (Exception e) {
+            LOG.error("Get plan error", e);
             return ApiResult.createErrorResultJsonStr(ExceptionUtils.getFullStackTrace(e));
         }
     }

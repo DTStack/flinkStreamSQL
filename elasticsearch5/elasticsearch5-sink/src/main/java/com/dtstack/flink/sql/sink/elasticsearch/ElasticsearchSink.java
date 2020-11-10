@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.sink.elasticsearch;
 
@@ -45,6 +45,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * table output elastic5plugin
@@ -75,7 +76,9 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private TypeInformation[] fieldTypes;
 
-    private int parallelism = -1;
+    private int parallelism = 1;
+
+    protected String registerTableName;
 
     private ElasticsearchTableInfo esTableInfo;
 
@@ -135,8 +138,6 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
         boolean authMesh = esTableInfo.isAuthMesh();
         if (authMesh) {
-            String username = esTableInfo.getUserName();
-            String password = esTableInfo.getPassword();
             String authPassword = esTableInfo.getUserName() + ":" + esTableInfo.getPassword();
             userConfig.put("xpack.security.user", authPassword);
         }
@@ -154,16 +155,12 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     @Override
     public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         RichSinkFunction richSinkFunction = createEsSinkFunction();
-        DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
+        DataStreamSink streamSink = dataStream.addSink(richSinkFunction).name(registerTableName);
         if(parallelism > 0){
             streamSink.setParallelism(parallelism);
         }
 
         return streamSink;
-    }
-
-    public void setParallelism(int parallelism) {
-        this.parallelism = parallelism;
     }
 
     public void setBulkFlushMaxActions(int bulkFlushMaxActions) {
@@ -183,6 +180,9 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         String id = elasticsearchTableInfo.getId();
         String[] idField = StringUtils.split(id, ",");
         idIndexList = new ArrayList<>();
+        registerTableName = elasticsearchTableInfo.getName();
+        parallelism = Objects.isNull(elasticsearchTableInfo.getParallelism()) ?
+                parallelism : elasticsearchTableInfo.getParallelism();
 
         for(int i = 0; i < idField.length; ++i) {
             idIndexList.add(Integer.valueOf(idField[i]));

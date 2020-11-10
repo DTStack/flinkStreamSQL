@@ -24,14 +24,12 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.util.Es6Util;
-import com.dtstack.flink.sql.side.elasticsearch6.util.SwitchUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.elasticsearch.action.search.SearchRequest;
@@ -47,7 +45,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -265,7 +262,7 @@ public class Elasticsearch6AllReqRow extends BaseAllReqRow implements Serializab
             for (String fieldName : sideFieldNames) {
                 Object object = searchHit.getSourceAsMap().get(fieldName.trim());
                 int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
-                object = SwitchUtil.getTarget(object, sideFieldTypes[fieldIndex]);
+                object = Es6Util.getTarget(object, sideFieldTypes[fieldIndex]);
                 oneRow.put(fieldName.trim(), object);
             }
 
