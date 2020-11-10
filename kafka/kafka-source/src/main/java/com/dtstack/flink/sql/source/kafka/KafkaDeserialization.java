@@ -18,7 +18,6 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
-import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.metrics.Gauge;
@@ -27,57 +26,37 @@ import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.internals.SubscriptionState;
 import org.apache.kafka.common.TopicPartition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.dtstack.flink.sql.metric.MetricConstant.*;
 
 /**
- * add metric for source
- * <p>
- * company: www.dtstack.com
- *
- * @author: toutian
- * create: 2019/12/24
- */
-public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrapper {
+ * @author: chuixue
+ * @create: 2020-11-10 10:38
+ * @description:
+ **/
+public class KafkaDeserialization extends KafkaDeserializationMetricWrapper {
 
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaDeserializationMetricWrapper.class);
+    private Generate generate;
 
-    private AbstractFetcher<Row, ?> fetcher;
-
-    private AtomicBoolean firstMsg = new AtomicBoolean(true);
-
-    private Calculate calculate;
-
-    public KafkaDeserializationMetricWrapper(TypeInformation<Row> typeInfo, DeserializationSchema<Row> deserializationSchema) {
+    public KafkaDeserialization(TypeInformation<Row> typeInfo, DeserializationSchema<Row> deserializationSchema, Generate generate) {
         super(typeInfo, deserializationSchema);
-    }
-
-    public KafkaDeserializationMetricWrapper(TypeInformation<Row> typeInfo, DeserializationSchema<Row> deserializationSchema, Calculate calculate) {
-        super(typeInfo, deserializationSchema);
-        this.calculate = calculate;
+        this.generate = generate;
     }
 
     @Override
     protected void beforeDeserialize() throws IOException {
         super.beforeDeserialize();
-        if (firstMsg.compareAndSet(true, false)) {
-            try {
-                registerPtMetric(fetcher);
-            } catch (Exception e) {
-                LOG.error("register topic partition metric error.", e);
-            }
-        }
     }
 
+    @Override
     protected void registerPtMetric(AbstractFetcher<Row, ?> fetcher) throws Exception {
         Field consumerThreadField = getConsumerThreadField(fetcher);
         consumerThreadField.setAccessible(true);
@@ -105,27 +84,13 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
         SubscriptionState subscriptionState = (SubscriptionState) subscriptionStateField.get(kafkaConsumer);
         Set<TopicPartition> assignedPartitions = subscriptionState.assignedPartitions();
 
+        Map<TopicPartition, Long> endOffsets = kafkaConsumer.endOffsets(assignedPartitions);
+        Map<TopicPartition, OffsetAndMetadata> committeds = kafkaConsumer.committed(assignedPartitions);
+
         for (TopicPartition topicPartition : assignedPartitions) {
             MetricGroup metricGroup = getRuntimeContext().getMetricGroup().addGroup(DT_TOPIC_GROUP, topicPartition.topic())
                     .addGroup(DT_PARTITION_GROUP, topicPartition.partition() + "");
-            metricGroup.gauge(DT_TOPIC_PARTITION_LAG_GAUGE, new Gauge<Long>() {
-                @Override
-                public Long getValue() {
-                    return calculate.calc(subscriptionState, topicPartition);
-                }
-            });
-        }
-    }
-
-    public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
-        this.fetcher = fetcher;
-    }
-
-    protected Field getConsumerThreadField(AbstractFetcher fetcher) throws NoSuchFieldException {
-        try {
-            return fetcher.getClass().getDeclaredField("consumerThread");
-        } catch (Exception e) {
-            return fetcher.getClass().getSuperclass().getDeclaredField("consumerThread");
+            metricGroup.gauge(DT_TOPIC_PARTITION_LAG_GAUGE, (Gauge<Long>) () -> generate.calc(endOffsets, committeds, topicPartition));
         }
     }
 }

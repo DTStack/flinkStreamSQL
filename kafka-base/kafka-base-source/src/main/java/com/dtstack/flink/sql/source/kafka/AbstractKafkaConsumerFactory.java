@@ -19,8 +19,8 @@
 package com.dtstack.flink.sql.source.kafka;
 
 import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
-import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.format.FormatType;
+import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
@@ -34,22 +34,16 @@ import org.apache.flink.types.Row;
 import java.util.Properties;
 
 /**
- *
  * company: www.dtstack.com
+ *
  * @author: toutian
  * create: 2019/12/24
  */
 public abstract class AbstractKafkaConsumerFactory {
 
     protected abstract FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo,
-                                                                              TypeInformation<Row> typeInformation,
-                                                                              Properties props) throws NoSuchMethodException;
-
-    protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo,
-                                                                              TypeInformation<Row> typeInformation) {
-        return new KafkaDeserializationMetricWrapper(typeInformation,
-                createDeserializationSchema(kafkaSourceTableInfo, typeInformation));
-    }
+                                                                          TypeInformation<Row> typeInformation,
+                                                                          Properties props) throws NoSuchMethodException;
 
     protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo,
                                                                               TypeInformation<Row> typeInformation,
@@ -59,11 +53,11 @@ public abstract class AbstractKafkaConsumerFactory {
                 calculate);
     }
 
-    private DeserializationSchema<Row> createDeserializationSchema(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation) {
+    protected DeserializationSchema<Row> createDeserializationSchema(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation) {
         DeserializationSchema<Row> deserializationSchema = null;
         if (FormatType.DT_NEST.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
             deserializationSchema = new DtNestRowDeserializationSchema(typeInformation, kafkaSourceTableInfo.getPhysicalFields(),
-                    kafkaSourceTableInfo.getFieldExtraInfoList(),kafkaSourceTableInfo.getCharsetName());
+                    kafkaSourceTableInfo.getFieldExtraInfoList(), kafkaSourceTableInfo.getCharsetName());
         } else if (FormatType.JSON.name().equalsIgnoreCase(kafkaSourceTableInfo.getSourceDataType())) {
 
             if (StringUtils.isNotBlank(kafkaSourceTableInfo.getSchemaString())) {

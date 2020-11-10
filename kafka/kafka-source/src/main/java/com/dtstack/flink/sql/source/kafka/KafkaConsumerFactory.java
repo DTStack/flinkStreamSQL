@@ -23,7 +23,6 @@ import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.types.Row;
-import org.apache.kafka.common.requests.IsolationLevel;
 
 import java.io.Serializable;
 import java.util.Properties;
@@ -39,18 +38,22 @@ public class KafkaConsumerFactory extends AbstractKafkaConsumerFactory {
 
     @Override
     public FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Properties props) {
-        KafkaConsumer kafkaSrc = null;
+        KafkaConsumer kafkaSrc;
         if (kafkaSourceTableInfo.getTopicIsPattern()) {
-            // TODO partitionLag无法外部访问
-            // DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) (subscriptionState, tp) -> subscriptionState.partitionLag(tp, IsolationLevel.READ_UNCOMMITTED));
-            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation);
+            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Generate & Serializable) (endOffsets, committed, tp) -> endOffsets.get(tp) - committed.get(tp).offset());
             kafkaSrc = new KafkaConsumer(Pattern.compile(kafkaSourceTableInfo.getTopic()), deserMetricWrapper, props);
         } else {
-            // DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) (subscriptionState, tp) -> subscriptionState.partitionLag(tp, IsolationLevel.READ_UNCOMMITTED));
-            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation);
+            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Generate & Serializable) (endOffsets, committed, tp) -> endOffsets.get(tp) - committed.get(tp).offset());
             kafkaSrc = new KafkaConsumer(kafkaSourceTableInfo.getTopic(), deserMetricWrapper, props);
         }
         return kafkaSrc;
     }
 
+    protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo,
+                                                                              TypeInformation<Row> typeInformation,
+                                                                              Generate generate) {
+        return new KafkaDeserialization(typeInformation,
+                createDeserializationSchema(kafkaSourceTableInfo, typeInformation),
+                generate);
+    }
 }
