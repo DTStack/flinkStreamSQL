@@ -22,12 +22,11 @@ package com.dtstack.flink.sql.watermarker;
 import com.dtstack.flink.sql.metric.EventDelayGauge;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.functions.IterationRuntimeContext;
 import org.apache.flink.api.common.functions.RichFunction;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
-import org.apache.flink.streaming.api.windowing.time.Time;
 
 import java.util.TimeZone;
 
@@ -38,7 +37,7 @@ import java.util.TimeZone;
  * @author xuchao
  */
 
-public abstract class AbstractCustomerWaterMarker<T> extends BoundedOutOfOrdernessTimestampExtractor<T> implements RichFunction {
+public abstract class AbstractCustomerWaterMarker<T> implements RichFunction, SerializableTimestampAssigner<T> {
 
 
     private static final long serialVersionUID = 1L;
@@ -54,10 +53,6 @@ public abstract class AbstractCustomerWaterMarker<T> extends BoundedOutOfOrderne
     protected long lastTime = 0;
 
     protected TimeZone timezone;
-
-    public AbstractCustomerWaterMarker(Time maxOutOfOrderness) {
-        super(maxOutOfOrderness);
-    }
 
     @Override
     public void open(Configuration parameters) throws Exception {

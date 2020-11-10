@@ -42,11 +42,23 @@ public abstract class AbstractSourceTableInfo extends AbstractTableInfo {
 
     public static final String TIME_ZONE_KEY = "timezone";
 
+    public static final String WITH_IDLENESS = "withIdleness";
+
     private String timeZone = TimeZone.getDefault().getID();
 
     private String eventTimeField;
 
     private Integer maxOutOrderness = 10;
+
+    private Long withIdleness;
+
+    public Long getWithIdleness() {
+        return withIdleness;
+    }
+
+    public void setWithIdleness(Long withIdleness) {
+        this.withIdleness = withIdleness;
+    }
 
     private Map<String, String> virtualFields = Maps.newHashMap();
 

@@ -21,7 +21,6 @@
 package com.dtstack.flink.sql.watermarker;
 
 import com.dtstack.flink.sql.util.MathUtil;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,22 +38,20 @@ public class CustomerWaterMarkerForLong extends AbstractCustomerWaterMarker<Row>
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForLong.class);
 
-    public CustomerWaterMarkerForLong(Time maxOutOfOrderness, int pos, String timezone) {
-        super(maxOutOfOrderness);
+    public CustomerWaterMarkerForLong(int pos, String timezone) {
         this.pos = pos;
         this.timezone= TimeZone.getTimeZone(timezone);
     }
 
     @Override
-    public long extractTimestamp(Row row) {
-
+    public long extractTimestamp(Row row, long recordTimestamp) {
         try{
             Long extractTime = MathUtil.getLongVal(row.getField(pos));
-            return getExtractTimestamp(extractTime);
+            return extractTime;
+            // return getExtractTimestamp(extractTime);
         }catch (Exception e){
             logger.error("", e);
         }
         return lastTime;
     }
-
 }

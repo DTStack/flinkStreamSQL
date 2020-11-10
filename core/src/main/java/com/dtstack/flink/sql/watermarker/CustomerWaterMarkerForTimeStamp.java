@@ -17,10 +17,8 @@
  */
 
 
-
 package com.dtstack.flink.sql.watermarker;
 
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +30,7 @@ import java.util.TimeZone;
  * Custom watermark --- for eventtime
  * Date: 2017/12/28
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -39,18 +38,18 @@ public class CustomerWaterMarkerForTimeStamp extends AbstractCustomerWaterMarker
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForTimeStamp.class);
 
-    public CustomerWaterMarkerForTimeStamp(Time maxOutOfOrderness, int pos,String timezone) {
-        super(maxOutOfOrderness);
+    public CustomerWaterMarkerForTimeStamp(int pos, String timezone) {
         this.pos = pos;
-        this.timezone= TimeZone.getTimeZone(timezone);
+        this.timezone = TimeZone.getTimeZone(timezone);
     }
 
     @Override
-    public long extractTimestamp(Row row) {
+    public long extractTimestamp(Row row, long recordTimestamp) {
         try {
             Timestamp time = (Timestamp) row.getField(pos);
-            long extractTime=time.getTime();
-            return getExtractTimestamp(extractTime);
+            long extractTime = time.getTime();
+            // return getExtractTimestamp(extractTime);TODO
+            return extractTime;
         } catch (RuntimeException e) {
             logger.error("", e);
         }

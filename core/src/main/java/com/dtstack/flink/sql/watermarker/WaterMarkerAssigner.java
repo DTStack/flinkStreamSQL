@@ -16,33 +16,36 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.watermarker;
 
 import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
+import com.google.common.base.Strings;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.base.Strings;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
+
 import java.sql.Timestamp;
+import java.time.Duration;
+
 /**
  * define watermarker
  * Date: 2018/6/29
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
 public class WaterMarkerAssigner {
 
-    public boolean checkNeedAssignWaterMarker(AbstractSourceTableInfo tableInfo){
+    public boolean checkNeedAssignWaterMarker(AbstractSourceTableInfo tableInfo) {
         return !Strings.isNullOrEmpty(tableInfo.getEventTimeField());
     }
 
-    public DataStream assignWaterMarker(DataStream<Row> dataStream, RowTypeInfo typeInfo, AbstractSourceTableInfo sourceTableInfo){
+    public DataStream assignWaterMarker(DataStream<Row> dataStream, RowTypeInfo typeInfo, AbstractSourceTableInfo sourceTableInfo) {
 
         String eventTimeFieldName = sourceTableInfo.getEventTimeField();
 
@@ -53,13 +56,13 @@ public class WaterMarkerAssigner {
         String[] fieldNames = typeInfo.getFieldNames();
         TypeInformation<?>[] fieldTypes = typeInfo.getFieldTypes();
 
-        if(Strings.isNullOrEmpty(eventTimeFieldName)){
+        if (Strings.isNullOrEmpty(eventTimeFieldName)) {
             return dataStream;
         }
 
         int pos = -1;
-        for(int i=0; i<fieldNames.length; i++){
-            if(eventTimeFieldName.equals(fieldNames[i])){
+        for (int i = 0; i < fieldNames.length; i++) {
+            if (eventTimeFieldName.equals(fieldNames[i])) {
                 pos = i;
             }
         }
@@ -69,17 +72,28 @@ public class WaterMarkerAssigner {
 
         TypeInformation fieldType = fieldTypes[pos];
 
-        AbstractCustomerWaterMarker waterMarker = null;
-        if(fieldType.getTypeClass().isAssignableFrom(Timestamp.class)){
-            waterMarker = new CustomerWaterMarkerForTimeStamp(Time.milliseconds(maxOutOrderness), pos, timeZone);
-        }else if(fieldType.getTypeClass().isAssignableFrom(Long.class)){
-            waterMarker = new CustomerWaterMarkerForLong(Time.milliseconds(maxOutOrderness), pos, timeZone);
-        }else{
+        AbstractCustomerWaterMarker waterMarker;
+        if (fieldType.getTypeClass().isAssignableFrom(Timestamp.class)) {
+            waterMarker = new CustomerWaterMarkerForTimeStamp(pos, timeZone);
+        } else if (fieldType.getTypeClass().isAssignableFrom(Long.class)) {
+            waterMarker = new CustomerWaterMarkerForLong(pos, timeZone);
+        } else {
             throw new IllegalArgumentException("not support type of " + fieldType + ", current only support(timestamp, long).");
         }
 
         String fromTag = "Source:" + sourceTableInfo.getName();
+
         waterMarker.setFromSourceTag(fromTag);
-        return dataStream.assignTimestampsAndWatermarks(waterMarker);
+
+        WatermarkStrategy watermarkStrategy = WatermarkStrategy
+                .forBoundedOutOfOrderness(Duration.ofSeconds(maxOutOrderness / 1000))
+                .withTimestampAssigner(waterMarker);
+
+        // 如果withIdleness大于0，则开启
+        if (sourceTableInfo.getWithIdleness() > 0L) {
+            watermarkStrategy = watermarkStrategy.withIdleness(Duration.ofSeconds(sourceTableInfo.getWithIdleness()));
+        }
+
+        return dataStream.assignTimestampsAndWatermarks(watermarkStrategy);
     }
 }
