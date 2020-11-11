@@ -25,13 +25,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -72,18 +73,13 @@ public class TestGetPlan {
         Assert.assertEquals(jsonNodes.get("code").asLong(), ApiResult.SUCCESS.longValue());
     }
 
-    public static String readContent(String filePath) {
-        StringBuilder sb = new StringBuilder();
+    private static String readContent(String sqlPath) {
         try {
-            String str;
-            BufferedReader in = new BufferedReader(new FileReader(filePath));
-            while ((str = in.readLine()) != null) {
-                sb.append(str);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+            byte[] array = Files.readAllBytes(Paths.get(sqlPath));
+            return new String(array, StandardCharsets.UTF_8);
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
         }
-        return sb.toString();
     }
 
     public static List<URL> getJarUrl(String directory) {
