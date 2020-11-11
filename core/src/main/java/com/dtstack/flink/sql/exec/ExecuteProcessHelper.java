@@ -280,13 +280,13 @@ public class ExecuteProcessHelper {
             throws IllegalAccessException, InvocationTargetException {
         // udf和tableEnv须由同一个类加载器加载
         ClassLoader levelClassLoader = tableEnv.getClass().getClassLoader();
+        ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
         URLClassLoader classLoader = null;
         List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
         for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
             // 构建plan的情况下，udf和tableEnv不需要是同一个类加载器
             if (getPlan) {
-                URL[] urls = jarUrlList.toArray(new URL[0]);
-                classLoader = URLClassLoader.newInstance(urls);
+                classLoader = ClassLoaderManager.loadExtraJar(jarUrlList, (URLClassLoader) currentClassLoader);
             }
 
             //classloader

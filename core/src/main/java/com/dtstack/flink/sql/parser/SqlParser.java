@@ -27,7 +27,6 @@ import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -53,7 +52,7 @@ public class SqlParser {
         LOCAL_SQL_PLUGIN_ROOT = localSqlPluginRoot;
     }
 
-    private static final Pattern ADD_FIlE_PATTERN = Pattern.compile("(?i).*add\\s+file\\s+.+");
+    private static final Pattern ADD_FILE_AND_JAR_PATTERN = Pattern.compile("(?i).*add\\s+file\\s+.+|(?i).*add\\s+jar\\s+.+");
 
     /**
      * flink support sql syntax
@@ -74,7 +73,7 @@ public class SqlParser {
                 .replace("\t", " ").trim();
 
         List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SQL_DELIMITER);
-        sqlArr = removeAddFileStmt(sqlArr);
+        sqlArr = removeAddFileAndJarStmt(sqlArr);
         SqlTree sqlTree = new SqlTree();
         AbstractTableInfoParser tableInfoParser = new AbstractTableInfoParser();
         for(String childSql : sqlArr){
@@ -157,12 +156,12 @@ public class SqlParser {
     }
 
     /**
-     * remove add file with statment etc. add file /etc/krb5.conf;
+     * remove add file and jar with statment etc. add file /etc/krb5.conf, add jar xxx.jar;
      */
-    private static List<String> removeAddFileStmt(List<String> stmts) {
-        List<String> cleanedStmts = new ArrayList<>();
+    private static List<String> removeAddFileAndJarStmt(List<String> stmts) {
+        List<String> cleanedStmts = Lists.newArrayList();
         for (String stmt : stmts) {
-            Matcher matcher = ADD_FIlE_PATTERN.matcher(stmt);
+            Matcher matcher = ADD_FILE_AND_JAR_PATTERN.matcher(stmt);
             if(!matcher.matches()) {
                 cleanedStmts.add(stmt);
             }

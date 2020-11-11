@@ -30,6 +30,9 @@ import java.lang.reflect.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URL;
+import java.net.URLClassLoader;
+
 /**
  *  local模式获取sql任务的执行计划
  * Date: 2020/2/17
@@ -41,12 +44,17 @@ public class GetPlan {
     private static final Logger LOG = LoggerFactory.getLogger(GetPlan.class);
 
     public static String getExecutionPlan(String[] args) {
+        ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             long start = System.currentTimeMillis();
             ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
             paramsInfo.setGetPlan(true);
-            StreamTableEnvironment tableEnv = ExecuteProcessHelper.getStreamExecution(paramsInfo);
 
+            ClassLoader envClassLoader = StreamExecutionEnvironment.class.getClassLoader();
+            ClassLoader plannerClassLoader = URLClassLoader.newInstance(new URL[0], envClassLoader);
+            Thread.currentThread().setContextClassLoader(plannerClassLoader);
+
+            StreamTableEnvironment tableEnv = ExecuteProcessHelper.getStreamExecution(paramsInfo);
             StreamTableEnvironmentImpl tableEnvImpl = (StreamTableEnvironmentImpl) tableEnv;
             Field executionEnvironmentField = tableEnvImpl.getClass().getDeclaredField("executionEnvironment");
             executionEnvironmentField.setAccessible(true);
@@ -58,6 +66,8 @@ public class GetPlan {
         } catch (Exception e) {
             LOG.error("Get plan error", e);
             return ApiResult.createErrorResultJsonStr(ExceptionUtils.getFullStackTrace(e));
+        } finally {
+            Thread.currentThread().setContextClassLoader(currentClassLoader);
         }
     }
 }
