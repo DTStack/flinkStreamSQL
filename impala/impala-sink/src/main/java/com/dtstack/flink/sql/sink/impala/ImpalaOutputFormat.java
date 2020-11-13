@@ -77,7 +77,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     // cast(value as string) -> cast('value' as string)  cast(value as timestamp) -> cast('value' as timestamp)
     private static final Pattern TYPE_PATTERN = Pattern.compile("cast\\((.*) as (.*)\\)");
     //specific type which values need to be quoted
-    private static final String[] NEED_QUOTE_TYPE = {"timestamp", "varchar"};
+    private static final String[] NEED_QUOTE_TYPE = {"string", "timestamp", "varchar"};
 
     private static final Integer DEFAULT_CONN_TIME_OUT = 60;
     private static final int RECEIVE_DATA_PRINT_FREQUENCY = 1000;
@@ -761,7 +761,5 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
             return format;
         }
-
     }
-
 }
