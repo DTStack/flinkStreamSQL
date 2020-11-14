@@ -43,6 +43,8 @@ public class ConfigConstrant {
 
     public static final String FLINK_CHECKPOINT_CLEANUPMODE_KEY = "flink.checkpoint.cleanup.mode";
 
+    public static final String SQL_UNALIGNED_CHECKPOINTS = "sql.checkpoint.unalignedCheckpoints";
+
     public static final String SQL_ENV_PARALLELISM = "sql.env.parallelism";
 
     public static final String SQL_MAX_ENV_PARALLELISM = "sql.max.env.parallelism";

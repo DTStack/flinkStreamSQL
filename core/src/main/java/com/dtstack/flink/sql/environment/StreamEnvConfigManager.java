@@ -119,6 +119,7 @@ public final class StreamEnvConfigManager {
             getCheckpointTimeout(confProperties).ifPresent(streamEnv.getCheckpointConfig()::setCheckpointTimeout);
             getMaxConcurrentCheckpoints(confProperties).ifPresent(streamEnv.getCheckpointConfig()::setMaxConcurrentCheckpoints);
             getCheckpointCleanup(confProperties).ifPresent(streamEnv.getCheckpointConfig()::enableExternalizedCheckpoints);
+            enableUnalignedCheckpoints(confProperties).ifPresent(event -> streamEnv.getCheckpointConfig().enableUnalignedCheckpoints(event));
             getStateBackend(confProperties).ifPresent(streamEnv::setStateBackend);
         }
     }
@@ -196,6 +197,14 @@ public final class StreamEnvConfigManager {
         boolean checkpointEnabled = !(properties.getProperty(ConfigConstrant.SQL_CHECKPOINT_INTERVAL_KEY) == null
                 && properties.getProperty(ConfigConstrant.FLINK_CHECKPOINT_INTERVAL_KEY) == null);
         return Optional.of(checkpointEnabled);
+    }
+
+    public static Optional<Boolean> enableUnalignedCheckpoints(Properties properties) {
+        String unalignedCheckpoints = properties.getProperty(ConfigConstrant.SQL_UNALIGNED_CHECKPOINTS);
+        if(!StringUtils.isEmpty(unalignedCheckpoints)){
+            return Optional.of(Boolean.valueOf(unalignedCheckpoints));
+        }
+        return Optional.empty();
     }
 
     public static Optional<Long> getCheckpointInterval(Properties properties) {
