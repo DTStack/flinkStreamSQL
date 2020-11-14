@@ -23,8 +23,14 @@ import com.dtstack.flink.sql.source.kafka.table.KafkaSourceTableInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.types.Row;
+import org.apache.kafka.clients.consumer.internals.SubscriptionState;
+import org.apache.kafka.common.TopicPartition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
@@ -34,26 +40,56 @@ import java.util.regex.Pattern;
  * @author: toutian
  * create: 2019/12/24
  */
-public class KafkaConsumerFactory extends AbstractKafkaConsumerFactory {
+public class KafkaConsumerFactory extends AbstractKafkaConsumerFactory implements Serializable{
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaConsumerFactory.class);
 
     @Override
     public FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation, Properties props) {
         KafkaConsumer kafkaSrc;
         if (kafkaSourceTableInfo.getTopicIsPattern()) {
-            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Generate & Serializable) (endOffsets, committed, tp) -> endOffsets.get(tp) - committed.get(tp).offset());
+            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) (subscriptionState, tp) -> {
+                try {
+                    return partitionLag(subscriptionState ,tp);
+                } catch (Exception e) {
+                    LOG.error(e.toString());
+                }
+                return null;
+            });
             kafkaSrc = new KafkaConsumer(Pattern.compile(kafkaSourceTableInfo.getTopic()), deserMetricWrapper, props);
         } else {
-            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Generate & Serializable) (endOffsets, committed, tp) -> endOffsets.get(tp) - committed.get(tp).offset());
+            DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) (subscriptionState, tp) -> {
+                try {
+                    return partitionLag(subscriptionState ,tp);
+                } catch (Exception e) {
+                    LOG.error(e.toString());
+                }
+                return null;
+            });
             kafkaSrc = new KafkaConsumer(kafkaSourceTableInfo.getTopic(), deserMetricWrapper, props);
         }
         return kafkaSrc;
     }
 
-    protected DeserializationMetricWrapper createDeserializationMetricWrapper(KafkaSourceTableInfo kafkaSourceTableInfo,
-                                                                              TypeInformation<Row> typeInformation,
-                                                                              Generate generate) {
-        return new KafkaDeserialization(typeInformation,
-                createDeserializationSchema(kafkaSourceTableInfo, typeInformation),
-                generate);
+    /**
+     * 获取kafka的lag
+     * @param subscriptionState
+     * @param topicPartition
+     * @return
+     * @throws Exception
+     */
+    private Long partitionLag(SubscriptionState subscriptionState, TopicPartition topicPartition) throws Exception {
+        Method assignedState = subscriptionState.getClass().getDeclaredMethod("assignedState", TopicPartition.class);
+        assignedState.setAccessible(true);
+        Object subscriptionStateInvoke = assignedState.invoke(subscriptionState, topicPartition);
+
+        Field highWatermarkField = subscriptionStateInvoke.getClass().getDeclaredField("highWatermark");
+        highWatermarkField.setAccessible(true);
+        Long highWatermark = (Long) highWatermarkField.get(subscriptionStateInvoke);
+
+        Field positionField = subscriptionStateInvoke.getClass().getDeclaredField("position");
+        positionField.setAccessible(true);
+        SubscriptionState.FetchPosition fetchPosition = (SubscriptionState.FetchPosition) positionField.get(subscriptionStateInvoke);
+        long offset = fetchPosition.offset;
+        return highWatermark - offset;
     }
 }
