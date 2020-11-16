@@ -22,11 +22,8 @@ package com.dtstack.flink.sql.watermarker;
 import com.dtstack.flink.sql.metric.EventDelayGauge;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.util.MathUtil;
-import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
-import org.apache.flink.api.common.functions.IterationRuntimeContext;
-import org.apache.flink.api.common.functions.RichFunction;
-import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.configuration.Configuration;
+import org.apache.flink.api.common.eventtime.TimestampAssigner;
+import org.apache.flink.api.common.eventtime.TimestampAssignerSupplier;
 
 import java.util.TimeZone;
 
@@ -34,17 +31,16 @@ import java.util.TimeZone;
  * Reason:
  * Date: 2018/10/18
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public abstract class AbstractCustomerWaterMarker<T> implements RichFunction, SerializableTimestampAssigner<T> {
+public abstract class AbstractCustomerWaterMarker<T> implements TimestampAssigner<T>, TimestampAssignerSupplier {
 
 
     private static final long serialVersionUID = 1L;
 
     private String fromSourceTag = "NONE";
-
-    private transient RuntimeContext runtimeContext;
 
     protected transient EventDelayGauge eventDelayGauge;
 
@@ -55,51 +51,22 @@ public abstract class AbstractCustomerWaterMarker<T> implements RichFunction, Se
     protected TimeZone timezone;
 
     @Override
-    public void open(Configuration parameters) throws Exception {
-    }
-
-    @Override
-    public void close() throws Exception {
-        //do nothing
-    }
-
-    @Override
-    public RuntimeContext getRuntimeContext() {
-        if (this.runtimeContext != null) {
-            return this.runtimeContext;
-        } else {
-            throw new IllegalStateException("The runtime context has not been initialized.");
-        }
-    }
-
-    @Override
-    public IterationRuntimeContext getIterationRuntimeContext() {
-        if (this.runtimeContext == null) {
-            throw new IllegalStateException("The runtime context has not been initialized.");
-        } else if (this.runtimeContext instanceof IterationRuntimeContext) {
-            return (IterationRuntimeContext) this.runtimeContext;
-        } else {
-            throw new IllegalStateException("This stub is not part of an iteration step function.");
-        }
-    }
-
-    @Override
-    public void setRuntimeContext(RuntimeContext t) {
-        this.runtimeContext = t;
+    public TimestampAssigner createTimestampAssigner(Context context) {
         eventDelayGauge = new EventDelayGauge();
-        t.getMetricGroup().getAllVariables().put("<source_tag>", fromSourceTag);
-        t.getMetricGroup().gauge(MetricConstant.DT_EVENT_DELAY_GAUGE, eventDelayGauge);
+        context.getMetricGroup().getAllVariables().put("<source_tag>", fromSourceTag);
+        context.getMetricGroup().gauge(MetricConstant.DT_EVENT_DELAY_GAUGE, eventDelayGauge);
+        return this;
     }
 
     public void setFromSourceTag(String fromSourceTag) {
         this.fromSourceTag = fromSourceTag;
     }
 
-    protected long getExtractTimestamp(Long extractTime){
+    protected long getExtractTimestamp(Long extractTime) {
 
         lastTime = extractTime + timezone.getOffset(extractTime);
 
-        eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - extractTime)/1000));
+        eventDelayGauge.setDelayTime(MathUtil.getIntegerVal((System.currentTimeMillis() - extractTime) / 1000));
 
         return lastTime;
     }

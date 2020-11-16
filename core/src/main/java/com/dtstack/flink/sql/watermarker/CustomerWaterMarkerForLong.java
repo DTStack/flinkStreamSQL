@@ -17,7 +17,6 @@
  */
 
 
-
 package com.dtstack.flink.sql.watermarker;
 
 import com.dtstack.flink.sql.util.MathUtil;
@@ -31,6 +30,7 @@ import java.util.TimeZone;
  * Custom watermark --- for eventtime
  * Date: 2017/12/28
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -40,16 +40,15 @@ public class CustomerWaterMarkerForLong extends AbstractCustomerWaterMarker<Row>
 
     public CustomerWaterMarkerForLong(int pos, String timezone) {
         this.pos = pos;
-        this.timezone= TimeZone.getTimeZone(timezone);
+        this.timezone = TimeZone.getTimeZone(timezone);
     }
 
     @Override
     public long extractTimestamp(Row row, long recordTimestamp) {
-        try{
+        try {
             Long extractTime = MathUtil.getLongVal(row.getField(pos));
-            return extractTime;
-            // return getExtractTimestamp(extractTime);
-        }catch (Exception e){
+            return getExtractTimestamp(extractTime);
+        } catch (Exception e) {
             logger.error("", e);
         }
         return lastTime;

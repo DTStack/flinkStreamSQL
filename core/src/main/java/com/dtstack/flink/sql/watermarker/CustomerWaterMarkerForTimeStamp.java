@@ -48,8 +48,7 @@ public class CustomerWaterMarkerForTimeStamp extends AbstractCustomerWaterMarker
         try {
             Timestamp time = (Timestamp) row.getField(pos);
             long extractTime = time.getTime();
-            // return getExtractTimestamp(extractTime);TODO
-            return extractTime;
+            return getExtractTimestamp(extractTime);
         } catch (RuntimeException e) {
             logger.error("", e);
         }
