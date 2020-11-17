@@ -103,6 +103,7 @@ public class HbaseTableFunction extends BaseTableFunction {
      *
      * @param keys 维表join key的值
      */
+    @Override
     public void eval(Object... keys) {
         HbaseAllSideInfo hbaseAllSideInfo = ((HbaseAllSideInfo) sideInfo);
         String[] lookupKeys = hbaseAllSideInfo.getLookupKeys();

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,15 +20,13 @@ package com.dtstack.flink.sql.side.elasticsearch6;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseSideInfo;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
 import java.util.List;
 
@@ -38,6 +36,10 @@ import java.util.List;
  */
 public class Elasticsearch6AllSideInfo extends BaseSideInfo {
 
+
+    public Elasticsearch6AllSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
 
     public Elasticsearch6AllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
