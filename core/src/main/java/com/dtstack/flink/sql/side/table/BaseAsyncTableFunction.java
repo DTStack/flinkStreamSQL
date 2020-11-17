@@ -33,19 +33,17 @@ import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.functions.AsyncTableFunction;
 import org.apache.flink.table.functions.FunctionContext;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * @author: chuixue
@@ -58,12 +56,18 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
     private int timeOutNum = 0;
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
-    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
+    protected static final int DEFAULT_FETCH_SIZE = 1000;
 
     public BaseAsyncTableFunction(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
     }
 
+    /**
+     * 初始化缓存和metric
+     *
+     * @param context
+     * @throws Exception
+     */
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
@@ -101,25 +105,31 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
         parseErrorRecords = context.getMetricGroup().counter(MetricConstant.DT_NUM_SIDE_PARSE_ERROR_RECORDS);
     }
 
-    protected Object convertTimeIndictorTypeInfo(Integer index, Object obj) {
-        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(index).getClass());
-
-        //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
-        if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
-            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-            obj = ((Timestamp) obj).getTime() + (long) LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
-        }
-        return obj;
-    }
-
+    /**
+     * 通过key得到缓存数据
+     *
+     * @param key
+     * @return
+     */
     protected CacheObj getFromCache(String key) {
         return sideInfo.getSideCache().getFromCache(key);
     }
 
+    /**
+     * 数据放入缓存
+     *
+     * @param key
+     * @param value
+     */
     protected void putCache(String key, CacheObj value) {
         sideInfo.getSideCache().putCache(key, value);
     }
 
+    /**
+     * 是否开启缓存
+     *
+     * @return
+     */
     protected boolean openCache() {
         return sideInfo.getSideCache() != null;
     }
@@ -137,6 +147,12 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
         }
     }
 
+    /**
+     * 判断是否需要放入缓存
+     *
+     * @param key
+     * @param missKeyObj
+     */
     protected void dealCacheData(String key, CacheObj missKeyObj) {
         if (openCache()) {
             putCache(key, missKeyObj);
@@ -253,7 +269,11 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
      * @param keys
      * @return
      */
-    public abstract String buildCacheKey(Object... keys);
+    public String buildCacheKey(Object... keys) {
+        return Arrays.stream(keys)
+                .map(Object::toString)
+                .collect(Collectors.joining("_"));
+    }
 
     /**
      * 发送异常
@@ -271,8 +291,27 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
         }
     }
 
+    /**
+     * 每次获取的条数
+     *
+     * @return
+     */
+    public int getFetchSize() {
+        return DEFAULT_FETCH_SIZE;
+    }
+
+    /**
+     * 资源释放
+     *
+     * @throws Exception
+     */
     @Override
     public void close() throws Exception {
         super.close();
+    }
+
+    @Override
+    public Row fillData(Row input, Object line) {
+        return null;
     }
 }

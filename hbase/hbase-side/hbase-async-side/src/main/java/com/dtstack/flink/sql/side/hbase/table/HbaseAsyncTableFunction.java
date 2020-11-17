@@ -199,11 +199,6 @@ public class HbaseAsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     @Override
-    public Row fillData(Row input, Object sideInput) {
-        return null;
-    }
-
-    @Override
     public void close() throws Exception {
         super.close();
         hBaseClient.shutdown();

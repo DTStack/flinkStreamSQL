@@ -132,11 +132,6 @@ public class HbaseTableFunction extends BaseTableFunction {
         return row;
     }
 
-    @Override
-    public Row fillData(Row input, Object sideInput) {
-        return null;
-    }
-
     private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         Map<String, String> colRefType = ((HbaseAllSideInfo) sideInfo).getColRefType();

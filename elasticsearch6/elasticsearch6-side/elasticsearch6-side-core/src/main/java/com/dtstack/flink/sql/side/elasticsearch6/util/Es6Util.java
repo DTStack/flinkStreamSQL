@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * @author yinxi
@@ -211,6 +212,22 @@ public class Es6Util {
                 return fieldName + KEY_WORD_TYPE;
             default:
                 return fieldName;
+        }
+    }
+
+    // prevent word segmentation
+    public static String textCastToKeyword(String fieldName, BaseSideInfo sideInfo) {
+        String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
+        int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
+        String fieldType = sideFieldTypes[fieldIndex];
+        Map<String, String> physicalFields = sideInfo.getSideTableInfo().getPhysicalFields();
+        switch (fieldType.toLowerCase(Locale.ENGLISH)) {
+            case "varchar":
+            case "char":
+            case "text":
+                return physicalFields.getOrDefault(fieldName, fieldName) + KEY_WORD_TYPE;
+            default:
+                return physicalFields.getOrDefault(fieldName, fieldName);
         }
     }
 

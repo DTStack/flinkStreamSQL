@@ -33,7 +33,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -49,8 +52,6 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
     public static final long LOAD_DATA_ERROR_SLEEP_TIME = 5_000L;
-
-    public static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     protected static final int DEFAULT_FETCH_SIZE = 1000;
 
@@ -78,6 +79,12 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
      */
     protected abstract void reloadCache();
 
+    /**
+     * 初始化定时加载器
+     *
+     * @param context
+     * @throws Exception
+     */
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
@@ -131,6 +138,12 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
         }
     }
 
+    /**
+     * 数据填充
+     *
+     * @param sideInput 维表数据
+     * @return
+     */
     @Override
     public Row fillData(Object sideInput) {
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
@@ -144,6 +157,11 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
         return row;
     }
 
+    @Override
+    public Row fillData(Row input, Object sideInput) {
+        return null;
+    }
+
     /**
      * 每次获取的条数
      *
@@ -153,6 +171,9 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
         return DEFAULT_FETCH_SIZE;
     }
 
+    /**
+     * 资源释放
+     */
     @Override
     public void close() {
         if (null != es && !es.isShutdown()) {

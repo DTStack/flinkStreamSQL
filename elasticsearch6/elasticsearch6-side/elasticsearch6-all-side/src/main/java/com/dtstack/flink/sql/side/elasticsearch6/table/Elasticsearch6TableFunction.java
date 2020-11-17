@@ -24,7 +24,6 @@ import com.dtstack.flink.sql.side.elasticsearch6.util.Es6Util;
 import com.dtstack.flink.sql.side.table.BaseTableFunction;
 import com.dtstack.flink.sql.util.SwitchUtil;
 import com.google.common.collect.Maps;
-import org.apache.flink.types.Row;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -128,11 +127,6 @@ public class Elasticsearch6TableFunction extends BaseTableFunction {
                 rhlClient.close();
             }
         }
-    }
-
-    @Override
-    public Row fillData(Row input, Object sideInput) {
-        return null;
     }
 
     // initialize searchSourceBuilder

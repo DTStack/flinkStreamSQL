@@ -23,15 +23,14 @@ import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import com.dtstack.flink.sql.side.table.BaseTableFunction;
 import com.google.common.collect.Maps;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.table.functions.FunctionContext;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.*;
-import java.time.LocalDateTime;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -73,28 +72,6 @@ abstract public class AbstractRdbTableFunction extends BaseTableFunction {
         }
         cacheRef.set(newCache);
         LOG.info("----- rdb all cacheRef reload end:{}", Calendar.getInstance());
-    }
-
-    @Override
-    public Row fillData(Row input, Object sideInput) {
-        return null;
-    }
-
-    /**
-     * covert flink time attribute.Type information for indicating event or processing time.
-     * However, it behaves like a regular SQL timestamp but is serialized as Long.
-     *
-     * @param entry
-     * @param obj
-     * @return
-     */
-    protected Object dealTimeAttributeType(Class<? extends TypeInformation> entry, Object obj) {
-        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
-        if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
-            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
-            obj = ((Timestamp) obj).getTime() + (long) LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
-        }
-        return obj;
     }
 
     private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws SQLException {

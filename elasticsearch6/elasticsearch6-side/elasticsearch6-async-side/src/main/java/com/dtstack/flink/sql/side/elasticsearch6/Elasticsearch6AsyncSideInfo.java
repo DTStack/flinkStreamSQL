@@ -35,6 +35,10 @@ import java.util.List;
  */
 public class Elasticsearch6AsyncSideInfo extends BaseSideInfo {
 
+    public Elasticsearch6AsyncSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
+
     public Elasticsearch6AsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }

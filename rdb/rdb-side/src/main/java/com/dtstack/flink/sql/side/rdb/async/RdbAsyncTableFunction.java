@@ -32,7 +32,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
@@ -42,7 +41,6 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -105,9 +103,6 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
         int rdbPoolSize = rdbSideTableInfo.getAsyncPoolSize() > 0 ? rdbSideTableInfo.getAsyncPoolSize() : defaultAsyncPoolSize;
         rdbSideTableInfo.setAsyncPoolSize(rdbPoolSize);
     }
-
-    @Override
-    protected void preInvoke(Row input, ResultFuture<Row> resultFuture) { }
 
     @Override
     public void handleAsyncInvoke(CompletableFuture<Collection<Row>> future, Object... keys) throws Exception {
@@ -263,13 +258,6 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     @Override
-    public String buildCacheKey(Object... keys) {
-        return Arrays.stream(keys)
-                .map(Object::toString)
-                .collect(Collectors.joining("_"));
-    }
-
-    @Override
     public Row fillData(Object sideInput) {
         JsonArray jsonArray = (JsonArray) sideInput;
         String[] fieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
@@ -283,11 +271,6 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
         }
         row.setKind(RowKind.INSERT);
         return row;
-    }
-
-    @Override
-    public Row fillData(Row input, Object line) {
-        return null;
     }
 
     @Override
