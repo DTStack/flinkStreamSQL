@@ -58,24 +58,17 @@ public class HbaseTableFunction extends BaseTableFunction {
 
     private String tableName;
 
-    private Map<String, String> aliasNameInversion;
-
     private AtomicReference<Map<String, Map<String, Object>>> cacheRef = new AtomicReference<>();
     private Connection conn = null;
     private Table table = null;
     private ResultScanner resultScanner = null;
     private Configuration conf = null;
+    private AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
+    private Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
     public HbaseTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new HbaseAllSideInfo(sideTableInfo, lookupKeys));
         tableName = ((HbaseSideTableInfo) sideTableInfo).getTableName();
-
-        HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        Map<String, String> aliasNameRef = hbaseSideTableInfo.getAliasNameRef();
-        aliasNameInversion = new HashMap<>();
-        for (Map.Entry<String, String> entry : aliasNameRef.entrySet()) {
-            aliasNameInversion.put(entry.getValue(), entry.getKey());
-        }
     }
 
     @Override
@@ -122,7 +115,10 @@ public class HbaseTableFunction extends BaseTableFunction {
     @Override
     public Row fillData(Object sideInput) {
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
-        Collection<String> fields = new ArrayList<>(Arrays.asList(DataTypeUtils.getFieldNames(sideInfo.getSideTableInfo())));
+        Collection<String> fields = new ArrayList<>(Arrays.asList(DataTypeUtils.getFieldNames(sideTableInfo)))
+                .stream()
+                .map(e -> physicalFields.getOrDefault(e, e))
+                .collect(Collectors.toList());
         String[] fieldsArr = fields.toArray(new String[fields.size()]);
         Row row = new Row(fieldsArr.length);
         for (int i = 0; i < fieldsArr.length; i++) {
@@ -133,7 +129,6 @@ public class HbaseTableFunction extends BaseTableFunction {
     }
 
     private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
-        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         Map<String, String> colRefType = ((HbaseAllSideInfo) sideInfo).getColRefType();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         boolean openKerberos = hbaseSideTableInfo.isKerberosAuthEnable();
@@ -177,7 +172,10 @@ public class HbaseTableFunction extends BaseTableFunction {
                     StringBuilder key = new StringBuilder();
                     key.append(family).append(":").append(qualifier);
                     Object value = HbaseUtils.convertByte(CellUtil.cloneValue(cell), colRefType.get(key.toString()));
-                    kv.put(aliasNameInversion.get(key.toString()), value);
+                    if (physicalFields.containsKey(key.toString())
+                            || physicalFields.containsValue(key.toString())) {
+                        kv.put(key.toString(), value);
+                    }
                 }
                 for (String primaryKey : hbaseSideTableInfo.getPrimaryKeys()) {
                     kv.put(primaryKey, HbaseUtils.convertByte(r.getRow(), "string"));
