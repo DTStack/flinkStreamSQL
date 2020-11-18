@@ -73,8 +73,6 @@ public final class StreamEnvConfigManager {
 
         confProperties = PropertiesUtils.propertiesTrim(confProperties);
         streamEnv.getConfig().disableClosureCleaner();
-        // Disables reusing object
-        streamEnv.getConfig().enableObjectReuse();
 
         Configuration globalJobParameters = new Configuration();
         //Configuration unsupported set properties key-value

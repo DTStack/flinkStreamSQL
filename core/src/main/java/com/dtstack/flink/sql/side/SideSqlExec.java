@@ -45,6 +45,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.LocalTimeTypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -65,6 +66,7 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -441,6 +443,10 @@ public class SideSqlExec {
 
             if (fieldDataTypes[i].getClass().equals(LegacyLocalDateTimeTypeInfo.class)) {
                 fieldDataTypes[i] = LocalTimeTypeInfo.LOCAL_DATE_TIME;
+            }
+
+            if (fieldDataTypes[i].getClass().equals(TimeIndicatorTypeInfo.class)) {
+                fieldDataTypes[i] = TypeInformation.of(new TypeHint<Timestamp>() {});
             }
         }
 
