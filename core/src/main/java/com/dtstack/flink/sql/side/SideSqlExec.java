@@ -28,6 +28,7 @@ import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
+import com.dtstack.flink.sql.util.SqlCheckUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
@@ -151,7 +152,7 @@ public class SideSqlExec {
 
                 } else if (pollSqlNode.getKind() == SELECT) {
                     Preconditions.checkState(createView != null, "select sql must included by create view");
-                    Table table = tableEnv.sqlQuery(pollObj.toString());
+                    Table table = SqlCheckUtils.sqlQueryWithCheck(tableEnv, pollObj.toString());
 
                     if (createView.getFieldsInfoStr() == null) {
                         tableEnv.registerTable(createView.getTableName(), table);
@@ -310,6 +311,64 @@ public class SideSqlExec {
         return res;
     }
 
+    /**
+     * check whether all table fields exist in join condition.
+     * @param conditionNode
+     * @param joinScope
+     */
+    public void checkConditionFieldsInTable(SqlNode conditionNode, JoinScope joinScope) {
+        List<SqlNode> sqlNodeList = Lists.newArrayList();
+        ParseUtils.parseAnd(conditionNode, sqlNodeList);
+        for (SqlNode sqlNode : sqlNodeList) {
+            if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
+                throw new RuntimeException("not compare operator.");
+            }
+
+            SqlNode leftNode = ((SqlBasicCall) sqlNode).getOperands()[0];
+            SqlNode rightNode = ((SqlBasicCall) sqlNode).getOperands()[1];
+
+            if (leftNode.getKind() == SqlKind.IDENTIFIER) {
+                checkFieldInTable((SqlIdentifier) leftNode, joinScope, conditionNode);
+            }
+
+            if (rightNode.getKind() == SqlKind.IDENTIFIER) {
+                checkFieldInTable((SqlIdentifier) rightNode, joinScope, conditionNode);
+            }
+
+        }
+    }
+
+    /**
+     * check whether table exists and whether field is in table.
+     * @param sqlNode
+     * @param joinScope
+     * @param conditionNode
+     */
+    private void checkFieldInTable(SqlIdentifier sqlNode, JoinScope joinScope, SqlNode conditionNode) {
+        String tableName = sqlNode.getComponent(0).getSimple();
+        String fieldName = sqlNode.getComponent(1).getSimple();
+        JoinScope.ScopeChild scopeChild = joinScope.getScope(tableName);
+        String tableErrorMsg = "table [%s] is not exist. error condition is [%s]. if you find [%s] is exist, please check AS statement";
+        Preconditions.checkState(
+            scopeChild != null,
+            tableErrorMsg,
+            tableName,
+            conditionNode.toString(),
+            tableName
+        );
+
+        String[] fieldNames = scopeChild.getRowTypeInfo().getFieldNames();
+        boolean hasField = Arrays.asList(fieldNames).contains(fieldName);
+        String fieldErrorMsg = "table [%s] has not [%s] field.\n error join condition is [%s]";
+        Preconditions.checkState(
+            hasField,
+            fieldErrorMsg,
+            tableName,
+            fieldName,
+            conditionNode.toString()
+        );
+    }
+
     public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName, AbstractSideTableInfo sideTableInfo) {
         List<SqlNode> sqlNodeList = Lists.newArrayList();
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
@@ -421,6 +480,7 @@ public class SideSqlExec {
         joinScope.addScope(rightScopeChild);
 
         HashBasedTable<String, String, String> mappingTable = ((JoinInfo) pollObj).getTableFieldRef();
+        checkConditionFieldsInTable(joinInfo.getCondition(), joinScope);
 
         //获取两个表的所有字段
         List<FieldInfo> sideJoinFieldInfo = ParserJoinField.getRowTypeInfo(joinInfo.getSelectNode(), joinScope, true);
