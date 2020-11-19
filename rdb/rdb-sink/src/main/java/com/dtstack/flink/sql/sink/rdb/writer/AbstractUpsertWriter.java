@@ -227,6 +227,11 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
         }
 
         @Override
+        public void initMetricOutput(AbstractDtRichOutputFormat metricOutputFormat) {
+
+        }
+
+        @Override
         public void open(Connection connection) throws SQLException {
             super.open(connection);
         }
@@ -291,6 +296,11 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
             this.insertSql = insertSql;
             this.updateSql = updateSql;
             this.pkFields = pkFields;
+        }
+
+        @Override
+        public void initMetricOutput(AbstractDtRichOutputFormat metricOutputFormat) {
+
         }
 
         @Override
