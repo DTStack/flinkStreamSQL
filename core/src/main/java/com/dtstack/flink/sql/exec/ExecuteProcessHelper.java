@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.exec;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
+import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
@@ -150,6 +151,11 @@ public class ExecuteProcessHelper {
 
 
     public static StreamTableEnvironment getStreamExecution(ParamsInfo paramsInfo) throws Exception {
+
+        ClassLoader envClassLoader = StreamExecutionEnvironment.class.getClassLoader();
+        ClassLoader plannerClassLoader = new DtClassLoader(new URL[0], envClassLoader);
+        Thread.currentThread().setContextClassLoader(plannerClassLoader);
+
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
         StreamTableEnvironment tableEnv = getStreamTableEnv(env, paramsInfo.getConfProp());
 

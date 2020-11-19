@@ -129,6 +129,10 @@ public class ClassLoaderManager {
         for (Map.Entry<String, DtClassLoader> entry : pluginClassLoader.entrySet()) {
             classPaths.addAll(Arrays.asList(entry.getValue().getURLs()));
         }
+
+        for(Map.Entry<String, URLClassLoader> entry : pluginAppClassLoader.entrySet()){
+            classPaths.addAll(Arrays.asList(entry.getValue().getURLs()));
+        }
         return classPaths;
     }
 
