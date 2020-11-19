@@ -24,6 +24,9 @@ import com.dtstack.flink.sql.exec.ParamsInfo;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
+import java.net.URL;
+import java.net.URLClassLoader;
+
 /**
  *  local模式获取sql任务的执行计划
  * Date: 2020/2/17
@@ -33,15 +36,22 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 public class GetPlan {
 
     public static String getExecutionPlan(String[] args) {
+        ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+        ClassLoader envClassLoader = StreamExecutionEnvironment.class.getClassLoader();
+        ClassLoader plannerClassLoader = new URLClassLoader(new URL[0], envClassLoader);
         try {
             long start = System.currentTimeMillis();
             ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
+            paramsInfo.setGetPlan(true);
+            Thread.currentThread().setContextClassLoader(plannerClassLoader);
             StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
             String executionPlan = env.getExecutionPlan();
             long end = System.currentTimeMillis();
             return ApiResult.createSuccessResultJsonStr(executionPlan, end - start);
         } catch (Exception e) {
             return ApiResult.createErrorResultJsonStr(ExceptionUtils.getFullStackTrace(e));
+        } finally {
+            Thread.currentThread().setContextClassLoader(currentClassLoader);
         }
     }
 }

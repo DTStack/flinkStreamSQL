@@ -16,43 +16,46 @@
  * limitations under the License.
  */
 
-
 package com.dtstack.flink.sql.sink.impala.table;
 
-import com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo;
+import com.dtstack.flink.sql.enums.EUpdateMode;
+import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Objects;
+
 /**
- * Date: 2019/11/13
+ * Date: 2020/10/14
  * Company: www.dtstack.com
  *
- * @author xiuzhu
+ * @author tiezhu
  */
+public class ImpalaTableInfo extends AbstractTargetTableInfo {
 
-public class ImpalaTableInfo extends RdbTableInfo {
+    private static final int MAX_BATCH_SIZE = 10000;
 
-    public static final String AUTHMECH_KEY = "authMech";
+    private String url;
 
-    public static final String KRB5FILEPATH_KEY = "krb5FilePath";
+    private String tableName;
 
-    public static final String PRINCIPAL_KEY = "principal";
+    private String userName;
 
-    public static final String KEYTABFILEPATH_KEY = "keyTabFilePath";
+    private String password;
 
-    public static final String KRBREALM_KEY = "krbRealm";
+    private Integer batchSize;
 
-    public static final String KRBHOSTFQDN_KEY = "krbHostFQDN";
+    private Long batchWaitInterval;
 
-    public static final String KRBSERVICENAME_KEY = "krbServiceName";
+    private String bufferSize;
 
-    public static final String ENABLEPARITION_KEY = "enablePartition";
+    private String flushIntervalMs;
 
-    public static final String PARTITIONFIELDS_KEY = "partitionFields";
+    private String schema;
 
-    private static final String CURR_TYPE = "impala";
+    private boolean allReplace;
 
-    private static final String PARTITION_FIELD_SPLIT_REGEX = ",";
+    private String updateMode;
 
     private Integer authMech;
 
@@ -68,12 +71,90 @@ public class ImpalaTableInfo extends RdbTableInfo {
 
     private String krbServiceName;
 
-    private boolean enablePartition;
+    private boolean enablePartition = false;
 
-    private String[] partitionFields;
+    private String partitionFields;
 
-    public ImpalaTableInfo() {
-        setType(CURR_TYPE);
+    private String storeType;
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Integer getBatchSize() {
+        return batchSize;
+    }
+
+    public void setBatchSize(Integer batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    public Long getBatchWaitInterval() {
+        return batchWaitInterval;
+    }
+
+    public void setBatchWaitInterval(Long batchWaitInterval) {
+        this.batchWaitInterval = batchWaitInterval;
+    }
+
+    public String getBufferSize() {
+        return bufferSize;
+    }
+
+    public void setBufferSize(String bufferSize) {
+        this.bufferSize = bufferSize;
+    }
+
+    public String getFlushIntervalMs() {
+        return flushIntervalMs;
+    }
+
+    public void setFlushIntervalMs(String flushIntervalMs) {
+        this.flushIntervalMs = flushIntervalMs;
+    }
+
+    public String getSchema() {
+        return schema;
+    }
+
+    public void setSchema(String schema) {
+        this.schema = schema;
+    }
+
+    public String getUpdateMode() {
+        return updateMode;
+    }
+
+    public void setUpdateMode(String updateMode) {
+        this.updateMode = updateMode;
     }
 
     public Integer getAuthMech() {
@@ -140,38 +221,49 @@ public class ImpalaTableInfo extends RdbTableInfo {
         this.enablePartition = enablePartition;
     }
 
-    public String[] getPartitionFields() {
+    public String getPartitionFields() {
         return partitionFields;
     }
 
     public void setPartitionFields(String partitionFields) {
-        this.partitionFields = StringUtils.split(partitionFields, PARTITION_FIELD_SPLIT_REGEX);
+        this.partitionFields = partitionFields;
+    }
+
+    public String getStoreType() {
+        return storeType;
+    }
+
+    public void setStoreType(String storeType) {
+        this.storeType = storeType;
+    }
+
+    @Override
+    public String getType() {
+        return super.getType().toLowerCase();
     }
 
     @Override
     public boolean check() {
-        Preconditions.checkNotNull(this.getUrl(), "impala field of url is required");
-        Preconditions.checkNotNull(this.getTableName(), "impala field of tableName is required");
-        Preconditions.checkNotNull(this.getAuthMech(), "impala field of authMech is required");
-        Integer authMech = getAuthMech();
+        Preconditions.checkNotNull(url, "impala field of URL is required");
+        Preconditions.checkNotNull(tableName, "impala field of tableName is required");
 
-        if (authMech == 1) {
-            Preconditions.checkNotNull(this.getKrb5FilePath(), "impala field of krb5FilePath is required");
-            Preconditions.checkNotNull(this.getPrincipal(), "impala field of principal is required");
-            Preconditions.checkNotNull(this.getKeyTabFilePath(), "impala field of keyTabFilePath is required");
-            Preconditions.checkNotNull(this.getKrbHostFQDN(), "impala field of krbHostFQDN is required");
-            Preconditions.checkNotNull(this.getKrbServiceName(), "impala field of krbServiceName is required");
-        } else if (authMech == 2) {
-            Preconditions.checkNotNull(this.getUserName(), "impala field of userName is required");
-        }else if (authMech == 3) {
-            Preconditions.checkNotNull(this.getUserName(), "impala field of userName is required");
-            Preconditions.checkNotNull(this.getPassword(), "impala field of password is required");
+        if (Objects.nonNull(batchSize)) {
+            Preconditions.checkArgument(batchSize <= MAX_BATCH_SIZE, "batchSize must be less than " + MAX_BATCH_SIZE);
         }
 
-        if (isEnablePartition()) {
-            Preconditions.checkArgument(this.getPartitionFields().length > 0, "impala field of partitionFields is required");
+        if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
+            Preconditions.checkArgument(Objects.nonNull(getPrimaryKeys()) && getPrimaryKeys().size() > 0, "updateMode mode primary is required");
         }
 
+        if (Objects.nonNull(getPrimaryKeys())) {
+            getPrimaryKeys().forEach(pk -> {
+                Preconditions.checkArgument(getFieldList().contains(pk), "primary key " + pk + " not found in sink table field");
+            });
+        }
+
+
+        Preconditions.checkArgument(getFieldList().size() == getFieldExtraInfoList().size(),
+                "fields and fieldExtraInfoList attributes must be the same length");
         return true;
     }
 }

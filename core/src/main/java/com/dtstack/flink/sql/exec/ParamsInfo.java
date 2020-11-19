@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.exec;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -39,6 +40,7 @@ public class ParamsInfo {
     private String pluginLoadMode;
     private String deployMode;
     private Properties confProp;
+    private boolean getPlan = false;
 
     public ParamsInfo(String sql, String name, List<URL> jarUrlList, String localSqlPluginPath,
                       String remoteSqlPluginPath, String pluginLoadMode, String deployMode, Properties confProp) {
@@ -50,6 +52,14 @@ public class ParamsInfo {
         this.pluginLoadMode = pluginLoadMode;
         this.deployMode = deployMode;
         this.confProp = confProp;
+    }
+
+    public boolean isGetPlan() {
+        return getPlan;
+    }
+
+    public void setGetPlan(boolean getPlan) {
+        this.getPlan = getPlan;
     }
 
     public String getSql() {
@@ -114,9 +124,7 @@ public class ParamsInfo {
         private String remoteSqlPluginPath;
         private String pluginLoadMode;
         private String deployMode;
-        private String logLevel;
         private Properties confProp;
-
 
         public ParamsInfo.Builder setSql(String sql) {
             this.sql = sql;

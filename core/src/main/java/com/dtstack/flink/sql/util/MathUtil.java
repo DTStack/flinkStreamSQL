@@ -22,7 +22,9 @@ package com.dtstack.flink.sql.util;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Objects;
 
 /**
  * Convert val to specified numeric type
@@ -234,7 +236,19 @@ public class MathUtil {
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
     }
 
-
+    public static Time getTime(Object obj) {
+        if (Objects.isNull(obj)) {
+            return null;
+        }
+        if (obj instanceof String) {
+            return DateUtil.getTimeFromStr((String) obj);
+        } else if (obj instanceof Timestamp) {
+            return new Time(((Timestamp) obj).getTime());
+        } else if (obj instanceof Time) {
+            return (Time) obj;
+        }
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Time.");
+    }
 
     public static Timestamp getTimestamp(Object obj) {
         if (obj == null) {
