@@ -61,8 +61,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
+import java.sql.*;
 import java.util.ArrayList;
 
 /**
@@ -234,7 +233,10 @@ public class CassandraOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             if (row.getField(index) == null) {
             } else {
                 fields.append(fieldNames[index] + ",");
-                if (row.getField(index) instanceof String) {
+                if (row.getField(index) instanceof String
+                        || row.getField(index) instanceof Time
+                        || row.getField(index) instanceof Date
+                        || row.getField(index) instanceof Timestamp) {
                     values.append("'" + row.getField(index) + "'" + ",");
                 } else {
                     values.append(row.getField(index) + ",");

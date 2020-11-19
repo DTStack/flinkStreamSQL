@@ -22,7 +22,7 @@ package com.dtstack.flink.sql.util;
  * Date: 2018/12/3
  * Company: www.dtstack.com
  *
- * @author maqi TODO 此类作为类型转换的公共类，组件如无特殊类型，则不要重复定义，如有：将该类包装使用
+ * @author maqi
  */
 public class SwitchUtil {
     public static Object getTarget(Object obj, String targetType) {

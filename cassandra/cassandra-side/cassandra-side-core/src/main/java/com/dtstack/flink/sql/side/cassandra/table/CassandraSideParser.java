@@ -23,6 +23,9 @@ import com.dtstack.flink.sql.table.AbstractSideTableParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -114,12 +117,17 @@ public class CassandraSideParser extends AbstractSideTableParser {
                 return String.class;
 
             case "decimal":
+                return BigDecimal.class;
             case "float":
                 return Float.class;
             case "double":
                 return Double.class;
             case "timestamp":
                 return Timestamp.class;
+            case "date":
+                return Date.class;
+            case "time":
+                return Time.class;
             default:
                 break;
         }
