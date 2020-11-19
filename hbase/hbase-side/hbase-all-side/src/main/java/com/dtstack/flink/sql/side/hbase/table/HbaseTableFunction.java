@@ -63,8 +63,6 @@ public class HbaseTableFunction extends BaseTableFunction {
     private Table table = null;
     private ResultScanner resultScanner = null;
     private Configuration conf = null;
-    private AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
-    private Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
     public HbaseTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new HbaseAllSideInfo(sideTableInfo, lookupKeys));
@@ -83,7 +81,7 @@ public class HbaseTableFunction extends BaseTableFunction {
         Map<String, Map<String, Object>> newCache = Maps.newConcurrentMap();
         try {
             loadData(newCache);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             LOG.error("", e);
         }
 
@@ -128,7 +126,9 @@ public class HbaseTableFunction extends BaseTableFunction {
         return row;
     }
 
-    private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
+    @Override
+    protected void loadData(Object cacheRef) {
+        Map<String, Map<String, Object>> tmpCache = (Map<String, Map<String, Object>>) cacheRef;
         Map<String, String> colRefType = ((HbaseAllSideInfo) sideInfo).getColRefType();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         boolean openKerberos = hbaseSideTableInfo.isKerberosAuthEnable();

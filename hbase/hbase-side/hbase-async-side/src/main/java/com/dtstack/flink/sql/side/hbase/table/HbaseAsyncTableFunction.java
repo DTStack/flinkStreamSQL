@@ -81,13 +81,12 @@ public class HbaseAsyncTableFunction extends BaseAsyncTableFunction {
         super(new HbaseAsyncSideInfo(sideTableInfo, lookupKeys));
 
         tableName = ((HbaseSideTableInfo) sideTableInfo).getTableName();
-        colNames = DataTypeUtils.getPhysicalFieldNames(sideInfo.getSideTableInfo());
+        colNames = DataTypeUtils.getPhysicalFieldNames(sideTableInfo);
     }
 
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
-        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         Map<String, Object> hbaseConfig = hbaseSideTableInfo.getHbaseConfig();
 

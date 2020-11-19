@@ -21,37 +21,60 @@ package com.dtstack.flink.sql.side.cassandra.table;
 import com.datastax.driver.core.*;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
+import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.cassandra.CassandraAllSideInfo;
-import com.dtstack.flink.sql.side.table.BaseTableFunction;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.cassandra.CassandraAsyncSideInfo;
+import com.dtstack.flink.sql.side.table.BaseAsyncTableFunction;
 import com.dtstack.flink.sql.util.SwitchUtil;
-import com.google.common.collect.Maps;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.table.functions.FunctionContext;
+import org.apache.flink.types.Row;
+import org.apache.flink.types.RowKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * @author: chuixue
- * @create: 2020-11-19 14:21
+ * @create: 2020-11-19 16:54
  * @description:
  **/
-public class CassandraTableFunction extends BaseTableFunction {
-    private static final long serialVersionUID = 54015343561288219L;
+public class CassandraAsyncTableFunction extends BaseAsyncTableFunction {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CassandraTableFunction.class);
+    private static final long serialVersionUID = 6631584128079864735L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(CassandraAsyncTableFunction.class);
+
     private transient Cluster cluster;
-    private transient Session session = null;
+    private transient ListenableFuture session;
+    private transient CassandraSideTableInfo cassandraSideTableInfo;
 
-    public CassandraTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
-        super(new CassandraAllSideInfo(sideTableInfo, lookupKeys));
+    public CassandraAsyncTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(new CassandraAsyncSideInfo(sideTableInfo, lookupKeys));
     }
 
-    private Session getConn(CassandraSideTableInfo tableInfo) {
+    @Override
+    public void open(FunctionContext context) throws Exception {
+        super.open(context);
+        cassandraSideTableInfo = (CassandraSideTableInfo) sideTableInfo;
+        connCassandraDB(cassandraSideTableInfo);
+    }
+
+    private void connCassandraDB(CassandraSideTableInfo tableInfo) {
         try {
             if (session == null) {
                 QueryOptions queryOptions = new QueryOptions();
@@ -109,73 +132,108 @@ public class CassandraTableFunction extends BaseTableFunction {
                             .withQueryOptions(queryOptions).build();
                 }
                 // 建立连接 连接已存在的键空间
-                session = cluster.connect(database);
+                session = cluster.connectAsync(database);
                 LOG.info("connect cassandra is successed!");
             }
         } catch (Exception e) {
             LOG.error("connect cassandra is error:" + e.getMessage());
         }
-        return session;
+    }
+
+    private String buildWhereCondition(Map<String, Object> inputParams) {
+        StringBuilder sb = new StringBuilder(" where ");
+        for (Map.Entry<String, Object> entry : inputParams.entrySet()) {
+            Object value = entry.getValue() instanceof String ? "'" + entry.getValue() + "'" : entry.getValue();
+            sb.append(String.format("%s = %s", entry.getKey(), value));
+        }
+        return sb.toString();
     }
 
     @Override
-    protected void loadData(Object cacheRef) {
-        Map<String, List<Map<String, Object>>> tmpCache = (Map<String, List<Map<String, Object>>>) cacheRef;
-        CassandraSideTableInfo tableInfo = (CassandraSideTableInfo) sideTableInfo;
-        Session session = null;
+    public void handleAsyncInvoke(CompletableFuture<Collection<Row>> future, Object... keys) throws Exception {
+        String key = buildCacheKey(keys);
+        //connect Cassandra
+        connCassandraDB(cassandraSideTableInfo);
 
-        try {
-            for (int i = 0; i < CONN_RETRY_NUM; i++) {
-                try {
-                    session = getConn(tableInfo);
-                    break;
-                } catch (Exception e) {
-                    if (i == CONN_RETRY_NUM - 1) {
-                        throw new RuntimeException("", e);
+        List<String> lookupKeys = Stream
+                .of(sideInfo.getLookupKeys())
+                .map(e -> physicalFields.getOrDefault(e, e))
+                .collect(Collectors.toList());
+
+        String[] lookupKeysArr = lookupKeys.toArray(new String[lookupKeys.size()]);
+
+        Map<String, Object> inputParams = IntStream
+                .range(0, lookupKeys.size())
+                .boxed()
+                .collect(Collectors.toMap(i -> lookupKeysArr[i], i -> keys[i]));
+
+        String sqlCondition = sideInfo.getSqlCondition() + " " + buildWhereCondition(inputParams) + "  ALLOW FILTERING ";
+        LOG.info("sqlCondition:{}" + sqlCondition);
+
+        ListenableFuture<ResultSet> resultSet = Futures.transformAsync(session,
+                (AsyncFunction<Session, ResultSet>) session -> session.executeAsync(sqlCondition));
+
+        ListenableFuture<List<com.datastax.driver.core.Row>> data = Futures.transform(resultSet,
+                (Function<ResultSet, List<com.datastax.driver.core.Row>>) rs -> rs.all());
+
+        Futures.addCallback(data, new FutureCallback<List<com.datastax.driver.core.Row>>() {
+            @Override
+            public void onSuccess(List<com.datastax.driver.core.Row> rows) {
+                cluster.closeAsync();
+                if (rows.size() > 0) {
+                    List<com.datastax.driver.core.Row> cacheContent = Lists.newArrayList();
+                    List<Row> rowList = Lists.newArrayList();
+                    for (com.datastax.driver.core.Row line : rows) {
+                        Row row = fillData(line);
+                        if (openCache()) {
+                            cacheContent.add(line);
+                        }
+                        rowList.add(row);
                     }
-                    try {
-                        String connInfo = "address:" + tableInfo.getAddress() + ";userName:" + tableInfo.getUserName()
-                                + ",pwd:" + tableInfo.getPassword();
-                        LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
-                        Thread.sleep(LOAD_DATA_ERROR_SLEEP_TIME);
-                    } catch (InterruptedException e1) {
-                        LOG.error("", e1);
+                    future.complete(rowList);
+                    if (openCache()) {
+                        putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }
+                } else {
+                    dealMissKey(future);
+                    if (openCache()) {
+                        putCache(key, CacheMissVal.getMissKeyObj());
+                    }
+                    future.complete(Collections.EMPTY_LIST);
                 }
-
             }
 
-            //load data from table
-            String sql = sideInfo.getSqlCondition() + " limit " + getFetchSize();
-            ResultSet resultSet = session.execute(sql);
+            @Override
+            public void onFailure(Throwable t) {
+                LOG.error("Failed to retrieve the data: %s%n",
+                        t.getMessage());
+                cluster.closeAsync();
+                future.completeExceptionally(t);
+            }
+        });
+    }
+
+    @Override
+    public Row fillData(Object sideInput) {
+        com.datastax.driver.core.Row varRow = (com.datastax.driver.core.Row) sideInput;
+        Row row = new Row(physicalFields.size());
+        if (sideInput != null) {
             String[] sideFieldNames = physicalFields.values().stream().toArray(String[]::new);
-            String[] sideFieldTypes = tableInfo.getFieldTypes();
-            for (com.datastax.driver.core.Row row : resultSet) {
-                Map<String, Object> oneRow = Maps.newHashMap();
-                for (int i = 0; i < sideFieldNames.length; i++) {
-                    Object object = row.getObject(sideFieldNames[i].trim());
-                    object = SwitchUtil.getTarget(object, sideFieldTypes[i]);
-                    oneRow.put(sideFieldNames[i].trim(), object);
-                }
-                buildCache(oneRow, tmpCache);
+            String[] sideFieldTypes = sideTableInfo.getFieldTypes();
+            for (int i = 0; i < sideFieldNames.length; i++) {
+                row.setField(i, SwitchUtil.getTarget(varRow.getObject(sideFieldNames[i].trim()), sideFieldTypes[i]));
             }
-        } catch (Exception e) {
-            LOG.error("", e);
-        } finally {
-            try {
-                if (session != null) {
-                    session.close();
-                }
-            } catch (Exception e) {
-                LOG.error("Error while closing session.", e);
-            }
-            try {
-                if (cluster != null) {
-                    cluster.close();
-                }
-            } catch (Exception e) {
-                LOG.error("Error while closing cluster.", e);
-            }
+        }
+        row.setKind(RowKind.INSERT);
+        return row;
+    }
+
+    @Override
+    public void close() throws Exception {
+        super.close();
+        if (cluster != null) {
+            cluster.close();
+            cluster = null;
         }
     }
 }

@@ -66,8 +66,6 @@ public class Elasticsearch6AsyncTableFunction extends BaseAsyncTableFunction {
     private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch6AsyncTableFunction.class);
     private transient RestHighLevelClient rhlClient;
     private SearchRequest searchRequest;
-    private AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
-    private Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
     public Elasticsearch6AsyncTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new Elasticsearch6AsyncSideInfo(sideTableInfo, lookupKeys));
@@ -76,7 +74,7 @@ public class Elasticsearch6AsyncTableFunction extends BaseAsyncTableFunction {
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
-        Elasticsearch6SideTableInfo tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
+        Elasticsearch6SideTableInfo tableInfo = (Elasticsearch6SideTableInfo) sideTableInfo;
         rhlClient = Es6Util.getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
         searchRequest = Es6Util.setSearchRequest(sideInfo);
     }
@@ -112,7 +110,7 @@ public class Elasticsearch6AsyncTableFunction extends BaseAsyncTableFunction {
                             }
                             if (tableInfo == null) {
                                 // create new connection to fetch data
-                                tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
+                                tableInfo = (Elasticsearch6SideTableInfo) sideTableInfo;
                                 tmpRhlClient = Es6Util.getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
                             }
                             Object[] searchAfterParameter = searchHits[searchHits.length - 1].getSortValues();

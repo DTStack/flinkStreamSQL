@@ -38,10 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -57,9 +54,13 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
     protected static final int DEFAULT_FETCH_SIZE = 1000;
+    protected AbstractSideTableInfo sideTableInfo;
+    protected Map<String, String> physicalFields;
 
     public BaseAsyncTableFunction(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
+        this.sideTableInfo = sideInfo.getSideTableInfo();
+        this.physicalFields = sideTableInfo.getPhysicalFields();
     }
 
     /**

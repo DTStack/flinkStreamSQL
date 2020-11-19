@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.ISideReqRow;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.functions.TableFunction;
@@ -33,10 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -63,8 +62,14 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
 
     private ScheduledExecutorService es;
 
+    protected AbstractSideTableInfo sideTableInfo;
+
+    protected Map<String, String> physicalFields;
+
     public BaseTableFunction(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
+        this.sideTableInfo = sideInfo.getSideTableInfo();
+        this.physicalFields = sideTableInfo.getPhysicalFields();
     }
 
     /**
@@ -72,12 +77,35 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
      *
      * @throws SQLException
      */
-    protected abstract void initCache() throws SQLException;
+    protected void initCache() throws SQLException {
+        Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
+        cacheRef.set(newCache);
+        loadData(newCache);
+    }
 
     /**
      * 定时加载数据库中数据
      */
-    protected abstract void reloadCache();
+    protected void reloadCache() {
+        //reload cacheRef and replace to old cacheRef
+        Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
+        try {
+            loadData(newCache);
+        } catch (Exception e) {
+            LOG.error("", e);
+            throw new RuntimeException(e);
+        }
+
+        cacheRef.set(newCache);
+        LOG.info("----- " + sideTableInfo.getName() + ":" + sideTableInfo.getType() + " all cacheRef reload end:{}", LocalDateTime.now());
+    }
+
+    /**
+     * 加载数据到缓存
+     *
+     * @param cacheRef
+     */
+    protected abstract void loadData(Object cacheRef);
 
     /**
      * 初始化定时加载器

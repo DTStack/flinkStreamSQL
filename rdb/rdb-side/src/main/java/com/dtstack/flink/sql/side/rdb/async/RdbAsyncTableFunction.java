@@ -98,7 +98,7 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     protected void init(BaseSideInfo sideInfo) {
-        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo)sideTableInfo;
         int defaultAsyncPoolSize = Math.min(MAX_DB_CONN_POOL_SIZE_LIMIT, DEFAULT_DB_CONN_POOL_SIZE);
         int rdbPoolSize = rdbSideTableInfo.getAsyncPoolSize() > 0 ? rdbSideTableInfo.getAsyncPoolSize() : defaultAsyncPoolSize;
         rdbSideTableInfo.setAsyncPoolSize(rdbPoolSize);
@@ -159,7 +159,7 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
                     if (failCounter.getAndIncrement() % 1000 == 0) {
                         LOG.error("getConnection error", conn.cause());
                     }
-                    if (failCounter.get() >= sideInfo.getSideTableInfo().getConnectRetryMaxNum(100)) {
+                    if (failCounter.get() >= sideTableInfo.getConnectRetryMaxNum(100)) {
                         future.completeExceptionally(conn.cause());
                         finishFlag.set(true);
                     }
@@ -260,7 +260,7 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
     @Override
     public Row fillData(Object sideInput) {
         JsonArray jsonArray = (JsonArray) sideInput;
-        String[] fieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
+        String[] fieldTypes = sideTableInfo.getFieldTypes();
         Row row = new Row(fieldTypes.length);
         if (jsonArray != null) {
             for (int i = 0; i < fieldTypes.length; i++) {
