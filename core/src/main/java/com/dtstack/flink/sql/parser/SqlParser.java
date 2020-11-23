@@ -26,6 +26,9 @@ import com.dtstack.flink.sql.table.AbstractTableInfoParser;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
+import com.google.common.base.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Set;
@@ -40,6 +43,7 @@ import java.util.regex.Pattern;
  */
 
 public class SqlParser {
+    private static final Logger LOG = LoggerFactory.getLogger(SqlParser.class);
 
     private static final char SQL_DELIMITER = ';';
 
@@ -77,18 +81,23 @@ public class SqlParser {
         SqlTree sqlTree = new SqlTree();
         AbstractTableInfoParser tableInfoParser = new AbstractTableInfoParser();
         for(String childSql : sqlArr){
-            if(StringUtils.isBlank(childSql)){
+            if(Strings.isNullOrEmpty(childSql)){
                 continue;
             }
             boolean result = false;
             for(IParser sqlParser : sqlParserList){
-                if(!sqlParser.verify(childSql)){
-                    continue;
-                }
+                try {
+                    if (!sqlParser.verify(childSql)) {
+                        continue;
+                    }
 
-                sqlParser.parseSql(childSql, sqlTree, planner);
-                result = true;
-                break;
+                    sqlParser.parseSql(childSql, sqlTree, planner);
+                    result = true;
+                    break;
+                } catch (Exception e) {
+                    LOG.error("'{}' parser error, detail info: {}", childSql, e.getMessage(), e);
+                    throw e;
+                }
             }
 
             if(!result){
