@@ -74,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.calcite.sql.SqlKind.AS;
 import static org.apache.calcite.sql.SqlKind.INSERT;
@@ -546,7 +547,13 @@ public class SideSqlExec {
                 EnvironmentSettings.DEFAULT_BUILTIN_CATALOG,
                 EnvironmentSettings.DEFAULT_BUILTIN_DATABASE,
                 targetTableName);
-        boolean tableExists = tableEnv.getCatalog(EnvironmentSettings.DEFAULT_BUILTIN_CATALOG).get().tableExists(objectIdentifier.toObjectPath());
+        boolean tableExists = false;
+        for (String table : tableEnv.listTables()) {
+            if (table.equals(targetTableName)) {
+                tableExists = true;
+                break;
+            }
+        }
 
         if (!tableExists) {
             Table joinTable = tableEnv.fromDataStream(dsOut);
