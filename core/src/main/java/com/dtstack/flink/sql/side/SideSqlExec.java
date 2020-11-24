@@ -319,23 +319,23 @@ public class SideSqlExec {
      * @param conditionNode
      * @param joinScope
      */
-    public void checkConditionFieldsInTable(SqlNode conditionNode, JoinScope joinScope, Map<String, AbstractSideTableInfo> sideTableMap) {
+    public void checkConditionFieldsInTable(SqlNode conditionNode, JoinScope joinScope, AbstractSideTableInfo sideTableInfo) {
         List<SqlNode> sqlNodeList = Lists.newArrayList();
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
         for (SqlNode sqlNode : sqlNodeList) {
             if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
-                throw new RuntimeException("not compare operator.");
+                throw new RuntimeException("It is not comparison operator.");
             }
 
             SqlNode leftNode = ((SqlBasicCall) sqlNode).getOperands()[0];
             SqlNode rightNode = ((SqlBasicCall) sqlNode).getOperands()[1];
 
             if (leftNode.getKind() == SqlKind.IDENTIFIER) {
-                checkFieldInTable((SqlIdentifier) leftNode, joinScope, conditionNode, sideTableMap);
+                checkFieldInTable((SqlIdentifier) leftNode, joinScope, conditionNode, sideTableInfo);
             }
 
             if (rightNode.getKind() == SqlKind.IDENTIFIER) {
-                checkFieldInTable((SqlIdentifier) rightNode, joinScope, conditionNode, sideTableMap);
+                checkFieldInTable((SqlIdentifier) rightNode, joinScope, conditionNode, sideTableInfo);
             }
 
         }
@@ -347,7 +347,7 @@ public class SideSqlExec {
      * @param joinScope
      * @param conditionNode
      */
-    private void checkFieldInTable(SqlIdentifier sqlNode, JoinScope joinScope, SqlNode conditionNode, Map<String, AbstractSideTableInfo> sideTableMap) {
+    private void checkFieldInTable(SqlIdentifier sqlNode, JoinScope joinScope, SqlNode conditionNode,  AbstractSideTableInfo sideTableInfo) {
         String tableName = sqlNode.getComponent(0).getSimple();
         String fieldName = sqlNode.getComponent(1).getSimple();
         JoinScope.ScopeChild scopeChild = joinScope.getScope(tableName);
@@ -364,7 +364,6 @@ public class SideSqlExec {
         ArrayList<String> allFieldNames = new ArrayList(
             Arrays.asList(fieldNames)
         );
-        AbstractSideTableInfo sideTableInfo = sideTableMap.get(tableName);
         // HBase、Redis这种NoSQL Primary Key不在字段列表中，所以要加进去。
         if (sideTableInfo != null) {
             List<String> pks = sideTableInfo.getPrimaryKeys();
@@ -497,7 +496,8 @@ public class SideSqlExec {
         joinScope.addScope(rightScopeChild);
 
         HashBasedTable<String, String, String> mappingTable = ((JoinInfo) pollObj).getTableFieldRef();
-        checkConditionFieldsInTable(joinInfo.getCondition(), joinScope, sideTableMap);
+        // 检查JOIN等式字段是否在原表中
+        checkConditionFieldsInTable(joinInfo.getCondition(), joinScope, sideTableInfo);
 
         //获取两个表的所有字段
         List<FieldInfo> sideJoinFieldInfo = ParserJoinField.getRowTypeInfo(joinInfo.getSelectNode(), joinScope, true);
