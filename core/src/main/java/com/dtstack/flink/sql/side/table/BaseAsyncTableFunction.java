@@ -272,7 +272,7 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
      */
     public String buildCacheKey(Object... keys) {
         return Arrays.stream(keys)
-                .map(Object::toString)
+                .map(e -> String.valueOf(e))
                 .collect(Collectors.joining("_"));
     }
 

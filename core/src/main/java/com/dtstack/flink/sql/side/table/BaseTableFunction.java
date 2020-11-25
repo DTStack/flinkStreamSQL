@@ -143,7 +143,7 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
 
         String cacheKey = physicalFields.stream()
                 .map(oneRow::get)
-                .map(Object::toString)
+                .map(e -> String.valueOf(e))
                 .collect(Collectors.joining("_"));
 
         tmpCache.computeIfAbsent(cacheKey, key -> Lists.newArrayList())
@@ -157,7 +157,7 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
      */
     public void eval(Object... keys) {
         String cacheKey = Arrays.stream(keys)
-                .map(Object::toString)
+                .map(e -> String.valueOf(e))
                 .collect(Collectors.joining("_"));
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
         // 有数据才往下发，(左/内)连接flink会做相应的处理
