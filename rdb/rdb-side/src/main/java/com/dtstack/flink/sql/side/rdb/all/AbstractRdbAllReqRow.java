@@ -29,23 +29,21 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.*;
-import java.time.LocalDateTime;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -105,7 +103,6 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         List<Integer> equalValIndex = sideInfo.getEqualValIndex();
         ArrayList<Object> inputParams = equalValIndex.stream()
                 .map(value::getField)
-                .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
@@ -115,7 +112,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         }
 
         String cacheKey = inputParams.stream()
-                .map(Object::toString)
+                .map(e -> String.valueOf(e))
                 .collect(Collectors.joining("_"));
 
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
@@ -185,7 +182,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
             String cacheKey = sideInfo.getEqualFieldList().stream()
                     .map(oneRow::get)
-                    .map(Object::toString)
+                    .map(e -> String.valueOf(e))
                     .collect(Collectors.joining("_"));
 
             tmpCache.computeIfAbsent(cacheKey, key -> Lists.newArrayList())
