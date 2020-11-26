@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.dtstatck.flink.sql.side.oceanbase;
+package com.dtstack.flink.sql.side.oceanbase;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
