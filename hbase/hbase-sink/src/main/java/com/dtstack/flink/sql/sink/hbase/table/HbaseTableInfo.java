@@ -71,6 +71,10 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
 
     private String clientKeytabFile;
 
+    private String batchSize;
+
+    private String batchWaitInterval;
+
     private Map<String,Object> hbaseConfig = Maps.newHashMap();
 
     public HbaseTableInfo(){
@@ -231,6 +235,22 @@ public class HbaseTableInfo extends AbstractTargetTableInfo {
 
     public void setClientKeytabFile(String clientKeytabFile) {
         this.clientKeytabFile = clientKeytabFile;
+    }
+
+    public String getBatchSize() {
+        return batchSize;
+    }
+
+    public void setBatchSize(String batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    public String getBatchWaitInterval() {
+        return batchWaitInterval;
+    }
+
+    public void setBatchWaitInterval(String batchWaitInterval) {
+        this.batchWaitInterval = batchWaitInterval;
     }
 
 }

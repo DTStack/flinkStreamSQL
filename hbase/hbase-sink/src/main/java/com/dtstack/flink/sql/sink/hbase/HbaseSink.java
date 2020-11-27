@@ -65,6 +65,8 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     private String clientKeytabFile;
     private int parallelism = 1;
 
+    protected String batchSize;
+    protected String batchWaitInterval;
 
     public HbaseSink() {
         // TO DO NOTHING
@@ -94,6 +96,9 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         if (tmpSinkParallelism != null) {
             this.parallelism = tmpSinkParallelism;
         }
+
+        this.batchSize = hbaseTableInfo.getBatchSize();
+        this.batchWaitInterval = hbaseTableInfo.getBatchWaitInterval();
         return this;
     }
 
@@ -118,6 +123,9 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
         builder.setClientPrincipal(clientPrincipal);
         builder.setClientKeytabFile(clientKeytabFile);
+
+        builder.setBatchSize(Integer.parseInt(batchSize));
+        builder.setBatchWaitInterval(Long.parseLong(batchWaitInterval));
 
         HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
