@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -92,7 +93,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private transient ScheduledExecutorService executor;
     private transient ScheduledFuture scheduledFuture;
 
-    private final List<Row> records = new ArrayList<>();
+    private final List<Row> records = new CopyOnWriteArrayList<>();
 
 
     @Override
