@@ -47,11 +47,13 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.table.functions.BuiltInFunctionDefinitions;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -608,8 +610,17 @@ public class JoinNodeDealer {
         }else if(selectNode.getKind() == IDENTIFIER) {
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
-            if(sqlIdentifier.names.size() == 1){
-                throw new WithoutTableNameException(sqlIdentifier+ " field invalid , please use like t."+sqlIdentifier);
+            if (sqlIdentifier.names.size() == 1) {
+                List<String> builtInFunctionNames = BuiltInFunctionDefinitions
+                        .getDefinitions()
+                        .stream()
+                        .map(e -> e.getName().toUpperCase())
+                        .collect(Collectors.toList());
+                if (builtInFunctionNames.contains(sqlIdentifier.toString().toUpperCase())) {
+                    return;
+                } else {
+                    throw new WithoutTableNameException(sqlIdentifier + " field invalid , please use like t." + sqlIdentifier);
+                }
             }
 
             String tableName = sqlIdentifier.names.get(0);
