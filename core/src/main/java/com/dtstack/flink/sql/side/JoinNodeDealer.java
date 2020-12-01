@@ -19,12 +19,16 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.exception.sqlparse.WithoutTableNameException;
 import com.dtstack.flink.sql.parser.FlinkPlanner;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.esotericsoftware.minlog.Log;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.common.collect.HashBiMap;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -39,7 +43,6 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -49,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Arrays;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -68,6 +72,9 @@ public class JoinNodeDealer {
     private SideSQLParser sideSQLParser;
 
     private FlinkPlanner flinkPlanner = new FlinkPlanner();
+
+    // 内置无参函数的临时解决方法，防止被误判为表的字段
+    private List<String> builtInFunctionNames = Arrays.asList("LOCALTIMESTAMP", "LOCALTIME", "CURRENT_TIMESTAMP", "CURRENT_TIME", "CURRENT_DATE", "PI");
 
     public JoinNodeDealer(SideSQLParser sideSQLParser){
         this.sideSQLParser = sideSQLParser;
@@ -605,8 +612,12 @@ public class JoinNodeDealer {
         }else if(selectNode.getKind() == IDENTIFIER) {
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
-            if(sqlIdentifier.names.size() == 1){
-                return;
+            if (sqlIdentifier.names.size() == 1) {
+                if (builtInFunctionNames.contains(sqlIdentifier.toString().toUpperCase())) {
+                    return;
+                } else {
+                    throw new WithoutTableNameException(sqlIdentifier + " field invalid , please use like t." + sqlIdentifier);
+                }
             }
 
             String tableName = sqlIdentifier.names.get(0);
