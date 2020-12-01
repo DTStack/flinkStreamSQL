@@ -169,9 +169,15 @@ public class InsertSqlParser implements IParser {
             // 判断sqlNode的结构是否属于'f1' 或者 't.*'
             boolean isIdentifierOrStar = sqlNode.getClass().equals(SqlIdentifier.class)
                     // sqlNode like 'f1'
+<<<<<<< HEAD
                     && (((SqlIdentifier) sqlNode).names.size() == 1
                     // sqlNode like 't.*'
                     || StringUtils.isBlank(((SqlIdentifier) sqlNode).names.get(1)));
+=======
+                    && (((SqlIdentifier) sqlNode).isSimple()
+                    // sqlNode like 't.*'
+                    || ((SqlIdentifier) sqlNode).isStar());
+>>>>>>> e52022440e11ac5d851e44be4c0c529050223903
 
             if (isAsNode || isIdentifierOrStar) {
                 sqlNodes.add(sqlNode);
