@@ -122,7 +122,7 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
         //start reload cache thread
         AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         es = new ScheduledThreadPoolExecutor(1, new DTThreadFactory("cache-all-reload"));
-        es.scheduleAtFixedRate(() -> reloadCache()
+        es.scheduleAtFixedRate(this::reloadCache
                 , sideTableInfo.getCacheTimeout()
                 , sideTableInfo.getCacheTimeout()
                 , TimeUnit.MILLISECONDS);
@@ -143,7 +143,7 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
 
         String cacheKey = physicalFields.stream()
                 .map(oneRow::get)
-                .map(e -> String.valueOf(e))
+                .map(String::valueOf)
                 .collect(Collectors.joining("_"));
 
         tmpCache.computeIfAbsent(cacheKey, key -> Lists.newArrayList())
@@ -157,12 +157,12 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
      */
     public void eval(Object... keys) {
         String cacheKey = Arrays.stream(keys)
-                .map(e -> String.valueOf(e))
+                .map(String::valueOf)
                 .collect(Collectors.joining("_"));
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
         // 有数据才往下发，(左/内)连接flink会做相应的处理
         if (!CollectionUtils.isEmpty(cacheList)) {
-            cacheList.stream().forEach(one -> collect(fillData(one)));
+            cacheList.forEach(one -> collect(fillData(one)));
         }
     }
 
@@ -176,7 +176,7 @@ abstract public class BaseTableFunction extends TableFunction<Row> implements IS
     public Row fillData(Object sideInput) {
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
         Collection<String> fields = sideInfo.getSideTableInfo().getPhysicalFields().values();
-        String[] fieldsArr = fields.toArray(new String[fields.size()]);
+        String[] fieldsArr = fields.toArray(new String[0]);
         Row row = new Row(fieldsArr.length);
         for (int i = 0; i < fieldsArr.length; i++) {
             row.setField(i, cacheInfo.get(fieldsArr[i]));
