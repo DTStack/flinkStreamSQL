@@ -213,13 +213,18 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         ResultSet resultSet = statement.executeQuery(sql);
 
         String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
-        String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
+        String[] fields = sideInfo.getSideTableInfo().getFields();
+        String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
+        Map<String, String> sideFieldNamesAndTypes = Maps.newHashMap();
+        for (int i = 0; i < fields.length; i++) {
+            sideFieldNamesAndTypes.put(fields[i], sideFieldTypes[i]);
+        }
+
         while (resultSet.next()) {
             Map<String, Object> oneRow = Maps.newHashMap();
             for (String fieldName : sideFieldNames) {
                 Object object = resultSet.getObject(fieldName.trim());
-                int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
-                object = SwitchUtil.getTarget(object, fields[fieldIndex]);
+                object = SwitchUtil.getTarget(object, sideFieldNamesAndTypes.get(fieldName));
                 oneRow.put(fieldName.trim(), object);
             }
 

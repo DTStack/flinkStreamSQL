@@ -60,6 +60,11 @@
 | isFaultTolerant |查询是否容错  查询失败是否扫描第二个副本  默认false  容错 | 否||
 | cache | 维表缓存策略(NONE/LRU/ALL)|否|NONE|
 | partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
+| principal |kerberos用于登录的principal | 否||
+| keytab |keytab文件的路径 | 否||
+| krb5conf |conf文件路径 | 否||
+Kerberos三个参数全部设置则开启Kerberos认证，如果缺少任何一个则会提示缺少参数错误。
+如果全部未设置则不开启Kerberos连接Kudu集群。
 --------------
 
 ## 5.样例
@@ -163,3 +168,20 @@ into
     on t1.id = t2.id;     
 ```
 
+## 7.kerberos示例
+```
+create table dim (
+    name varchar,
+    id int,
+    PERIOD FOR SYSTEM_TIME
+) WITH (
+    type='kudu',
+    kuduMasters='host1',
+    tableName='foo',
+    parallelism ='1',
+    cache ='ALL',
+    keytab='foo/foobar.keytab',
+    krb5conf='bar/krb5.conf',
+    principal='kudu/host1@DTSTACK.COM'
+);
+```

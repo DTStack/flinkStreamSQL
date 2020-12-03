@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * add metric for source
@@ -91,7 +92,7 @@ public class DeserializationMetricWrapper extends AbstractDeserializationSchema<
     public Row deserialize(byte[] message) throws IOException {
         try {
             if (numInRecord.getCount() % dataPrintFrequency == 0) {
-                LOG.info("receive source data:" + new String(message, "UTF-8"));
+                LOG.info("receive source data:" + new String(message, StandardCharsets.UTF_8));
             }
             numInRecord.inc();
             numInBytes.inc(message.length);
