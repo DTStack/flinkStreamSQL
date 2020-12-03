@@ -294,7 +294,7 @@ public class JoinNodeDealer {
         SqlBasicCall buildAs = TableUtils.buildAsNodeByJoinInfo(joinInfo, null, null);
 
         if(rightIsSide){
-            addSideInfoToExeQueue(queueInfo, joinInfo, joinNode, parentSelectList, parentGroupByList, parentWhere, tableRef);
+            addSideInfoToExeQueue(queueInfo, joinInfo, joinNode, parentSelectList, parentGroupByList, parentWhere, tableRef, fieldRef);
         }
 
         SqlNode newLeftNode = joinNode.getLeft();
@@ -307,7 +307,7 @@ public class JoinNodeDealer {
 
             //替换leftNode 为新的查询
             joinNode.setLeft(buildAs);
-            replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentGroupByList, parentWhere);
+            replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, fieldRef, parentSelectList, parentGroupByList, parentWhere);
         }
 
         return joinInfo;
@@ -330,7 +330,8 @@ public class JoinNodeDealer {
                                       SqlNodeList parentSelectList,
                                       SqlNodeList parentGroupByList,
                                       SqlNode parentWhere,
-                                      Map<String, String> tableRef){
+                                      Map<String, String> tableRef,
+                                      Map<String, String> fieldRef){
         //只处理维表
         if(!joinInfo.isRightIsSideTable()){
             return;
@@ -342,7 +343,7 @@ public class JoinNodeDealer {
         //替换左表为新的表名称
         joinNode.setLeft(buildAs);
 
-        replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentGroupByList, parentWhere);
+        replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, fieldRef, parentSelectList, parentGroupByList, parentWhere);
     }
 
     /**
@@ -357,6 +358,7 @@ public class JoinNodeDealer {
     public void replaceSelectAndWhereField(SqlBasicCall buildAs,
                    SqlNode leftJoinNode,
                    Map<String, String> tableRef,
+                   Map<String, String> fieldRef,
                    SqlNodeList parentSelectList,
                    SqlNodeList parentGroupByList,
                    SqlNode parentWhere){
@@ -370,23 +372,22 @@ public class JoinNodeDealer {
         }
 
         //替换select field 中的对应字段
-        HashBiMap<String, String> fieldReplaceRef = HashBiMap.create();
         for(SqlNode sqlNode : parentSelectList.getList()){
             for(String tbTmp : fromTableNameSet) {
-                TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);
+                TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldRef);
             }
         }
 
         //TODO 应该根据上面的查询字段的关联关系来替换
         //替换where 中的条件相关
         for(String tbTmp : fromTableNameSet){
-            TableUtils.replaceWhereCondition(parentWhere, tbTmp, newLeftTableName, fieldReplaceRef);
+            TableUtils.replaceWhereCondition(parentWhere, tbTmp, newLeftTableName, fieldRef);
         }
 
         if(parentGroupByList != null){
             for(SqlNode sqlNode : parentGroupByList.getList()){
                 for(String tbTmp : fromTableNameSet) {
-                    TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);
+                    TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldRef);
                 }
             }
         }
@@ -444,16 +445,15 @@ public class JoinNodeDealer {
             queueInfo.offer(sqlBasicCall);
 
             //替换select中的表结构
-            HashBiMap<String, String> fieldReplaceRef = HashBiMap.create();
             for(SqlNode tmpSelect : parentSelectList.getList()){
                 for(String tbTmp : fromTableNameSet) {
-                    TableUtils.replaceSelectFieldTable(tmpSelect, tbTmp, tableAlias, fieldReplaceRef);
+                    TableUtils.replaceSelectFieldTable(tmpSelect, tbTmp, tableAlias, fieldRef);
                 }
             }
 
             //替换where 中的条件相关
             for(String tbTmp : fromTableNameSet){
-                TableUtils.replaceWhereCondition(parentWhere, tbTmp, tableAlias, fieldReplaceRef);
+                TableUtils.replaceWhereCondition(parentWhere, tbTmp, tableAlias, fieldRef);
             }
 
             for(String tbTmp : fromTableNameSet){
