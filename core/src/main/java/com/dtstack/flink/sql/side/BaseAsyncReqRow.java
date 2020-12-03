@@ -181,7 +181,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<CRow, CRow> impl
     }
 
     private Map<String, Object> parseInputParam(CRow input){
-        Map<String, Object> inputParams = Maps.newHashMap();
+        Map<String, Object> inputParams = Maps.newLinkedHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.row().getField(conValIndex);
