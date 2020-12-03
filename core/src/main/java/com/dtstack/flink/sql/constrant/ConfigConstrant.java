@@ -56,6 +56,9 @@ public class ConfigConstrant {
     // default 200ms
     public static final String AUTO_WATERMARK_INTERVAL_KEY = "autoWatermarkInterval";
 
+    // window early trigger
+    public static final String EARLY_TRIGGER = "early.trigger";
+
     public static final String SQL_TTL_MINTIME = "sql.ttl.min";
     public static final String SQL_TTL_MAXTIME = "sql.ttl.max";
 

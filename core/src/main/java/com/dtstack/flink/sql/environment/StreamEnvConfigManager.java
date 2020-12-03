@@ -122,6 +122,21 @@ public final class StreamEnvConfigManager {
     }
 
     /**
+     * 设置TableEnvironment window提前触发
+     * @param tableEnv
+     * @param confProperties
+     */
+    public static void streamTableEnvironmentEarlyTriggerConfig(TableEnvironment tableEnv, Properties confProperties) {
+        confProperties = PropertiesUtils.propertiesTrim(confProperties);
+        String triggerTime = confProperties.getProperty(ConfigConstrant.EARLY_TRIGGER);
+        if (StringUtils.isNumeric(triggerTime)) {
+            TableConfig qConfig = tableEnv.getConfig();
+            qConfig.getConfiguration().setString("table.exec.emit.early-fire.enabled", "true");
+            qConfig.getConfiguration().setString("table.exec.emit.early-fire.delay", triggerTime+"s");
+        }
+    }
+
+    /**
      * 设置TableEnvironment状态超时时间
      * @param tableEnv
      * @param confProperties
