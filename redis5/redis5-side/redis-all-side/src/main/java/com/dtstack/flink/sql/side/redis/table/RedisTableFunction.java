@@ -98,13 +98,18 @@ public class RedisTableFunction extends BaseTableFunction {
             for (String key : keys) {
                 Map<String, Object> resultRow = Maps.newHashMap();
                 Map<String, String> hgetAll = jedis.hgetAll(key);
-                for (String hkey : hgetAll.keySet()) {
-                    resultRow.put(hkey, SwitchUtil.getTarget(hgetAll.get(hkey), fieldMapType.get(hkey)));
+                // 防止一条数据有问题，后面数据无法加载
+                try {
+                    for (String hkey : hgetAll.keySet()) {
+                        resultRow.put(hkey, SwitchUtil.getTarget(hgetAll.get(hkey), fieldMapType.get(hkey)));
+                    }
+                    tmpCache.computeIfAbsent(key, tmpKey -> Lists.newArrayList()).add(resultRow);
+                } catch (Exception e) {
+                    LOG.error("", e);
                 }
-
-                tmpCache.computeIfAbsent(key, tmpKey -> Lists.newArrayList()).add(resultRow);
             }
-
+        } catch (Exception e) {
+            LOG.error("", e);
         } finally {
             if (jedis != null) {
                 try {

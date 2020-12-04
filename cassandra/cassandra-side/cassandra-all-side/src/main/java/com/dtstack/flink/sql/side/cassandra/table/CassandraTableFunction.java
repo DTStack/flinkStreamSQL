@@ -152,12 +152,17 @@ public class CassandraTableFunction extends BaseTableFunction {
             String[] sideFieldTypes = tableInfo.getFieldTypes();
             for (com.datastax.driver.core.Row row : resultSet) {
                 Map<String, Object> oneRow = Maps.newHashMap();
-                for (int i = 0; i < sideFieldNames.length; i++) {
-                    Object object = row.getObject(sideFieldNames[i].trim());
-                    object = SwitchUtil.getTarget(object, sideFieldTypes[i]);
-                    oneRow.put(sideFieldNames[i].trim(), object);
+                // 防止一条数据有问题，后面数据无法加载
+                try {
+                    for (int i = 0; i < sideFieldNames.length; i++) {
+                        Object object = row.getObject(sideFieldNames[i].trim());
+                        object = SwitchUtil.getTarget(object, sideFieldTypes[i]);
+                        oneRow.put(sideFieldNames[i].trim(), object);
+                    }
+                    buildCache(oneRow, tmpCache);
+                } catch (Exception e) {
+                    LOG.error("", e);
                 }
-                buildCache(oneRow, tmpCache);
             }
         } catch (Exception e) {
             LOG.error("", e);

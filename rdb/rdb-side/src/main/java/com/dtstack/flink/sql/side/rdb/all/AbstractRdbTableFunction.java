@@ -103,13 +103,17 @@ abstract public class AbstractRdbTableFunction extends BaseTableFunction {
         String[] fields = sideTableInfo.getFieldTypes();
         while (resultSet.next()) {
             Map<String, Object> oneRow = Maps.newHashMap();
-            for (int i = 0; i < sideFieldNames.length; i++) {
-                Object object = resultSet.getObject(sideFieldNames[i].trim());
-                object = SwitchUtil.getTarget(object, fields[i]);
-                oneRow.put(sideFieldNames[i].trim(), object);
+            // 防止一条数据有问题，后面数据无法加载
+            try {
+                for (int i = 0; i < sideFieldNames.length; i++) {
+                    Object object = resultSet.getObject(sideFieldNames[i].trim());
+                    object = SwitchUtil.getTarget(object, fields[i]);
+                    oneRow.put(sideFieldNames[i].trim(), object);
+                }
+                buildCache(oneRow, tmpCache);
+            } catch (Exception e) {
+                LOG.error("", e);
             }
-
-            buildCache(oneRow, tmpCache);
         }
     }
 
