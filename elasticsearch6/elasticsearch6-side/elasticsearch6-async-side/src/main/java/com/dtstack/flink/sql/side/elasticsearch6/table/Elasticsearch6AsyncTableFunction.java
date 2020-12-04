@@ -31,7 +31,6 @@ import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
-import org.apache.flink.types.RowKind;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -169,18 +168,11 @@ public class Elasticsearch6AsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     @Override
-    public Row fillData(Object sideInput) {
+    protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row) {
         Map<String, Object> values = (Map<String, Object>) sideInput;
-        Row row = new Row(physicalFields.size());
-        if (sideInput != null) {
-            String[] sideFieldNames = physicalFields.values().stream().toArray(String[]::new);
-            String[] sideFieldTypes = sideTableInfo.getFieldTypes();
-            for (int i = 0; i < sideFieldNames.length; i++) {
-                row.setField(i, SwitchUtil.getTarget(values.get(sideFieldNames[i].trim()), sideFieldTypes[i]));
-            }
+        for (int i = 0; i < sideFieldNames.length; i++) {
+            row.setField(i, SwitchUtil.getTarget(values.get(sideFieldNames[i].trim()), sideFieldTypes[i]));
         }
-        row.setKind(RowKind.INSERT);
-        return row;
     }
 
     @Override

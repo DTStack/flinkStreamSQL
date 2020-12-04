@@ -22,7 +22,6 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
-import org.apache.flink.types.RowKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,18 +112,11 @@ public class RedisAsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     @Override
-    public Row fillData(Object sideInput) {
+    protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row) {
         Map<String, Object> values = (Map<String, Object>) sideInput;
-        Row row = new Row(physicalFields.size());
-        if (sideInput != null) {
-            String[] sideFieldNames = physicalFields.values().toArray(new String[0]);
-            String[] sideFieldTypes = sideTableInfo.getFieldTypes();
-            for (int i = 0; i < sideFieldNames.length; i++) {
-                row.setField(i, SwitchUtil.getTarget(values.get(sideFieldNames[i].trim()), sideFieldTypes[i]));
-            }
+        for (int i = 0; i < sideFieldNames.length; i++) {
+            row.setField(i, SwitchUtil.getTarget(values.get(sideFieldNames[i].trim()), sideFieldTypes[i]));
         }
-        row.setKind(RowKind.INSERT);
-        return row;
     }
 
     /**

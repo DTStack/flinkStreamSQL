@@ -34,7 +34,6 @@ import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
-import org.apache.flink.types.RowKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +43,11 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -98,7 +101,7 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     protected void init(BaseSideInfo sideInfo) {
-        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo)sideTableInfo;
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
         int defaultAsyncPoolSize = Math.min(MAX_DB_CONN_POOL_SIZE_LIMIT, DEFAULT_DB_CONN_POOL_SIZE);
         int rdbPoolSize = rdbSideTableInfo.getAsyncPoolSize() > 0 ? rdbSideTableInfo.getAsyncPoolSize() : defaultAsyncPoolSize;
         rdbSideTableInfo.setAsyncPoolSize(rdbPoolSize);
@@ -258,19 +261,14 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     @Override
-    public Row fillData(Object sideInput) {
+    protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row) {
         JsonArray jsonArray = (JsonArray) sideInput;
         String[] fieldTypes = sideTableInfo.getFieldTypes();
-        Row row = new Row(fieldTypes.length);
-        if (jsonArray != null) {
-            for (int i = 0; i < fieldTypes.length; i++) {
-                String fieldType = fieldTypes[i];
-                Object object = SwitchUtil.getTarget(jsonArray.getValue(i), fieldType);
-                row.setField(i, object);
-            }
+        for (int i = 0; i < fieldTypes.length; i++) {
+            String fieldType = fieldTypes[i];
+            Object object = SwitchUtil.getTarget(jsonArray.getValue(i), fieldType);
+            row.setField(i, object);
         }
-        row.setKind(RowKind.INSERT);
-        return row;
     }
 
     @Override

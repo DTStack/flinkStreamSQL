@@ -34,7 +34,6 @@ import org.apache.flink.runtime.security.DynamicConfiguration;
 import org.apache.flink.runtime.security.KerberosUtils;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
-import org.apache.flink.types.RowKind;
 import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
@@ -47,7 +46,11 @@ import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -186,15 +189,12 @@ public class HbaseAsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     @Override
-    public Row fillData(Object sideInput) {
+    protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row) {
         List<Object> sideInputList = (List<Object>) sideInput;
-        Row row = new Row(colNames.length);
         for (int i = 0; i < colNames.length; i++) {
             Object object = sideInputList.get(i);
             row.setField(i, object);
         }
-        row.setKind(RowKind.INSERT);
-        return row;
     }
 
     @Override

@@ -18,7 +18,14 @@
 
 package com.dtstack.flink.sql.side.cassandra.table;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.QueryOptions;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.dtstack.flink.sql.enums.ECacheContentType;
@@ -37,12 +44,15 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
-import org.apache.flink.types.RowKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -214,18 +224,11 @@ public class CassandraAsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     @Override
-    public Row fillData(Object sideInput) {
+    protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row) {
         com.datastax.driver.core.Row varRow = (com.datastax.driver.core.Row) sideInput;
-        Row row = new Row(physicalFields.size());
-        if (sideInput != null) {
-            String[] sideFieldNames = physicalFields.values().stream().toArray(String[]::new);
-            String[] sideFieldTypes = sideTableInfo.getFieldTypes();
-            for (int i = 0; i < sideFieldNames.length; i++) {
-                row.setField(i, SwitchUtil.getTarget(varRow.getObject(sideFieldNames[i].trim()), sideFieldTypes[i]));
-            }
+        for (int i = 0; i < sideFieldNames.length; i++) {
+            row.setField(i, SwitchUtil.getTarget(varRow.getObject(sideFieldNames[i].trim()), sideFieldTypes[i]));
         }
-        row.setKind(RowKind.INSERT);
-        return row;
     }
 
     @Override
