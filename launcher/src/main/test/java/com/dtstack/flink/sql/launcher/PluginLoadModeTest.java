@@ -50,9 +50,9 @@ public class PluginLoadModeTest {
 
 
     public static void testRocSql() throws Exception{
-        String[] sql = new String[]{"-mode", "local", "-sql", "/Users/roc/Documents/flink_sql/sql/impala_sink.sql", "-name", "roc",
-                "-localSqlPluginPath", "/Users/roc/workspace/git_code/flinkStreamSQL/plugins",
-                "-remoteSqlPluginPath", "/Users/roc/workspace/git_code/flinkStreamSQL/plugins",
+        String[] sql = new String[]{"-mode", "local", "-sql", "/Users/roc/Documents/flink_sql/sql/simpleInsert.sql", "-name", "roc",
+                "-localSqlPluginPath", "/Users/roc/workspace/git_code/flinkStreamSQL/sqlplugins",
+                "-remoteSqlPluginPath", "/Users/roc/workspace/git_code/flinkStreamSQL/sqlplugins",
                 "-flinkconf", "/Users/roc/Documents/flink_sql/flinkconf",
                 "-confProp", "{\"sql.checkpoint.cleanup.mode\":\"false\",\"sql.checkpoint.interval\":10000,\"time.characteristic\":\"EventTime\"}",
                 "-yarnconf", "/Users/roc/Documents/flink_sql/yarnconf",
