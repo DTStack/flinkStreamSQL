@@ -20,9 +20,12 @@
 package com.dtstack.flink.sql;
 
 
-
+import com.dtstack.flink.sql.exception.sqlparse.PlannerNotMatchException;
+import com.dtstack.flink.sql.exception.sqlparse.SqlExceptionConstrant;
+import com.dtstack.flink.sql.exception.sqlparse.SqlParseCodeEnum;
 import com.dtstack.flink.sql.exec.ExecuteProcessHelper;
 import com.dtstack.flink.sql.exec.ParamsInfo;
+import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Date: 2018/6/26
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -39,7 +43,15 @@ public class Main {
     public static void main(String[] args) throws Exception {
         ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
         StreamTableEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
-        env.execute(paramsInfo.getName());
+        try {
+            env.execute(paramsInfo.getName());
+        } catch (TableException e) {
+            if (e.getMessage().contains(SqlExceptionConstrant.JOIN_WITH_FLINK_PLANNER)) {
+                throw new PlannerNotMatchException(SqlParseCodeEnum.PLANNER_NOT_MATCH);
+            } else {
+                throw e;
+            }
+        }
         LOG.info("program {} execution success", paramsInfo.getName());
     }
 }

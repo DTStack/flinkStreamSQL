@@ -30,6 +30,14 @@ public enum SqlParseCodeEnum implements ErrorCode {
      * 流join维表时，select、join、group by等字段未使用t.field
      */
     WITHOUT_TABLENAME("001", "field invalid , please use like t.field"),
+    /**
+     * 在使用flink planner的时候，使用的是left join side s语法
+     */
+    PLANNER_NOT_MATCH("002", SqlExceptionConstrant.plannerNotMatch()),
+    /**
+     * 在使用flink planner的时候，create view中如果和维表关联必须使用别名，直接insert into则不会，flink原生bug
+     */
+    VIEW_JOIN_WITHOUT_ALIAS("003", SqlExceptionConstrant.viewJoinWithoutAlias()),
     ;
 
     /**
