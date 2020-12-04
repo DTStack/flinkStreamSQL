@@ -28,6 +28,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 
 import java.util.List;
+
 /**
  * @author yanxi
  */
@@ -36,6 +37,10 @@ public class RedisAsyncSideInfo extends BaseSideInfo {
 
     public RedisAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+    }
+
+    public RedisAsyncSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
     }
 
     @Override
@@ -47,7 +52,7 @@ public class RedisAsyncSideInfo extends BaseSideInfo {
         List<SqlNode> sqlNodeList = Lists.newArrayList();
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
 
-        for(SqlNode sqlNode : sqlNodeList){
+        for (SqlNode sqlNode : sqlNodeList) {
             dealOneEqualCon(sqlNode, sideTableName);
         }
     }

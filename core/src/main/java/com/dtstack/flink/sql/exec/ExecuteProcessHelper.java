@@ -426,6 +426,7 @@ public class ExecuteProcessHelper {
 
         StreamTableEnvironment tableEnv = StreamTableEnvironmentImpl.create(env, settings, tableConfig);
         StreamEnvConfigManager.streamTableEnvironmentStateTTLConfig(tableEnv, confProperties);
+        StreamEnvConfigManager.streamTableEnvironmentEarlyTriggerConfig(tableEnv, confProperties);
         return tableEnv;
     }
 

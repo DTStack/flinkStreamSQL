@@ -20,11 +20,21 @@
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.enums.PlannerType;
-import org.apache.calcite.sql.*;
+import com.google.common.collect.Lists;
+import org.apache.calcite.sql.SqlAsOperator;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlMatchRecognize;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
-import com.google.common.collect.Lists;
-import org.apache.flink.table.planner.calcite.FlinkPlannerImpl;
 
 import java.util.List;
 
