@@ -22,6 +22,7 @@ import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
+import com.dtstack.flink.sql.util.JDBCUtils;
 import com.dtstack.flink.sql.util.RowDataComplete;
 import com.dtstack.flink.sql.util.RowDataConvert;
 import com.google.common.collect.Lists;
@@ -125,36 +126,26 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
     }
 
     private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws SQLException {
-        RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
-        Connection connection = null;
+        queryAndFillData(tmpCache, getConnectionWithRetry((RdbSideTableInfo) sideInfo.getSideTableInfo()));
+    }
 
-        try {
-            for (int i = 0; i < CONN_RETRY_NUM; i++) {
+    private Connection getConnectionWithRetry(RdbSideTableInfo tableInfo) throws SQLException {
+        String connInfo = "url:" + tableInfo.getUrl() + "; userName:" + tableInfo.getUserName();
+        String errorMsg = null;
+        for (int i = 0; i < CONN_RETRY_NUM; i++) {
+            try {
+                return getConn(tableInfo.getUrl(), tableInfo.getUserName(), tableInfo.getPassword());
+            } catch (Exception e) {
                 try {
-                    connection = getConn(tableInfo.getUrl(), tableInfo.getUserName(), tableInfo.getPassword());
-                    break;
-                } catch (Exception e) {
-                    if (i == CONN_RETRY_NUM - 1) {
-                        throw new RuntimeException("", e);
-                    }
-                    try {
-                        String connInfo = "url:" + tableInfo.getUrl() + ";userName:" + tableInfo.getUserName() + ",pwd:" + tableInfo.getPassword();
-                        LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
-                        Thread.sleep(5 * 1000);
-                    } catch (InterruptedException e1) {
-                        LOG.error("", e1);
-                    }
+                    LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
+                    errorMsg = e.getCause().toString();
+                    Thread.sleep(5 * 1000);
+                } catch (InterruptedException e1) {
+                    LOG.error("", e1);
                 }
             }
-            queryAndFillData(tmpCache, connection);
-        } catch (Exception e) {
-            LOG.error("", e);
-            throw new SQLException(e);
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
+        throw new SQLException("get conn fail. connInfo: " + connInfo + "\ncause by: " + errorMsg);
     }
 
     private void queryAndFillData(Map<String, List<Map<String, Object>>> tmpCache, Connection connection) throws SQLException {
@@ -188,6 +179,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
             tmpCache.computeIfAbsent(cacheKey, key -> Lists.newArrayList())
                     .add(oneRow);
         }
+        JDBCUtils.closeConnectionResource(resultSet, statement, connection, false);
     }
 
     public int getFetchSize() {
