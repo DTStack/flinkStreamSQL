@@ -58,6 +58,8 @@ public class CassandraSink implements RetractStreamTableSink<Row>, IStreamSinkGe
     protected Integer readTimeoutMillis;
     protected Integer connectTimeoutMillis;
     protected Integer poolTimeoutMillis;
+    protected Integer parallelism = 1;
+    protected String registerTableName;
 
     public CassandraSink() {
         // TO DO NOTHING
@@ -78,6 +80,8 @@ public class CassandraSink implements RetractStreamTableSink<Row>, IStreamSinkGe
         this.readTimeoutMillis = cassandraTableInfo.getReadTimeoutMillis();
         this.connectTimeoutMillis = cassandraTableInfo.getConnectTimeoutMillis();
         this.poolTimeoutMillis = cassandraTableInfo.getPoolTimeoutMillis();
+        this.parallelism = cassandraTableInfo.getParallelism();
+        this.registerTableName = cassandraTableInfo.getTableName();
         return this;
     }
 
@@ -106,7 +110,9 @@ public class CassandraSink implements RetractStreamTableSink<Row>, IStreamSinkGe
 
         CassandraOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
-        DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
+        DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction)
+                .setParallelism(parallelism)
+                .name(registerTableName);
         return dataStreamSink;
     }
 

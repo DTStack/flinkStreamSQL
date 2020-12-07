@@ -37,13 +37,14 @@
         <module>oceanbase</module>
         <module>tidb</module>
         <module>kingbase</module>
+        <module>aws</module>
 <!--        <module>localTest</module>-->
 
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <flink.version>1.10.0</flink.version>
+        <flink.version>1.10.1</flink.version>
         <hadoop.version>2.7.3</hadoop.version>
         <junit.version>4.12</junit.version>
         <mockito.version>2.21.0</mockito.version>

@@ -17,6 +17,7 @@ import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStreamSinkGener<KuduSink> {
 
@@ -36,7 +37,7 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
 
     private Integer defaultSocketReadTimeoutMs;
 
-    private int parallelism = -1;
+    private int parallelism = 1;
 
     private String principal;
     private String keytab;
@@ -56,6 +57,8 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.keytab = kuduTableInfo.getKeytab();
         this.krb5conf = kuduTableInfo.getKrb5conf();
         this.enableKrb = kuduTableInfo.isEnableKrb();
+        this.parallelism = Objects.isNull(kuduTableInfo.getParallelism()) ?
+                parallelism : kuduTableInfo.getParallelism();
 
         return this;
     }
