@@ -229,6 +229,13 @@ public class TableUtils {
                     queueInfo.offer(joinInfo.getLeftNode());
                 }
 
+                if(joinInfo.getLeftNode().getKind() == AS){
+                    SqlNode leftSqlNode = ((SqlBasicCall)joinInfo.getLeftNode()).getOperands()[0];
+                    if (leftSqlNode.getKind() == UNION){
+                        queueInfo.offer(joinInfo.getLeftNode());
+                    }
+                }
+
                 queueInfo.offer(joinInfo);
             } else {
                 //Determining right is not a simple table
@@ -305,7 +312,7 @@ public class TableUtils {
     public static void replaceSelectFieldTable(SqlNode selectNode,
                                                String oldTbName,
                                                String newTbName,
-                                               HashBiMap<String, String> fieldReplaceRef) {
+                                               Map<String, String> fieldReplaceRef) {
         if (selectNode.getKind() == AS) {
             SqlNode leftNode = ((SqlBasicCall) selectNode).getOperands()[0];
             replaceSelectFieldTable(leftNode, oldTbName, newTbName, fieldReplaceRef);
@@ -399,22 +406,13 @@ public class TableUtils {
     private static void replaceOneSelectField(SqlIdentifier sqlIdentifier,
                                               String newTbName,
                                               String oldTbName,
-                                              HashBiMap<String, String> fieldReplaceRef){
+                                              Map<String, String> fieldReplaceRef){
         SqlIdentifier newField = sqlIdentifier.setName(0, newTbName);
         String fieldName = sqlIdentifier.names.get(1);
-        String fieldKey = oldTbName + "_" + fieldName;
-
-        if(!fieldReplaceRef.containsKey(fieldKey)){
-            if(fieldReplaceRef.inverse().get(fieldName) != null){
-                //换一个名字
-                String mappingFieldName = ParseUtils.dealDuplicateFieldName(fieldReplaceRef, fieldName);
-                newField = newField.setName(1, mappingFieldName);
-                fieldReplaceRef.put(fieldKey, mappingFieldName);
-            } else {
-                fieldReplaceRef.put(fieldKey, fieldName);
-            }
-        }else {
-            newField = newField.setName(1, fieldReplaceRef.get(fieldKey));
+        String fieldKey = oldTbName + "." + fieldName;
+        if(fieldReplaceRef.get(fieldKey) != null){
+            String newFieldName = fieldReplaceRef.get(fieldKey).split("\\.")[1];
+            newField = newField.setName(1, newFieldName);
         }
 
         sqlIdentifier.assignNamesFrom(newField);
@@ -515,7 +513,7 @@ public class TableUtils {
         return preFieldName;
     }
 
-    public static void replaceWhereCondition(SqlNode parentWhere, String oldTbName, String newTbName, HashBiMap<String, String> fieldReplaceRef){
+    public static void replaceWhereCondition(SqlNode parentWhere, String oldTbName, String newTbName, Map<String, String> fieldReplaceRef){
 
         if(parentWhere == null){
             return;
@@ -531,7 +529,7 @@ public class TableUtils {
         }
     }
 
-    private static void replaceConditionNode(SqlNode selectNode, String oldTbName, String newTbName, HashBiMap<String, String> fieldReplaceRef) {
+    private static void replaceConditionNode(SqlNode selectNode, String oldTbName, String newTbName, Map<String, String> fieldReplaceRef) {
         if(selectNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 

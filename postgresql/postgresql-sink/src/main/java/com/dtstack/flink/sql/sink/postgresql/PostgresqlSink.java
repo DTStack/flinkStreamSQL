@@ -20,10 +20,15 @@
 package com.dtstack.flink.sql.sink.postgresql;
 
 
+import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
+import com.dtstack.flink.sql.sink.postgresql.writer.CopyWriter;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
 import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
+import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
+import com.dtstack.flink.sql.sink.rdb.writer.JDBCWriter;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author maqi
@@ -53,6 +58,15 @@ public class PostgresqlSink extends AbstractRdbSink implements IStreamSinkGener<
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
                 .setUpdateMode(updateMode)
+                .setJDBCWriter(createJdbcWriter())
                 .build();
+    }
+    private JDBCWriter createJdbcWriter(){
+        if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || primaryKeys == null || primaryKeys.size() == 0) {
+            return new CopyWriter(tableName, fieldNames, null);
+        }
+        return AbstractUpsertWriter.create(
+                jdbcDialect, schema, tableName, fieldNames, sqlTypes, primaryKeys.toArray(new String[primaryKeys.size()]), null,
+                true, allReplace, null);
     }
 }
