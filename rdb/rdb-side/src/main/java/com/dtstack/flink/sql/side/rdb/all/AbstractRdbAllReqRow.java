@@ -125,6 +125,23 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         }
     }
 
+    /**
+     * covert flink time attribute.Type information for indicating event or processing time.
+     * However, it behaves like a regular SQL timestamp but is serialized as Long.
+     *
+     * @param entry
+     * @param obj
+     * @return
+     */
+    protected Object dealTimeAttributeType(Class<? extends TypeInformation> entry, Object obj) {
+        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
+        if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+        }
+        return obj;
+    }
+
     private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws SQLException {
         queryAndFillData(tmpCache, getConnectionWithRetry((RdbSideTableInfo) sideInfo.getSideTableInfo()));
     }

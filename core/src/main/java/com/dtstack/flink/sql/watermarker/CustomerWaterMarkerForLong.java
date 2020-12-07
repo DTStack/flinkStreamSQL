@@ -26,6 +26,8 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.TimeZone;
+
 /**
  * Custom watermark --- for eventtime
  * Date: 2017/12/28
@@ -37,9 +39,10 @@ public class CustomerWaterMarkerForLong extends AbstractCustomerWaterMarker<Row>
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForLong.class);
 
-    public CustomerWaterMarkerForLong(Time maxOutOfOrderness, int pos) {
+    public CustomerWaterMarkerForLong(Time maxOutOfOrderness, int pos, String timezone) {
         super(maxOutOfOrderness);
         this.pos = pos;
+        this.timezone= TimeZone.getTimeZone(timezone);
     }
 
     @Override
