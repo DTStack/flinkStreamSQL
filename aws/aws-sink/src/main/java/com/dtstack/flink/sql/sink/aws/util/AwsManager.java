@@ -70,17 +70,6 @@ public class AwsManager {
     }
 
     /**
-     * 关闭s3 客户端
-     *
-     * @param client s3 client
-     */
-    public static void closeClient(AmazonS3Client client) {
-        if (Objects.nonNull(client)) {
-            client.shutdown();
-        }
-    }
-
-    /**
      * 创建bucket
      *
      * @param bucketName   bucketName，不能为空
@@ -150,7 +139,19 @@ public class AwsManager {
         client.setBucketAcl(request);
     }
 
+    /**
+     * 获取当前 Object 字节位数，如果 Object 不存在，那么返回 0
+     *
+     * @param bucket     bucket
+     * @param objectName object name
+     * @param client     client
+     * @return object bytes 位数
+     */
     public static long getObjectPosition(String bucket, String objectName, AmazonS3Client client) {
+        if (!client.doesObjectExist(bucket, objectName)) {
+            return 0;
+        }
+
         S3Object object = client.getObject(bucket, objectName);
         ObjectMetadata objectMetadata = object.getObjectMetadata();
         return objectMetadata.getContentLength();
