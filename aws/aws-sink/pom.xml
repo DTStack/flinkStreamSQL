@@ -13,6 +13,9 @@
     <artifactId>sql.sink.aws</artifactId>
     <packaging>jar</packaging>
 
+    <name>aws-sink</name>
+    <url>http://maven.apache.org</url>
+
     <dependencies>
         <dependency>
             <groupId>com.cmcc</groupId>
