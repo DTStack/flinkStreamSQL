@@ -33,11 +33,15 @@ public enum SqlParseCodeEnum implements ErrorCode {
     /**
      * 在使用flink planner的时候，使用的是left join side s语法
      */
-    PLANNER_NOT_MATCH("002", SqlExceptionConstrant.plannerNotMatch()),
+    PLANNER_NOT_MATCH("002", SqlExceptionConstant.plannerNotMatch()),
+    /**
+     * 在使用dtstack planner的时候，使用的是left join side FOR SYSTEM_TIME AS OF u.PROCTIME AS s语法
+     */
+    PLANNER_NOT_MATCH2("003", SqlExceptionConstant.plannerNotMatch2()),
     /**
      * 在使用flink planner的时候，create view中如果和维表关联必须使用别名，直接insert into则不会，flink原生bug
      */
-    VIEW_JOIN_WITHOUT_ALIAS("003", SqlExceptionConstrant.viewJoinWithoutAlias()),
+    VIEW_JOIN_WITHOUT_ALIAS("004", SqlExceptionConstant.viewJoinWithoutAlias()),
     ;
 
     /**

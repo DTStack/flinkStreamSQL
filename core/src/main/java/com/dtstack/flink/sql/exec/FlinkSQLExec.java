@@ -18,8 +18,8 @@
 
 package com.dtstack.flink.sql.exec;
 
+import com.dtstack.flink.sql.exception.sqlparse.SqlExceptionConstant;
 import com.dtstack.flink.sql.exception.sqlparse.ViewJoinWithoutAliasException;
-import com.dtstack.flink.sql.exception.sqlparse.SqlExceptionConstrant;
 import com.dtstack.flink.sql.exception.sqlparse.SqlParseCodeEnum;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -67,7 +67,7 @@ public class FlinkSQLExec {
         try {
             queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
         } catch (SqlParserException e) {
-            if (e.getMessage().contains(SqlExceptionConstrant.CREATE_VIEW_ERR_INFO)) {
+            if (e.getMessage().contains(SqlExceptionConstant.CREATE_VIEW_ERR_INFO)) {
                 throw new ViewJoinWithoutAliasException(SqlParseCodeEnum.VIEW_JOIN_WITHOUT_ALIAS);
             } else {
                 throw e;

@@ -19,13 +19,18 @@
 package com.dtstack.flink.sql.exception.sqlparse;
 
 import com.dtstack.flink.sql.util.SqlFormatterUtil;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author: chuixue
  * @create: 2020-10-20 15:05
  * @description:sql异常常量
  **/
-public class SqlExceptionConstrant {
+public class SqlExceptionConstant {
+    /**
+     * 辅助变量
+     */
+    public static final String TMP_STR = StringUtils.repeat('=', 10);
     /**
      * 在使用flink planner的时候，使用的是left join side s语法，原生错误提示
      */
@@ -37,11 +42,15 @@ public class SqlExceptionConstrant {
     /**
      * 错误提示符号
      */
-    public static final String CREATE_VIEW_ERRL_SPLIT = "\n==========your sql syntax may join dimension table in create view , But the dimension table does not use alias==========\n";
+    public static final String CREATE_VIEW_ERRL_SPLIT = "\n" + TMP_STR + "your sql syntax may join dimension table in create view , But the dimension table does not use alias" + TMP_STR + "\n";
     /**
-     * 正确提示符号
+     * flink planner 正确提示符号
      */
-    public static final String CREATE_VIEW_RIGHT_SPLIT = "\n==========with flink planner,Please use the following sql syntax==========\n";
+    public static final String CREATE_VIEW_RIGHT_SPLIT = "\n" + TMP_STR + "use flink planner ,Dim table join Please use the following sql syntax" + TMP_STR + "\n";
+    /**
+     * dtstack planner正确提示符号
+     */
+    public static final String CREATE_VIEW_RIGHT_SPLIT2 = "\n" + TMP_STR + "use dtstack planner ,Dim table join Please use the following sql syntax" + TMP_STR + "\n";
     /**
      * flink planner 维表关联的错误语法，未使用别名
      */
@@ -49,7 +58,11 @@ public class SqlExceptionConstrant {
     /**
      * flink planner 维表关联的正确语法，使用别名
      */
-    public static final String CREATE_VIEW_RIGHT_SQL = "CREATE VIEW view_out AS select u.id, u.name FROM source u LEFT JOIN side FOR SYSTEM_TIME AS OF u.PROCTIME AS s ON u.id = s.sid;";
+    public static final String CREATE_VIEW_RIGHT_SQL = "CREATE VIEW view_out AS select u.id, s.name FROM source u LEFT JOIN side FOR SYSTEM_TIME AS OF u.PROCTIME AS s ON u.id = s.sid;";
+    /**
+     * dtstack planner 维表关联的正确语法，使用别名
+     */
+    public static final String CREATE_VIEW_RIGHT_SQL2 = "CREATE VIEW view_out AS select u.id, s.name FROM source u LEFT JOIN side s ON u.id = s.sid;";
 
     /**
      * 在使用flink planner的时候，create view中如果和维表关联必须使用别名，直接insert into则不会，flink原生bug
@@ -70,5 +83,14 @@ public class SqlExceptionConstrant {
      */
     public static String plannerNotMatch() {
         return CREATE_VIEW_RIGHT_SPLIT + SqlFormatterUtil.format(CREATE_VIEW_RIGHT_SQL);
+    }
+
+    /**
+     * dtstack planner模式下，和维表join，使用的是left join side FOR SYSTEM_TIME AS OF u.PROCTIME AS s语法
+     *
+     * @return
+     */
+    public static String plannerNotMatch2() {
+        return CREATE_VIEW_RIGHT_SPLIT2 + SqlFormatterUtil.format(CREATE_VIEW_RIGHT_SQL2);
     }
 }
