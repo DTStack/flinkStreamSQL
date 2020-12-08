@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.sink.aws;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AppendObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.dtstack.flink.sql.sink.aws.util.AwsManager;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -73,14 +74,18 @@ public class AwsOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     @Override
     public void writeRecord(Tuple2 record) throws IOException {
         String recordStr = record.f1.toString() + LINE_BREAK;
+        int length = recordStr.getBytes().length;
         inputStream = new ByteArrayInputStream(recordStr.getBytes());
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(length);
         // 追加流式写入，但是这种情况下，可能会出现oom【因为数据都是缓存在内存中】
         AppendObjectRequest appendObjectRequest = new AppendObjectRequest(
-                bucket, objectName, inputStream, null)
+                bucket, objectName, inputStream, metadata)
                 .withPosition(position);
 
         client.appendObject(appendObjectRequest);
-        position += recordStr.getBytes().length;
+        position += length;
+        outRecords.inc();
     }
 
     @Override
