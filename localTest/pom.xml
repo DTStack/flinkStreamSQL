@@ -51,23 +51,23 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>com.dtstack.flink</groupId>-->
-<!--            <artifactId>sql.source.kafka</artifactId>-->
-<!--            <version>1.0-SNAPSHOT</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.dtstack.flink</groupId>-->
+        <!--            <artifactId>sql.source.kafka</artifactId>-->
+        <!--            <version>1.0-SNAPSHOT</version>-->
+        <!--        </dependency>-->
 
-<!--        <dependency>-->
-<!--            <groupId>com.dtstack.flink</groupId>-->
-<!--            <artifactId>sql.source.kafka09</artifactId>-->
-<!--            <version>1.0-SNAPSHOT</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.dtstack.flink</groupId>-->
+        <!--            <artifactId>sql.source.kafka09</artifactId>-->
+        <!--            <version>1.0-SNAPSHOT</version>-->
+        <!--        </dependency>-->
 
-<!--        <dependency>-->
-<!--            <groupId>com.dtstack.flink</groupId>-->
-<!--            <artifactId>sql.source.kafka10</artifactId>-->
-<!--            <version>1.0-SNAPSHOT</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.dtstack.flink</groupId>-->
+        <!--            <artifactId>sql.source.kafka10</artifactId>-->
+        <!--            <version>1.0-SNAPSHOT</version>-->
+        <!--        </dependency>-->
 
         <dependency>
             <groupId>com.dtstack.flink</groupId>
@@ -96,6 +96,152 @@
         <dependency>
             <groupId>com.dtstack.flink</groupId>
             <artifactId>sql.side.async.mysql</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.hbase</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.all.hbase</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.sink.hbase</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.async.hbase</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.redis</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.all.redis</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.sink.redis</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.async.redis</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.impala</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.all.impala</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.sink.impala</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.async.impala</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.mysql</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.all.mysql</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.sink.mysql</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.async.mysql</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.mongo</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.all.mongo</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.sink.mongo</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.async.mongo</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.oracle</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.all.oracle</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.sink.oracle</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.async.oracle</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 

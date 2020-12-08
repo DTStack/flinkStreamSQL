@@ -16,25 +16,46 @@
  * limitations under the License.
  */
 
-package com.dtstatck.flink.sql.side.oceanbase;
-
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.FieldInfo;
-import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.rdb.all.RdbAllSideInfo;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-
-import java.util.List;
+package com.dtstack.flink.sql.exception;
 
 /**
- * @author : tiezhu
- * @date : 2020/3/26
- */
-public class OceanbaseAllSideInfo extends RdbAllSideInfo {
-    public OceanbaseAllSideInfo(RowTypeInfo rowTypeInfo,
-                                JoinInfo joinInfo,
-                                List<FieldInfo> outFieldInfoList,
-                                AbstractSideTableInfo sideTableInfo) {
-        super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+ * @author: chuixue
+ * @create: 2020-11-30 16:23
+ * @description: 公共错误码
+ **/
+public enum BaseCodeEnum implements ErrorCode {
+    /**
+     * 未指明的异常
+     */
+    UNSPECIFIED("000", "unknow exception"),
+    ;
+
+    /**
+     * 错误码
+     */
+    private final String code;
+
+    /**
+     * 描述
+     */
+    private final String description;
+
+    /**
+     * @param code        错误码
+     * @param description 描述
+     */
+    private BaseCodeEnum(final String code, final String description) {
+        this.code = code;
+        this.description = description;
+    }
+
+    @Override
+    public String getCode() {
+        return code;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
     }
 }
