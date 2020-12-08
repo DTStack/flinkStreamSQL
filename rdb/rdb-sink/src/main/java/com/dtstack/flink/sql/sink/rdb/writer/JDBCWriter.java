@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.rdb.writer;
 
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
 
@@ -31,6 +32,8 @@ import java.sql.SQLException;
 public interface JDBCWriter extends Serializable {
 
 	int DIRTYDATA_PRINT_FREQUENTY = 1000;
+
+	void initMetricOutput(AbstractDtRichOutputFormat metricOutputFormat);
 
 	/**
 	 * Open the writer by JDBC Connection.

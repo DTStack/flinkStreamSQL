@@ -22,6 +22,7 @@ import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
+import com.dtstack.flink.sql.util.JDBCUtils;
 import com.dtstack.flink.sql.util.RowDataComplete;
 import com.dtstack.flink.sql.util.RowDataConvert;
 import com.google.common.collect.Lists;
@@ -29,17 +30,17 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.*;
-import java.time.LocalDateTime;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -103,7 +104,6 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         List<Integer> equalValIndex = sideInfo.getEqualValIndex();
         ArrayList<Object> inputParams = equalValIndex.stream()
                 .map(value::getField)
-                .filter(object -> null != object)
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
@@ -113,7 +113,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         }
 
         String cacheKey = inputParams.stream()
-                .map(Object::toString)
+                .map(e -> String.valueOf(e))
                 .collect(Collectors.joining("_"));
 
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
@@ -121,41 +121,31 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
             Row row = fillData(value, null);
             RowDataComplete.collectRow(out, row);
         } else if (!CollectionUtils.isEmpty(cacheList)) {
-            cacheList.stream().forEach(one -> out.collect(RowDataConvert.convertToBaseRow(fillData(value, one))));
+            cacheList.forEach(one -> out.collect(RowDataConvert.convertToBaseRow(fillData(value, one))));
         }
     }
 
     private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws SQLException {
-        RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
-        Connection connection = null;
+        queryAndFillData(tmpCache, getConnectionWithRetry((RdbSideTableInfo) sideInfo.getSideTableInfo()));
+    }
 
-        try {
-            for (int i = 0; i < CONN_RETRY_NUM; i++) {
+    private Connection getConnectionWithRetry(RdbSideTableInfo tableInfo) throws SQLException {
+        String connInfo = "url:" + tableInfo.getUrl() + "; userName:" + tableInfo.getUserName();
+        String errorMsg = null;
+        for (int i = 0; i < CONN_RETRY_NUM; i++) {
+            try {
+                return getConn(tableInfo.getUrl(), tableInfo.getUserName(), tableInfo.getPassword());
+            } catch (Exception e) {
                 try {
-                    connection = getConn(tableInfo.getUrl(), tableInfo.getUserName(), tableInfo.getPassword());
-                    break;
-                } catch (Exception e) {
-                    if (i == CONN_RETRY_NUM - 1) {
-                        throw new RuntimeException("", e);
-                    }
-                    try {
-                        String connInfo = "url:" + tableInfo.getUrl() + ";userName:" + tableInfo.getUserName() + ",pwd:" + tableInfo.getPassword();
-                        LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
-                        Thread.sleep(5 * 1000);
-                    } catch (InterruptedException e1) {
-                        LOG.error("", e1);
-                    }
+                    LOG.warn("get conn fail, wait for 5 sec and try again, connInfo:" + connInfo);
+                    errorMsg = e.getCause().toString();
+                    Thread.sleep(5 * 1000);
+                } catch (InterruptedException e1) {
+                    LOG.error("", e1);
                 }
             }
-            queryAndFillData(tmpCache, connection);
-        } catch (Exception e) {
-            LOG.error("", e);
-            throw new SQLException(e);
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
+        throw new SQLException("get conn fail. connInfo: " + connInfo + "\ncause by: " + errorMsg);
     }
 
     private void queryAndFillData(Map<String, List<Map<String, Object>>> tmpCache, Connection connection) throws SQLException {
@@ -166,24 +156,30 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         ResultSet resultSet = statement.executeQuery(sql);
 
         String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
-        String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
+        String[] sideFieldTypes = sideInfo.getSideTableInfo().getFieldTypes();
+        String[] fields = sideInfo.getSideTableInfo().getFields();
+        Map<String, String> sideFieldNamesAndTypes = Maps.newHashMap();
+        for (int i = 0; i < fields.length; i++) {
+            sideFieldNamesAndTypes.put(fields[i], sideFieldTypes[i]);
+        }
+
         while (resultSet.next()) {
             Map<String, Object> oneRow = Maps.newHashMap();
             for (String fieldName : sideFieldNames) {
                 Object object = resultSet.getObject(fieldName.trim());
-                int fieldIndex = sideInfo.getSideTableInfo().getFieldList().indexOf(fieldName.trim());
-                object = SwitchUtil.getTarget(object, fields[fieldIndex]);
+                object = SwitchUtil.getTarget(object, sideFieldNamesAndTypes.get(fieldName));
                 oneRow.put(fieldName.trim(), object);
             }
 
             String cacheKey = sideInfo.getEqualFieldList().stream()
                     .map(oneRow::get)
-                    .map(Object::toString)
+                    .map(e -> String.valueOf(e))
                     .collect(Collectors.joining("_"));
 
             tmpCache.computeIfAbsent(cacheKey, key -> Lists.newArrayList())
                     .add(oneRow);
         }
+        JDBCUtils.closeConnectionResource(resultSet, statement, connection, false);
     }
 
     public int getFetchSize() {

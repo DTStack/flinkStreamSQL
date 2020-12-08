@@ -94,9 +94,6 @@ public abstract class AbstractRowKeyModeDealer {
         Row row = new Row(outFieldInfoList.size());
         for(Map.Entry<Integer, Integer> entry : inFieldIndex.entrySet()){
             Object obj = input.getField(entry.getValue());
-            if(obj instanceof Timestamp){
-                obj = ((Timestamp)obj).getTime();
-            }
             row.setField(entry.getKey(), obj);
         }
 

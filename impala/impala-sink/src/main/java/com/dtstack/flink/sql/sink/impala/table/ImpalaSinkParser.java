@@ -18,45 +18,91 @@
 
 package com.dtstack.flink.sql.sink.impala.table;
 
-import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbstractTableParser;
 import com.dtstack.flink.sql.util.MathUtil;
 
-import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
- * Reason:
- * Date: 2019/11/11
+ * Date: 2020/10/14
  * Company: www.dtstack.com
  *
- * @author xiuzhu
+ * @author tiezhu
  */
+public class ImpalaSinkParser extends AbstractTableParser {
 
-public class ImpalaSinkParser extends RdbSinkParser {
+    private static final String PARALLELISM_KEY = "parallelism";
 
-    private static final String CURR_TYPE = "impala";
+    private static final String AUTH_MECH_KEY = "authMech";
+
+    private static final String KRB5FILEPATH_KEY = "krb5FilePath";
+
+    private static final String PRINCIPAL_KEY = "principal";
+
+    private static final String KEY_TAB_FILE_PATH_KEY = "keyTabFilePath";
+
+    private static final String KRB_REALM_KEY = "krbRealm";
+
+    private static final String KRB_HOST_FQDN_KEY = "krbHostFQDN";
+
+    private static final String KRB_SERVICE_NAME_KEY = "krbServiceName";
+
+    private static final String ENABLE_PARTITION_KEY = "enablePartition";
+
+    private static final String PARTITION_FIELDS_KEY = "partitionFields";
+
+    private static final String URL_KEY = "url";
+
+    private static final String TABLE_NAME_KEY = "tableName";
+
+    private static final String USER_NAME_KEY = "userName";
+
+    private static final String PASSWORD_KEY = "password";
+
+    private static final String BATCH_SIZE_KEY = "batchSize";
+
+    private static final String BATCH_WAIT_INTERVAL_KEY = "batchWaitInterval";
+
+    private static final String BUFFER_SIZE_KEY = "bufferSize";
+
+    private static final String FLUSH_INTERVAL_MS_KEY = "flushIntervalMs";
+
+    private static final String SCHEMA_KEY = "schema";
+
+    private static final String UPDATE_KEY = "updateMode";
+
+    private static final String KUDU_TYPE = "kudu";
+
+    private static final String DEFAULT_STORE_TYPE = "kudu";
+
+    private static final String STORE_TYPE_KEY = "storeType";
+
+    private static final String KRB_DEFAULT_REALM = "HADOOP.COM";
+
+    private static final String CURRENT_TYPE = "impala";
+
 
     @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {
         ImpalaTableInfo impalaTableInfo = new ImpalaTableInfo();
         impalaTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, impalaTableInfo);
 
-        impalaTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(ImpalaTableInfo.PARALLELISM_KEY.toLowerCase())));
-        impalaTableInfo.setUrl(MathUtil.getString(props.get(ImpalaTableInfo.URL_KEY.toLowerCase())));
-        impalaTableInfo.setTableName(MathUtil.getString(props.get(ImpalaTableInfo.TABLE_NAME_KEY.toLowerCase())));
-        impalaTableInfo.setBatchSize(MathUtil.getIntegerVal(props.get(ImpalaTableInfo.BATCH_SIZE_KEY.toLowerCase())));
-        impalaTableInfo.setBatchWaitInterval(MathUtil.getLongVal(props.get(ImpalaTableInfo.BATCH_WAIT_INTERVAL_KEY.toLowerCase())));
-        impalaTableInfo.setBufferSize(MathUtil.getString(props.get(ImpalaTableInfo.BUFFER_SIZE_KEY.toLowerCase())));
-        impalaTableInfo.setFlushIntervalMs(MathUtil.getString(props.get(ImpalaTableInfo.FLUSH_INTERVALMS_KEY.toLowerCase())));
-        impalaTableInfo.setSchema(MathUtil.getString(props.get(ImpalaTableInfo.SCHEMA_KEY.toLowerCase())));
-        impalaTableInfo.setUpdateMode(MathUtil.getString(props.get(ImpalaTableInfo.UPDATE_KEY.toLowerCase())));
+        impalaTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
+        impalaTableInfo.setUrl(MathUtil.getString(props.get(URL_KEY.toLowerCase())));
+        impalaTableInfo.setTableName(MathUtil.getString(props.get(TABLE_NAME_KEY.toLowerCase())));
+        impalaTableInfo.setBatchSize(MathUtil.getIntegerVal(props.get(BATCH_SIZE_KEY.toLowerCase())));
+        impalaTableInfo.setBatchWaitInterval(MathUtil.getLongVal(props.get(BATCH_WAIT_INTERVAL_KEY.toLowerCase())));
+        impalaTableInfo.setBufferSize(MathUtil.getString(props.get(BUFFER_SIZE_KEY.toLowerCase())));
+        impalaTableInfo.setFlushIntervalMs(MathUtil.getString(props.get(FLUSH_INTERVAL_MS_KEY.toLowerCase())));
+        impalaTableInfo.setSchema(MathUtil.getString(props.get(SCHEMA_KEY.toLowerCase())));
+        impalaTableInfo.setUpdateMode(MathUtil.getString(props.get(UPDATE_KEY.toLowerCase())));
 
-        Integer authMech = MathUtil.getIntegerVal(props.get(ImpalaTableInfo.AUTHMECH_KEY.toLowerCase()));
+        Integer authMech = MathUtil.getIntegerVal(props.get(AUTH_MECH_KEY.toLowerCase()));
         authMech = authMech == null ? 0 : authMech;
         impalaTableInfo.setAuthMech(authMech);
         List<Integer> authMechs = Arrays.asList(0, 1, 2, 3);
@@ -64,69 +110,36 @@ public class ImpalaSinkParser extends RdbSinkParser {
         if (!authMechs.contains(authMech)) {
             throw new IllegalArgumentException("The value of authMech is illegal, Please select 0, 1, 2, 3");
         } else if (authMech == 1) {
-            impalaTableInfo.setPrincipal(MathUtil.getString(props.get(ImpalaTableInfo.PRINCIPAL_KEY.toLowerCase())));
-            impalaTableInfo.setKeyTabFilePath(MathUtil.getString(props.get(ImpalaTableInfo.KEYTABFILEPATH_KEY.toLowerCase())));
-            impalaTableInfo.setKrb5FilePath(MathUtil.getString(props.get(ImpalaTableInfo.KRB5FILEPATH_KEY.toLowerCase())));
-            String krbRealm = MathUtil.getString(props.get(ImpalaTableInfo.KRBREALM_KEY.toLowerCase()));
-            krbRealm = krbRealm == null ? "HADOOP.COM" : krbRealm;
+            impalaTableInfo.setPrincipal(MathUtil.getString(props.get(PRINCIPAL_KEY.toLowerCase())));
+            impalaTableInfo.setKeyTabFilePath(MathUtil.getString(props.get(KEY_TAB_FILE_PATH_KEY.toLowerCase())));
+            impalaTableInfo.setKrb5FilePath(MathUtil.getString(props.get(KRB5FILEPATH_KEY.toLowerCase())));
+            String krbRealm = MathUtil.getString(props.get(KRB_REALM_KEY.toLowerCase()));
+            krbRealm = krbRealm == null ? KRB_DEFAULT_REALM : krbRealm;
             impalaTableInfo.setKrbRealm(krbRealm);
-            impalaTableInfo.setKrbHostFQDN(MathUtil.getString(props.get(ImpalaTableInfo.KRBHOSTFQDN_KEY.toLowerCase())));
-            impalaTableInfo.setKrbServiceName(MathUtil.getString(props.get(ImpalaTableInfo.KRBSERVICENAME_KEY.toLowerCase())));
+            impalaTableInfo.setKrbHostFQDN(MathUtil.getString(props.get(KRB_HOST_FQDN_KEY.toLowerCase())));
+            impalaTableInfo.setKrbServiceName(MathUtil.getString(props.get(KRB_SERVICE_NAME_KEY.toLowerCase())));
         } else if (authMech == 2) {
-            impalaTableInfo.setUserName(MathUtil.getString(props.get(ImpalaTableInfo.USER_NAME_KEY.toLowerCase())));
+            impalaTableInfo.setUserName(MathUtil.getString(props.get(USER_NAME_KEY.toLowerCase())));
         } else if (authMech == 3) {
-            impalaTableInfo.setUserName(MathUtil.getString(props.get(ImpalaTableInfo.USER_NAME_KEY.toLowerCase())));
-            impalaTableInfo.setPassword(MathUtil.getString(props.get(ImpalaTableInfo.PASSWORD_KEY.toLowerCase())));
+            impalaTableInfo.setUserName(MathUtil.getString(props.get(USER_NAME_KEY.toLowerCase())));
+            impalaTableInfo.setPassword(MathUtil.getString(props.get(PASSWORD_KEY.toLowerCase())));
         }
 
-        String storeType = MathUtil.getString(props.get(ImpalaTableInfo.STORE_TYPE_KEY.toLowerCase()));
-        impalaTableInfo.setStoreType(storeType);
+        String storeType = MathUtil.getString(props.get(STORE_TYPE_KEY.toLowerCase()));
+        impalaTableInfo.setStoreType(Objects.isNull(storeType) ? DEFAULT_STORE_TYPE : storeType);
 
-        String enablePartitionStr = (String) props.get(ImpalaTableInfo.ENABLEPARITION_KEY.toLowerCase());
+        String enablePartitionStr = (String) props.get(ENABLE_PARTITION_KEY.toLowerCase());
         boolean enablePartition = MathUtil.getBoolean(enablePartitionStr == null ? "false" : enablePartitionStr);
         impalaTableInfo.setEnablePartition(enablePartition);
 
-        if (!storeType.equalsIgnoreCase(ImpalaTableInfo.KUDU_TYPE) && enablePartition) {
-            String partitionFields = MathUtil.getString(props.get(ImpalaTableInfo.PARTITIONFIELDS_KEY.toLowerCase()));
+        if (!impalaTableInfo.getStoreType().equalsIgnoreCase(KUDU_TYPE) && enablePartition) {
+            String partitionFields = MathUtil.getString(props.get(PARTITION_FIELDS_KEY.toLowerCase()));
             impalaTableInfo.setPartitionFields(partitionFields);
         }
 
-        impalaTableInfo.setType(CURR_TYPE);
+        impalaTableInfo.setType(CURRENT_TYPE);
 
         impalaTableInfo.check();
         return impalaTableInfo;
-    }
-
-    @Override
-    public Class dbTypeConvertToJavaType(String fieldType) {
-        switch (fieldType.toLowerCase()) {
-            case "boolean":
-                return Boolean.class;
-            case "char":
-                return Character.class;
-            case "double":
-                return Double.class;
-            case "float":
-                return Float.class;
-            case "tinyint":
-                return Byte.class;
-            case "smallint":
-                return Short.class;
-            case "int":
-                return Integer.class;
-            case "bigint":
-                return Long.class;
-            case "decimal":
-                return BigDecimal.class;
-            case "string":
-            case "varchar":
-                return String.class;
-            case "timestamp":
-                return Timestamp.class;
-            default:
-                break;
-        }
-
-        throw new RuntimeException("不支持 " + fieldType + " 类型");
     }
 }
