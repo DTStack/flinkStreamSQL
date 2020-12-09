@@ -42,6 +42,7 @@ import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
+import com.dtstack.flink.sql.util.TypeInfoDataTypeConverter;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
@@ -64,6 +65,7 @@ import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.api.java.internal.StreamTableEnvironmentImpl;
 import org.apache.flink.table.sinks.TableSink;
+import org.apache.flink.table.types.DataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +82,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Stream;
 
 /**
  *  任务执行时的流程方法
@@ -295,7 +298,7 @@ public class ExecuteProcessHelper {
                 String adaptSql = sourceTableInfo.getAdaptSelectSql();
                 Table adaptTable = adaptSql == null ? table : tableEnv.sqlQuery(adaptSql);
 
-                RowTypeInfo typeInfo = new RowTypeInfo(adaptTable.getSchema().getFieldTypes(), adaptTable.getSchema().getFieldNames());
+                RowTypeInfo typeInfo = new RowTypeInfo(fromDataTypeToLegacyInfo(adaptTable.getSchema().getFieldDataTypes()), adaptTable.getSchema().getFieldNames());
                 DataStream adaptStream = tableEnv.toAppendStream(adaptTable, typeInfo);
 
                 String fields = String.join(",", typeInfo.getFieldNames());
@@ -388,5 +391,11 @@ public class ExecuteProcessHelper {
         if (!zones.contains(timeZone)){
             throw new IllegalArgumentException(String.format(" timezone of %s is Incorrect!", timeZone));
         }
+    }
+
+    private static TypeInformation<?>[] fromDataTypeToLegacyInfo(DataType[] dataType) {
+        return Stream.of(dataType)
+                .map(TypeInfoDataTypeConverter::toLegacyTypeInfo)
+                .toArray(TypeInformation[]::new);
     }
 }

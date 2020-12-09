@@ -30,8 +30,10 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -41,6 +43,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -123,6 +127,24 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         } else if (!CollectionUtils.isEmpty(cacheList)) {
             cacheList.forEach(one -> out.collect(RowDataConvert.convertToBaseRow(fillData(value, one))));
         }
+    }
+
+    /**
+     * covert flink time attribute.Type information for indicating event or processing time.
+     * However, it behaves like a regular SQL timestamp but is serialized as Long.
+     *
+     * @param entry
+     * @param obj
+     * @return
+     */
+    @Override
+    protected Object dealTimeAttributeType(Class<? extends TypeInformation> entry, Object obj) {
+        boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(entry);
+        if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
+            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+        }
+        return obj;
     }
 
     private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws SQLException {
