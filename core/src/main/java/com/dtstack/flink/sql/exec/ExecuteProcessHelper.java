@@ -28,7 +28,12 @@ import com.dtstack.flink.sql.environment.StreamEnvConfigManager;
 import com.dtstack.flink.sql.function.FunctionManager;
 import com.dtstack.flink.sql.option.OptionParser;
 import com.dtstack.flink.sql.option.Options;
-import com.dtstack.flink.sql.parser.*;
+import com.dtstack.flink.sql.parser.CreateFuncParser;
+import com.dtstack.flink.sql.parser.CreateTmpTableParser;
+import com.dtstack.flink.sql.parser.FlinkPlanner;
+import com.dtstack.flink.sql.parser.InsertSqlParser;
+import com.dtstack.flink.sql.parser.SqlParser;
+import com.dtstack.flink.sql.parser.SqlTree;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.SideSqlExec;
 import com.dtstack.flink.sql.side.table.LookupTableSourceFactory;
@@ -75,8 +80,13 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.time.ZoneId;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TimeZone;
 
 /**
  * 任务执行时的流程方法

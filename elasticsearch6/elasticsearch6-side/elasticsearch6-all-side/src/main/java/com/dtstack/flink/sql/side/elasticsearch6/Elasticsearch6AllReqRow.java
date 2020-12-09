@@ -29,6 +29,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.elasticsearch.action.search.SearchRequest;
@@ -44,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +92,34 @@ public class Elasticsearch6AllReqRow extends BaseAllReqRow implements Serializab
         for (Map<String, Object> one : cacheList) {
             sendOutputRow(value, one, out);
         }
+    }
+
+    @Override
+    public Row fillData(Row input, Object sideInput) {
+        Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
+        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
+            Object obj = input.getField(entry.getValue());
+            boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
+
+            //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
+            if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
+            }
+
+            row.setField(entry.getKey(), obj);
+        }
+
+        for (Map.Entry<Integer, String> entry : sideInfo.getSideFieldNameIndex().entrySet()) {
+            if (cacheInfo == null) {
+                row.setField(entry.getKey(), null);
+            } else {
+                row.setField(entry.getKey(), cacheInfo.get(entry.getValue()));
+            }
+        }
+
+        return row;
     }
 
     private String buildKey(List<Object> equalValList) {
