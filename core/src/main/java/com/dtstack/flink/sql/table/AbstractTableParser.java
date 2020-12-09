@@ -23,15 +23,16 @@ package com.dtstack.flink.sql.table;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Reason:
@@ -143,8 +144,10 @@ public abstract class AbstractTableParser {
 
     public void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo) {
         String primaryFields = matcher.group(2).trim();
-        String[] splitArray = primaryFields.split(",");
-        List<String> primaryKeys = Lists.newArrayList(splitArray);
+        List<String> primaryKeys = Arrays
+                .stream(primaryFields.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());;
         tableInfo.setPrimaryKeys(primaryKeys);
     }
 
