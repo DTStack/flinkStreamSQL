@@ -142,7 +142,7 @@ public abstract class AbstractTableParser {
     }
 
     public void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo) {
-        String primaryFields = matcher.group(1).trim();
+        String primaryFields = matcher.group(2).trim();
         String[] splitArray = primaryFields.split(",");
         List<String> primaryKeys = Lists.newArrayList(splitArray);
         tableInfo.setPrimaryKeys(primaryKeys);
