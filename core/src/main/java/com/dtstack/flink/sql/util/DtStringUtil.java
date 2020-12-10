@@ -373,8 +373,7 @@ public class DtStringUtil {
             return addQuoteForStr(tableName);
         }
 
-        String schemaAndTabName = addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
-        return schemaAndTabName;
+        return addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
     }
 
     /**
@@ -406,5 +405,10 @@ public class DtStringUtil {
 
     public static String getEndQuote() {
         return "\"";
+    }
+
+    public static String removeStartAndEndQuota(String str) {
+        String removeStart = StringUtils.removeStart(str, "'");
+        return StringUtils.removeEnd(removeStart, "'");
     }
 }

@@ -19,7 +19,9 @@
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -71,8 +73,9 @@ public class CreateTableParser implements IParser {
         Map<String, Object> propMap = Maps.newHashMap();
         for (String str : strings) {
             List<String> ss = DtStringUtil.splitIgnoreQuota(str, '=');
+            Preconditions.checkState(ss.size() == 2, str + " Format error");
             String key = ss.get(0).trim();
-            String value = ss.get(1).trim().replaceAll("'", "").trim();
+            String value = DtStringUtil.removeStartAndEndQuota(ss.get(1).trim());
             propMap.put(key, value);
         }
 
