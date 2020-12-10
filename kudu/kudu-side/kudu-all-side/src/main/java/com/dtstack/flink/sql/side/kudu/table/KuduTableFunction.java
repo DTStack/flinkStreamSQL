@@ -51,57 +51,47 @@ public class KuduTableFunction extends BaseTableFunction {
     private KuduClient client;
     private KuduTable table;
 
-    public KuduTableFunction(BaseSideInfo sideInfo) {
-        super(sideInfo);
-    }
+    private final KuduSideTableInfo tableInfo;
 
     public KuduTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new KuduAllSideInfo(sideTableInfo, lookupKeys));
+        tableInfo = (KuduSideTableInfo) sideInfo.getSideTableInfo();
     }
 
     @Override
     protected void loadData(Object cacheRef) {
         Map<String, List<Map<String, Object>>> tmpCache = (Map<String, List<Map<String, Object>>>) cacheRef;
-        KuduSideTableInfo tableInfo = (KuduSideTableInfo) sideInfo.getSideTableInfo();
         KuduScanner scanner = getKuduScannerWithRetry(tableInfo);
         //load data from table
         if (Objects.isNull(scanner)) {
             throw new NullPointerException("kudu scanner is null");
         }
 
-        String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
-
         while (scanner.hasMoreRows()) {
             try {
                 RowResultIterator results = scanner.nextRows();
+
+                if (Objects.isNull(results)) {
+                    break;
+                }
+
                 while (results.hasNext()) {
                     RowResult result = results.next();
                     Map<String, Object> oneRow = Maps.newHashMap();
-                    for (String name : sideFieldNames) {
+                    for (String name : tableInfo.getFields()) {
                         String sideFieldName = name.trim();
                         ColumnSchema columnSchema = table.getSchema().getColumn(sideFieldName);
                         if (Objects.nonNull(columnSchema)) {
                             KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
                         }
                     }
-                    String cacheKey = buildKey(oneRow, sideInfo.getEqualFieldList());
-                    List<Map<String, Object>> list = tmpCache.computeIfAbsent(cacheKey, key -> Lists.newArrayList());
-                    list.add(oneRow);
+                    buildCache(oneRow, tmpCache);
                 }
             } catch (KuduException ke) {
                 LOG.error("", ke);
-            } finally {
-                KuduUtil.closeKuduScanner(scanner);
             }
         }
-    }
-
-    private String buildKey(Map<String, Object> val, List<String> equalFieldList) {
-        StringBuilder sb = new StringBuilder();
-        for (String equalField : equalFieldList) {
-            sb.append(val.get(equalField)).append("_");
-        }
-        return sb.toString();
+        KuduUtil.closeKuduScanner(scanner);
     }
 
     private KuduScanner getKuduScannerWithRetry(KuduSideTableInfo tableInfo) {
@@ -175,19 +165,14 @@ public class KuduTableFunction extends BaseTableFunction {
         Long limitNum = tableInfo.getLimitNum();
         Boolean isFaultTolerant = tableInfo.getFaultTolerant();
         //查询需要的字段
-        String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields(), ",");
-        //主键过滤条件 主键最小值
-        String lowerBoundPrimaryKey = tableInfo.getLowerBoundPrimaryKey();
-        //主键过滤条件 主键最大值
-        String upperBoundPrimaryKey = tableInfo.getUpperBoundPrimaryKey();
-        //主键字段
-        String primaryKeys = tableInfo.getPrimaryKey();
-        if (null == limitNum || limitNum <= 0) {
+        String[] sideFieldNames = tableInfo.getFields();
+
+        if (Objects.isNull(limitNum) || limitNum <= 0) {
             builder.limit(FETCH_SIZE);
         } else {
             builder.limit(limitNum);
         }
-        if (null != batchSizeBytes) {
+        if (Objects.nonNull(batchSizeBytes)) {
             builder.batchSizeBytes(batchSizeBytes);
         }
         if (null != isFaultTolerant) {
@@ -204,33 +189,8 @@ public class KuduTableFunction extends BaseTableFunction {
             }).count();
         }
 
-        if (Objects.nonNull(lowerBoundPrimaryKey)
-                && Objects.nonNull(upperBoundPrimaryKey)
-                && Objects.nonNull(primaryKeys)) {
-            List<ColumnSchema> columnSchemas = schema.getPrimaryKeyColumns();
-            Map<String, Integer> columnName = new HashMap<>(columnSchemas.size());
-            for (int i = 0; i < columnSchemas.size(); i++) {
-                columnName.put(columnSchemas.get(i).getName(), i);
-            }
-            String[] primaryKey = splitString(primaryKeys);
-            String[] lowerBounds = splitString(lowerBoundPrimaryKey);
-            String[] upperBounds = splitString(upperBoundPrimaryKey);
-            PartialRow lowerPartialRow = schema.newPartialRow();
-            PartialRow upperPartialRow = schema.newPartialRow();
-            for (int i = 0; i < primaryKey.length; i++) {
-                Integer index = columnName.get(primaryKey[i]);
-                KuduUtil.primaryKeyRange(lowerPartialRow, columnSchemas.get(index).getType(), primaryKey[i], lowerBounds[i]);
-                KuduUtil.primaryKeyRange(upperPartialRow, columnSchemas.get(index).getType(), primaryKey[i], upperBounds[i]);
-            }
-            builder.lowerBound(lowerPartialRow);
-            builder.exclusiveUpperBound(upperPartialRow);
-        }
         List<String> projectColumns = Arrays.asList(sideFieldNames);
         return builder.setProjectedColumnNames(projectColumns).build();
-    }
-
-    private String[] splitString(String data) {
-        return StringUtils.split(data, ",");
     }
 
     @Override
