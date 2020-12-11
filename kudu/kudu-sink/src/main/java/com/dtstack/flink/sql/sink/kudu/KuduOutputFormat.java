@@ -40,10 +40,11 @@ import java.math.BigDecimal;
 import java.security.PrivilegedAction;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Objects;
 
 /**
- *  @author  gituser
- *  @modify  xiuzhu
+ * @author gituser
+ * @modify xiuzhu
  */
 public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
@@ -73,6 +74,8 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private AsyncKuduClient client;
 
     private KuduTable table;
+
+    private AsyncKuduSession session;
 
     private Integer workerCount;
 
@@ -117,17 +120,12 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
         if (enableKrb) {
             UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(
-                principal,
-                keytab,
-                krb5conf
+                    principal,
+                    keytab,
+                    krb5conf
             );
             client = ugi.doAs(
-                new PrivilegedAction<AsyncKuduClient>() {
-                    @Override
-                    public AsyncKuduClient run() {
-                        return asyncKuduClientBuilder.build();
-                    }
-                });
+                    (PrivilegedAction<AsyncKuduClient>) asyncKuduClientBuilder::build);
         } else {
             client = asyncKuduClientBuilder.build();
         }
@@ -136,6 +134,7 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         if (syncClient.tableExists(tableName)) {
             table = syncClient.openTable(tableName);
         }
+        session = client.newSession();
     }
 
     @Override
@@ -147,7 +146,7 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
         Row row = tupleTrans.getField(1);
         if (row.getArity() != fieldNames.length) {
-            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
                 LOG.error("record insert failed ..{}", row.toString());
                 LOG.error("cause by row.getArity() != fieldNames.length");
             }
@@ -155,7 +154,6 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return;
         }
         Operation operation = toOperation(writeMode, row);
-        AsyncKuduSession session = client.newSession();
 
         try {
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
@@ -163,10 +161,9 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             }
 
             session.apply(operation);
-            session.close();
             outRecords.inc();
         } catch (KuduException e) {
-            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
                 LOG.error("record insert failed, total dirty record:{} current row:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
             }
@@ -176,9 +173,15 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     @Override
     public void close() {
+        if (Objects.nonNull(session)) {
+            // 先把未执行完的操作执行掉，防止操作不一致
+            session.flush();
+            session.close();
+        }
+
         if (null != client) {
             try {
-                client.close();
+                client.shutdown();
             } catch (Exception e) {
                 throw new IllegalArgumentException("[closeKudu]:" + e.getMessage());
             }
