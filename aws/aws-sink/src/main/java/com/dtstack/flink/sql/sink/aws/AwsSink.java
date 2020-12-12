@@ -80,11 +80,6 @@ public class AwsSink implements RetractStreamTableSink<Row>, IStreamSinkGener<Aw
     }
 
     @Override
-    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-
-    }
-
-    @Override
     public DataStreamSink<?> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         AwsOutputFormat.AwsOutputFormatBuilder builder = AwsOutputFormat.buildS3OutputFormat();
         AwsOutputFormat awsOutputFormat = builder.setAccessKey(accessKey)
