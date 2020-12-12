@@ -354,6 +354,7 @@ public class ExecuteProcessHelper {
                 if (waterMarkerAssigner.checkNeedAssignWaterMarker(sourceTableInfo)) {
                     adaptStream = waterMarkerAssigner.assignWaterMarker(adaptStream, typeInfo, sourceTableInfo);
                     fields += ",ROWTIME.ROWTIME";
+                    fields += ",PROCTIME.PROCTIME";
                 } else {
                     fields += ",PROCTIME.PROCTIME";
                 }
