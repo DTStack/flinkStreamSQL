@@ -29,6 +29,7 @@ import org.apache.kudu.client.AsyncKuduClient;
 import org.apache.kudu.client.AsyncKuduSession;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.PartialRow;
@@ -71,11 +72,11 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     TypeInformation<?>[] fieldTypes;
 
-    private AsyncKuduClient client;
+    private KuduClient client;
 
     private KuduTable table;
 
-    private AsyncKuduSession session;
+    private volatile KuduSession session;
 
     private Integer workerCount;
 
@@ -106,16 +107,16 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     private void establishConnection() throws IOException {
-        AsyncKuduClient.AsyncKuduClientBuilder asyncKuduClientBuilder = new AsyncKuduClient.AsyncKuduClientBuilder(kuduMasters);
+        KuduClient.KuduClientBuilder kuduClientBuilder = new KuduClient.KuduClientBuilder(kuduMasters);
         if (null != workerCount) {
-            asyncKuduClientBuilder.workerCount(workerCount);
+            kuduClientBuilder.workerCount(workerCount);
         }
         if (null != defaultSocketReadTimeoutMs) {
-            asyncKuduClientBuilder.workerCount(defaultSocketReadTimeoutMs);
+            kuduClientBuilder.workerCount(defaultSocketReadTimeoutMs);
         }
 
         if (null != defaultOperationTimeoutMs) {
-            asyncKuduClientBuilder.workerCount(defaultOperationTimeoutMs);
+            kuduClientBuilder.workerCount(defaultOperationTimeoutMs);
         }
 
         if (enableKrb) {
@@ -125,14 +126,13 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
                     krb5conf
             );
             client = ugi.doAs(
-                    (PrivilegedAction<AsyncKuduClient>) asyncKuduClientBuilder::build);
+                    (PrivilegedAction<KuduClient>) kuduClientBuilder::build);
         } else {
-            client = asyncKuduClientBuilder.build();
+            client = kuduClientBuilder.build();
         }
-        LOG.info("connect kudu is successed!");
-        KuduClient syncClient = client.syncClient();
-        if (syncClient.tableExists(tableName)) {
-            table = syncClient.openTable(tableName);
+        LOG.info("connect kudu is succeed!");
+        if (client.tableExists(tableName)) {
+            table = client.openTable(tableName);
         }
         session = client.newSession();
     }
@@ -153,14 +153,12 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             outDirtyRecords.inc();
             return;
         }
-        Operation operation = toOperation(writeMode, row);
 
         try {
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
                 LOG.info("Receive data : {}", row);
             }
-
-            session.apply(operation);
+            session.apply(toOperation(writeMode, row));
             outRecords.inc();
         } catch (KuduException e) {
             if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
@@ -173,17 +171,19 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     @Override
     public void close() {
-        if (Objects.nonNull(session)) {
-            // 先把未执行完的操作执行掉，防止操作不一致
-            session.flush();
-            session.close();
+        if (Objects.nonNull(session) && !session.isClosed()) {
+            try {
+                session.close();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("[closeKuduSession]: " + e.getMessage());
+            }
         }
 
         if (null != client) {
             try {
                 client.shutdown();
             } catch (Exception e) {
-                throw new IllegalArgumentException("[closeKudu]:" + e.getMessage());
+                throw new IllegalArgumentException("[closeKuduClient]:" + e.getMessage());
             }
         }
     }
