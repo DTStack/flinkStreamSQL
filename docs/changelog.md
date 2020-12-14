@@ -29,7 +29,9 @@
 * **3.修复watermark idle问题**
     * 描述：在事件时间语义下，假设kafka有两个partition，一个partition会生成大量数据，而另外一个久久不来数据。这时就会有一个问题。这时的watermark始终是最低的，导致窗口不触发计算。查看[ kafkaSource](../docs/plugin/kafkaSource.md) 中withIdleness
 
+
 * **4.window支持early trigger功能**
     * 描述：在大时间窗口下提前触发窗口计算结果，查看[ 1.3 参数配置](../docs/config.md) 中confProp下的early.trigger
+
 
 * **5.一些bug的修复和一些代码的优化**
