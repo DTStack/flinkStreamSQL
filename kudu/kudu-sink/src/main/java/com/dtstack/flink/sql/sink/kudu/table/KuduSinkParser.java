@@ -94,6 +94,7 @@ public class KuduSinkParser extends AbstractTableParser {
             case "date":
                 return Date.class;
             case "unixtime_micros":
+            case "timestamp":
                 return Timestamp.class;
             case "decimal":
                 return BigDecimal.class;
