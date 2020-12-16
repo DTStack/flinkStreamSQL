@@ -16,16 +16,15 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import org.apache.hadoop.hbase.AuthUtil;
@@ -35,10 +34,8 @@ import org.apache.hadoop.hbase.ScheduledChore;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,10 +43,15 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedAction;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author: jingzhen@dtstack.com
@@ -85,6 +87,15 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private transient ChoreService choreService;
 
+    private Integer batchSize;
+    private Long batchWaitInterval;
+
+    private transient ScheduledExecutorService executor;
+    private transient ScheduledFuture scheduledFuture;
+
+    private final List<Row> records = new CopyOnWriteArrayList<>();
+
+
     @Override
     public void configure(Configuration parameters) {
         LOG.warn("---configure---");
@@ -98,10 +109,22 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         table = conn.getTable(TableName.valueOf(tableName));
         LOG.warn("---open end(get table from hbase) ---");
         initMetric();
+
+        // 设置定时任务
+        if (batchWaitInterval > 0) {
+            this.executor = Executors.newScheduledThreadPool(
+                    1, new ExecutorThreadFactory("hbase-sink-flusher"));
+            this.scheduledFuture = this.executor.scheduleAtFixedRate(() -> {
+                if (!records.isEmpty()) {
+                    dealBatchOperation(records);
+                    records.clear();
+                }
+            }, batchWaitInterval, batchWaitInterval, TimeUnit.MILLISECONDS);
+        }
     }
 
-    private void openConn(){
-        try{
+    private void openConn() {
+        try {
             if (kerberosAuthEnable) {
                 LOG.info("open kerberos conn");
                 openKerberosConn();
@@ -111,7 +134,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
                 conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
                 conn = ConnectionFactory.createConnection(conf);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -151,16 +174,59 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
 
-
     @Override
     public void writeRecord(Tuple2 tuple2) {
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.f0;
         Row row = tupleTrans.f1;
         if (retract) {
-            dealInsert(row);
-        } else if (!retract && StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.UPSERT.name())) {
-            dealDelete(row);
+            if (this.batchSize != 0) {
+                writeBatchRecord(row);
+            } else {
+                dealInsert(row);
+            }
+        }
+    }
+
+    public void writeBatchRecord(Row row) {
+        records.add(row);
+        // 数据累计到batchSize之后开始处理
+        if (records.size() == this.batchSize) {
+            dealBatchOperation(records);
+            // 添加完数据之后数据清空records
+            records.clear();
+        }
+    }
+
+    protected void dealBatchOperation(List<Row> records) {
+        // A null in the result array means that the call for that action failed, even after retries.
+        Object[] results = new Object[records.size()];
+        try {
+            List<Put> puts = new ArrayList<>();
+            for (Row record : records) {
+                puts.add(getPutByRow(record));
+            }
+            table.batch(puts, results);
+
+            // 判断数据是否插入成功
+            for (int i = 0; i < results.length; i++) {
+                if (results[i] == null) {
+                    if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                        LOG.error("record insert failed ..{}", records.get(i).toString());
+                    }
+                    // 脏数据记录
+                    outDirtyRecords.inc();
+                } else {
+                    // 输出结果条数记录
+                    outRecords.inc();
+                }
+            }
+            // 打印结果
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                LOG.info(records.toString());
+            }
+        } catch (IOException | InterruptedException e) {
+            LOG.error("", e);
         }
     }
 
@@ -185,26 +251,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             LOG.info(record.toString());
         }
         outRecords.inc();
-    }
-
-    protected void dealDelete(Row record) {
-        String rowKey = buildRowKey(record);
-        if (!StringUtils.isEmpty(rowKey)) {
-            Delete delete = new Delete(Bytes.toBytes(rowKey));
-            try {
-                table.delete(delete);
-            } catch (IOException e) {
-                if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                    LOG.error("record insert failed ..{}", record.toString());
-                    LOG.error("", e);
-                }
-                outDirtyRecords.inc();
-            }
-            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-                LOG.info(record.toString());
-            }
-            outRecords.inc();
-        }
     }
 
     private Put getPutByRow(Row record) {
@@ -244,9 +290,9 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         return rowKeyBuilder.getRowKey(row);
     }
 
-    private Map<String, Object> rowConvertMap(Row record){
+    private Map<String, Object> rowConvertMap(Row record) {
         Map<String, Object> rowValue = Maps.newHashMap();
-        for(int i = 0; i < columnNames.length; i++){
+        for (int i = 0; i < columnNames.length; i++) {
             rowValue.put(columnNames[i], record.getField(i));
         }
         return rowValue;
@@ -258,7 +304,15 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             conn.close();
             conn = null;
         }
+
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(false);
+            if (executor != null) {
+                executor.shutdownNow();
+            }
+        }
     }
+
     private HbaseOutputFormat() {
     }
 
@@ -345,6 +399,15 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
+        public HbaseOutputFormatBuilder setBatchSize(Integer batchSize) {
+            format.batchSize = batchSize;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setBatchWaitInterval(Long batchWaitInterval) {
+            format.batchWaitInterval = batchWaitInterval;
+            return this;
+        }
 
         public HbaseOutputFormat finish() {
             Preconditions.checkNotNull(format.host, "zookeeperQuorum should be specified");
@@ -405,6 +468,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
                 ", zookeeperSaslClient='" + zookeeperSaslClient + '\'' +
                 ", clientPrincipal='" + clientPrincipal + '\'' +
                 ", clientKeytabFile='" + clientKeytabFile + '\'' +
+                ", batchSize='" + batchSize + '\'' +
+                ", batchWaitInterval='" + batchWaitInterval + '\'' +
                 '}';
     }
 
