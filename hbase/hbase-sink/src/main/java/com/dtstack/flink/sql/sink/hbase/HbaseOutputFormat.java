@@ -300,9 +300,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     @Override
     public void close() throws IOException {
-        if (conn != null) {
-            conn.close();
-            conn = null;
+        if (!records.isEmpty()) {
+            dealBatchOperation(records);
         }
 
         if (scheduledFuture != null) {
@@ -311,6 +310,12 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
                 executor.shutdownNow();
             }
         }
+
+        if (conn != null) {
+            conn.close();
+            conn = null;
+        }
+
     }
 
     private HbaseOutputFormat() {
