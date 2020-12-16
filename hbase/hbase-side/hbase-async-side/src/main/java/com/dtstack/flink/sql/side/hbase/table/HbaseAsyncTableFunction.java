@@ -26,7 +26,6 @@ import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import com.dtstack.flink.sql.side.table.BaseAsyncTableFunction;
-import com.dtstack.flink.sql.util.DataTypeUtils;
 import com.dtstack.flink.sql.util.DtFileUtils;
 import com.stumbleupon.async.Deferred;
 import org.apache.commons.collections.MapUtils;
@@ -78,13 +77,10 @@ public class HbaseAsyncTableFunction extends BaseAsyncTableFunction {
 
     private String tableName;
 
-    private String[] colNames;
-
     public HbaseAsyncTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new HbaseAsyncSideInfo(sideTableInfo, lookupKeys));
 
         tableName = ((HbaseSideTableInfo) sideTableInfo).getTableName();
-        colNames = DataTypeUtils.getPhysicalFieldNames(sideTableInfo);
     }
 
     @Override

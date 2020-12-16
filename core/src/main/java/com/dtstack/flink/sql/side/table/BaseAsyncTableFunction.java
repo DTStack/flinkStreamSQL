@@ -27,6 +27,7 @@ import com.dtstack.flink.sql.side.ISideReqRow;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
+import com.dtstack.flink.sql.util.DataTypeUtils;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.JoinType;
 import org.apache.flink.metrics.Counter;
@@ -61,11 +62,15 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
     protected static final int DEFAULT_FETCH_SIZE = 1000;
     protected AbstractSideTableInfo sideTableInfo;
     protected Map<String, String> physicalFields;
+    protected String[] colNames;
+    protected String[] sideFieldTypes;
 
     public BaseAsyncTableFunction(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
         this.sideTableInfo = sideInfo.getSideTableInfo();
         this.physicalFields = sideTableInfo.getPhysicalFields();
+        this.colNames = DataTypeUtils.getPhysicalFieldNames(sideTableInfo);
+        this.sideFieldTypes = DataTypeUtils.getPhysicalFieldTypes(sideTableInfo);
     }
 
     /**
@@ -323,11 +328,9 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
 
     @Override
     public Row fillData(Object sideInput) {
-        Row row = new Row(physicalFields.size());
+        Row row = new Row(colNames.length);
         if (sideInput != null) {
-            String[] sideFieldNames = physicalFields.values().stream().toArray(String[]::new);
-            String[] sideFieldTypes = sideTableInfo.getFieldTypes();
-            fillDataWapper(sideInput, sideFieldNames, sideFieldTypes, row);
+            fillDataWapper(sideInput, colNames, sideFieldTypes, row);
         }
         row.setKind(RowKind.INSERT);
         return row;
