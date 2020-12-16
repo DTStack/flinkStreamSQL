@@ -979,7 +979,12 @@ public class JoinNodeDealer {
     public Map<String, String> buildTmpTableFieldRefOriField(Set<String> fieldSet, String newTableAliasName){
         Map<String, String> refInfo = Maps.newConcurrentMap();
         for(String field : fieldSet){
-            String[] fields = StringUtils.splitByWholeSeparator(field, " as ");
+            String[] fields;
+            if (StringUtils.contains(field, " AS ")) {
+                fields = StringUtils.splitByWholeSeparator(field, " AS ");
+            } else {
+                fields = StringUtils.splitByWholeSeparator(field, " as ");
+            }
             if (fields != null) {
                 fields = Stream
                         .of(fields)
