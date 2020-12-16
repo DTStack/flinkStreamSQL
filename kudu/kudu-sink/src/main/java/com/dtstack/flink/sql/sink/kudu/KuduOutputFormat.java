@@ -29,6 +29,7 @@ import org.apache.kudu.client.AsyncKuduClient;
 import org.apache.kudu.client.AsyncKuduSession;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.PartialRow;
@@ -40,10 +41,11 @@ import java.math.BigDecimal;
 import java.security.PrivilegedAction;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Objects;
 
 /**
- *  @author  gituser
- *  @modify  xiuzhu
+ * @author gituser
+ * @modify xiuzhu
  */
 public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
@@ -70,9 +72,11 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     TypeInformation<?>[] fieldTypes;
 
-    private AsyncKuduClient client;
+    private KuduClient client;
 
     private KuduTable table;
+
+    private volatile KuduSession session;
 
     private Integer workerCount;
 
@@ -103,39 +107,34 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     private void establishConnection() throws IOException {
-        AsyncKuduClient.AsyncKuduClientBuilder asyncKuduClientBuilder = new AsyncKuduClient.AsyncKuduClientBuilder(kuduMasters);
+        KuduClient.KuduClientBuilder kuduClientBuilder = new KuduClient.KuduClientBuilder(kuduMasters);
         if (null != workerCount) {
-            asyncKuduClientBuilder.workerCount(workerCount);
+            kuduClientBuilder.workerCount(workerCount);
         }
         if (null != defaultSocketReadTimeoutMs) {
-            asyncKuduClientBuilder.workerCount(defaultSocketReadTimeoutMs);
+            kuduClientBuilder.workerCount(defaultSocketReadTimeoutMs);
         }
 
         if (null != defaultOperationTimeoutMs) {
-            asyncKuduClientBuilder.workerCount(defaultOperationTimeoutMs);
+            kuduClientBuilder.workerCount(defaultOperationTimeoutMs);
         }
 
         if (enableKrb) {
             UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(
-                principal,
-                keytab,
-                krb5conf
+                    principal,
+                    keytab,
+                    krb5conf
             );
             client = ugi.doAs(
-                new PrivilegedAction<AsyncKuduClient>() {
-                    @Override
-                    public AsyncKuduClient run() {
-                        return asyncKuduClientBuilder.build();
-                    }
-                });
+                    (PrivilegedAction<KuduClient>) kuduClientBuilder::build);
         } else {
-            client = asyncKuduClientBuilder.build();
+            client = kuduClientBuilder.build();
         }
-        LOG.info("connect kudu is successed!");
-        KuduClient syncClient = client.syncClient();
-        if (syncClient.tableExists(tableName)) {
-            table = syncClient.openTable(tableName);
+        LOG.info("connect kudu is succeed!");
+        if (client.tableExists(tableName)) {
+            table = client.openTable(tableName);
         }
+        session = client.newSession();
     }
 
     @Override
@@ -147,26 +146,22 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
         Row row = tupleTrans.getField(1);
         if (row.getArity() != fieldNames.length) {
-            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
                 LOG.error("record insert failed ..{}", row.toString());
                 LOG.error("cause by row.getArity() != fieldNames.length");
             }
             outDirtyRecords.inc();
             return;
         }
-        Operation operation = toOperation(writeMode, row);
-        AsyncKuduSession session = client.newSession();
 
         try {
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
                 LOG.info("Receive data : {}", row);
             }
-
-            session.apply(operation);
-            session.close();
+            session.apply(toOperation(writeMode, row));
             outRecords.inc();
         } catch (KuduException e) {
-            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
                 LOG.error("record insert failed, total dirty record:{} current row:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
             }
@@ -176,11 +171,19 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     @Override
     public void close() {
+        if (Objects.nonNull(session) && !session.isClosed()) {
+            try {
+                session.close();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("[closeKuduSession]: " + e.getMessage());
+            }
+        }
+
         if (null != client) {
             try {
-                client.close();
+                client.shutdown();
             } catch (Exception e) {
-                throw new IllegalArgumentException("[closeKudu]:" + e.getMessage());
+                throw new IllegalArgumentException("[closeKuduClient]:" + e.getMessage());
             }
         }
     }

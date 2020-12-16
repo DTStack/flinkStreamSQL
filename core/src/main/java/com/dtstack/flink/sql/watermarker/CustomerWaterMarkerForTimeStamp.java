@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.watermarker;
 
@@ -39,9 +39,10 @@ public class CustomerWaterMarkerForTimeStamp extends AbstractCustomerWaterMarker
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerWaterMarkerForTimeStamp.class);
 
-    public CustomerWaterMarkerForTimeStamp(Time maxOutOfOrderness, int pos) {
+    public CustomerWaterMarkerForTimeStamp(Time maxOutOfOrderness, int pos,String timezone) {
         super(maxOutOfOrderness);
         this.pos = pos;
+        this.timezone= TimeZone.getTimeZone(timezone);
     }
 
     @Override
