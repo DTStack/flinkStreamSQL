@@ -38,6 +38,9 @@
         <module>tidb</module>
         <module>kingbase</module>
         <module>aws</module>
+
+        <!-- 脏数据插件 -->
+        <module>dirtyData</module>
 <!--        <module>localTest</module>-->
 
     </modules>
