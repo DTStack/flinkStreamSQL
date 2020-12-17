@@ -31,7 +31,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
@@ -50,32 +49,14 @@ abstract public class AbstractRdbTableFunction extends BaseTableFunction {
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
-        RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideTableInfo;
         LOG.info("rdb dim table config info: {} ", tableInfo.toString());
     }
 
     @Override
-    protected void initCache() throws SQLException {
-        Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
-        cacheRef.set(newCache);
-        loadData(newCache);
-    }
-
-    @Override
-    protected void reloadCache() {
-        //reload cacheRef and replace to old cacheRef
-        Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
-        try {
-            loadData(newCache);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        cacheRef.set(newCache);
-        LOG.info("----- rdb all cacheRef reload end:{}", Calendar.getInstance());
-    }
-
-    private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws SQLException {
-        RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+    protected void loadData(Object cacheRef) {
+        Map<String, List<Map<String, Object>>> tmpCache = (Map<String, List<Map<String, Object>>>) cacheRef;
+        RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideTableInfo;
         Connection connection = null;
 
         try {
@@ -99,10 +80,14 @@ abstract public class AbstractRdbTableFunction extends BaseTableFunction {
             queryAndFillData(tmpCache, connection);
         } catch (Exception e) {
             LOG.error("", e);
-            throw new SQLException(e);
+            throw new RuntimeException(e);
         } finally {
             if (connection != null) {
-                connection.close();
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    LOG.error("", e);
+                }
             }
         }
     }
@@ -114,17 +99,21 @@ abstract public class AbstractRdbTableFunction extends BaseTableFunction {
         statement.setFetchSize(getFetchSize());
         ResultSet resultSet = statement.executeQuery(sql);
 
-        String[] sideFieldNames = sideInfo.getSideTableInfo().getPhysicalFields().values().stream().toArray(String[]::new);
-        String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
+        String[] sideFieldNames = physicalFields.values().stream().toArray(String[]::new);
+        String[] fields = sideTableInfo.getFieldTypes();
         while (resultSet.next()) {
             Map<String, Object> oneRow = Maps.newHashMap();
-            for (int i = 0; i < sideFieldNames.length; i++) {
-                Object object = resultSet.getObject(sideFieldNames[i].trim());
-                object = SwitchUtil.getTarget(object, fields[i]);
-                oneRow.put(sideFieldNames[i].trim(), object);
+            // 防止一条数据有问题，后面数据无法加载
+            try {
+                for (int i = 0; i < sideFieldNames.length; i++) {
+                    Object object = resultSet.getObject(sideFieldNames[i].trim());
+                    object = SwitchUtil.getTarget(object, fields[i]);
+                    oneRow.put(sideFieldNames[i].trim(), object);
+                }
+                buildCache(oneRow, tmpCache);
+            } catch (Exception e) {
+                LOG.error("", e);
             }
-
-            buildCache(oneRow, tmpCache);
         }
     }
 

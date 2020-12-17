@@ -50,13 +50,14 @@ public class LocalTest {
         setLogLevel("INFO");
 
         List<String> propertiesList = new ArrayList<>();
-        String sqlPath = "/Users/wtz/dtstack/job/flinkStreamSQL/sql/TestDemo/JoinDemoTwo.sql";
+        String sqlPath = "/Users/chuixue/Desktop/tmp/sqlFile.sql";
         Map<String, Object> conf = new HashMap<>();
         JSONObject properties = new JSONObject();
 
         //其他参数配置
         properties.put("time.characteristic", "eventTime");
         properties.put("timezone", TimeZone.getDefault());
+        properties.put("early.trigger", "1");
 
         // 任务配置参数
         conf.put("-sql", URLEncoder.encode(readSQL(sqlPath), StandardCharsets.UTF_8.name()));
@@ -64,6 +65,7 @@ public class LocalTest {
         conf.put("-name", "flinkStreamSQLLocalTest");
         conf.put("-confProp", properties.toString());
         conf.put("-pluginLoadMode", "LocalTest");
+        conf.put("-planner", "flink");
 
         for (Map.Entry<String, Object> keyValue : conf.entrySet()) {
             propertiesList.add(keyValue.getKey());

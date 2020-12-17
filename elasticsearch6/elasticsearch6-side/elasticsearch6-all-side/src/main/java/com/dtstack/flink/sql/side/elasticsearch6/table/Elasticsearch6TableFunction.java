@@ -36,8 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -54,47 +52,18 @@ public class Elasticsearch6TableFunction extends BaseTableFunction {
     private transient RestHighLevelClient rhlClient;
     private SearchRequest searchRequest;
     private BoolQueryBuilder boolQueryBuilder;
-    private AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
-    private Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
     public Elasticsearch6TableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new Elasticsearch6AllSideInfo(sideTableInfo, lookupKeys));
     }
 
     @Override
-    protected void initCache() throws SQLException {
-        Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
-        cacheRef.set(newCache);
-        try {
-            // create search request and build where cause
-            searchRequest = Es6Util.setSearchRequest(sideInfo);
-            boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
-            loadData(newCache);
-        } catch (Exception e) {
-            LOG.error("", e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    protected void reloadCache() {
-        //reload cacheRef and replace to old cacheRef
-        Map<String, List<Map<String, Object>>> newCache = Maps.newConcurrentMap();
-        try {
-            loadData(newCache);
-        } catch (Exception e) {
-            LOG.error("", e);
-            throw new RuntimeException(e);
-        }
-
-        cacheRef.set(newCache);
-        LOG.info("----- elasticsearch6 all cacheRef reload end:{}", Calendar.getInstance());
-
-    }
-
-    private void loadData(Map<String, List<Map<String, Object>>> tmpCache) throws IOException {
+    protected void loadData(Object cacheRef) {
+        Map<String, List<Map<String, Object>>> tmpCache = (Map<String, List<Map<String, Object>>>) cacheRef;
         Elasticsearch6SideTableInfo tableInfo = (Elasticsearch6SideTableInfo) sideTableInfo;
-
+        // create search request and build where cause
+        searchRequest = Es6Util.setSearchRequest(sideInfo);
+        boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
         try {
             for (int i = 0; i < CONN_RETRY_NUM; i++) {
                 try {
@@ -122,9 +91,12 @@ public class Elasticsearch6TableFunction extends BaseTableFunction {
             LOG.error("", e);
             throw new RuntimeException(e);
         } finally {
-
             if (rhlClient != null) {
-                rhlClient.close();
+                try {
+                    rhlClient.close();
+                } catch (IOException e) {
+                    LOG.error("", e);
+                }
             }
         }
     }
@@ -186,13 +158,17 @@ public class Elasticsearch6TableFunction extends BaseTableFunction {
 
         for (SearchHit searchHit : searchHits) {
             Map<String, Object> oneRow = Maps.newHashMap();
-            for (int i = 0; i < sideFieldNames.length; i++) {
-                Object object = searchHit.getSourceAsMap().get(sideFieldNames[i].trim());
-                object = SwitchUtil.getTarget(object, sideFieldTypes[i]);
-                oneRow.put(sideFieldNames[i].trim(), object);
+            // 防止一条数据有问题，后面数据无法加载
+            try {
+                for (int i = 0; i < sideFieldNames.length; i++) {
+                    Object object = searchHit.getSourceAsMap().get(sideFieldNames[i].trim());
+                    object = SwitchUtil.getTarget(object, sideFieldTypes[i]);
+                    oneRow.put(sideFieldNames[i].trim(), object);
+                }
+                buildCache(oneRow, tmpCache);
+            } catch (Exception e) {
+                LOG.error("", e);
             }
-
-            buildCache(oneRow, tmpCache);
         }
     }
 }

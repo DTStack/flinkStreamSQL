@@ -26,7 +26,6 @@ import com.dtstack.flink.sql.side.hbase.rowkeydealer.PreRowKeyModeDealerDealer;
 import com.dtstack.flink.sql.side.hbase.rowkeydealer.RowKeyEqualModeDealer;
 import com.dtstack.flink.sql.side.hbase.utils.HbaseConfigUtils;
 import com.dtstack.flink.sql.side.table.BaseAsyncTableFunction;
-import com.dtstack.flink.sql.util.DataTypeUtils;
 import com.dtstack.flink.sql.util.DtFileUtils;
 import com.stumbleupon.async.Deferred;
 import org.apache.commons.collections.MapUtils;
@@ -34,7 +33,6 @@ import org.apache.flink.runtime.security.DynamicConfiguration;
 import org.apache.flink.runtime.security.KerberosUtils;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
-import org.apache.flink.types.RowKind;
 import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
@@ -47,7 +45,11 @@ import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -75,19 +77,15 @@ public class HbaseAsyncTableFunction extends BaseAsyncTableFunction {
 
     private String tableName;
 
-    private String[] colNames;
-
     public HbaseAsyncTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new HbaseAsyncSideInfo(sideTableInfo, lookupKeys));
 
         tableName = ((HbaseSideTableInfo) sideTableInfo).getTableName();
-        colNames = DataTypeUtils.getPhysicalFieldNames(sideInfo.getSideTableInfo());
     }
 
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
-        AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         Map<String, Object> hbaseConfig = hbaseSideTableInfo.getHbaseConfig();
 
@@ -187,15 +185,12 @@ public class HbaseAsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     @Override
-    public Row fillData(Object sideInput) {
+    protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row) {
         List<Object> sideInputList = (List<Object>) sideInput;
-        Row row = new Row(colNames.length);
-        for (int i = 0; i < colNames.length; i++) {
+        for (int i = 0; i < sideFieldNames.length; i++) {
             Object object = sideInputList.get(i);
             row.setField(i, object);
         }
-        row.setKind(RowKind.INSERT);
-        return row;
     }
 
     @Override

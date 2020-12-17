@@ -18,18 +18,15 @@
 
 package com.dtstack.flink.sql.side.cassandra;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.BaseSideInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +43,9 @@ public class CassandraAsyncSideInfo extends BaseSideInfo {
     private static final long serialVersionUID = -4403313049809013362L;
     private static final Logger LOG = LoggerFactory.getLogger(CassandraAsyncSideInfo.class.getSimpleName());
 
+    public CassandraAsyncSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
 
     public CassandraAsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
@@ -67,14 +67,20 @@ public class CassandraAsyncSideInfo extends BaseSideInfo {
         }
 
         sqlCondition = "select ${selectField} from ${tableName}";
-        sqlCondition = sqlCondition.replace("${tableName}", cassandraSideTableInfo.getDatabase()+"."+cassandraSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
+        sqlCondition = sqlCondition.replace("${tableName}", cassandraSideTableInfo.getDatabase() + "." + cassandraSideTableInfo.getTableName()).replace("${selectField}", sideSelectFields);
 
         LOG.info("---------side_exe_sql-----\n{}" + sqlCondition);
     }
 
     @Override
     public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+        super.buildEqualInfo(sideTableInfo);
+        CassandraSideTableInfo cassandraSideTableInfo = (CassandraSideTableInfo) sideTableInfo;
 
+        sqlCondition = "select ${selectField} from ${tableName}";
+        sqlCondition = sqlCondition.replace("${tableName}", cassandraSideTableInfo.getDatabase() + "." + cassandraSideTableInfo.getTableName()).replace("${selectField}", cassandraSideTableInfo.getPhysicalFields().values().stream().reduce((a, b) -> a + "," + b).get());
+
+        LOG.info("---------side_exe_sql-----\n{}" + sqlCondition);
     }
 
 }

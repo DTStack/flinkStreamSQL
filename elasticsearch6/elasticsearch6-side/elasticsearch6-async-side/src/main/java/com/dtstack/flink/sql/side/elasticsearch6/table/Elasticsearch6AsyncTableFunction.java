@@ -31,7 +31,6 @@ import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
-import org.apache.flink.types.RowKind;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -66,8 +65,6 @@ public class Elasticsearch6AsyncTableFunction extends BaseAsyncTableFunction {
     private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch6AsyncTableFunction.class);
     private transient RestHighLevelClient rhlClient;
     private SearchRequest searchRequest;
-    private AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
-    private Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
     public Elasticsearch6AsyncTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new Elasticsearch6AsyncSideInfo(sideTableInfo, lookupKeys));
@@ -76,7 +73,7 @@ public class Elasticsearch6AsyncTableFunction extends BaseAsyncTableFunction {
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
-        Elasticsearch6SideTableInfo tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
+        Elasticsearch6SideTableInfo tableInfo = (Elasticsearch6SideTableInfo) sideTableInfo;
         rhlClient = Es6Util.getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
         searchRequest = Es6Util.setSearchRequest(sideInfo);
     }
@@ -112,7 +109,7 @@ public class Elasticsearch6AsyncTableFunction extends BaseAsyncTableFunction {
                             }
                             if (tableInfo == null) {
                                 // create new connection to fetch data
-                                tableInfo = (Elasticsearch6SideTableInfo) sideInfo.getSideTableInfo();
+                                tableInfo = (Elasticsearch6SideTableInfo) sideTableInfo;
                                 tmpRhlClient = Es6Util.getClient(tableInfo.getAddress(), tableInfo.isAuthMesh(), tableInfo.getUserName(), tableInfo.getPassword());
                             }
                             Object[] searchAfterParameter = searchHits[searchHits.length - 1].getSortValues();
@@ -171,18 +168,11 @@ public class Elasticsearch6AsyncTableFunction extends BaseAsyncTableFunction {
     }
 
     @Override
-    public Row fillData(Object sideInput) {
+    protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row) {
         Map<String, Object> values = (Map<String, Object>) sideInput;
-        Row row = new Row(physicalFields.size());
-        if (sideInput != null) {
-            String[] sideFieldNames = physicalFields.values().stream().toArray(String[]::new);
-            String[] sideFieldTypes = sideTableInfo.getFieldTypes();
-            for (int i = 0; i < sideFieldNames.length; i++) {
-                row.setField(i, SwitchUtil.getTarget(values.get(sideFieldNames[i].trim()), sideFieldTypes[i]));
-            }
+        for (int i = 0; i < sideFieldNames.length; i++) {
+            row.setField(i, SwitchUtil.getTarget(values.get(sideFieldNames[i].trim()), sideFieldTypes[i]));
         }
-        row.setKind(RowKind.INSERT);
-        return row;
     }
 
     @Override

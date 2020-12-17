@@ -20,6 +20,10 @@ public class KuduAllSideInfo extends BaseSideInfo {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
 
+    public KuduAllSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
+
     @Override
     public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
         // no use
@@ -27,7 +31,7 @@ public class KuduAllSideInfo extends BaseSideInfo {
 
     @Override
     public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
-
+        super.buildEqualInfo(sideTableInfo);
     }
 
     @Override

@@ -27,6 +27,7 @@ import com.dtstack.flink.sql.side.ISideReqRow;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cache.LRUSideCache;
+import com.dtstack.flink.sql.util.DataTypeUtils;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.JoinType;
 import org.apache.flink.metrics.Counter;
@@ -34,6 +35,7 @@ import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.functions.AsyncTableFunction;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
+import org.apache.flink.types.RowKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -57,9 +60,17 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
     protected static final int DEFAULT_FETCH_SIZE = 1000;
+    protected AbstractSideTableInfo sideTableInfo;
+    protected Map<String, String> physicalFields;
+    protected String[] colNames;
+    protected String[] sideFieldTypes;
 
     public BaseAsyncTableFunction(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
+        this.sideTableInfo = sideInfo.getSideTableInfo();
+        this.physicalFields = sideTableInfo.getPhysicalFields();
+        this.colNames = DataTypeUtils.getPhysicalFieldNames(sideTableInfo);
+        this.sideFieldTypes = DataTypeUtils.getPhysicalFieldTypes(sideTableInfo);
     }
 
     /**
@@ -271,7 +282,7 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
      */
     public String buildCacheKey(Object... keys) {
         return Arrays.stream(keys)
-                .map(Object::toString)
+                .map(e -> String.valueOf(e))
                 .collect(Collectors.joining("_"));
     }
 
@@ -314,4 +325,24 @@ abstract public class BaseAsyncTableFunction extends AsyncTableFunction<Row> imp
     public Row fillData(Row input, Object line) {
         return null;
     }
+
+    @Override
+    public Row fillData(Object sideInput) {
+        Row row = new Row(colNames.length);
+        if (sideInput != null) {
+            fillDataWapper(sideInput, colNames, sideFieldTypes, row);
+        }
+        row.setKind(RowKind.INSERT);
+        return row;
+    }
+
+    /**
+     * 填充数据到Row中
+     *
+     * @param sideInput      维表数据
+     * @param sideFieldNames 维表字段名称
+     * @param sideFieldTypes 维表字段类型
+     * @param row            返回数据
+     */
+    abstract protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row);
 }

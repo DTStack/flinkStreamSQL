@@ -58,6 +58,6 @@ public class Elasticsearch6AsyncSideInfo extends BaseSideInfo {
 
     @Override
     public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
-
+        super.buildEqualInfo(sideTableInfo);
     }
 }

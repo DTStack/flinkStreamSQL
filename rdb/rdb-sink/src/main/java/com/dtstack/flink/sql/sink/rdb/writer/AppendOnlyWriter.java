@@ -57,6 +57,11 @@ public class AppendOnlyWriter implements JDBCWriter {
     }
 
     @Override
+    public void initMetricOutput(AbstractDtRichOutputFormat metricOutputFormat) {
+        this.metricOutputFormat = metricOutputFormat;
+    }
+
+    @Override
     public void open(Connection connection) throws SQLException {
         this.rows = new ArrayList();
         prepareStatement(connection);

@@ -52,7 +52,7 @@ public class Elasticsearch6AllSideInfo extends BaseSideInfo {
 
     @Override
     public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
-
+        super.buildEqualInfo(sideTableInfo);
     }
 
 

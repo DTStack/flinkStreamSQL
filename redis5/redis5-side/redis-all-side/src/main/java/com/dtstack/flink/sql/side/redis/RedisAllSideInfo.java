@@ -35,6 +35,10 @@ public class RedisAllSideInfo extends BaseSideInfo {
 
     private static final long serialVersionUID = 1998703966487857613L;
 
+    public RedisAllSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
+
     public RedisAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }

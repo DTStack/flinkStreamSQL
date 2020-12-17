@@ -20,8 +20,11 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.exception.sqlparse.FieldsNotFoundInTableException;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -29,14 +32,14 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.flink.table.runtime.typeutils.RowDataTypeInfo;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Reason:
@@ -239,10 +242,21 @@ public abstract class BaseSideInfo implements Serializable{
     public abstract void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo);
 
     /**
-     * 构建维表查询的sql
+     * 构建维表查询的sql，父类校验PRIMARY  KEY中的字段是否在表的定义中，如果表字段是别名，则以别名为准。子类定义查询语句
+     *
      * @param sideTableInfo
      */
-    public abstract void buildEqualInfo(AbstractSideTableInfo sideTableInfo);
+    public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+        List<String> tableFields = Arrays.asList(sideTableInfo.getFields());
+        List<String> primaryKeys = sideTableInfo.getPrimaryKeys();
+        primaryKeys.forEach(
+                item -> {
+                    if (!tableFields.contains(item)) {
+                        throw new FieldsNotFoundInTableException("field '" + item + "' not found in table '" + sideTableInfo.getName() + "'");
+                    }
+                }
+        );
+    }
 
     /**
      * 获取真实的关联字段
@@ -257,7 +271,7 @@ public abstract class BaseSideInfo implements Serializable{
                 .stream()
                 .filter(e -> lookupKeys.contains(e.getKey()))
                 .map(Map.Entry::getValue)
-                .collect(Collectors.toList());
+                .collect(toList());
         return physicaFieldsList;
     }
 

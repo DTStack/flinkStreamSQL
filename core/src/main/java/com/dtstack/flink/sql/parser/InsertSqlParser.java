@@ -20,11 +20,21 @@
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.enums.PlannerType;
-import org.apache.calcite.sql.*;
+import com.google.common.collect.Lists;
+import org.apache.calcite.sql.SqlAsOperator;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlMatchRecognize;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
-import com.google.common.collect.Lists;
-import org.apache.flink.table.planner.calcite.FlinkPlannerImpl;
 
 import java.util.List;
 
@@ -161,12 +171,32 @@ public class InsertSqlParser implements IParser {
         SqlNodeList sqlNodes = new SqlNodeList(selectList.getParserPosition());
 
         for (int index = 0; index < selectList.size(); index++) {
-            if (selectList.get(index).getKind().equals(SqlKind.AS)
-                    || ((SqlIdentifier) selectList.get(index)).names.size() == 1) {
-                sqlNodes.add(selectList.get(index));
+            SqlNode sqlNode = selectList.get(index);
+            // 判断sqlNode的类型是否属于 't1.f1 as f2'
+            boolean isAsNode = sqlNode.getKind().equals(SqlKind.AS);
+
+            // 判断sqlNode的结构是否属于'f1' 或者 't.*'
+            boolean isIdentifierOrStar = sqlNode.getClass().equals(SqlIdentifier.class)
+                    // sqlNode like 'f1'
+                    && (((SqlIdentifier) sqlNode).isSimple()
+                    // sqlNode like 't.*'
+                    || ((SqlIdentifier) sqlNode).isStar());
+
+            if (isAsNode || isIdentifierOrStar) {
+                sqlNodes.add(sqlNode);
                 continue;
             }
-            sqlNodes.add(transformToAsNode(selectList.get(index)));
+
+            if (!sqlNode.getClass().equals(SqlIdentifier.class)) {
+                if (sqlNode.getKind().equals(SqlKind.LITERAL)) {
+                    throw new IllegalArgumentException(String.format("Constants %s in the SELECT statement must be aliased!",
+                            sqlNode.toString()));
+                }
+                throw new RuntimeException(String.format("Illegal statement! Please check the statement: %s",
+                        sqlNode.toString()));
+            }
+
+            sqlNodes.add(transformToAsNode(sqlNode));
         }
         sqlSelect.setSelectList(sqlNodes);
     }

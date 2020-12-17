@@ -38,6 +38,7 @@ CREATE TABLE tableName(
 |参数名称|含义|是否必填|默认值|
 |----|---|---|---|
 |type | kafka09 | 是|kafka09、kafka10、kafka11、kafka(对应kafka1.0及以上版本)|
+|**withIdleness** | 解决eventtime语义下,source多并行度下时间倾斜,watermark不提升|否|填写大于0的正整数即可,单位为秒|
 |groupId | 需要读取的 groupId 名称|否||
 |bootstrapServers | kafka bootstrap-server 地址信息(多个用逗号隔开)|是||
 |zookeeperQuorum | kafka zk地址信息(多个之间用逗号分隔)|是||

@@ -85,6 +85,7 @@ public class RdbAsyncSideInfo extends BaseSideInfo {
 
     @Override
     public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+        super.buildEqualInfo(sideTableInfo);
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
         flinkPlannerSqlCondition = getSelectFromStatement(
                 getTableName(rdbSideTableInfo)

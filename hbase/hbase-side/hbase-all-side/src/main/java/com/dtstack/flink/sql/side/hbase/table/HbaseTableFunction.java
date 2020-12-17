@@ -63,8 +63,6 @@ public class HbaseTableFunction extends BaseTableFunction {
     private Table table = null;
     private ResultScanner resultScanner = null;
     private Configuration conf = null;
-    private AbstractSideTableInfo sideTableInfo = sideInfo.getSideTableInfo();
-    private Map<String, String> physicalFields = sideTableInfo.getPhysicalFields();
 
     public HbaseTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new HbaseAllSideInfo(sideTableInfo, lookupKeys));
@@ -83,7 +81,7 @@ public class HbaseTableFunction extends BaseTableFunction {
         Map<String, Map<String, Object>> newCache = Maps.newConcurrentMap();
         try {
             loadData(newCache);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             LOG.error("", e);
         }
 
@@ -128,7 +126,9 @@ public class HbaseTableFunction extends BaseTableFunction {
         return row;
     }
 
-    private void loadData(Map<String, Map<String, Object>> tmpCache) throws SQLException {
+    @Override
+    protected void loadData(Object cacheRef) {
+        Map<String, Map<String, Object>> tmpCache = (Map<String, Map<String, Object>>) cacheRef;
         Map<String, String> colRefType = ((HbaseAllSideInfo) sideInfo).getColRefType();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         boolean openKerberos = hbaseSideTableInfo.isKerberosAuthEnable();
@@ -166,25 +166,30 @@ public class HbaseTableFunction extends BaseTableFunction {
             resultScanner = table.getScanner(new Scan());
             for (Result r : resultScanner) {
                 Map<String, Object> kv = new HashedMap();
-                for (Cell cell : r.listCells()) {
-                    String family = Bytes.toString(CellUtil.cloneFamily(cell));
-                    String qualifier = Bytes.toString(CellUtil.cloneQualifier(cell));
-                    StringBuilder key = new StringBuilder();
-                    key.append(family).append(":").append(qualifier);
-                    Object value = HbaseUtils.convertByte(CellUtil.cloneValue(cell), colRefType.get(key.toString()));
-                    if (physicalFields.containsKey(key.toString())
-                            || physicalFields.containsValue(key.toString())) {
-                        kv.put(key.toString(), value);
+                // 防止一条数据有问题，后面数据无法加载
+                try {
+                    for (Cell cell : r.listCells()) {
+                        String family = Bytes.toString(CellUtil.cloneFamily(cell));
+                        String qualifier = Bytes.toString(CellUtil.cloneQualifier(cell));
+                        StringBuilder key = new StringBuilder();
+                        key.append(family).append(":").append(qualifier);
+                        Object value = HbaseUtils.convertByte(CellUtil.cloneValue(cell), colRefType.get(key.toString()));
+                        if (physicalFields.containsKey(key.toString())
+                                || physicalFields.containsValue(key.toString())) {
+                            kv.put(key.toString(), value);
+                        }
                     }
+                    for (String primaryKey : hbaseSideTableInfo.getPrimaryKeys()) {
+                        kv.put(primaryKey, HbaseUtils.convertByte(r.getRow(), "string"));
+                    }
+                    loadDataCount++;
+                    tmpCache.put(new String(r.getRow()), kv);
+                } catch (Exception e) {
+                    LOG.error("", e);
                 }
-                for (String primaryKey : hbaseSideTableInfo.getPrimaryKeys()) {
-                    kv.put(primaryKey, HbaseUtils.convertByte(r.getRow(), "string"));
-                }
-                loadDataCount++;
-                tmpCache.put(new String(r.getRow()), kv);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            LOG.error("", e);
         } finally {
             LOG.info("load Data count: {}", loadDataCount);
             try {

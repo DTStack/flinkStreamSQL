@@ -20,6 +20,7 @@ FlinkStreamSQL
     
 ## 目录
 
+[ 1.0 变更记录](docs/changelog.md)  
 [ 1.1 demo](docs/demo.md)  
 [ 1.2 快速开始](docs/quickStart.md)  
 [ 1.3 参数配置](docs/config.md)  

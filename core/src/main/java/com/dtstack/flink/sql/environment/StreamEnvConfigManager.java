@@ -73,8 +73,6 @@ public final class StreamEnvConfigManager {
 
         confProperties = PropertiesUtils.propertiesTrim(confProperties);
         streamEnv.getConfig().disableClosureCleaner();
-        // Disables reusing object
-        streamEnv.getConfig().enableObjectReuse();
 
         Configuration globalJobParameters = new Configuration();
         //Configuration unsupported set properties key-value
@@ -87,8 +85,8 @@ public final class StreamEnvConfigManager {
         ExecutionConfig exeConfig = streamEnv.getConfig();
         if (exeConfig.getGlobalJobParameters() == null) {
             exeConfig.setGlobalJobParameters(globalJobParameters);
-        } else if (exeConfig.getGlobalJobParameters() instanceof Configuration) {
-            ((Configuration) exeConfig.getGlobalJobParameters()).addAll(globalJobParameters);
+        } else if (exeConfig.getGlobalJobParameters() instanceof ExecutionConfig.GlobalJobParameters) {
+            exeConfig.setGlobalJobParameters(globalJobParameters);
         }
 
         getEnvParallelism(confProperties).ifPresent(streamEnv::setParallelism);
@@ -121,6 +119,21 @@ public final class StreamEnvConfigManager {
             getCheckpointCleanup(confProperties).ifPresent(streamEnv.getCheckpointConfig()::enableExternalizedCheckpoints);
             enableUnalignedCheckpoints(confProperties).ifPresent(event -> streamEnv.getCheckpointConfig().enableUnalignedCheckpoints(event));
             getStateBackend(confProperties).ifPresent(streamEnv::setStateBackend);
+        }
+    }
+
+    /**
+     * 设置TableEnvironment window提前触发
+     * @param tableEnv
+     * @param confProperties
+     */
+    public static void streamTableEnvironmentEarlyTriggerConfig(TableEnvironment tableEnv, Properties confProperties) {
+        confProperties = PropertiesUtils.propertiesTrim(confProperties);
+        String triggerTime = confProperties.getProperty(ConfigConstrant.EARLY_TRIGGER);
+        if (StringUtils.isNumeric(triggerTime)) {
+            TableConfig qConfig = tableEnv.getConfig();
+            qConfig.getConfiguration().setString("table.exec.emit.early-fire.enabled", "true");
+            qConfig.getConfiguration().setString("table.exec.emit.early-fire.delay", triggerTime+"s");
         }
     }
 

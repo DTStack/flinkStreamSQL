@@ -40,6 +40,10 @@ public class MongoAllSideInfo extends BaseSideInfo {
 
     private static final long serialVersionUID = -1696860430075523841L;
 
+    public MongoAllSideInfo(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
+        super(sideTableInfo, lookupKeys);
+    }
+
     public MongoAllSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
     }
@@ -50,7 +54,7 @@ public class MongoAllSideInfo extends BaseSideInfo {
 
     @Override
     public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
-
+        super.buildEqualInfo(sideTableInfo);
     }
 
     @Override

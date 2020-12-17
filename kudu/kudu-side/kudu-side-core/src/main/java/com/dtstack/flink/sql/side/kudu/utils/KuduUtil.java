@@ -24,25 +24,32 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
+import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduPredicate;
+import org.apache.kudu.client.KuduScanner;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- *
  * util for kudu use
  * Date: 2019/12/16
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class KuduUtil {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(KuduUtil.class);
 
     public static void primaryKeyRange(PartialRow partialRow, Type type, String primaryKey, String value) {
         switch (type) {
@@ -50,25 +57,25 @@ public class KuduUtil {
                 partialRow.addString(primaryKey, value);
                 break;
             case FLOAT:
-                partialRow.addFloat(primaryKey, Float.valueOf(value));
+                partialRow.addFloat(primaryKey, Float.parseFloat(value));
                 break;
             case INT8:
-                partialRow.addByte(primaryKey, Byte.valueOf(value));
+                partialRow.addByte(primaryKey, Byte.parseByte(value));
                 break;
             case INT16:
-                partialRow.addShort(primaryKey, Short.valueOf(value));
+                partialRow.addShort(primaryKey, Short.parseShort(value));
                 break;
             case INT32:
-                partialRow.addInt(primaryKey, Integer.valueOf(value));
+                partialRow.addInt(primaryKey, Integer.parseInt(value));
                 break;
             case INT64:
-                partialRow.addLong(primaryKey, Long.valueOf(value));
+                partialRow.addLong(primaryKey, Long.parseLong(value));
                 break;
             case DOUBLE:
-                partialRow.addDouble(primaryKey, Double.valueOf(value));
+                partialRow.addDouble(primaryKey, Double.parseDouble(value));
                 break;
             case BOOL:
-                partialRow.addBoolean(primaryKey, Boolean.valueOf(value));
+                partialRow.addBoolean(primaryKey, Boolean.parseBoolean(value));
                 break;
             case UNIXTIME_MICROS:
                 partialRow.addTimestamp(primaryKey, Timestamp.valueOf(value));
@@ -118,34 +125,34 @@ public class KuduUtil {
         }
     }
 
-    public static Object getValue(String value, Type type){
-        if(value == null){
+    public static Object getValue(String value, Type type) {
+        if (value == null) {
             return null;
         }
 
-        if(value.startsWith("\"") || value.endsWith("'")){
+        if (value.startsWith("\"") || value.endsWith("'")) {
             value = value.substring(1, value.length() - 1);
         }
 
         Object objValue;
-        if (Type.BOOL.equals(type)){
+        if (Type.BOOL.equals(type)) {
             objValue = Boolean.valueOf(value);
-        } else if(Type.INT8.equals(type)){
+        } else if (Type.INT8.equals(type)) {
             objValue = Byte.valueOf(value);
-        } else if(Type.INT16.equals(type)){
+        } else if (Type.INT16.equals(type)) {
             objValue = Short.valueOf(value);
-        } else if(Type.INT32.equals(type)){
+        } else if (Type.INT32.equals(type)) {
             objValue = Integer.valueOf(value);
-        } else if(Type.INT64.equals(type)){
+        } else if (Type.INT64.equals(type)) {
             objValue = Long.valueOf(value);
-        } else if(Type.FLOAT.equals(type)){
+        } else if (Type.FLOAT.equals(type)) {
             objValue = Float.valueOf(value);
-        } else if(Type.DOUBLE.equals(type)){
+        } else if (Type.DOUBLE.equals(type)) {
             objValue = Double.valueOf(value);
-        } else if(Type.DECIMAL.equals(type)){
+        } else if (Type.DECIMAL.equals(type)) {
             objValue = new BigDecimal(value);
-        } else if(Type.UNIXTIME_MICROS.equals(type)){
-            if(NumberUtils.isNumber(value)){
+        } else if (Type.UNIXTIME_MICROS.equals(type)) {
+            if (NumberUtils.isNumber(value)) {
                 objValue = Long.valueOf(value);
             } else {
                 objValue = Timestamp.valueOf(value);
@@ -164,7 +171,7 @@ public class KuduUtil {
             case "IN":
             case "NOT_IN":
             case "BETWEEN":
-                value = Arrays.asList(StringUtils.split(info.getCondition(), ",")).stream()
+                value = Arrays.stream(StringUtils.split(info.getCondition(), ","))
                         .map(val -> KuduUtil.getValue(val.trim(), column.getType())).collect(Collectors.toList());
                 break;
             case "IS_NOT_NULL":
@@ -194,6 +201,15 @@ public class KuduUtil {
             default:
         }
         return null;
+    }
 
+    public static void closeKuduScanner(KuduScanner scanner) {
+        try {
+            if (Objects.nonNull(scanner)) {
+                scanner.close();
+            }
+        } catch (KuduException ke) {
+            LOGGER.error("", ke);
+        }
     }
 }

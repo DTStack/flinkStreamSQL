@@ -57,11 +57,13 @@ sh submit.sh -key1 val1 -key2 val2
     * 必选：否
     * 默认值：{}
     * 可选参数:
+        * **early.trigger：开启window统计提前触发功能，单位为秒(填写正整数即可)，如：5。**
         * sql.ttl.min: 最小过期时间,大于0的整数,如1d、1h(d\D:天,h\H:小时,m\M:分钟,s\s:秒)
         * sql.ttl.max: 最大过期时间,大于0的整数,如2d、2h(d\D:天,h\H:小时,m\M:分钟,s\s:秒),需同时设置最小时间,且比最小时间大5分钟
         * state.backend: 任务状态后端，可选为MEMORY,FILESYSTEM,ROCKSDB，默认为flinkconf中的配置。
         * state.checkpoints.dir: FILESYSTEM,ROCKSDB状态后端文件系统存储路径，例如：hdfs://ns1/dtInsight/flink180/checkpoints。
         * state.backend.incremental: ROCKSDB状态后端是否开启增量checkpoint,默认为true。
+        * **sql.checkpoint.unalignedCheckpoints：是否开启Unaligned Checkpoint,不开启false,开启true。默认为true。**
         * sql.env.parallelism: 默认并行度设置
         * sql.max.env.parallelism: 最大并行度设置
         * time.characteristic: 可选值[ProcessingTime|IngestionTime|EventTime]
@@ -106,3 +108,14 @@ sh submit.sh -key1 val1 -key2 val2
 	* 必选：否
 	* 默认值：{}
 	
+* **planner**	
+    * 描述：不同模式下维表join语法不同，dtstack：join语法和之前一样。flink：
+        ```
+        select 
+           *
+        from source u
+        left join side FOR SYSTEM_TIME AS OF u.PROCTIME AS s
+        on u.id = s.id;
+        ```
+    * 必选：否
+    * 默认值：flink

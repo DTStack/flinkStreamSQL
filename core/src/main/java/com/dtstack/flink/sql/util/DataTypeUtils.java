@@ -220,8 +220,34 @@ public class DataTypeUtils {
     }
 
     /**
+     * 获取维表物理字段名称对应的类型
+     * 如果primaryKeys中的字段不在表字段中：如hbase的rowkey。则也需要将该字段加上默认string类型，否则join语法不通过
+     *
+     * @param sideTableInfo
+     * @return
+     */
+    public static String[] getPhysicalFieldTypes(AbstractSideTableInfo sideTableInfo) {
+        String[] fieldTypes = sideTableInfo.getFieldTypes();
+        String[] fieldNames = getFieldNames(sideTableInfo);
+
+        if (fieldNames.length == fieldTypes.length) {
+            return fieldTypes;
+        }
+
+        String[] newFieldTypes = new String[fieldNames.length];
+        for (int i = 0; i < fieldNames.length; i++) {
+            if (i >= fieldTypes.length) {
+                newFieldTypes[i] = "varchar";
+                continue;
+            }
+            newFieldTypes[i] = fieldTypes[i];
+        }
+        return newFieldTypes;
+    }
+
+    /**
      * 获取维表物理字段名称
-     * 如果primaryKeys中的字段不在表字段中：如hbase的rowkey。则也需要将改字段加上，否则join语法不通过
+     * 如果primaryKeys中的字段不在表字段中：如hbase的rowkey。则也需要将该字段加上，否则join语法不通过
      *
      * @param sideTableInfo
      * @return
