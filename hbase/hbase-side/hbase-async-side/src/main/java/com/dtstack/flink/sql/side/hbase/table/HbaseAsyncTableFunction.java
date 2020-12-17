@@ -187,7 +187,7 @@ public class HbaseAsyncTableFunction extends BaseAsyncTableFunction {
     @Override
     protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row) {
         List<Object> sideInputList = (List<Object>) sideInput;
-        for (int i = 0; i < colNames.length; i++) {
+        for (int i = 0; i < sideFieldNames.length; i++) {
             Object object = sideInputList.get(i);
             row.setField(i, object);
         }

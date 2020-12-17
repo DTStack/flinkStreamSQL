@@ -81,6 +81,7 @@ public class RdbAllSideInfo extends BaseSideInfo {
 
     @Override
     public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+        super.buildEqualInfo(sideTableInfo);
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideTableInfo;
         // TODO flink table api必须将表定义所有字段数据加载
         flinkPlannerSqlCondition = getSelectFromStatement(getTableName(rdbSideTableInfo), new ArrayList(sideTableInfo.getPhysicalFields().values()), sideTableInfo.getPredicateInfoes());

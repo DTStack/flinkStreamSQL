@@ -45,7 +45,7 @@ public class KuduAsyncSideInfo extends BaseSideInfo {
 
     @Override
     public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
-
+        super.buildEqualInfo(sideTableInfo);
     }
 
 }

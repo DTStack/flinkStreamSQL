@@ -60,6 +60,7 @@ public class CassandraAllSideInfo extends BaseSideInfo {
 
     @Override
     public void buildEqualInfo(AbstractSideTableInfo sideTableInfo) {
+        super.buildEqualInfo(sideTableInfo);
         CassandraSideTableInfo cassandraSideTableInfo = (CassandraSideTableInfo) sideTableInfo;
 
         sqlCondition = "select ${selectField} from ${tableName} ";

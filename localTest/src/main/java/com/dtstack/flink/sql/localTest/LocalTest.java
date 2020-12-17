@@ -50,7 +50,7 @@ public class LocalTest {
         setLogLevel("INFO");
 
         List<String> propertiesList = new ArrayList<>();
-        String sqlPath = "/Users/wtz/dtstack/sql/1.11_dev/flink/KuduDemoOne.sql";
+        String sqlPath = "/Users/chuixue/Desktop/tmp/sqlFile.sql";
         Map<String, Object> conf = new HashMap<>();
         JSONObject properties = new JSONObject();
 

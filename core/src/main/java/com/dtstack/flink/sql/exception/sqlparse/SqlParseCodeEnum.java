@@ -42,6 +42,10 @@ public enum SqlParseCodeEnum implements ErrorCode {
      * 在使用flink planner的时候，create view中如果和维表关联必须使用别名，直接insert into则不会，flink原生bug
      */
     VIEW_JOIN_WITHOUT_ALIAS("004", SqlExceptionConstant.viewJoinWithoutAlias()),
+    /**
+     * PRIMARY  KEY中的字段未在表明中定义，如果表字段是别名，则以别名为准
+     */
+    FIELDS_NOT_FOUND_IN_TABLE("005", "PRIMARY  KEY field not found in table"),
     ;
 
     /**

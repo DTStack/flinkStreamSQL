@@ -263,7 +263,7 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
     @Override
     protected void fillDataWapper(Object sideInput, String[] sideFieldNames, String[] sideFieldTypes, Row row) {
         JsonArray jsonArray = (JsonArray) sideInput;
-        for (int i = 0; i < sideFieldTypes.length; i++) {
+        for (int i = 0; i < sideFieldNames.length; i++) {
             String fieldType = sideFieldTypes[i];
             Object object = SwitchUtil.getTarget(jsonArray.getValue(i), fieldType);
             row.setField(i, object);
