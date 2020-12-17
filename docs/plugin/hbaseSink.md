@@ -7,7 +7,7 @@ CREATE TABLE MyResult(
     type ='hbase',
     zookeeperQuorum ='ip:port[,ip:port]',
     tableName ='tableName',
-    rowKey ='colName[,colName]',
+    rowKey ='colName[+colName]',
     parallelism ='1',
     zookeeperParent ='/hbase'
  )
@@ -34,7 +34,7 @@ hbase2.0
 |zookeeperQuorum | hbase zk地址,多个直接用逗号隔开|是||
 |zookeeperParent | zkParent 路径|是||
 |tableName | 关联的hbase表名称|是||
-|rowkey | hbase的rowkey关联的列信息,多个值以逗号隔开|是||
+|rowkey | hbase的rowkey关联的列信息'+'多个值以逗号隔开|是||
 |updateMode|APPEND：不回撤数据，只下发增量数据，UPSERT：先删除回撤数据，然后更新|否|APPEND｜
 |parallelism | 并行度设置|否|1|
 |kerberosAuthEnable | 是否开启kerberos认证|否|false|
@@ -76,7 +76,7 @@ CREATE TABLE MyResult(
 	tableName ='myresult',
 	partitionedJoin ='false',
 	parallelism ='1',
-	rowKey='name,channel'
+	rowKey='name+channel'
  );
 
 insert          
@@ -141,7 +141,7 @@ into
 
 ## 6.hbase数据
 ### 数据内容说明
-hbase的rowkey 构建规则：以描述的rowkey字段值作为key，多个字段以'-'连接
+hbase的rowkey 构建规则：以描述的rowkey字段值作为key，多个字段以'+'连接
 ### 数据内容示例
 hbase(main):007:0> scan 'myresult'
     ROW                   COLUMN+CELL                                               

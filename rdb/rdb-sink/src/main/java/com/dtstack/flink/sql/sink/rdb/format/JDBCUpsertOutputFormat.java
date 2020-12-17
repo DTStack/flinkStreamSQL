@@ -29,10 +29,12 @@ import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -84,7 +86,8 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             int flushMaxSize,
             long flushIntervalMills,
             boolean allReplace,
-            String updateMode) {
+            String updateMode,
+            JDBCWriter jdbcWriter) {
         super(options.getUsername(), options.getPassword(), options.getDriverName(), options.getDbUrl());
         this.schema = options.getSchema();
         this.tableName = options.getTableName();
@@ -97,6 +100,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         this.flushIntervalMills = flushIntervalMills;
         this.allReplace = allReplace;
         this.updateMode = updateMode;
+        this.jdbcWriter = jdbcWriter;
     }
 
     /**
@@ -108,18 +112,25 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
      */
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
+        openJdbc();
+    }
+
+    public void openJdbc() throws IOException {
         try {
             establishConnection();
             initMetric();
-
-            if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || keyFields == null || keyFields.length == 0) {
-                String insertSql = dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields);
-                LOG.info("execute insert sql： {}", insertSql);
-                jdbcWriter = new AppendOnlyWriter(insertSql, fieldTypes, this);
+            if(jdbcWriter == null){
+                if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || keyFields == null || keyFields.length == 0) {
+                    String insertSql = dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields);
+                    LOG.info("execute insert sql： {}", insertSql);
+                    jdbcWriter = new AppendOnlyWriter(insertSql, fieldTypes, this);
+                } else {
+                    jdbcWriter = AbstractUpsertWriter.create(
+                            dialect, schema, tableName, fieldNames, fieldTypes, keyFields, partitionFields,
+                            getRuntimeContext().getExecutionConfig().isObjectReuseEnabled(), allReplace, this);
+                }
             } else {
-                jdbcWriter = AbstractUpsertWriter.create(
-                        dialect, schema, tableName, fieldNames, fieldTypes, keyFields, partitionFields,
-                        getRuntimeContext().getExecutionConfig().isObjectReuseEnabled(), allReplace, this);
+                jdbcWriter.initMetricOutput(this);
             }
             jdbcWriter.open(connection);
         } catch (SQLException sqe) {
@@ -130,7 +141,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
         if (flushIntervalMills != 0) {
             this.scheduler = new ScheduledThreadPoolExecutor(1,
-                    new DTThreadFactory("jdbc-upsert-output-format"));
+                new DTThreadFactory("jdbc-upsert-output-format"));
             this.scheduledFuture = this.scheduler.scheduleWithFixedDelay(() -> {
                 synchronized (JDBCUpsertOutputFormat.this) {
                     if (closed) {
@@ -237,6 +248,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         protected long flushIntervalMills = DEFAULT_FLUSH_INTERVAL_MILLS;
         protected boolean allReplace = DEFAULT_ALLREPLACE_VALUE;
         protected String updateMode;
+        protected JDBCWriter jdbcWriter;
 
         /**
          * required, jdbc options.
@@ -308,6 +320,11 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             return this;
         }
 
+        public Builder setJDBCWriter(JDBCWriter jdbcWriter) {
+            this.jdbcWriter = jdbcWriter;
+            return this;
+        }
+
         /**
          * Finalizes the configuration and checks validity.
          *
@@ -317,7 +334,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             checkNotNull(options, "No options supplied.");
             checkNotNull(fieldNames, "No fieldNames supplied.");
             return new JDBCUpsertOutputFormat(
-                    options, fieldNames, keyFields, partitionFields, fieldTypes, flushMaxSize, flushIntervalMills, allReplace, updateMode);
+                    options, fieldNames, keyFields, partitionFields, fieldTypes, flushMaxSize, flushIntervalMills, allReplace, updateMode, jdbcWriter);
         }
     }
 }

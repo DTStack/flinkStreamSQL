@@ -32,7 +32,6 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
@@ -51,13 +50,11 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 /**
  * @author yanxi
  */
@@ -81,7 +78,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
     public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
-        this.redisSideReqRow = new RedisSideReqRow(super.sideInfo);
+        this.redisSideReqRow = new RedisSideReqRow(super.sideInfo, (RedisSideTableInfo) sideTableInfo);
     }
 
     @Override
@@ -113,7 +110,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
     @Override
     public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
-        Map<String, String> inputParams = Maps.newHashMap();
+        Map<String, Object> inputParams = Maps.newHashMap();
         for(Integer conValIndex : sideInfo.getEqualValIndex()){
             Object equalObj = input.getField(conValIndex);
             if(equalObj == null){
@@ -126,7 +123,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
             String columnName = sideInfo.getEqualFieldList().get(conValIndex);
             inputParams.put(columnName, equalObj.toString());
         }
-        String key = buildCacheKey(inputParams);
+        String key = redisSideReqRow.buildCacheKey(inputParams);
 
         Map<String, String> cacheMap = cacheRef.get().get(key);
 
@@ -144,19 +141,6 @@ public class RedisAllReqRow extends BaseAllReqRow {
         Row newRow = fillData(input, cacheMap);
         RowDataComplete.collectRow(out, newRow);
     }
-
-    private String buildCacheKey(Map<String, String> refData) {
-        StringBuilder keyBuilder = new StringBuilder(tableInfo.getTableName());
-        List<String> primaryKeys = tableInfo.getPrimaryKeys();
-        for(String primaryKey : primaryKeys){
-            if(!refData.containsKey(primaryKey)){
-                return null;
-            }
-            keyBuilder.append("_").append(refData.get(primaryKey));
-        }
-        return keyBuilder.toString();
-    }
-
 
     private void loadData(Map<String, Map<String, String>> tmpCache) throws SQLException {
         JedisCommands jedis = null;

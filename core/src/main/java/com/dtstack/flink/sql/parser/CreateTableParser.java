@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
- 
-
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -40,8 +40,6 @@ public class CreateTableParser implements IParser {
     private static final String PATTERN_STR = "(?i)create\\s+table\\s+(\\S+)\\s*\\((.+)\\)\\s*with\\s*\\((.+)\\)";
 
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STR);
-
-    private static final Pattern PROP_PATTERN = Pattern.compile("^'\\s*(.+)\\s*'$");
 
     public static CreateTableParser newInstance(){
         return new CreateTableParser();
@@ -70,26 +68,18 @@ public class CreateTableParser implements IParser {
         }
     }
 
-    private Map parseProp(String propsStr){
-        propsStr = propsStr.replaceAll("'\\s*,", "'|");
-        String[] strs = propsStr.trim().split("\\|");
+    private Map<String, Object> parseProp(String propsStr){
+        List<String> strings = DtStringUtil.splitIgnoreQuota(propsStr.trim(), ',');
         Map<String, Object> propMap = Maps.newHashMap();
-        for (String str : strs) {
+        for (String str : strings) {
             List<String> ss = DtStringUtil.splitIgnoreQuota(str, '=');
+            Preconditions.checkState(ss.size() == 2, str + " Format error");
             String key = ss.get(0).trim();
-            String value = extractValue(ss.get(1).trim());
+            String value = DtStringUtil.removeStartAndEndQuota(ss.get(1).trim());
             propMap.put(key, value);
         }
 
         return propMap;
-    }
-
-    private String extractValue(String value) {
-        Matcher matcher = PROP_PATTERN.matcher(value);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        throw new RuntimeException("[" + value + "] format is invalid");
     }
 
     public static class SqlParserResult{

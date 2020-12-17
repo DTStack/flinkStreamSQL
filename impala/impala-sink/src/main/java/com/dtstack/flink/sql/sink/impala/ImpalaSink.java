@@ -20,64 +20,115 @@ package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.impala.table.ImpalaTableInfo;
-import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
-import com.dtstack.flink.sql.sink.rdb.AbstractRdbSink;
-import com.dtstack.flink.sql.sink.rdb.format.JDBCUpsertOutputFormat;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
+import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction;
+import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import org.apache.flink.table.sinks.RetractStreamTableSink;
+import org.apache.flink.table.sinks.TableSink;
+import org.apache.flink.types.Row;
 
-import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 
 /**
- * Date: 2019/11/11
+ * Date: 2020/10/14
  * Company: www.dtstack.com
  *
- * @author xiuzhu
+ * @author tiezhu
  */
+public class ImpalaSink implements RetractStreamTableSink<Row>, IStreamSinkGener<ImpalaSink> {
 
-public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<AbstractRdbSink> {
+    private static final String DEFAULT_STORE_TYPE = "kudu";
 
-    private ImpalaTableInfo impalaTableInfo;
+    protected String[] fieldNames;
+    TypeInformation<?>[] fieldTypes;
+    protected String dbUrl;
+    protected String userName;
+    protected String password;
+    protected Integer authMech;
+
+    protected String keytabPath;
+    protected String krb5confPath;
+    protected String principal;
+
+    protected int batchSize = 100;
+    protected long batchWaitInterval = 60 * 1000L;
+    protected String tableName;
+    protected String registerTabName;
+    protected String storeType;
+
+    protected List<String> primaryKeys;
+    private int parallelism = 1;
+    protected String schema;
+    protected String updateMode;
+    protected Boolean enablePartition;
+    public List<String> fieldList;
+    public List<String> fieldTypeList;
+    public List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList;
+    protected String partitionFields;
 
     public ImpalaSink() {
-        super(null);
+        // do Nothing
     }
 
     @Override
-    public JDBCUpsertOutputFormat getOutputFormat() {
-        JDBCOptions jdbcOptions = JDBCOptions.builder()
-                .setDbUrl(getImpalaJdbcUrl())
-                .setDialect(new ImpalaDialect(getFieldTypes(), primaryKeys))
-                .setUsername(userName)
-                .setPassword(password)
-                .setTableName(tableName)
-                .build();
+    public ImpalaSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
+        ImpalaTableInfo impalaTableInfo = (ImpalaTableInfo) targetTableInfo;
+        this.dbUrl = getImpalaJdbcUrl(impalaTableInfo);
+        this.password = impalaTableInfo.getPassword();
+        this.userName = impalaTableInfo.getUserName();
+        this.authMech = impalaTableInfo.getAuthMech();
 
-        return JDBCUpsertOutputFormat.builder()
-                .setOptions(jdbcOptions)
-                .setFieldNames(fieldNames)
-                .setFlushMaxSize(batchNum)
-                .setFlushIntervalMills(batchWaitInterval)
-                .setFieldTypes(sqlTypes)
-                .setKeyFields(primaryKeys)
-                .setPartitionFields(impalaTableInfo.getPartitionFields())
-                .setAllReplace(allReplace)
-                .setUpdateMode(updateMode)
-                .build();
+        this.principal = impalaTableInfo.getPrincipal();
+        this.keytabPath = impalaTableInfo.getKeyTabFilePath();
+        this.krb5confPath = impalaTableInfo.getKrb5FilePath();
+
+        this.updateMode = Objects.isNull(impalaTableInfo.getUpdateMode()) ?
+                "append" : impalaTableInfo.getUpdateMode();
+
+        this.batchSize = Objects.isNull(impalaTableInfo.getBatchSize()) ?
+                batchSize : impalaTableInfo.getBatchSize();
+        this.batchWaitInterval = Objects.isNull(impalaTableInfo.getBatchWaitInterval()) ?
+                batchWaitInterval : impalaTableInfo.getBatchWaitInterval();
+        this.parallelism = Objects.isNull(impalaTableInfo.getParallelism()) ?
+                parallelism : impalaTableInfo.getParallelism();
+        this.registerTabName = impalaTableInfo.getTableName();
+
+        this.fieldList = impalaTableInfo.getFieldList();
+        this.fieldTypeList = impalaTableInfo.getFieldTypeList();
+        this.fieldExtraInfoList = impalaTableInfo.getFieldExtraInfoList();
+        this.tableName = impalaTableInfo.getTableName();
+        this.schema = impalaTableInfo.getSchema();
+        this.primaryKeys = impalaTableInfo.getPrimaryKeys();
+        this.partitionFields = impalaTableInfo.getPartitionFields();
+
+        this.storeType = Objects.isNull(impalaTableInfo.getStoreType()) ?
+                DEFAULT_STORE_TYPE : impalaTableInfo.getStoreType();
+        this.enablePartition = impalaTableInfo.isEnablePartition();
+
+        return this;
     }
 
-
-    public String getImpalaJdbcUrl() {
+    /**
+     * build Impala Jdbc Url according to authMech
+     *
+     * @param impalaTableInfo impala table info
+     * @return jdbc url with auth mech info
+     */
+    public String getImpalaJdbcUrl(ImpalaTableInfo impalaTableInfo) {
         Integer authMech = impalaTableInfo.getAuthMech();
-        String newUrl = dbUrl;
-        StringBuffer urlBuffer = new StringBuffer(dbUrl);
+        String newUrl = impalaTableInfo.getUrl();
+        StringBuilder urlBuffer = new StringBuilder(impalaTableInfo.getUrl());
         if (authMech == EAuthMech.NoAuthentication.getType()) {
             return newUrl;
         } else if (authMech == EAuthMech.Kerberos.getType()) {
-            String keyTabFilePath = impalaTableInfo.getKeyTabFilePath();
-            String krb5FilePath = impalaTableInfo.getKrb5FilePath();
-            String principal = impalaTableInfo.getPrincipal();
             String krbRealm = impalaTableInfo.getKrbRealm();
             String krbHostFqdn = impalaTableInfo.getKrbHostFQDN();
             String krbServiceName = impalaTableInfo.getKrbServiceName();
@@ -88,21 +139,10 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
                     .concat("KrbServiceName=").concat(krbServiceName).concat(";")
             );
             newUrl = urlBuffer.toString();
-
-            System.setProperty("java.security.krb5.conf", krb5FilePath);
-            Configuration configuration = new Configuration();
-            configuration.set("hadoop.security.authentication", "Kerberos");
-            UserGroupInformation.setConfiguration(configuration);
-            try {
-                UserGroupInformation.loginUserFromKeytab(principal, keyTabFilePath);
-            } catch (IOException e) {
-                throw new RuntimeException("loginUserFromKeytab error ..", e);
-            }
-
         } else if (authMech == EAuthMech.UserName.getType()) {
             urlBuffer.append(";"
                     .concat("AuthMech=3;")
-                    .concat("UID=").concat(userName).concat(";")
+                    .concat("UID=").concat(impalaTableInfo.getUserName()).concat(";")
                     .concat("PWD=;")
                     .concat("UseSasl=0")
             );
@@ -110,8 +150,8 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
         } else if (authMech == EAuthMech.NameANDPassword.getType()) {
             urlBuffer.append(";"
                     .concat("AuthMech=3;")
-                    .concat("UID=").concat(userName).concat(";")
-                    .concat("PWD=").concat(password)
+                    .concat("UID=").concat(impalaTableInfo.getUserName()).concat(";")
+                    .concat("PWD=").concat(impalaTableInfo.getPassword())
             );
             newUrl = urlBuffer.toString();
         } else {
@@ -120,11 +160,71 @@ public class ImpalaSink extends AbstractRdbSink implements IStreamSinkGener<Abst
         return newUrl;
     }
 
+    private ImpalaOutputFormat buildImpalaOutputFormat() {
+
+        return ImpalaOutputFormat.getImpalaBuilder()
+                .setDbUrl(dbUrl)
+                .setPassword(password)
+                .setUserName(userName)
+                .setSchema(schema)
+                .setTableName(tableName)
+                .setUpdateMode(updateMode)
+                .setBatchSize(batchSize)
+                .setBatchWaitInterval(batchWaitInterval)
+                .setPrimaryKeys(primaryKeys)
+                .setPartitionFields(partitionFields)
+                .setFieldList(fieldList)
+                .setFieldTypeList(fieldTypeList)
+                .setFieldExtraInfoList(fieldExtraInfoList)
+                .setStoreType(storeType)
+                .setEnablePartition(enablePartition)
+                .setUpdateMode(updateMode)
+                .setAuthMech(authMech)
+                .setKeyTabPath(keytabPath)
+                .setKrb5ConfPath(krb5confPath)
+                .setPrincipal(principal)
+                .build();
+    }
+
     @Override
-    public AbstractRdbSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
-        super.genStreamSink(targetTableInfo);
-        this.impalaTableInfo = (ImpalaTableInfo) targetTableInfo;
+    public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        consumeDataStream(dataStream);
+    }
+
+    @Override
+    public DataStreamSink<?> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
+        ImpalaOutputFormat outputFormat = buildImpalaOutputFormat();
+        RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
+        DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction)
+                .setParallelism(parallelism)
+                .name(tableName);
+        return dataStreamSink;
+    }
+
+    @Override
+    public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
+        this.fieldNames = fieldNames;
+        this.fieldTypes = fieldTypes;
         return this;
     }
 
+    @Override
+    public TupleTypeInfo<Tuple2<Boolean, Row>> getOutputType() {
+        return new TupleTypeInfo<>(org.apache.flink.table.api.Types.BOOLEAN(), getRecordType());
+    }
+
+    @Override
+    public TypeInformation<Row> getRecordType() {
+        return new RowTypeInfo(fieldTypes, fieldNames);
+    }
+
+    @Override
+    public String[] getFieldNames() {
+        return fieldNames;
+    }
+
+    @Override
+    public TypeInformation<?>[] getFieldTypes() {
+        return fieldTypes;
+    }
 }

@@ -11,42 +11,87 @@
     <modules>
         <module>core</module>
         <module>kafka-base</module>
-<!--        <module>kafka09</module>-->
-<!--        <module>kafka10</module>-->
+        <module>kafka09</module>
+        <module>kafka10</module>
         <module>kafka11</module>
-<!--        <module>kafka</module>-->
+        <module>kafka</module>
         <module>mysql</module>
-<!--        <module>hbase</module>-->
-<!--        <module>elasticsearch5</module>-->
-<!--        <module>elasticsearch6</module>-->
-<!--        <module>mongo</module>-->
-<!--        <module>redis5</module>-->
+        <module>hbase</module>
+        <module>elasticsearch5</module>
+        <module>elasticsearch6</module>
+        <module>mongo</module>
+        <module>redis5</module>
         <module>launcher</module>
         <module>rdb</module>
-<!--        <module>sqlserver</module>-->
-<!--        <module>oracle</module>-->
-<!--        <module>cassandra</module>-->
-<!--        <module>kudu</module>-->
-<!--        <module>postgresql</module>-->
-<!--        <module>serversocket</module>-->
-<!--        <module>console</module>-->
-<!--        <module>clickhouse</module>-->
-<!--        <module>impala</module>-->
-<!--        <module>db2</module>-->
-<!--        <module>polardb</module>-->
-<!--        <module>oceanbase</module>-->
-<!--        <module>tidb</module>-->
-        <module>dirtyDataManager</module>
-        <!--        <module>localTest</module>-->
+        <module>sqlserver</module>
+        <module>oracle</module>
+        <module>cassandra</module>
+        <module>kudu</module>
+        <module>postgresql</module>
+        <module>serversocket</module>
+        <module>console</module>
+        <module>clickhouse</module>
+        <module>impala</module>
+        <module>db2</module>
+        <module>polardb</module>
+        <module>oceanbase</module>
+        <module>tidb</module>
+        <module>kingbase</module>
+        <module>aws</module>
+<!--        <module>localTest</module>-->
 
     </modules>
 
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <flink.version>1.10.0</flink.version>
+        <flink.version>1.10.1</flink.version>
         <hadoop.version>2.7.3</hadoop.version>
+        <junit.version>4.12</junit.version>
+        <mockito.version>2.21.0</mockito.version>
+        <powermock.version>2.0.4</powermock.version>
+        <jacoco.version>0.7.8</jacoco.version>
     </properties>
+
+    <dependencies>
+        <!-- test dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4</artifactId>
+            <version>${powermock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-api-mockito2</artifactId>
+            <version>${powermock.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mockito</groupId>
+                    <artifactId>mockito-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.jacoco</groupId>
+            <artifactId>org.jacoco.agent</artifactId>
+            <classifier>runtime</classifier>
+            <scope>test</scope>
+            <version>${jacoco.version}</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>

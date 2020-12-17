@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
 import com.dtstack.flink.sql.util.JDBCUtils;
+import com.dtstack.flink.sql.util.KrbUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -31,8 +32,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -61,10 +65,24 @@ public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
     @Override
     public Connection getConn(String dbUrl, String userName, String password) {
         try {
-            Connection connection ;
+            Connection connection;
             String url = getUrl();
             JDBCUtils.forName(IMPALA_DRIVER, getClass().getClassLoader());
-            connection = DriverManager.getConnection(url);
+            // Kerberos
+            if (impalaSideTableInfo.getAuthMech() == 1) {
+                String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
+                String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
+                String principal = impalaSideTableInfo.getPrincipal();
+                UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(principal, keyTabFilePath, krb5FilePath);
+                connection = ugi.doAs(new PrivilegedExceptionAction<Connection>() {
+                    @Override
+                    public Connection run() throws SQLException {
+                        return DriverManager.getConnection(url);
+                    }
+                });
+            } else {
+                connection = DriverManager.getConnection(url);
+            }
             connection.setAutoCommit(false);
             return connection;
         } catch (Exception e) {
@@ -83,9 +101,6 @@ public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
             newUrl = urlBuffer.toString();
 
         } else if (authMech == 1) {
-            String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
-            String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
-            String principal = impalaSideTableInfo.getPrincipal();
             String krbRealm = impalaSideTableInfo.getKrbRealm();
             String krbHostFQDN = impalaSideTableInfo.getKrbHostFQDN();
             String krbServiceName = impalaSideTableInfo.getKrbServiceName();
@@ -96,11 +111,7 @@ public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
                     .concat("KrbServiceName=").concat(krbServiceName).concat(";")
             );
             newUrl = urlBuffer.toString();
-            System.setProperty("java.security.krb5.conf", krb5FilePath);
-            Configuration configuration = new Configuration();
-            configuration.set("hadoop.security.authentication" , "Kerberos");
-            UserGroupInformation.setConfiguration(configuration);
-            UserGroupInformation.loginUserFromKeytab(principal, keyTabFilePath);
+
 
         } else if (authMech == 2) {
             String uName = impalaSideTableInfo.getUserName();

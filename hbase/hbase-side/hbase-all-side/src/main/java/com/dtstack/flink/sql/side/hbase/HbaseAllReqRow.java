@@ -32,7 +32,6 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import com.google.common.collect.Maps;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
@@ -100,7 +99,8 @@ public class HbaseAllReqRow extends BaseAllReqRow {
 
             //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
             if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
-                obj = Timestamp.valueOf(((LocalDateTime) obj));
+                //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+                obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
             }
 
             row.setField(entry.getKey(), obj);

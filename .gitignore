@@ -15,5 +15,7 @@ lib/
 bin/nohup.out
 .DS_Store
 bin/sideSql.txt
+*.keytab
+krb5.conf
 .gradle
 gradle

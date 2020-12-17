@@ -167,25 +167,19 @@ public class DtStringUtil {
     public static String dealSqlComment(String sql) {
         boolean inQuotes = false;
         boolean inSingleQuotes = false;
-        int bracketLeftNum = 0;
         StringBuilder b = new StringBuilder(sql.length());
         char[] chars = sql.toCharArray();
         for (int index = 0; index < chars.length; index ++) {
-            if (index == chars.length) {
-                return b.toString();
-            }
             StringBuilder tempSb = new StringBuilder(2);
-            if (index > 1) {
+            if (index >= 1) {
                 tempSb.append(chars[index - 1]);
                 tempSb.append(chars[index]);
             }
 
-            if (tempSb.toString().equals("--")) {
+            if ("--".equals(tempSb.toString())) {
                 if (inQuotes) {
                     b.append(chars[index]);
                 } else if (inSingleQuotes) {
-                    b.append(chars[index]);
-                } else if (bracketLeftNum > 0) {
                     b.append(chars[index]);
                 } else {
                     b.deleteCharAt(b.length() - 1);
@@ -379,8 +373,7 @@ public class DtStringUtil {
             return addQuoteForStr(tableName);
         }
 
-        String schemaAndTabName = addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
-        return schemaAndTabName;
+        return addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
     }
 
     /**
@@ -412,5 +405,10 @@ public class DtStringUtil {
 
     public static String getEndQuote() {
         return "\"";
+    }
+
+    public static String removeStartAndEndQuota(String str) {
+        String removeStart = StringUtils.removeStart(str, "'");
+        return StringUtils.removeEnd(removeStart, "'");
     }
 }

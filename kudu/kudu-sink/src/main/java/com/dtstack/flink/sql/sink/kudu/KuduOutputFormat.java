@@ -19,14 +19,17 @@
 package com.dtstack.flink.sql.sink.kudu;
 
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.util.KrbUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kudu.client.AsyncKuduClient;
 import org.apache.kudu.client.AsyncKuduSession;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.PartialRow;
@@ -35,12 +38,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.security.PrivilegedAction;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Objects;
 
 /**
- *  @author  gituser
- *  @modify  xiuzhu
+ * @author gituser
+ * @modify xiuzhu
  */
 public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
@@ -67,9 +72,11 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     TypeInformation<?>[] fieldTypes;
 
-    private AsyncKuduClient client;
+    private KuduClient client;
 
     private KuduTable table;
+
+    private volatile KuduSession session;
 
     private Integer workerCount;
 
@@ -77,6 +84,13 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private Integer defaultSocketReadTimeoutMs;
 
+    /**
+     * kerberos
+     */
+    private String principal;
+    private String keytab;
+    private String krb5conf;
+    boolean enableKrb;
 
     private KuduOutputFormat() {
     }
@@ -92,25 +106,35 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         initMetric();
     }
 
-
-    private void establishConnection() throws KuduException {
-        AsyncKuduClient.AsyncKuduClientBuilder asyncKuduClientBuilder = new AsyncKuduClient.AsyncKuduClientBuilder(kuduMasters);
+    private void establishConnection() throws IOException {
+        KuduClient.KuduClientBuilder kuduClientBuilder = new KuduClient.KuduClientBuilder(kuduMasters);
         if (null != workerCount) {
-            asyncKuduClientBuilder.workerCount(workerCount);
+            kuduClientBuilder.workerCount(workerCount);
         }
         if (null != defaultSocketReadTimeoutMs) {
-            asyncKuduClientBuilder.workerCount(defaultSocketReadTimeoutMs);
+            kuduClientBuilder.workerCount(defaultSocketReadTimeoutMs);
         }
 
         if (null != defaultOperationTimeoutMs) {
-            asyncKuduClientBuilder.workerCount(defaultOperationTimeoutMs);
+            kuduClientBuilder.workerCount(defaultOperationTimeoutMs);
         }
-        client = asyncKuduClientBuilder.build();
-        KuduClient syncClient = client.syncClient();
 
-        if (syncClient.tableExists(tableName)) {
-            table = syncClient.openTable(tableName);
+        if (enableKrb) {
+            UserGroupInformation ugi = KrbUtils.loginAndReturnUgi(
+                    principal,
+                    keytab,
+                    krb5conf
+            );
+            client = ugi.doAs(
+                    (PrivilegedAction<KuduClient>) kuduClientBuilder::build);
+        } else {
+            client = kuduClientBuilder.build();
         }
+        LOG.info("connect kudu is succeed!");
+        if (client.tableExists(tableName)) {
+            table = client.openTable(tableName);
+        }
+        session = client.newSession();
     }
 
     @Override
@@ -122,26 +146,22 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
         Row row = tupleTrans.getField(1);
         if (row.getArity() != fieldNames.length) {
-            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
                 LOG.error("record insert failed ..{}", row.toString());
                 LOG.error("cause by row.getArity() != fieldNames.length");
             }
             outDirtyRecords.inc();
             return;
         }
-        Operation operation = toOperation(writeMode, row);
-        AsyncKuduSession session = client.newSession();
 
         try {
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
                 LOG.info("Receive data : {}", row);
             }
-
-            session.apply(operation);
-            session.close();
+            session.apply(toOperation(writeMode, row));
             outRecords.inc();
         } catch (KuduException e) {
-            if(outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0){
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
                 LOG.error("record insert failed, total dirty record:{} current row:{}", outDirtyRecords.getCount(), row.toString());
                 LOG.error("", e);
             }
@@ -151,11 +171,19 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     @Override
     public void close() {
+        if (Objects.nonNull(session) && !session.isClosed()) {
+            try {
+                session.close();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("[closeKuduSession]: " + e.getMessage());
+            }
+        }
+
         if (null != client) {
             try {
-                client.close();
+                client.shutdown();
             } catch (Exception e) {
-                throw new IllegalArgumentException("[closeKudu]:" + e.getMessage());
+                throw new IllegalArgumentException("[closeKuduClient]:" + e.getMessage());
             }
         }
     }
@@ -215,6 +243,25 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
+        public KuduOutputFormatBuilder setPrincipal(String principal) {
+            kuduOutputFormat.principal = principal;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setKeytab(String keytab) {
+            kuduOutputFormat.keytab = keytab;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setKrb5conf(String krb5conf) {
+            kuduOutputFormat.krb5conf = krb5conf;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setEnableKrb(boolean enableKrb) {
+            kuduOutputFormat.enableKrb = enableKrb;
+            return this;
+        }
 
         public KuduOutputFormat finish() {
             if (kuduOutputFormat.kuduMasters == null) {

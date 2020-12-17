@@ -18,27 +18,33 @@
 
 package com.dtstack.flink.sql.side.impala;
 
-import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
+import com.dtstack.flink.sql.util.KrbUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.sql.SQLClient;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.types.Row;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Date: 2019/11/12
@@ -53,6 +59,7 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
 
     private final static String IMPALA_DRIVER = "com.cloudera.impala.jdbc41.Driver";
 
+    protected UserGroupInformation ugi = null;
 
     public ImpalaAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new ImpalaAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -60,20 +67,32 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        ImpalaSideTableInfo impalaSideTableInfo = (ImpalaSideTableInfo) sideInfo.getSideTableInfo();
+        if (impalaSideTableInfo.getAuthMech() == 1) {
+            String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
+            String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
+            String principal = impalaSideTableInfo.getPrincipal();
+            ugi = KrbUtils.loginAndReturnUgi(principal, keyTabFilePath, krb5FilePath);
+            openJdbc(parameters);
+        } else {
+            openJdbc(parameters);
+        }
+    }
+
+    public void openJdbc(Configuration parameters) throws Exception {
         super.open(parameters);
         ImpalaSideTableInfo impalaSideTableInfo = (ImpalaSideTableInfo) sideInfo.getSideTableInfo();
-
         JsonObject impalaClientConfig = new JsonObject();
         impalaClientConfig.put("url", getUrl())
-                .put("driver_class", IMPALA_DRIVER)
-                .put("max_pool_size", impalaSideTableInfo.getAsyncPoolSize())
-                .put("provider_class", DT_PROVIDER_CLASS)
-                .put("idle_connection_test_period", 300)
-                .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN)
-                .put("max_idle_time", 600)
-                .put("preferred_test_query", PREFERRED_TEST_QUERY_SQL)
-                .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
-                .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
+            .put("driver_class", IMPALA_DRIVER)
+            .put("max_pool_size", impalaSideTableInfo.getAsyncPoolSize())
+            .put("provider_class", DT_PROVIDER_CLASS)
+            .put("idle_connection_test_period", 300)
+            .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN)
+            .put("max_idle_time", 600)
+            .put("preferred_test_query", PREFERRED_TEST_QUERY_SQL)
+            .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
+            .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
 
         System.setProperty("vertx.disableFileCPResolving", "true");
 
@@ -85,7 +104,6 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
         setRdbSqlClient(JDBCClient.createNonShared(vertx, impalaClientConfig));
     }
 
-
     public String getUrl() {
         ImpalaSideTableInfo impalaSideTableInfo = (ImpalaSideTableInfo) sideInfo.getSideTableInfo();
 
@@ -95,11 +113,7 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
         StringBuffer urlBuffer = new StringBuffer(impalaSideTableInfo.getUrl());
         if (authMech == 0) {
             newUrl = urlBuffer.toString();
-
         } else if (authMech == 1) {
-            String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
-            String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
-            String principal = impalaSideTableInfo.getPrincipal();
             String krbRealm = impalaSideTableInfo.getKrbRealm();
             String krbHostFQDN = impalaSideTableInfo.getKrbHostFQDN();
             String krbServiceName = impalaSideTableInfo.getKrbServiceName();
@@ -110,16 +124,6 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
                     .concat("KrbServiceName=").concat(krbServiceName).concat(";")
             );
             newUrl = urlBuffer.toString();
-            System.setProperty("java.security.krb5.conf", krb5FilePath);
-            org.apache.hadoop.conf.Configuration configuration = new org.apache.hadoop.conf.Configuration();
-            configuration.set("hadoop.security.authentication" , "Kerberos");
-            UserGroupInformation.setConfiguration(configuration);
-            try {
-                UserGroupInformation.loginUserFromKeytab(principal, keyTabFilePath);
-            } catch (IOException e) {
-                throw new RuntimeException("kerberos login fail! e: " + e);
-            }
-
         } else if (authMech == 2) {
             String uName = impalaSideTableInfo.getUserName();
             urlBuffer.append(";"
@@ -129,7 +133,6 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
                     .concat("UseSasl=0")
             );
             newUrl = urlBuffer.toString();
-
         } else if (authMech == 3) {
             String uName = impalaSideTableInfo.getUserName();
             String pwd = impalaSideTableInfo.getPassword();
@@ -139,11 +142,41 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
                     .concat("PWD=").concat(pwd)
             );
             newUrl = urlBuffer.toString();
-
         } else {
             throw new IllegalArgumentException("The value of authMech is illegal, Please select 0, 1, 2, 3");
         }
-
         return newUrl;
+    }
+
+    @Override
+    protected void asyncQueryData(Map<String, Object> inputParams,
+                          Row input,
+                          ResultFuture<BaseRow> resultFuture,
+                          SQLClient rdbSqlClient,
+                          AtomicLong failCounter,
+                          AtomicBoolean finishFlag,
+                          CountDownLatch latch) {
+        if (ugi == null) {
+            doAsyncQueryData(inputParams,
+                input, resultFuture,
+                rdbSqlClient,
+                failCounter,
+                finishFlag,
+                latch);
+        } else {
+            // Kerberos
+            ugi.doAs(new PrivilegedAction<Object>() {
+                @Override
+                public Object run() {
+                    doAsyncQueryData(inputParams,
+                        input, resultFuture,
+                        rdbSqlClient,
+                        failCounter,
+                        finishFlag,
+                        latch);
+                    return null;
+                }
+            });
+        }
     }
 }

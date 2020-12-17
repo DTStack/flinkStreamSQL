@@ -34,6 +34,33 @@ public class HbaseAsyncSideInfo extends BaseSideInfo {
     }
 
     @Override
+    public void parseSelectFields(JoinInfo joinInfo) {
+        String sideTableName = joinInfo.getSideTableName();
+        String nonSideTableName = joinInfo.getNonSideTable();
+        List<String> fields = Lists.newArrayList();
+        int sideTableFieldIndex = 0;
+
+        for( int i=0; i<outFieldInfoList.size(); i++){
+            FieldInfo fieldInfo = outFieldInfoList.get(i);
+            if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
+                String sideFieldName = sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName());
+                fields.add(sideFieldName);
+                sideSelectFieldsType.put(sideTableFieldIndex, getTargetFieldType(fieldInfo.getFieldName()));
+                sideFieldIndex.put(i, sideTableFieldIndex);
+                sideFieldNameIndex.put(i, sideFieldName);
+                sideTableFieldIndex++;
+            }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
+                int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
+                inFieldIndex.put(i, nonSideIndex);
+            }else{
+                throw new RuntimeException("unknown table " + fieldInfo.getTable());
+            }
+        }
+
+        sideSelectFields = String.join(",", fields);
+    }
+
+    @Override
     public void buildEqualInfo(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
         rowKeyBuilder = new RowKeyBuilder();
         if(sideTableInfo.getPrimaryKeys().size() < 1){
@@ -41,7 +68,7 @@ public class HbaseAsyncSideInfo extends BaseSideInfo {
         }
 
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
-        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0));
+        rowKeyBuilder.init(sideTableInfo.getPrimaryKeys().get(0), sideTableInfo);
 
         colRefType = Maps.newHashMap();
         for(int i=0; i<hbaseSideTableInfo.getColumnRealNames().length; i++){

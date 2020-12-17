@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.parser;
 
@@ -27,9 +27,13 @@ import com.dtstack.flink.sql.util.DtStringUtil;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
 import com.google.common.base.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Reason:
@@ -39,6 +43,7 @@ import java.util.Set;
  */
 
 public class SqlParser {
+    private static final Logger LOG = LoggerFactory.getLogger(SqlParser.class);
 
     private static final char SQL_DELIMITER = ';';
 
@@ -50,6 +55,8 @@ public class SqlParser {
     public static void setLocalSqlPluginRoot(String localSqlPluginRoot){
         LOCAL_SQL_PLUGIN_ROOT = localSqlPluginRoot;
     }
+
+    private static final Pattern ADD_FILE_AND_JAR_PATTERN = Pattern.compile("(?i).*add\\s+file\\s+.+|(?i).*add\\s+jar\\s+.+");
 
     /**
      * flink support sql syntax
@@ -70,6 +77,7 @@ public class SqlParser {
                 .replace("\t", " ").trim();
 
         List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SQL_DELIMITER);
+        sqlArr = removeAddFileAndJarStmt(sqlArr);
         SqlTree sqlTree = new SqlTree();
         AbstractTableInfoParser tableInfoParser = new AbstractTableInfoParser();
         for(String childSql : sqlArr){
@@ -78,13 +86,18 @@ public class SqlParser {
             }
             boolean result = false;
             for(IParser sqlParser : sqlParserList){
-                if(!sqlParser.verify(childSql)){
-                    continue;
-                }
+                try {
+                    if (!sqlParser.verify(childSql)) {
+                        continue;
+                    }
 
-                sqlParser.parseSql(childSql, sqlTree);
-                result = true;
-                break;
+                    sqlParser.parseSql(childSql, sqlTree);
+                    result = true;
+                    break;
+                } catch (Exception e) {
+                    LOG.error("'{}' parser error, detail info: {}", childSql, e.getMessage(), e);
+                    throw e;
+                }
             }
 
             if(!result){
@@ -149,5 +162,19 @@ public class SqlParser {
         }
 
         return sqlTree;
+    }
+
+    /**
+     * remove add file and jar with statment etc. add file /etc/krb5.conf, add jar xxx.jar;
+     */
+    private static List<String> removeAddFileAndJarStmt(List<String> stmts) {
+        List<String> cleanedStmts = Lists.newArrayList();
+        for (String stmt : stmts) {
+            Matcher matcher = ADD_FILE_AND_JAR_PATTERN.matcher(stmt);
+            if(!matcher.matches()) {
+                cleanedStmts.add(stmt);
+            }
+        }
+        return cleanedStmts;
     }
 }

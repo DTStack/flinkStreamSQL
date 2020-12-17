@@ -19,8 +19,10 @@
 
 package com.dtstack.flink.sql.util;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
@@ -47,6 +49,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlKind.*;
 import static org.apache.calcite.sql.SqlKind.CASE;
@@ -62,7 +66,7 @@ import static org.apache.calcite.sql.SqlKind.OTHER;
 public class TableUtils {
 
     public static final char SPLIT = '_';
-
+    public static final Pattern stringPattern = Pattern.compile("\".*?\"|\'.*?\'");
     /**
      * 获取select 的字段
      * @param sqlSelect
@@ -225,6 +229,13 @@ public class TableUtils {
                     queueInfo.offer(joinInfo.getLeftNode());
                 }
 
+                if(joinInfo.getLeftNode().getKind() == AS){
+                    SqlNode leftSqlNode = ((SqlBasicCall)joinInfo.getLeftNode()).getOperands()[0];
+                    if (leftSqlNode.getKind() == UNION){
+                        queueInfo.offer(joinInfo.getLeftNode());
+                    }
+                }
+
                 queueInfo.offer(joinInfo);
             } else {
                 //Determining right is not a simple table
@@ -301,7 +312,7 @@ public class TableUtils {
     public static void replaceSelectFieldTable(SqlNode selectNode,
                                                String oldTbName,
                                                String newTbName,
-                                               HashBiMap<String, String> fieldReplaceRef) {
+                                               Map<String, String> fieldReplaceRef) {
         if (selectNode.getKind() == AS) {
             SqlNode leftNode = ((SqlBasicCall) selectNode).getOperands()[0];
             replaceSelectFieldTable(leftNode, oldTbName, newTbName, fieldReplaceRef);
@@ -395,22 +406,13 @@ public class TableUtils {
     private static void replaceOneSelectField(SqlIdentifier sqlIdentifier,
                                               String newTbName,
                                               String oldTbName,
-                                              HashBiMap<String, String> fieldReplaceRef){
+                                              Map<String, String> fieldReplaceRef){
         SqlIdentifier newField = sqlIdentifier.setName(0, newTbName);
         String fieldName = sqlIdentifier.names.get(1);
-        String fieldKey = oldTbName + "_" + fieldName;
-
-        if(!fieldReplaceRef.containsKey(fieldKey)){
-            if(fieldReplaceRef.inverse().get(fieldName) != null){
-                //换一个名字
-                String mappingFieldName = ParseUtils.dealDuplicateFieldName(fieldReplaceRef, fieldName);
-                newField = newField.setName(1, mappingFieldName);
-                fieldReplaceRef.put(fieldKey, mappingFieldName);
-            } else {
-                fieldReplaceRef.put(fieldKey, fieldName);
-            }
-        }else {
-            newField = newField.setName(1, fieldReplaceRef.get(fieldKey));
+        String fieldKey = oldTbName + "." + fieldName;
+        if(fieldReplaceRef.get(fieldKey) != null){
+            String newFieldName = fieldReplaceRef.get(fieldKey).split("\\.")[1];
+            newField = newField.setName(1, newFieldName);
         }
 
         sqlIdentifier.assignNamesFrom(newField);
@@ -511,7 +513,7 @@ public class TableUtils {
         return preFieldName;
     }
 
-    public static void replaceWhereCondition(SqlNode parentWhere, String oldTbName, String newTbName, HashBiMap<String, String> fieldReplaceRef){
+    public static void replaceWhereCondition(SqlNode parentWhere, String oldTbName, String newTbName, Map<String, String> fieldReplaceRef){
 
         if(parentWhere == null){
             return;
@@ -527,7 +529,7 @@ public class TableUtils {
         }
     }
 
-    private static void replaceConditionNode(SqlNode selectNode, String oldTbName, String newTbName, HashBiMap<String, String> fieldReplaceRef) {
+    private static void replaceConditionNode(SqlNode selectNode, String oldTbName, String newTbName, Map<String, String> fieldReplaceRef) {
         if(selectNode.getKind() == IDENTIFIER){
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
@@ -697,6 +699,25 @@ public class TableUtils {
         return tableName + "_" + scope;
     }
 
+    /**
+     * add constant join fields, using in such as hbase、redis etc kv database
+     * @param keyMap
+     */
+    public static void addConstant(Map<String, Object> keyMap, AbstractSideTableInfo sideTableInfo) {
+        List<PredicateInfo> predicateInfos = sideTableInfo.getPredicateInfoes();
+        final String name = sideTableInfo.getName();
+        for (PredicateInfo info : predicateInfos) {
+            if (info.getOwnerTable().equals(name)
+                && info.getOperatorName().equals("=")) {
+                String condition = info.getCondition();
+                Matcher matcher = stringPattern.matcher(condition);
+                if (matcher.matches()) {
+                    condition = condition.substring(1, condition.length() - 1);
+                }
+                keyMap.put(info.getFieldName(), condition);
+            }
+        }
+    }
     public static String buildTableNameWithScope(String leftTableName, String leftTableAlias, String rightTableName, String scope, Set<String> existTableNames){
         //兼容左边表是as 的情况
         String leftStr = Strings.isNullOrEmpty(leftTableName) ? leftTableAlias : leftTableName;

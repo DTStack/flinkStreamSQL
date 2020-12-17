@@ -52,6 +52,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.ScheduledFuture;
 
 /**
@@ -71,6 +72,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, BaseRow> im
     private int timeOutNum = 0;
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
+    private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
     public BaseAsyncReqRow(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
@@ -117,7 +119,8 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, BaseRow> im
 
         //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
         if (obj instanceof LocalDateTime && isTimeIndicatorTypeInfo) {
-            obj = Timestamp.valueOf(((LocalDateTime) obj));
+            //去除上一层OutputRowtimeProcessFunction 调用时区导致的影响
+            obj = ((Timestamp) obj).getTime() + (long)LOCAL_TZ.getOffset(((Timestamp) obj).getTime());
         }
         return obj;
     }
@@ -194,7 +197,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<Row, BaseRow> im
     }
 
     private Map<String, Object> parseInputParam(Row input) {
-        Map<String, Object> inputParams = Maps.newHashMap();
+        Map<String, Object> inputParams = Maps.newLinkedHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.getField(conValIndex);

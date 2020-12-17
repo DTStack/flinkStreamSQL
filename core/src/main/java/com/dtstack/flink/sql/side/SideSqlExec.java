@@ -34,10 +34,18 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.LocalTimeTypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -47,16 +55,33 @@ import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
+import org.apache.flink.table.runtime.typeutils.BigDecimalTypeInfo;
+import org.apache.flink.table.runtime.typeutils.LegacyLocalDateTimeTypeInfo;
+import org.apache.flink.table.types.logical.DecimalType;
+import org.apache.flink.table.types.logical.LegacyTypeInformationType;
 import org.apache.flink.table.types.logical.LogicalType;
+import org.apache.flink.table.types.logical.TimestampType;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.apache.calcite.sql.SqlKind.*;
+import static org.apache.calcite.sql.SqlKind.AS;
+import static org.apache.calcite.sql.SqlKind.INSERT;
+import static org.apache.calcite.sql.SqlKind.SELECT;
+import static org.apache.calcite.sql.SqlKind.WITH_ITEM;
 
 /**
  * Reason:
@@ -279,10 +304,7 @@ public class SideSqlExec {
      */
     private boolean checkJoinCondition(SqlNode conditionNode, String sideTableAlias, AbstractSideTableInfo sideTableInfo) {
         List<String> conditionFields = getConditionFields(conditionNode, sideTableAlias, sideTableInfo);
-        if (CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo))) {
-            return true;
-        }
-        return false;
+        return CollectionUtils.isEqualCollection(conditionFields, convertPrimaryAlias(sideTableInfo));
     }
 
     private List<String> convertPrimaryAlias(AbstractSideTableInfo sideTableInfo) {
@@ -291,6 +313,77 @@ public class SideSqlExec {
             res.add(sideTableInfo.getPhysicalFields().getOrDefault(field, field));
         });
         return res;
+    }
+
+    /**
+     * check whether all table fields exist in join condition.
+     * @param conditionNode
+     * @param joinScope
+     */
+    public void checkConditionFieldsInTable(SqlNode conditionNode, JoinScope joinScope, AbstractSideTableInfo sideTableInfo) {
+        List<SqlNode> sqlNodeList = Lists.newArrayList();
+        ParseUtils.parseAnd(conditionNode, sqlNodeList);
+        for (SqlNode sqlNode : sqlNodeList) {
+            if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
+                throw new RuntimeException("It is not comparison operator.");
+            }
+
+            SqlNode leftNode = ((SqlBasicCall) sqlNode).getOperands()[0];
+            SqlNode rightNode = ((SqlBasicCall) sqlNode).getOperands()[1];
+
+            if (leftNode.getKind() == SqlKind.IDENTIFIER) {
+                checkFieldInTable((SqlIdentifier) leftNode, joinScope, conditionNode, sideTableInfo);
+            }
+
+            if (rightNode.getKind() == SqlKind.IDENTIFIER) {
+                checkFieldInTable((SqlIdentifier) rightNode, joinScope, conditionNode, sideTableInfo);
+            }
+
+        }
+    }
+
+    /**
+     * check whether table exists and whether field is in table.
+     * @param sqlNode
+     * @param joinScope
+     * @param conditionNode
+     */
+    private void checkFieldInTable(SqlIdentifier sqlNode, JoinScope joinScope, SqlNode conditionNode,  AbstractSideTableInfo sideTableInfo) {
+        String tableName = sqlNode.getComponent(0).getSimple();
+        String fieldName = sqlNode.getComponent(1).getSimple();
+        JoinScope.ScopeChild scopeChild = joinScope.getScope(tableName);
+        String tableErrorMsg = "Table [%s] is not exist. Error condition is [%s]. If you find [%s] is exist. Please check AS statement.";
+        Preconditions.checkState(
+            scopeChild != null,
+            tableErrorMsg,
+            tableName,
+            conditionNode.toString(),
+            tableName
+        );
+
+        String[] fieldNames = scopeChild.getRowTypeInfo().getFieldNames();
+        ArrayList<String> allFieldNames = new ArrayList(
+            Arrays.asList(fieldNames)
+        );
+        // HBase、Redis这种NoSQL Primary Key不在字段列表中，所以要加进去。
+        if (sideTableInfo != null) {
+            List<String> pks = sideTableInfo.getPrimaryKeys();
+            if (pks != null) {
+                pks.stream()
+                    .filter(pk -> !allFieldNames.contains(pk))
+                    .forEach(pk -> allFieldNames.add(pk));
+            }
+        }
+
+        boolean hasField = allFieldNames.contains(fieldName);
+        String fieldErrorMsg = "Table [%s] has not [%s] field. Error join condition is [%s]. If you find it is exist. Please check AS statement.";
+        Preconditions.checkState(
+            hasField,
+            fieldErrorMsg,
+            tableName,
+            fieldName,
+            conditionNode.toString()
+        );
     }
 
     public List<String> getConditionFields(SqlNode conditionNode, String specifyTableName, AbstractSideTableInfo sideTableInfo) {
@@ -367,8 +460,17 @@ public class SideSqlExec {
 
         int length = leftTable.getSchema().getFieldDataTypes().length;
         LogicalType[] logicalTypes = new LogicalType[length];
-        for(int i=0; i<length; i++){
+        for (int i = 0; i < length; i++) {
             logicalTypes[i] = leftTable.getSchema().getFieldDataTypes()[i].getLogicalType();
+            if (logicalTypes[i] instanceof LegacyTypeInformationType &&
+                    ((LegacyTypeInformationType<?>) logicalTypes[i]).getTypeInformation().getClass().equals(BigDecimalTypeInfo.class)) {
+                logicalTypes[i] = new DecimalType(38, 18);
+            }
+
+            if (logicalTypes[i] instanceof LegacyTypeInformationType &&
+                    (((LegacyTypeInformationType<?>) logicalTypes[i]).getTypeInformation().getClass().equals(LegacyLocalDateTimeTypeInfo.class))) {
+                logicalTypes[i] = new TimestampType(TimestampType.MAX_PRECISION);
+            }
         }
 
         BaseRowTypeInfo leftBaseTypeInfo = new BaseRowTypeInfo(logicalTypes, leftTable.getSchema().getFieldNames());
@@ -395,6 +497,8 @@ public class SideSqlExec {
         joinScope.addScope(rightScopeChild);
 
         HashBasedTable<String, String, String> mappingTable = ((JoinInfo) pollObj).getTableFieldRef();
+        // 检查JOIN等式字段是否在原表中
+        checkConditionFieldsInTable(joinInfo.getCondition(), joinScope, sideTableInfo);
 
         //获取两个表的所有字段
         List<FieldInfo> sideJoinFieldInfo = ParserJoinField.getRowTypeInfo(joinInfo.getSelectNode(), joinScope, true);
@@ -407,12 +511,26 @@ public class SideSqlExec {
             targetTable = localTableCache.get(joinInfo.getLeftTableName());
         }
 
-        RowTypeInfo typeInfo = new RowTypeInfo(targetTable.getSchema().getFieldTypes(), targetTable.getSchema().getFieldNames());
+        TypeInformation<?>[] fieldDataTypes = targetTable.getSchema().getFieldTypes();
+        for (int i = 0; i < fieldDataTypes.length; i++) {
+            if (fieldDataTypes[i].getClass().equals(BigDecimalTypeInfo.class)) {
+                fieldDataTypes[i] = BasicTypeInfo.BIG_DEC_TYPE_INFO;
+            }
 
-        DataStream adaptStream = tableEnv.toRetractStream(targetTable, Row.class)
+            if (fieldDataTypes[i].getClass().equals(LegacyLocalDateTimeTypeInfo.class)) {
+                fieldDataTypes[i] = LocalTimeTypeInfo.LOCAL_DATE_TIME;
+            }
+
+            if (fieldDataTypes[i].getClass().equals(TimeIndicatorTypeInfo.class)) {
+                fieldDataTypes[i] = TypeInformation.of(new TypeHint<Timestamp>() {});
+            }
+        }
+
+        RowTypeInfo typeInfo = new RowTypeInfo(fieldDataTypes, targetTable.getSchema().getFieldNames());
+
+        DataStream adaptStream = tableEnv.toRetractStream(targetTable, typeInfo)
                 .filter(f -> f.f0)
-                .map(f -> f.f1)
-                .returns(Row.class);
+                .map(f -> f.f1);
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if (sideTableInfo.isPartitionedJoin()) {
@@ -445,7 +563,13 @@ public class SideSqlExec {
                 EnvironmentSettings.DEFAULT_BUILTIN_CATALOG,
                 EnvironmentSettings.DEFAULT_BUILTIN_DATABASE,
                 targetTableName);
-        boolean tableExists = tableEnv.getCatalog(EnvironmentSettings.DEFAULT_BUILTIN_CATALOG).get().tableExists(objectIdentifier.toObjectPath());
+        boolean tableExists = false;
+        for (String table : tableEnv.listTables()) {
+            if (table.equals(targetTableName)) {
+                tableExists = true;
+                break;
+            }
+        }
 
         if (!tableExists) {
             Table joinTable = tableEnv.fromDataStream(dsOut);
@@ -480,9 +604,7 @@ public class SideSqlExec {
                 String fieldType = filed[filed.length - 1].trim();
                 Class fieldClass = ClassUtil.stringConvertClass(fieldType);
                 Class tableField = table.getSchema().getFieldType(i).get().getTypeClass();
-                if (fieldClass == tableField) {
-                    continue;
-                } else {
+                if (fieldClass != tableField) {
                     return false;
                 }
             }
