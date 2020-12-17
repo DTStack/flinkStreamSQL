@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@
 package com.dtstack.flink.sql.side.rdb.table;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.rdb.resource.JdbcResourceCheck;
 import com.google.common.base.Preconditions;
 
 /**
@@ -30,6 +31,8 @@ import com.google.common.base.Preconditions;
 public class RdbSideTableInfo extends AbstractSideTableInfo {
 
     private static final long serialVersionUID = -1L;
+
+    public static final String DRIVER_NAME = "driverName";
 
     public static final String URL_KEY = "url";
 
@@ -49,8 +52,11 @@ public class RdbSideTableInfo extends AbstractSideTableInfo {
         Preconditions.checkNotNull(password, "rdb of password is required");
         Preconditions.checkArgument(getFieldList().size() == getFieldExtraInfoList().size(),
                 "fields and fieldExtraInfoList attributes must be the same length");
+        JdbcResourceCheck.getInstance().checkResourceStatus(this);
         return true;
     }
+
+    private String driverName;
 
     private String url;
 
@@ -102,6 +108,14 @@ public class RdbSideTableInfo extends AbstractSideTableInfo {
         this.password = password;
     }
 
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName) {
+        this.driverName = driverName;
+    }
+
     @Override
     public String toString() {
         String cacheInfo = super.toString();
@@ -109,6 +123,7 @@ public class RdbSideTableInfo extends AbstractSideTableInfo {
                 "url='" + url + '\'' +
                 ", tableName='" + tableName + '\'' +
                 ", schema='" + schema + '\'' +
+                ", driverName='" + driverName + '\'' +
                 '}';
         return cacheInfo + " , " + connectionInfo;
     }
