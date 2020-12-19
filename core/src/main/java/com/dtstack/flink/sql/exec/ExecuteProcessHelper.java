@@ -162,7 +162,7 @@ public class ExecuteProcessHelper {
 
     public static StreamTableEnvironment getStreamExecution(ParamsInfo paramsInfo) throws Exception {
 
-        ClassLoader envClassLoader = StreamExecutionEnvironment.class.getClassLoader();
+        ClassLoader envClassLoader = Thread.currentThread().getContextClassLoader();
         ClassLoader plannerClassLoader = new DtClassLoader(new URL[0], envClassLoader);
         Thread.currentThread().setContextClassLoader(plannerClassLoader);
 
