@@ -21,7 +21,6 @@ package com.dtstack.flink.sql.exec;
 
 import java.net.URL;
 import java.util.List;
-import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -41,9 +40,17 @@ public class ParamsInfo {
     private String deployMode;
     private Properties confProp;
     private boolean getPlan = false;
+    private Properties dirtyProperties;
 
-    public ParamsInfo(String sql, String name, List<URL> jarUrlList, String localSqlPluginPath,
-                      String remoteSqlPluginPath, String pluginLoadMode, String deployMode, Properties confProp) {
+    public ParamsInfo(
+            String sql
+            , String name, List<URL> jarUrlList
+            , String localSqlPluginPath
+            , String remoteSqlPluginPath
+            , String pluginLoadMode
+            , String deployMode
+            , Properties confProp
+            , Properties dirtyProperties) {
         this.sql = sql;
         this.name = name;
         this.jarUrlList = jarUrlList;
@@ -52,6 +59,7 @@ public class ParamsInfo {
         this.pluginLoadMode = pluginLoadMode;
         this.deployMode = deployMode;
         this.confProp = confProp;
+        this.dirtyProperties = dirtyProperties;
     }
 
     public boolean isGetPlan() {
@@ -94,17 +102,23 @@ public class ParamsInfo {
         return confProp;
     }
 
+    public Properties getDirtyProperties() {
+        return dirtyProperties;
+    }
+
     @Override
     public String toString() {
         return "ParamsInfo{" +
                 "sql='" + sql + '\'' +
                 ", name='" + name + '\'' +
-                ", jarUrlList=" + convertJarUrlListToString(jarUrlList) +
+                ", jarUrlList=" + jarUrlList +
                 ", localSqlPluginPath='" + localSqlPluginPath + '\'' +
                 ", remoteSqlPluginPath='" + remoteSqlPluginPath + '\'' +
                 ", pluginLoadMode='" + pluginLoadMode + '\'' +
                 ", deployMode='" + deployMode + '\'' +
                 ", confProp=" + confProp +
+                ", getPlan=" + getPlan +
+                ", dirtyProperties='" + dirtyProperties + '\'' +
                 '}';
     }
 
@@ -115,6 +129,7 @@ public class ParamsInfo {
     public static ParamsInfo.Builder builder() {
         return new ParamsInfo.Builder();
     }
+
     public static class Builder {
 
         private String sql;
@@ -125,6 +140,7 @@ public class ParamsInfo {
         private String pluginLoadMode;
         private String deployMode;
         private Properties confProp;
+        private Properties dirtyProperties;
 
         public ParamsInfo.Builder setSql(String sql) {
             this.sql = sql;
@@ -167,9 +183,22 @@ public class ParamsInfo {
             return this;
         }
 
+        public ParamsInfo.Builder setDirtyProperties(Properties dirtyProperties) {
+            this.dirtyProperties = dirtyProperties;
+            return this;
+        }
+
         public ParamsInfo build() {
-            return new ParamsInfo(sql, name, jarUrlList, localSqlPluginPath,
-                    remoteSqlPluginPath, pluginLoadMode, deployMode, confProp);
+            return new ParamsInfo(
+                    sql
+                    , name
+                    , jarUrlList
+                    , localSqlPluginPath
+                    , remoteSqlPluginPath
+                    , pluginLoadMode
+                    , deployMode
+                    , confProp
+                    , dirtyProperties);
         }
     }
 }

@@ -41,7 +41,6 @@ public class KafkaSourceParser extends AbstractSourceParser {
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {
 
         KafkaSourceTableInfo kafkaSourceTableInfo = new KafkaSourceTableInfo();
-        parseFieldsInfo(fieldsInfo, kafkaSourceTableInfo);
 
         kafkaSourceTableInfo.setName(tableName);
         kafkaSourceTableInfo.setType(MathUtil.getString(props.get(KafkaSourceTableInfo.TYPE_KEY.toLowerCase())));
@@ -68,6 +67,7 @@ public class KafkaSourceParser extends AbstractSourceParser {
                 );
 
         kafkaSourceTableInfo.addKafkaParam(kafkaParams);
+        parseFieldsInfo(fieldsInfo, kafkaSourceTableInfo);
         kafkaSourceTableInfo.check();
 
         return kafkaSourceTableInfo;

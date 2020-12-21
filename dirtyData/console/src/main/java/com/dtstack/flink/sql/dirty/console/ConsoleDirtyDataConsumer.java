@@ -16,14 +16,15 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.dirty.print;
+package com.dtstack.flink.sql.dirty.console;
 
 import com.dtstack.flink.sql.dirtyManager.consumer.AbstractDirtyDataConsumer;
 import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 
 /**
  * @author tiezhu
@@ -33,16 +34,22 @@ import java.util.Map;
 public class ConsoleDirtyDataConsumer extends AbstractDirtyDataConsumer {
     private static final long serialVersionUID = 5727194679865135189L;
 
-    private final Logger LOG = LoggerFactory.getLogger(ConsoleDirtyDataConsumer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConsoleDirtyDataConsumer.class);
+
+    private static final Long DEFAULT_PRINT_LIMIT = 1000L;
+
+    private Long printLimit;
 
     @Override
     public void consume() throws InterruptedException {
         DirtyDataEntity dataEntity = queue.take();
         count.incrementAndGet();
-        LOG.warn("get dirtyData: " + dataEntity.getDirtyData() + "\n"
-                + "cause: " + dataEntity.getCause() + "\n"
-                + "processTime: " + dataEntity.getProcessDate() + "\n"
-                + "error field: " + dataEntity.getField());
+        if (count.get() % printLimit == 0) {
+            LOG.warn("\nget dirtyData: " + dataEntity.getDirtyData() + "\n"
+                    + "cause: " + dataEntity.getCause() + "\n"
+                    + "processTime: " + dataEntity.getProcessDate() + "\n"
+                    + "error field: " + dataEntity.getField());
+        }
     }
 
     @Override
@@ -52,7 +59,10 @@ public class ConsoleDirtyDataConsumer extends AbstractDirtyDataConsumer {
     }
 
     @Override
-    public void init(Map<String, String> properties) {
+    public void init(Properties properties) {
         LOG.info("console dirty consumer init ...");
+        Object printLimit = properties.get("printLimit");
+        this.printLimit = Objects.isNull(printLimit) ?
+                DEFAULT_PRINT_LIMIT : Long.parseLong(String.valueOf(printLimit));
     }
 }

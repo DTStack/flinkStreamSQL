@@ -24,45 +24,47 @@ import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Reason:
  * Date: 2018/6/22
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
 public abstract class AbstractTableInfo implements Serializable {
 
     public static final String PARALLELISM_KEY = "parallelism";
-
-    private String name;
-
-    private String type;
-
-    private String[] fields;
-
-    private String[] fieldTypes;
-
-    private Class<?>[] fieldClasses;
-
     private final List<String> fieldList = Lists.newArrayList();
-
-    /**key:别名, value: realField */
-    private Map<String, String> physicalFields = Maps.newLinkedHashMap();
-
     private final List<String> fieldTypeList = Lists.newArrayList();
-
     private final List<Class> fieldClassList = Lists.newArrayList();
-
     private final List<FieldExtraInfo> fieldExtraInfoList = Lists.newArrayList();
-
+    private String name;
+    private String type;
+    private String[] fields;
+    private String[] fieldTypes;
+    private Class<?>[] fieldClasses;
+    /**
+     * key:别名, value: realField
+     */
+    private Map<String, String> physicalFields = Maps.newLinkedHashMap();
     private List<String> primaryKeys;
 
     private Integer parallelism = -1;
 
+    /**
+     * 构建脏数据插件的相关信息
+     */
+    private Properties dirtyProperties;
+
     public String[] getFieldTypes() {
         return fieldTypes;
+    }
+
+    public void setFieldTypes(String[] fieldTypes) {
+        this.fieldTypes = fieldTypes;
     }
 
     public abstract boolean check();
@@ -79,8 +81,16 @@ public abstract class AbstractTableInfo implements Serializable {
         return fields;
     }
 
+    public void setFields(String[] fields) {
+        this.fields = fields;
+    }
+
     public Class<?>[] getFieldClasses() {
         return fieldClasses;
+    }
+
+    public void setFieldClasses(Class<?>[] fieldClasses) {
+        this.fieldClasses = fieldClasses;
     }
 
     public List<String> getPrimaryKeys() {
@@ -104,18 +114,18 @@ public abstract class AbstractTableInfo implements Serializable {
     }
 
     public void setParallelism(Integer parallelism) {
-        if(parallelism == null){
+        if (parallelism == null) {
             return;
         }
 
-        if(parallelism <= 0){
+        if (parallelism <= 0) {
             throw new RuntimeException("Abnormal parameter settings: parallelism > 0");
         }
 
         this.parallelism = parallelism;
     }
 
-    public void addField(String fieldName){
+    public void addField(String fieldName) {
         if (fieldList.contains(fieldName)) {
             throw new RuntimeException("redundancy field name " + fieldName + " in table " + getName());
         }
@@ -123,28 +133,16 @@ public abstract class AbstractTableInfo implements Serializable {
         fieldList.add(fieldName);
     }
 
-    public void addPhysicalMappings(String aliasName, String physicalFieldName){
+    public void addPhysicalMappings(String aliasName, String physicalFieldName) {
         physicalFields.put(aliasName, physicalFieldName);
     }
 
-    public void addFieldClass(Class fieldClass){
+    public void addFieldClass(Class fieldClass) {
         fieldClassList.add(fieldClass);
     }
 
-    public void addFieldType(String fieldType){
+    public void addFieldType(String fieldType) {
         fieldTypeList.add(fieldType);
-    }
-
-    public void setFields(String[] fields) {
-        this.fields = fields;
-    }
-
-    public void setFieldTypes(String[] fieldTypes) {
-        this.fieldTypes = fieldTypes;
-    }
-
-    public void setFieldClasses(Class<?>[] fieldClasses) {
-        this.fieldClasses = fieldClasses;
     }
 
     public void addFieldExtraInfo(FieldExtraInfo extraInfo) {
@@ -167,15 +165,24 @@ public abstract class AbstractTableInfo implements Serializable {
         return physicalFields;
     }
 
-    public List<FieldExtraInfo> getFieldExtraInfoList() {
-        return fieldExtraInfoList;
-    }
-
     public void setPhysicalFields(Map<String, String> physicalFields) {
         this.physicalFields = physicalFields;
     }
 
-    public void finish(){
+    public List<FieldExtraInfo> getFieldExtraInfoList() {
+        return fieldExtraInfoList;
+    }
+
+    public Properties getDirtyProperties() {
+        dirtyProperties.setProperty("tableName", this.name);
+        return dirtyProperties;
+    }
+
+    public void setDirtyProperties(Properties dirtyProperties) {
+        this.dirtyProperties = dirtyProperties;
+    }
+
+    public void finish() {
         this.fields = fieldList.toArray(new String[0]);
         this.fieldClasses = fieldClassList.toArray(new Class[0]);
         this.fieldTypes = fieldTypeList.toArray(new String[0]);
@@ -183,7 +190,7 @@ public abstract class AbstractTableInfo implements Serializable {
 
     /**
      * field extra info，used to store `not null` `default 0`...，
-     *
+     * <p>
      * now, only support not null
      */
     public static class FieldExtraInfo implements Serializable {
@@ -193,7 +200,7 @@ public abstract class AbstractTableInfo implements Serializable {
          */
         boolean notNull = false;
         /**
-         *  field length,eg.char(4)
+         * field length,eg.char(4)
          */
         int length;
 

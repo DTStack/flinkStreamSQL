@@ -19,14 +19,15 @@
 
 package com.dtstack.flink.sql.launcher;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
+import com.dtstack.flink.sql.Main;
+import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
+import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.launcher.entity.JobParamsInfo;
 import com.dtstack.flink.sql.launcher.executor.StandaloneExecutor;
 import com.dtstack.flink.sql.launcher.executor.YarnJobClusterExecutor;
 import com.dtstack.flink.sql.launcher.executor.YarnSessionClusterExecutor;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
-import com.dtstack.flink.sql.enums.ClusterMode;
-import com.dtstack.flink.sql.Main;
 import com.dtstack.flink.sql.option.OptionParser;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
@@ -41,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -72,12 +74,15 @@ public class LauncherMain {
         String queue = launcherOptions.getQueue();
         String pluginLoadMode = launcherOptions.getPluginLoadMode();
         String addShipfile = launcherOptions.getAddShipfile();
+        String dirtyStr = launcherOptions.getDirtyProperties();
 
         String yarnSessionConf = URLDecoder.decode(launcherOptions.getYarnSessionConf(), Charsets.UTF_8.toString());
         Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
 
         String confProp = URLDecoder.decode(launcherOptions.getConfProp(), Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
+        Properties dirtyProperties = PluginUtil.jsonStrToObject(Objects.isNull(dirtyStr) ?
+               DirtyDataManager.buildDefaultDirty() : dirtyStr, Properties.class);
 
         return JobParamsInfo.builder()
                 .setExecArgs(execArgs)
@@ -92,9 +97,11 @@ public class LauncherMain {
                 .setFlinkJarPath(flinkJarPath)
                 .setPluginLoadMode(pluginLoadMode)
                 .setQueue(queue)
+                .setDirtyProperties(dirtyProperties)
                 .setAddShipfile(addShipfile)
                 .build();
     }
+
 
     private static String[] parseJson(String[] args) {
         BufferedReader reader = null;

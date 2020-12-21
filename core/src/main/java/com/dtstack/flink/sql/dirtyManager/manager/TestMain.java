@@ -1,7 +1,6 @@
 package com.dtstack.flink.sql.dirtyManager.manager;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Properties;
 
 /**
  * @author tiezhu
@@ -12,11 +11,11 @@ public class TestMain {
     private static final Integer DATA_NUMBER = 1000;
 
     public static void main(String[] args) throws Exception {
-        Map<String, String> properties = new HashMap<>(8);
-        properties.put("type", "mysql");
-        properties.put("pluginPath", "/Users/wtz/IdeaProjects/flinkStreamSQLTemp/sqlplugins");
-        properties.put("url", "jdbc:mysql://kerberos01:3306/tiezhu");
-        properties.put("userName", "dtstack");
+        Properties properties = new Properties();
+        properties.put("type", "console");
+        properties.put("pluginPath", "/Users/wtz/IdeaProjects/flinkStreamSQLDemoThree/sqlplugins");
+        properties.put("url", "jdbc:mysql://localhost:3306/tiezhu");
+        properties.put("userName", "root");
         properties.put("password", "abc123");
         properties.put("isCreatedTable", "false");
         properties.put("batchSize", "1");
@@ -26,7 +25,7 @@ public class TestMain {
         for (int i = 0; i < DATA_NUMBER; i++) {
             Thread.sleep(100);
             manager.collectDirtyData("testDirtyData" + i,
-                    new Exception("testException" + i).getMessage(), "testField");
+                    new Exception("testException" + i).getMessage());
             if (i == 50) {
                 manager.close();
             }

@@ -1,4 +1,4 @@
-package com.dtstack.flink.sql.dirty.print;
+package com.dtstack.flink.sql.dirty.console;
 
 /**
  * @author tiezhu

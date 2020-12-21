@@ -87,13 +87,18 @@ public class DirtyDataEntity {
         this.field = field;
     }
 
+    public DirtyDataEntity(String dirtyData, Long processDate, String cause) {
+        this.dirtyData = dirtyData;
+        this.processDate = timeFormat.format(processDate);
+        this.cause = cause;
+    }
+
     @Override
     public String toString() {
         return "DirtyDataEntity{" +
                 "dirtyData='" + dirtyData + '\'' +
                 ", processDate=" + processDate +
                 ", cause='" + cause + '\'' +
-                ", field='" + field + '\'' +
                 '}';
     }
 
@@ -102,6 +107,6 @@ public class DirtyDataEntity {
      * @return 脏数据信息字符数组
      */
     public String[] get() {
-        return new String[] {dirtyData, String.valueOf(processDate), cause, field};
+        return new String[] {dirtyData, String.valueOf(processDate), cause};
     }
 }

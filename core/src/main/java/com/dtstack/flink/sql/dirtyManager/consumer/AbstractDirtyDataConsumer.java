@@ -23,8 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -65,7 +66,7 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
      * @param properties 任务参数
      * @throws Exception throw exception
      */
-    public abstract void init(Map<String, String> properties) throws Exception;
+    public abstract void init(Properties properties) throws Exception;
 
     /**
      * 检验consumer是否正在执行
@@ -77,15 +78,13 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
     @Override
     public void run() {
         try {
-            LOG.info("start to consume dirty data");
             while (isRunning.get()) {
                 consume();
             }
-            LOG.info("consume dirty data end");
         } catch (Exception e) {
             LOG.error("consume dirtyData error", e);
             errorCount.incrementAndGet();
-            if (errorCount.get() == errorLimit) {
+            if (errorCount.get() > errorLimit) {
                 throw new RuntimeException("The task failed due to the number of dirty data consume failed reached the limit " + errorLimit);
             }
         }
@@ -94,5 +93,9 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
     public AbstractDirtyDataConsumer setQueue(LinkedBlockingQueue<DirtyDataEntity> queue) {
         this.queue = queue;
         return this;
+    }
+
+    public void collectDirtyData(DirtyDataEntity dataEntity, long blockingInterval) throws InterruptedException {
+        queue.offer(dataEntity, blockingInterval, TimeUnit.MILLISECONDS);
     }
 }

@@ -31,7 +31,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 /**
@@ -47,11 +48,11 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
 
     private static final int CONN_VALID_TIME = 1000;
 
-    private static final Integer FIELD_NUMBER = 5;
+    private static final Integer FIELD_NUMBER = 4;
 
     private final Object LOCK_STR = new Object();
 
-    private final String[] tableField = {"id", "dirtyData", "processTime", "cause", "field"};
+    private final String[] tableField = {"id", "dirtyData", "processTime", "cause"};
 
     private PreparedStatement statement;
 
@@ -77,7 +78,7 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
                     .map(this::quoteIdentifier)
                     .collect(Collectors.joining(", "));
             String insertSql = "INSERT INTO " + quoteIdentifier(tableName)
-                    + "(" + insertField + ") VALUES (?, ?, ?, ?, ?)";
+                    + "(" + insertField + ") VALUES (?, ?, ?, ?)";
             statement = connection.prepareStatement(insertSql);
         }
     }
@@ -98,11 +99,10 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
             String sql =
                     "CREATE TABLE  IF NOT EXISTS  \n"
                             + quoteIdentifier(tableName) + " (\n" +
-                            "  `id` int(11) not null AUTO_INCREMENT,\n" +
-                            "  `dirtyData` varchar(255) DEFAULT NULL,\n" +
+                            "  `id` bigint not null AUTO_INCREMENT,\n" +
+                            "  `dirtyData` text DEFAULT NULL,\n" +
                             "  `processTime` varchar(255) DEFAULT NULL,\n" +
-                            "  `cause` varchar(255) DEFAULT NULL,\n" +
-                            "  `field` varchar(255) DEFAULT NULL,\n" +
+                            "  `cause` text DEFAULT NULL,\n" +
                             "  PRIMARY KEY (id)\n" +
                             ") DEFAULT CHARSET=utf8;";
             statement = connection.createStatement();
@@ -125,7 +125,7 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
         data.add(String.valueOf(count.get()));
         Collections.addAll(data, entity.get());
         for (int i = 0; i < FIELD_NUMBER; i++) {
-            statement.setString(i + 1, data.get(i));
+            statement.setString(i + 1, Objects.isNull(data.get(i)) ? null : data.get(i));
         }
 
         statement.addBatch();
@@ -153,18 +153,21 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
     }
 
     @Override
-    public void init(Map<String, String> properties) throws Exception {
+    public void init(Properties properties) throws Exception {
         SimpleDateFormat timeFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
-        String tableName = properties.getOrDefault("tableName",
-                "DirtyDataFromMysql_" + timeFormat.format(System.currentTimeMillis()));
-        String userName = properties.get("userName");
-        String password = properties.get("password");
-        String url = properties.get("url");
-        batchSize = Long.parseLong(properties.getOrDefault("batchSize", "10000"));
-        errorLimit = Long.parseLong(properties.getOrDefault("errorLimit", "1000"));
+        String tableName = (String) properties.getOrDefault("dirtyTableName",
+                "DirtyData_"
+                        + properties.getProperty("tableName") + "_"
+                        + timeFormat.format(System.currentTimeMillis()));
+
+        String userName = (String) properties.get("userName");
+        String password = (String) properties.get("password");
+        String url = (String) properties.get("url");
+        batchSize = Long.parseLong((String) properties.getOrDefault("batchSize", "10000"));
+        errorLimit = Long.parseLong((String) properties.getOrDefault("errorLimit", "1000"));
 
         boolean isCreatedTable = Boolean.parseBoolean(
-                properties.getOrDefault("isCreatedTable", "false"));
+                (String) properties.getOrDefault("isCreatedTable", "false"));
 
         beforeConsume(url, userName, password, tableName, isCreatedTable);
     }

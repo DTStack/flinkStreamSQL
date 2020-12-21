@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
+import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
 import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Maps;
@@ -46,7 +47,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedAction;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +84,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private transient Table table;
 
     private transient ChoreService choreService;
+
+    private DirtyDataManager dirtyDataManager;
 
     @Override
     public void configure(Configuration parameters) {
@@ -174,10 +176,9 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         try {
             table.put(put);
         } catch (Exception e) {
-            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                LOG.error("record insert failed ..{}", record.toString());
-                LOG.error("", e);
-            }
+            dirtyDataManager.collectDirtyData(
+                    record.toString()
+                    , e.getMessage());
             outDirtyRecords.inc();
         }
 
@@ -194,10 +195,9 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             try {
                 table.delete(delete);
             } catch (IOException e) {
-                if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                    LOG.error("record insert failed ..{}", record.toString());
-                    LOG.error("", e);
-                }
+                dirtyDataManager.collectDirtyData(
+                        record.toString()
+                        , e.getMessage());
                 outDirtyRecords.inc();
             }
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
@@ -342,6 +342,11 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
         public HbaseOutputFormatBuilder setClientKeytabFile(String clientKeytabFile) {
             format.clientKeytabFile = clientKeytabFile;
+            return this;
+        }
+
+        public HbaseOutputFormatBuilder setDirtyManager(DirtyDataManager dirtyDataManager) {
+            format.dirtyDataManager = dirtyDataManager;
             return this;
         }
 
