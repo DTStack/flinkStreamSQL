@@ -30,19 +30,33 @@ import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.AuthUtil;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.ChoreService;
+import org.apache.hadoop.hbase.ScheduledChore;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.security.krb5.KrbException;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedAction;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -62,7 +76,6 @@ public class HbaseTableFunction extends BaseTableFunction {
     private Connection conn = null;
     private Table table = null;
     private ResultScanner resultScanner = null;
-    private Configuration conf = null;
 
     public HbaseTableFunction(AbstractSideTableInfo sideTableInfo, String[] lookupKeys) {
         super(new HbaseAllSideInfo(sideTableInfo, lookupKeys));
@@ -132,26 +145,40 @@ public class HbaseTableFunction extends BaseTableFunction {
         Map<String, String> colRefType = ((HbaseAllSideInfo) sideInfo).getColRefType();
         HbaseSideTableInfo hbaseSideTableInfo = (HbaseSideTableInfo) sideTableInfo;
         boolean openKerberos = hbaseSideTableInfo.isKerberosAuthEnable();
+        Configuration conf;
         int loadDataCount = 0;
         try {
             if (openKerberos) {
                 conf = HbaseConfigUtils.getHadoopConfiguration(hbaseSideTableInfo.getHbaseConfig());
                 conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, hbaseSideTableInfo.getHost());
                 conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, hbaseSideTableInfo.getParent());
+
                 String principal = HbaseConfigUtils.getPrincipal(hbaseSideTableInfo.getHbaseConfig());
                 String keytab = HbaseConfigUtils.getKeytab(hbaseSideTableInfo.getHbaseConfig());
 
-                UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI(conf, principal, keytab);
+                HbaseConfigUtils.fillSyncKerberosConfig(conf, hbaseSideTableInfo.getHbaseConfig());
+                keytab = System.getProperty("user.dir") + File.separator + keytab;
+
+                LOG.info("kerberos principal:{}，keytab:{}", principal, keytab);
+
+                conf.set(HbaseConfigUtils.KEY_HBASE_CLIENT_KEYTAB_FILE, keytab);
+                conf.set(HbaseConfigUtils.KEY_HBASE_CLIENT_KERBEROS_PRINCIPAL, principal);
+
+                UserGroupInformation userGroupInformation = HbaseConfigUtils.loginAndReturnUGI2(conf, principal, keytab);
                 Configuration finalConf = conf;
-                conn = userGroupInformation.doAs(new PrivilegedAction<Connection>() {
-                    @Override
-                    public Connection run() {
-                        try {
-                            return ConnectionFactory.createConnection(finalConf);
-                        } catch (IOException e) {
-                            LOG.error("Get connection fail with config:{}", finalConf);
-                            throw new RuntimeException(e);
+                conn = userGroupInformation.doAs((PrivilegedAction<Connection>) () -> {
+                    try {
+                        ScheduledChore authChore = AuthUtil.getAuthChore(finalConf);
+                        if (authChore != null) {
+                            ChoreService choreService = new ChoreService("hbaseKerberosSink");
+                            choreService.scheduleChore(authChore);
                         }
+
+                        return ConnectionFactory.createConnection(finalConf);
+
+                    } catch (IOException e) {
+                        LOG.error("Get connection fail with config:{}", finalConf);
+                        throw new RuntimeException(e);
                     }
                 });
 
@@ -188,7 +215,7 @@ public class HbaseTableFunction extends BaseTableFunction {
                     LOG.error("", e);
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | KrbException e) {
             LOG.error("", e);
         } finally {
             LOG.info("load Data count: {}", loadDataCount);
