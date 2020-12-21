@@ -18,17 +18,13 @@
 
 package com.dtstack.flink.sql.exec;
 
-import com.dtstack.flink.sql.util.SqlCheckUtils;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlInsert;
 import org.apache.flink.sql.parser.dml.RichSqlInsert;
 import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.api.internal.TableEnvironmentImpl;
 import org.apache.flink.table.api.internal.TableImpl;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.api.java.internal.StreamTableEnvironmentImpl;
-import org.apache.flink.table.catalog.CatalogManager;
 import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.operations.Operation;
 import org.apache.flink.table.operations.QueryOperation;
@@ -42,13 +38,13 @@ import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.Tuple2;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 
 /**
- * @description:  mapping by name when insert into sink table
+ * @description: mapping by name when insert into sink table
  * @author: maqi
  * @create: 2019/08/15 11:09
  */
@@ -57,44 +53,26 @@ public class FlinkSQLExec {
 
     public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt) throws Exception {
         StreamTableEnvironmentImpl tableEnvImpl = ((StreamTableEnvironmentImpl) tableEnv);
-        StreamPlanner streamPlanner = (StreamPlanner)tableEnvImpl.getPlanner();
+        StreamPlanner streamPlanner = (StreamPlanner) tableEnvImpl.getPlanner();
         FlinkPlannerImpl flinkPlanner = streamPlanner.createFlinkPlanner();
-        SqlCheckUtils.check(stmt);
+
         RichSqlInsert insert = (RichSqlInsert) flinkPlanner.validate(flinkPlanner.parser().parse(stmt));
         TableImpl queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
 
-        String targetTableName = ((SqlIdentifier) ((SqlInsert) insert).getTargetTable()).names.get(0);
+        String targetTableName = ((SqlIdentifier) insert.getTargetTable()).names.get(0);
         TableSink tableSink = getTableSinkByPlanner(streamPlanner, targetTableName);
 
         String[] sinkFieldNames = tableSink.getTableSchema().getFieldNames();
         String[] queryFieldNames = queryResult.getSchema().getFieldNames();
-
-        if (sinkFieldNames.length != queryFieldNames.length) {
-            throw new ValidationException(
-                    "Field name of query result and registered TableSink " + targetTableName + " do not match.\n" +
-                            "Query result schema: " + String.join(",", queryFieldNames) + "\n" +
-                            "TableSink schema: " + String.join(",", sinkFieldNames));
-        }
-
-
-        Table newTable = null;
+        Table newTable;
         try {
             newTable = queryResult.select(String.join(",", sinkFieldNames));
-        } catch (Exception e) {
-            throw new ValidationException(
-                    "Field name of query result and registered TableSink "+targetTableName +" do not match.\n" +
-                    "Query result schema: " + String.join(",", queryFieldNames) + "\n" +
-                    "TableSink schema: " + String.join(",", sinkFieldNames));
-        }
-
-        try {
             tableEnv.insertInto(targetTableName, newTable);
         } catch (Exception e) {
-            LOG.warn("Field name case of query result and registered TableSink do not match. ", e);
+            LOG.warn(String.format("Query result and registered TableSink do not match \n input field list:%s \n output field list:%s ", Arrays.toString(queryFieldNames), Arrays.toString(sinkFieldNames)));
             newTable = queryResult.select(String.join(",", ignoreCase(queryFieldNames, sinkFieldNames)));
             tableEnv.insertInto(targetTableName, newTable);
         }
-
     }
 
     private static TableSink getTableSinkByPlanner(StreamPlanner streamPlanner, String targetTableName)

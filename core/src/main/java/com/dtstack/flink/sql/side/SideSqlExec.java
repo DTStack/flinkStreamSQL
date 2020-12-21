@@ -28,7 +28,6 @@ import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
-import com.dtstack.flink.sql.util.SqlCheckUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
@@ -69,12 +68,15 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.calcite.sql.SqlKind.AS;
 import static org.apache.calcite.sql.SqlKind.INSERT;
@@ -154,7 +156,7 @@ public class SideSqlExec {
 
                 } else if (pollSqlNode.getKind() == SELECT) {
                     Preconditions.checkState(createView != null, "select sql must included by create view");
-                    Table table = SqlCheckUtils.sqlQueryWithCheck(tableEnv, pollObj.toString());
+                    Table table = tableEnv.sqlQuery(pollObj.toString());
 
                     if (createView.getFieldsInfoStr() == null) {
                         tableEnv.registerTable(createView.getTableName(), table);
@@ -318,23 +320,23 @@ public class SideSqlExec {
      * @param conditionNode
      * @param joinScope
      */
-    public void checkConditionFieldsInTable(SqlNode conditionNode, JoinScope joinScope) {
+    public void checkConditionFieldsInTable(SqlNode conditionNode, JoinScope joinScope, AbstractSideTableInfo sideTableInfo) {
         List<SqlNode> sqlNodeList = Lists.newArrayList();
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
         for (SqlNode sqlNode : sqlNodeList) {
             if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
-                throw new RuntimeException("not compare operator.");
+                throw new RuntimeException("It is not comparison operator.");
             }
 
             SqlNode leftNode = ((SqlBasicCall) sqlNode).getOperands()[0];
             SqlNode rightNode = ((SqlBasicCall) sqlNode).getOperands()[1];
 
             if (leftNode.getKind() == SqlKind.IDENTIFIER) {
-                checkFieldInTable((SqlIdentifier) leftNode, joinScope, conditionNode);
+                checkFieldInTable((SqlIdentifier) leftNode, joinScope, conditionNode, sideTableInfo);
             }
 
             if (rightNode.getKind() == SqlKind.IDENTIFIER) {
-                checkFieldInTable((SqlIdentifier) rightNode, joinScope, conditionNode);
+                checkFieldInTable((SqlIdentifier) rightNode, joinScope, conditionNode, sideTableInfo);
             }
 
         }
@@ -346,11 +348,11 @@ public class SideSqlExec {
      * @param joinScope
      * @param conditionNode
      */
-    private void checkFieldInTable(SqlIdentifier sqlNode, JoinScope joinScope, SqlNode conditionNode) {
+    private void checkFieldInTable(SqlIdentifier sqlNode, JoinScope joinScope, SqlNode conditionNode,  AbstractSideTableInfo sideTableInfo) {
         String tableName = sqlNode.getComponent(0).getSimple();
         String fieldName = sqlNode.getComponent(1).getSimple();
         JoinScope.ScopeChild scopeChild = joinScope.getScope(tableName);
-        String tableErrorMsg = "table [%s] is not exist. error condition is [%s]. if you find [%s] is exist, please check AS statement";
+        String tableErrorMsg = "Table [%s] is not exist. Error condition is [%s]. If you find [%s] is exist. Please check AS statement.";
         Preconditions.checkState(
             scopeChild != null,
             tableErrorMsg,
@@ -360,8 +362,21 @@ public class SideSqlExec {
         );
 
         String[] fieldNames = scopeChild.getRowTypeInfo().getFieldNames();
-        boolean hasField = Arrays.asList(fieldNames).contains(fieldName);
-        String fieldErrorMsg = "table [%s] has not [%s] field.\n error join condition is [%s]";
+        ArrayList<String> allFieldNames = new ArrayList(
+            Arrays.asList(fieldNames)
+        );
+        // HBase、Redis这种NoSQL Primary Key不在字段列表中，所以要加进去。
+        if (sideTableInfo != null) {
+            List<String> pks = sideTableInfo.getPrimaryKeys();
+            if (pks != null) {
+                pks.stream()
+                    .filter(pk -> !allFieldNames.contains(pk))
+                    .forEach(pk -> allFieldNames.add(pk));
+            }
+        }
+
+        boolean hasField = allFieldNames.contains(fieldName);
+        String fieldErrorMsg = "Table [%s] has not [%s] field. Error join condition is [%s]. If you find it is exist. Please check AS statement.";
         Preconditions.checkState(
             hasField,
             fieldErrorMsg,
@@ -482,7 +497,8 @@ public class SideSqlExec {
         joinScope.addScope(rightScopeChild);
 
         HashBasedTable<String, String, String> mappingTable = ((JoinInfo) pollObj).getTableFieldRef();
-        checkConditionFieldsInTable(joinInfo.getCondition(), joinScope);
+        // 检查JOIN等式字段是否在原表中
+        checkConditionFieldsInTable(joinInfo.getCondition(), joinScope, sideTableInfo);
 
         //获取两个表的所有字段
         List<FieldInfo> sideJoinFieldInfo = ParserJoinField.getRowTypeInfo(joinInfo.getSelectNode(), joinScope, true);
@@ -547,7 +563,13 @@ public class SideSqlExec {
                 EnvironmentSettings.DEFAULT_BUILTIN_CATALOG,
                 EnvironmentSettings.DEFAULT_BUILTIN_DATABASE,
                 targetTableName);
-        boolean tableExists = tableEnv.getCatalog(EnvironmentSettings.DEFAULT_BUILTIN_CATALOG).get().tableExists(objectIdentifier.toObjectPath());
+        boolean tableExists = false;
+        for (String table : tableEnv.listTables()) {
+            if (table.equals(targetTableName)) {
+                tableExists = true;
+                break;
+            }
+        }
 
         if (!tableExists) {
             Table joinTable = tableEnv.fromDataStream(dsOut);

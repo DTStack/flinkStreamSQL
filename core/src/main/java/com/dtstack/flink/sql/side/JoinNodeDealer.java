@@ -19,12 +19,16 @@
 
 package com.dtstack.flink.sql.side;
 
+import com.dtstack.flink.sql.exception.sqlparse.WithoutTableNameException;
 import com.dtstack.flink.sql.parser.FlinkPlanner;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.esotericsoftware.minlog.Log;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.common.collect.HashBiMap;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -39,7 +43,6 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -49,6 +52,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -68,6 +73,9 @@ public class JoinNodeDealer {
     private SideSQLParser sideSQLParser;
 
     private FlinkPlanner flinkPlanner = new FlinkPlanner();
+
+    // 内置无参函数的临时解决方法，防止被误判为表的字段
+    private List<String> builtInFunctionNames = Arrays.asList("LOCALTIMESTAMP", "LOCALTIME", "CURRENT_TIMESTAMP", "CURRENT_TIME", "CURRENT_DATE", "PI");
 
     public JoinNodeDealer(SideSQLParser sideSQLParser){
         this.sideSQLParser = sideSQLParser;
@@ -287,7 +295,7 @@ public class JoinNodeDealer {
         SqlBasicCall buildAs = TableUtils.buildAsNodeByJoinInfo(joinInfo, null, null);
 
         if(rightIsSide){
-            addSideInfoToExeQueue(queueInfo, joinInfo, joinNode, parentSelectList, parentGroupByList, parentWhere, tableRef);
+            addSideInfoToExeQueue(queueInfo, joinInfo, joinNode, parentSelectList, parentGroupByList, parentWhere, tableRef, fieldRef);
         }
 
         SqlNode newLeftNode = joinNode.getLeft();
@@ -300,7 +308,7 @@ public class JoinNodeDealer {
 
             //替换leftNode 为新的查询
             joinNode.setLeft(buildAs);
-            replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentGroupByList, parentWhere);
+            replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, fieldRef, parentSelectList, parentGroupByList, parentWhere);
         }
 
         return joinInfo;
@@ -323,7 +331,8 @@ public class JoinNodeDealer {
                                       SqlNodeList parentSelectList,
                                       SqlNodeList parentGroupByList,
                                       SqlNode parentWhere,
-                                      Map<String, String> tableRef){
+                                      Map<String, String> tableRef,
+                                      Map<String, String> fieldRef){
         //只处理维表
         if(!joinInfo.isRightIsSideTable()){
             return;
@@ -335,7 +344,7 @@ public class JoinNodeDealer {
         //替换左表为新的表名称
         joinNode.setLeft(buildAs);
 
-        replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, parentSelectList, parentGroupByList, parentWhere);
+        replaceSelectAndWhereField(buildAs, leftJoinNode, tableRef, fieldRef, parentSelectList, parentGroupByList, parentWhere);
     }
 
     /**
@@ -350,6 +359,7 @@ public class JoinNodeDealer {
     public void replaceSelectAndWhereField(SqlBasicCall buildAs,
                    SqlNode leftJoinNode,
                    Map<String, String> tableRef,
+                   Map<String, String> fieldRef,
                    SqlNodeList parentSelectList,
                    SqlNodeList parentGroupByList,
                    SqlNode parentWhere){
@@ -363,23 +373,22 @@ public class JoinNodeDealer {
         }
 
         //替换select field 中的对应字段
-        HashBiMap<String, String> fieldReplaceRef = HashBiMap.create();
         for(SqlNode sqlNode : parentSelectList.getList()){
             for(String tbTmp : fromTableNameSet) {
-                TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);
+                TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldRef);
             }
         }
 
         //TODO 应该根据上面的查询字段的关联关系来替换
         //替换where 中的条件相关
         for(String tbTmp : fromTableNameSet){
-            TableUtils.replaceWhereCondition(parentWhere, tbTmp, newLeftTableName, fieldReplaceRef);
+            TableUtils.replaceWhereCondition(parentWhere, tbTmp, newLeftTableName, fieldRef);
         }
 
         if(parentGroupByList != null){
             for(SqlNode sqlNode : parentGroupByList.getList()){
                 for(String tbTmp : fromTableNameSet) {
-                    TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldReplaceRef);
+                    TableUtils.replaceSelectFieldTable(sqlNode, tbTmp, newLeftTableName, fieldRef);
                 }
             }
         }
@@ -437,16 +446,15 @@ public class JoinNodeDealer {
             queueInfo.offer(sqlBasicCall);
 
             //替换select中的表结构
-            HashBiMap<String, String> fieldReplaceRef = HashBiMap.create();
             for(SqlNode tmpSelect : parentSelectList.getList()){
                 for(String tbTmp : fromTableNameSet) {
-                    TableUtils.replaceSelectFieldTable(tmpSelect, tbTmp, tableAlias, fieldReplaceRef);
+                    TableUtils.replaceSelectFieldTable(tmpSelect, tbTmp, tableAlias, fieldRef);
                 }
             }
 
             //替换where 中的条件相关
             for(String tbTmp : fromTableNameSet){
-                TableUtils.replaceWhereCondition(parentWhere, tbTmp, tableAlias, fieldReplaceRef);
+                TableUtils.replaceWhereCondition(parentWhere, tbTmp, tableAlias, fieldRef);
             }
 
             for(String tbTmp : fromTableNameSet){
@@ -605,8 +613,12 @@ public class JoinNodeDealer {
         }else if(selectNode.getKind() == IDENTIFIER) {
             SqlIdentifier sqlIdentifier = (SqlIdentifier) selectNode;
 
-            if(sqlIdentifier.names.size() == 1){
-                return;
+            if (sqlIdentifier.names.size() == 1) {
+                if (builtInFunctionNames.contains(sqlIdentifier.toString().toUpperCase())) {
+                    return;
+                } else {
+                    throw new WithoutTableNameException(sqlIdentifier + " field invalid , please use like t." + sqlIdentifier);
+                }
             }
 
             String tableName = sqlIdentifier.names.get(0);
@@ -967,7 +979,18 @@ public class JoinNodeDealer {
     public Map<String, String> buildTmpTableFieldRefOriField(Set<String> fieldSet, String newTableAliasName){
         Map<String, String> refInfo = Maps.newConcurrentMap();
         for(String field : fieldSet){
-            String[] fields = StringUtils.splitByWholeSeparator(field, "as");
+            String[] fields;
+            if (StringUtils.contains(field, " AS ")) {
+                fields = StringUtils.splitByWholeSeparator(field, " AS ");
+            } else {
+                fields = StringUtils.splitByWholeSeparator(field, " as ");
+            }
+            if (fields != null) {
+                fields = Stream
+                        .of(fields)
+                        .map(StringUtils::trimToNull)
+                        .toArray(String[]::new);
+            }
             String oldKey = field;
             String[] oldFieldInfo = StringUtils.splitByWholeSeparator(fields[0], ".");
             String oldFieldName = oldFieldInfo.length == 2 ? oldFieldInfo[1] : oldFieldInfo[0];
