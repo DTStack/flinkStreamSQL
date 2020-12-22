@@ -75,8 +75,7 @@ sh submit.sh -key1 val1 -key2 val2
         * flinkCheckpointDataURI: 设置checkpoint的外部存储路径,根据实际的需求设定文件路径,hdfs://, file://
         * jobmanager.memory.mb: per_job模式下指定jobmanager的内存大小(单位MB, 默认值:768)
         * taskmanager.memory.mb: per_job模式下指定taskmanager的内存大小(单位MB, 默认值:768)
-        * taskmanager.num: per_job模式下指定taskmanager的实例数(默认1)
-        * taskmanager.slots：per_job模式下指定每个taskmanager对应的slot数量(默认1)
+        * taskmanager.numberOfTaskSlots：per_job模式下指定每个taskmanager对应的slot数量(默认1),通过该参数和sql.env.parallelism可控制tm的个数,即sql.env.parallelism/taskmanager.numberOfTaskSlots 向上取整。
         * savePointPath：任务恢复点的路径（默认无）
         * allowNonRestoredState：指示保存点是否允许非还原状态的标志（默认false）
         * logLevel: 日志级别动态配置（默认info）
