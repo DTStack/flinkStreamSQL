@@ -41,9 +41,10 @@ public class KafkaSourceParser extends AbstractSourceParser {
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception {
 
         KafkaSourceTableInfo kafkaSourceTableInfo = new KafkaSourceTableInfo();
-        parseFieldsInfo(fieldsInfo, kafkaSourceTableInfo);
 
         kafkaSourceTableInfo.setName(tableName);
+        parseFieldsInfo(fieldsInfo, kafkaSourceTableInfo);
+
         kafkaSourceTableInfo.setType(MathUtil.getString(props.get(KafkaSourceTableInfo.TYPE_KEY.toLowerCase())));
         kafkaSourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
         kafkaSourceTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));
