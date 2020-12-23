@@ -18,6 +18,7 @@
 package com.dtstack.flink.sql.sink.rdb.table;
 
 import com.dtstack.flink.sql.enums.EUpdateMode;
+import com.dtstack.flink.sql.sink.rdb.resource.JdbcResourceCheck;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +33,8 @@ import org.apache.commons.lang3.StringUtils;
 public class RdbTableInfo extends AbstractTargetTableInfo {
 
     public static final int MAX_BATCH_SIZE = 10000;
+
+    public static final String DRIVER_NAME = "driverName";
 
     public static final String URL_KEY = "url";
 
@@ -76,6 +79,8 @@ public class RdbTableInfo extends AbstractTargetTableInfo {
     private boolean allReplace;
 
     private String updateMode;
+
+    private String driverName;
 
     public String getUrl() {
         return url;
@@ -165,6 +170,14 @@ public class RdbTableInfo extends AbstractTargetTableInfo {
         this.updateMode = updateMode;
     }
 
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName) {
+        this.driverName = driverName;
+    }
+
     @Override
     public boolean check() {
         Preconditions.checkNotNull(url, "rdb field of URL is required");
@@ -189,6 +202,11 @@ public class RdbTableInfo extends AbstractTargetTableInfo {
 
         Preconditions.checkArgument(getFieldList().size() == getFieldExtraInfoList().size(),
                 "fields and fieldExtraInfoList attributes must be the same length");
+
+        // 是否在client端快速检测表资源是否可用,这样在client能访问资源的情况下快速失败,不用提交到集群检测
+        if (getFastCheck()) {
+            JdbcResourceCheck.getInstance().checkResourceStatus(this);
+        }
         return true;
     }
 

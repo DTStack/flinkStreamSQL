@@ -24,6 +24,8 @@ import com.dtstack.flink.sql.table.AbstractTableInfo;
 
 import java.util.Map;
 
+import static com.dtstack.flink.sql.sink.rdb.table.RdbTableInfo.DRIVER_NAME;
+
 /**
  * Reason:
  * Date: 2018/7/4
@@ -37,6 +39,7 @@ public class MysqlSinkParser extends RdbSinkParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        props.put(DRIVER_NAME, "com.mysql.jdbc.Driver");
         AbstractTableInfo mysqlTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         mysqlTableInfo.setType(CURR_TYPE);
         return mysqlTableInfo;

@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.resource;
 
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.table.AbstractTableInfo;
 
 /**
  * @author: chuixue
@@ -34,7 +34,7 @@ public abstract class ResourceCheck {
     /**
      * 资源可用性检测
      *
-     * @param abstractSideTableInfo 连接信息
+     * @param abstractTableInfo 连接信息
      */
-    public abstract void checkResourceStatus(AbstractSideTableInfo abstractSideTableInfo);
+    public abstract void checkResourceStatus(AbstractTableInfo abstractTableInfo);
 }

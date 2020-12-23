@@ -25,6 +25,7 @@ import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.rdb.resource.JdbcResourceCheck;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import com.dtstack.flink.sql.util.DateUtil;
@@ -40,17 +41,14 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.types.Row;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.security.PrivilegedAction;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -91,13 +89,20 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
+    private static volatile boolean resourceCheck = true;
+
     private transient ThreadPoolExecutor executor;
 
     private final static int MAX_TASK_QUEUE_SIZE = 100000;
 
-
     @Override
     public void open(Configuration parameters) throws Exception {
+        synchronized (RdbAsyncReqRow.class) {
+            if (resourceCheck) {
+                resourceCheck = false;
+                JdbcResourceCheck.getInstance().checkResourceStatus(sideInfo.getSideTableInfo());
+            }
+        }
         super.open(parameters);
         executor = new ThreadPoolExecutor(MAX_DB_CONN_POOL_SIZE_LIMIT, MAX_DB_CONN_POOL_SIZE_LIMIT, 0, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE), new DTThreadFactory("rdbAsyncExec"), new ThreadPoolExecutor.CallerRunsPolicy());

@@ -52,7 +52,10 @@ public class RdbSideTableInfo extends AbstractSideTableInfo {
         Preconditions.checkNotNull(password, "rdb of password is required");
         Preconditions.checkArgument(getFieldList().size() == getFieldExtraInfoList().size(),
                 "fields and fieldExtraInfoList attributes must be the same length");
-        JdbcResourceCheck.getInstance().checkResourceStatus(this);
+        // 是否在client端快速检测表资源是否可用,这样在client能访问资源的情况下快速失败,不用提交到集群检测
+        if (getFastCheck()) {
+            JdbcResourceCheck.getInstance().checkResourceStatus(this);
+        }
         return true;
     }
 

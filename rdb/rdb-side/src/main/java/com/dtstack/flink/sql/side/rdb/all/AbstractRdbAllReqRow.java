@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.side.rdb.all;
 
 import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
+import com.dtstack.flink.sql.side.rdb.resource.JdbcResourceCheck;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import com.dtstack.flink.sql.util.JDBCUtils;
@@ -72,12 +73,20 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
     private AtomicReference<Map<String, List<Map<String, Object>>>> cacheRef = new AtomicReference<>();
 
+    private static volatile boolean resourceCheck = true;
+
     public AbstractRdbAllReqRow(BaseSideInfo sideInfo) {
         super(sideInfo);
     }
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        synchronized (AbstractRdbAllReqRow.class) {
+            if (resourceCheck) {
+                resourceCheck = false;
+                JdbcResourceCheck.getInstance().checkResourceStatus(sideInfo.getSideTableInfo());
+            }
+        }
         super.open(parameters);
         RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         LOG.info("rdb dim table config info: {} ", tableInfo.toString());

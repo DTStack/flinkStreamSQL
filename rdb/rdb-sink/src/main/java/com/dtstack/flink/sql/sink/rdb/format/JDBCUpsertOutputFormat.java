@@ -23,18 +23,17 @@ import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
+import com.dtstack.flink.sql.sink.rdb.resource.JdbcResourceCheck;
 import com.dtstack.flink.sql.sink.rdb.writer.AppendOnlyWriter;
 import com.dtstack.flink.sql.sink.rdb.writer.JDBCWriter;
 import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.security.PrivilegedAction;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -57,6 +56,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     static final int RECEIVEDATA_PRINT_FREQUENTY = 1000;
 
+    private final String name;
     private final String schema;
     private final String tableName;
     private final JDBCDialect dialect;
@@ -73,11 +73,13 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
     private transient JDBCWriter jdbcWriter;
     private transient int batchCount = 0;
     private transient volatile boolean closed = false;
+    private static volatile boolean resourceCheck = true;
 
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture scheduledFuture;
 
     public JDBCUpsertOutputFormat(
+            String name,
             JDBCOptions options,
             String[] fieldNames,
             String[] keyFields,
@@ -89,6 +91,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             String updateMode,
             JDBCWriter jdbcWriter) {
         super(options.getUsername(), options.getPassword(), options.getDriverName(), options.getDbUrl());
+        this.name = name;
         this.schema = options.getSchema();
         this.tableName = options.getTableName();
         this.dialect = options.getDialect();
@@ -112,6 +115,18 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
      */
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
+        synchronized (JDBCUpsertOutputFormat.class) {
+            if (resourceCheck) {
+                resourceCheck = false;
+                JdbcResourceCheck.getInstance().checkResourceStatus(name
+                        , driverName
+                        , username
+                        , dbURL
+                        , password
+                        , schema
+                        , tableName);
+            }
+        }
         openJdbc();
     }
 
@@ -223,7 +238,9 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         }
 
         try {
-            jdbcWriter.close();
+            if(jdbcWriter != null){
+                jdbcWriter.close();
+            }
         } catch (SQLException e) {
             LOG.warn("Close JDBC writer failed.", e);
         }
@@ -249,6 +266,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         protected boolean allReplace = DEFAULT_ALLREPLACE_VALUE;
         protected String updateMode;
         protected JDBCWriter jdbcWriter;
+        protected String name;
 
         /**
          * required, jdbc options.
@@ -325,6 +343,11 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             return this;
         }
 
+        public Builder setName(String name) {
+            this.name = name;
+            return this;
+        }
+
         /**
          * Finalizes the configuration and checks validity.
          *
@@ -334,7 +357,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             checkNotNull(options, "No options supplied.");
             checkNotNull(fieldNames, "No fieldNames supplied.");
             return new JDBCUpsertOutputFormat(
-                    options, fieldNames, keyFields, partitionFields, fieldTypes, flushMaxSize, flushIntervalMills, allReplace, updateMode, jdbcWriter);
+                    name, options, fieldNames, keyFields, partitionFields, fieldTypes, flushMaxSize, flushIntervalMills, allReplace, updateMode, jdbcWriter);
         }
     }
 }

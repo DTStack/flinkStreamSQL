@@ -50,7 +50,8 @@ public class RdbSideParser extends AbstractSideTableParser {
         rdbTableInfo.setUserName(MathUtil.getString(props.get(RdbSideTableInfo.USER_NAME_KEY.toLowerCase())));
         rdbTableInfo.setPassword(MathUtil.getString(props.get(RdbSideTableInfo.PASSWORD_KEY.toLowerCase())));
         rdbTableInfo.setSchema(MathUtil.getString(props.get(RdbSideTableInfo.SCHEMA_KEY.toLowerCase())));
-        rdbTableInfo.setDriverName(MathUtil.getString(props.get(DRIVER_NAME)));
+        rdbTableInfo.setDriverName(MathUtil.getString(props.get(RdbSideTableInfo.DRIVER_NAME)));
+        rdbTableInfo.setFastCheck(MathUtil.getBoolean(props.getOrDefault(RdbSideTableInfo.FAST_CHECK.toLowerCase(), true)));
 
         rdbTableInfo.check();
         return rdbTableInfo;
