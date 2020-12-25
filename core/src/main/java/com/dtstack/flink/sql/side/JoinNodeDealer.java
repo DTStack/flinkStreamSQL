@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -978,7 +979,18 @@ public class JoinNodeDealer {
     public Map<String, String> buildTmpTableFieldRefOriField(Set<String> fieldSet, String newTableAliasName){
         Map<String, String> refInfo = Maps.newConcurrentMap();
         for(String field : fieldSet){
-            String[] fields = StringUtils.splitByWholeSeparator(field, "as");
+            String[] fields;
+            if (StringUtils.contains(field, " AS ")) {
+                fields = StringUtils.splitByWholeSeparator(field, " AS ");
+            } else {
+                fields = StringUtils.splitByWholeSeparator(field, " as ");
+            }
+            if (fields != null) {
+                fields = Stream
+                        .of(fields)
+                        .map(StringUtils::trimToNull)
+                        .toArray(String[]::new);
+            }
             String oldKey = field;
             String[] oldFieldInfo = StringUtils.splitByWholeSeparator(fields[0], ".");
             String oldFieldName = oldFieldInfo.length == 2 ? oldFieldInfo[1] : oldFieldInfo[0];
