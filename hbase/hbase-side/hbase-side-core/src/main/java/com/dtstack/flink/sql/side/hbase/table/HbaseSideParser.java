@@ -47,6 +47,8 @@ public class HbaseSideParser extends AbstractSideTableParser {
 
     public static final String ZOOKEEPER_PARENT = "zookeeperParent";
 
+    public static final String KERBEROS_ENABLE = "hbase.security.auth.enable";
+
     public static final String TABLE_NAME_KEY = "tableName";
 
     public static final String PRE_ROW_KEY = "preRowKey";
@@ -69,6 +71,7 @@ public class HbaseSideParser extends AbstractSideTableParser {
         hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
         hbaseTableInfo.setPreRowKey(MathUtil.getBoolean(props.get(PRE_ROW_KEY.toLowerCase()), false));
         hbaseTableInfo.setCacheType((String) props.get(CACHE));
+        hbaseTableInfo.setKerberosAuthEnable(MathUtil.getBoolean(props.get(KERBEROS_ENABLE), false));
         props.entrySet().stream()
                 .filter(entity -> entity.getKey().contains("."))
                 .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), String.valueOf(entity.getValue())))
