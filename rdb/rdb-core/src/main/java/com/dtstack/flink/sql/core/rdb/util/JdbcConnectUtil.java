@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 
+package com.dtstack.flink.sql.core.rdb.util;
 
-package com.dtstack.flink.sql.util;
-
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
+import com.dtstack.flink.sql.util.ThreadUtil;
+import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,31 +31,16 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Objects;
 
-public class JDBCUtils {
-    private static final Logger LOG = LoggerFactory.getLogger(JDBCUtils.class);
-
-    private static final Object LOCK = new Object();
-
-    public static void forName(String clazz, ClassLoader classLoader) {
-        synchronized (LOCK) {
-            try {
-                Class.forName(clazz, true, classLoader);
-                DriverManager.setLoginTimeout(10);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-
-    public synchronized static void forName(String clazz) {
-        try {
-            Class<?> driverClass = Class.forName(clazz);
-            driverClass.newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+/**
+ * @author tiezhu
+ * Date 2020-12-25
+ * Company dtstack
+ */
+public class JdbcConnectUtil {
+    private static final int DEFAULT_RETRY_NUM = 5;
+    private static final long DEFAULT_RETRY_TIME_WAIT = 5L;
+    private static final int DEFAULT_VALID_NUM = 10;
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcConnectUtil.class);
 
     /**
      * 关闭连接资源
@@ -61,9 +48,13 @@ public class JDBCUtils {
      * @param rs     ResultSet
      * @param stmt   Statement
      * @param conn   Connection
-     * @param commit
+     * @param commit 手动提交事务
      */
-    public static void closeConnectionResource(ResultSet rs, Statement stmt, Connection conn, boolean commit) {
+    public static void closeConnectionResource(
+            ResultSet rs
+            , Statement stmt
+            , Connection conn
+            , boolean commit) {
         if (Objects.nonNull(rs)) {
             try {
                 rs.close();
@@ -102,7 +93,7 @@ public class JDBCUtils {
      */
     public static void commit(Connection conn) {
         try {
-            if (!conn.isClosed() && !conn.getAutoCommit()) {
+            if (!conn.isClosed() && conn.isValid(DEFAULT_VALID_NUM) && !conn.getAutoCommit()) {
                 conn.commit();
             }
         } catch (SQLException e) {
@@ -117,7 +108,7 @@ public class JDBCUtils {
      */
     public static void rollBack(Connection conn) {
         try {
-            if (!conn.isClosed() && !conn.getAutoCommit()) {
+            if (!conn.isClosed() && conn.isValid(DEFAULT_VALID_NUM) && !conn.getAutoCommit()) {
                 conn.rollback();
             }
         } catch (SQLException e) {
@@ -125,4 +116,41 @@ public class JDBCUtils {
         }
     }
 
+    /**
+     * get connect from datasource and retry when failed.
+     *
+     * @param driverName driver name for rdb datasource
+     * @param url        connect url
+     * @param userName   connect user name
+     * @param password   password for user name
+     * @return a valid connection
+     */
+    public static Connection getConnectWithRetry(
+            String driverName
+            , String url
+            , String userName
+            , String password) {
+        String errorMessage = "Get connect failed with properties: \nurl: " + url
+                + (Objects.isNull(userName) ? "" : "\nuserName: " + userName);
+
+        ClassLoaderManager.forName(driverName);
+        Preconditions.checkNotNull(url, "url can't be null!");
+
+        Connection connection = null;
+        for (int i = 0; i < DEFAULT_RETRY_NUM; i++) {
+            try {
+                connection = Objects.isNull(userName) ?
+                        DriverManager.getConnection(url) : DriverManager.getConnection(url, userName, password);
+                // 校验connection是否可用
+                connection.isValid(DEFAULT_VALID_NUM);
+                return connection;
+            } catch (Exception e) {
+                LOG.warn(errorMessage, e);
+                LOG.warn("Connect will retry after [{}] s......", DEFAULT_RETRY_TIME_WAIT);
+                ThreadUtil.sleepMilliseconds(DEFAULT_RETRY_TIME_WAIT);
+                closeConnectionResource(null, null, connection, false);
+            }
+        }
+        throw new IllegalArgumentException(errorMessage);
+    }
 }

@@ -18,11 +18,11 @@
 
 package com.dtstack.flink.sql.side.clickhouse;
 
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
-import com.dtstack.flink.sql.util.JDBCUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ public class ClickhouseAllReqRow extends AbstractRdbAllReqRow {
     public Connection getConn(String dbUrl, String userName, String passWord) {
         try {
             Connection connection ;
-            JDBCUtils.forName(CLICKHOUSE_DRIVER, getClass().getClassLoader());
+            ClassLoaderManager.forName(CLICKHOUSE_DRIVER, getClass().getClassLoader());
             // ClickHouseProperties contains all properties
             if (userName == null) {
                 connection = DriverManager.getConnection(dbUrl);

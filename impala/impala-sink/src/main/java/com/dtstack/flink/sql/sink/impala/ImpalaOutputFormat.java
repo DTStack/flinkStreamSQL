@@ -18,11 +18,11 @@
 
 package com.dtstack.flink.sql.sink.impala;
 
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.JDBCTypeConvertUtils;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
-import com.dtstack.flink.sql.util.JDBCUtils;
 import com.dtstack.flink.sql.util.KrbUtils;
 import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
@@ -34,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.rmi.RemoteException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -52,7 +51,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -92,27 +90,14 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private static final String PARTITION_CONDITION = "${partitionCondition}";
     private static final String TABLE_FIELDS_CONDITION = "${tableFieldsCondition}";
     private static final String NO_PARTITION = "noPartition";
-
+    // partition field of static partition which matched by ${field}
+    private final List<String> staticPartitionFields = new ArrayList<>();
+    public List<String> fieldNames;
+    public List<String> fieldTypes;
+    public List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList;
     protected transient Connection connection;
     protected transient Statement statement;
     protected transient PreparedStatement updateStatement;
-
-    private transient volatile boolean closed = false;
-    private int batchCount = 0;
-
-    // |------------------------------------------------|
-    // |   partitionCondition   |Array of valueCondition|
-    // |------------------------------------------------|
-    // | ptOne, ptTwo, ptThree  | [(v1, v2, v3, v4, v5)]|   DP
-    // |------------------------------------------------|
-    // | ptOne = v1, ptTwo = v2 | [(v3, v4, v5)]        |   SP
-    // |------------------------------------------------|
-    // | ptOne, ptTwo = v2      | [(v1, v3, v4, v5)]    |   DP and SP
-    // |------------------------------------------------|
-    // | noPartition            | [(v1, v2, v3, v4, v5)]|   kudu or disablePartition
-    // |------------------------------------------------|
-    private transient Map<String, ArrayList<String>> rowDataMap;
-
     protected String keytabPath;
     protected String krb5confPath;
     protected String principal;
@@ -129,13 +114,20 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     protected String schema;
     protected String storeType;
     protected String updateMode;
-    public List<String> fieldNames;
-    public List<String> fieldTypes;
-    public List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList;
-
-    // partition field of static partition which matched by ${field}
-    private final List<String> staticPartitionFields = new ArrayList<>();
-
+    private transient volatile boolean closed = false;
+    private int batchCount = 0;
+    // |------------------------------------------------|
+    // |   partitionCondition   |Array of valueCondition|
+    // |------------------------------------------------|
+    // | ptOne, ptTwo, ptThree  | [(v1, v2, v3, v4, v5)]|   DP
+    // |------------------------------------------------|
+    // | ptOne = v1, ptTwo = v2 | [(v3, v4, v5)]        |   SP
+    // |------------------------------------------------|
+    // | ptOne, ptTwo = v2      | [(v1, v3, v4, v5)]    |   DP and SP
+    // |------------------------------------------------|
+    // | noPartition            | [(v1, v2, v3, v4, v5)]|   kudu or disablePartition
+    // |------------------------------------------------|
+    private transient Map<String, ArrayList<String>> rowDataMap;
     // valueFieldsName -> 重组之后的fieldNames，为了重组row data字段值对应
     // 需要对partition字段做特殊处理，比如原来的字段顺序为(age, name, id)，但是因为partition，写入的SQL为
     // INSERT INTO tableName(name, id) PARTITION(age) VALUES(?, ?, ?)
@@ -146,6 +138,10 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture<?> scheduledFuture;
+
+    public static Builder getImpalaBuilder() {
+        return new Builder();
+    }
 
     @Override
     public void configure(Configuration parameters) {
@@ -229,7 +225,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * get jdbc connection
      */
     private void openJdbc() {
-        JDBCUtils.forName(DRIVER_NAME, getClass().getClassLoader());
+        ClassLoaderManager.forName(DRIVER_NAME, getClass().getClassLoader());
         try {
             connection = DriverManager.getConnection(dbUrl, userName, password);
             statement = connection.createStatement();
@@ -625,10 +621,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
     private String quoteIdentifier(String identifier) {
         return "`" + identifier + "`";
-    }
-
-    public static Builder getImpalaBuilder() {
-        return new Builder();
     }
 
     public static class Builder {

@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.side.postgresql.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 
@@ -38,6 +39,7 @@ public class PostgresqlSideParser extends RdbSideParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        props.put(JdbcCheckKeys.DRIVER_NAME, "org.postgresql.Driver");
         AbstractTableInfo pgTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         pgTableInfo.setType(CURR_TYPE);
         return pgTableInfo;

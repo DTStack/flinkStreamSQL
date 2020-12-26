@@ -101,6 +101,7 @@ public class ImpalaSinkParser extends AbstractTableParser {
         impalaTableInfo.setFlushIntervalMs(MathUtil.getString(props.get(FLUSH_INTERVAL_MS_KEY.toLowerCase())));
         impalaTableInfo.setSchema(MathUtil.getString(props.get(SCHEMA_KEY.toLowerCase())));
         impalaTableInfo.setUpdateMode(MathUtil.getString(props.get(UPDATE_KEY.toLowerCase())));
+        impalaTableInfo.setDriverName("com.cloudera.impala.jdbc41.Driver");
 
         Integer authMech = MathUtil.getIntegerVal(props.get(AUTH_MECH_KEY.toLowerCase()));
         authMech = authMech == null ? 0 : authMech;

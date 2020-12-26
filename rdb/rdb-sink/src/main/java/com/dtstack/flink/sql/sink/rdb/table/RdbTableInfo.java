@@ -17,11 +17,16 @@
  */
 package com.dtstack.flink.sql.sink.rdb.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
+import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.enums.EUpdateMode;
-import com.dtstack.flink.sql.sink.rdb.resource.JdbcResourceCheck;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Reason:
@@ -205,7 +210,7 @@ public class RdbTableInfo extends AbstractTargetTableInfo {
 
         // 是否在client端快速检测表资源是否可用,这样在client能访问资源的情况下快速失败,不用提交到集群检测
         if (getFastCheck()) {
-            JdbcResourceCheck.getInstance().checkResourceStatus(this);
+            JdbcResourceCheck.getInstance().checkResourceStatus(getCheckProperties());
         }
         return true;
     }
@@ -214,5 +219,21 @@ public class RdbTableInfo extends AbstractTargetTableInfo {
     public String getType() {
         // return super.getType().toLowerCase() + TARGET_SUFFIX;
         return super.getType().toLowerCase();
+    }
+
+    @Override
+    public Map<String, String> buildCheckProperties() {
+        Map<String, String> properties = Maps.newHashMap();
+
+        properties.put(JdbcCheckKeys.DRIVER_NAME, getDriverName());
+        properties.put(JdbcCheckKeys.URL_KEY, getUrl());
+        properties.put(JdbcCheckKeys.USER_NAME_KEY, getUserName());
+        properties.put(JdbcCheckKeys.PASSWORD_KEY, getPassword());
+        properties.put(JdbcCheckKeys.SCHEMA_KEY, getSchema());
+        properties.put(JdbcCheckKeys.TABLE_NAME_KEY, getTableName());
+        properties.put(JdbcCheckKeys.OPERATION_NAME_KEY, getName());
+        properties.put(JdbcCheckKeys.TABLE_TYPE_KEY, "sink");
+
+        return properties;
     }
 }

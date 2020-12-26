@@ -17,9 +17,13 @@
  */
 package com.dtstack.flink.sql.side.rdb.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
+import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.rdb.resource.JdbcResourceCheck;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+
+import java.util.Map;
 
 /**
  * Reason:
@@ -30,19 +34,19 @@ import com.google.common.base.Preconditions;
  */
 public class RdbSideTableInfo extends AbstractSideTableInfo {
 
-    private static final long serialVersionUID = -1L;
-
     public static final String DRIVER_NAME = "driverName";
-
     public static final String URL_KEY = "url";
-
     public static final String TABLE_NAME_KEY = "tableName";
-
     public static final String USER_NAME_KEY = "userName";
-
     public static final String PASSWORD_KEY = "password";
-
     public static final String SCHEMA_KEY = "schema";
+    private static final long serialVersionUID = -1L;
+    private String driverName;
+    private String url;
+    private String tableName;
+    private String userName;
+    private String password;
+    private String schema;
 
     @Override
     public boolean check() {
@@ -54,22 +58,10 @@ public class RdbSideTableInfo extends AbstractSideTableInfo {
                 "fields and fieldExtraInfoList attributes must be the same length");
         // 是否在client端快速检测表资源是否可用,这样在client能访问资源的情况下快速失败,不用提交到集群检测
         if (getFastCheck()) {
-            JdbcResourceCheck.getInstance().checkResourceStatus(this);
+            JdbcResourceCheck.getInstance().checkResourceStatus(this.getCheckProperties());
         }
         return true;
     }
-
-    private String driverName;
-
-    private String url;
-
-    private String tableName;
-
-    private String userName;
-
-    private String password;
-
-    private String schema;
 
     public String getSchema() {
         return schema;
@@ -131,4 +123,17 @@ public class RdbSideTableInfo extends AbstractSideTableInfo {
         return cacheInfo + " , " + connectionInfo;
     }
 
+    @Override
+    public Map<String, String> buildCheckProperties() {
+        Map<String, String> properties = Maps.newHashMap();
+        properties.put(JdbcCheckKeys.DRIVER_NAME, getDriverName());
+        properties.put(JdbcCheckKeys.URL_KEY, getUrl());
+        properties.put(JdbcCheckKeys.USER_NAME_KEY, getUserName());
+        properties.put(JdbcCheckKeys.PASSWORD_KEY, getPassword());
+        properties.put(JdbcCheckKeys.SCHEMA_KEY, getSchema());
+        properties.put(JdbcCheckKeys.TABLE_NAME_KEY, getTableName());
+        properties.put(JdbcCheckKeys.OPERATION_NAME_KEY, getName());
+        properties.put(JdbcCheckKeys.TABLE_TYPE_KEY, "side");
+        return properties;
+    }
 }

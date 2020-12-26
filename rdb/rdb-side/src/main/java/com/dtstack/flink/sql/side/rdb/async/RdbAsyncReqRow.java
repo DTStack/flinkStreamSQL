@@ -19,17 +19,18 @@
 
 package com.dtstack.flink.sql.side.rdb.async;
 
+import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.cache.CacheObj;
-import com.dtstack.flink.sql.side.rdb.resource.JdbcResourceCheck;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import com.dtstack.flink.sql.util.DateUtil;
 import com.dtstack.flink.sql.util.RowDataComplete;
+import com.dtstack.flink.sql.util.ThreadUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.vertx.core.json.JsonArray;
@@ -65,52 +66,39 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
-    private static final long serialVersionUID = 2098635244857937720L;
-
-    private static final Logger LOG = LoggerFactory.getLogger(RdbAsyncReqRow.class);
-
     public final static int DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE = 1;
-
     public final static int DEFAULT_VERTX_WORKER_POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
-
     public final static int DEFAULT_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
-
     public final static int MAX_DB_CONN_POOL_SIZE_LIMIT = 20;
-
     public final static int DEFAULT_IDLE_CONNECTION_TEST_PEROID = 60;
-
     public final static boolean DEFAULT_TEST_CONNECTION_ON_CHECKIN = true;
-
     public final static String DT_PROVIDER_CLASS = "com.dtstack.flink.sql.side.rdb.provider.DTC3P0DataSourceProvider";
-
     public final static String PREFERRED_TEST_QUERY_SQL = "SELECT 1 FROM DUAL";
-
-    private transient SQLClient rdbSqlClient;
-
-    private AtomicBoolean connectionStatus = new AtomicBoolean(true);
-
+    private static final long serialVersionUID = 2098635244857937720L;
+    private static final Logger LOG = LoggerFactory.getLogger(RdbAsyncReqRow.class);
+    private final static int MAX_TASK_QUEUE_SIZE = 100000;
     private static volatile boolean resourceCheck = true;
-
+    private transient SQLClient rdbSqlClient;
+    private final AtomicBoolean connectionStatus = new AtomicBoolean(true);
     private transient ThreadPoolExecutor executor;
 
-    private final static int MAX_TASK_QUEUE_SIZE = 100000;
+    public RdbAsyncReqRow(BaseSideInfo sideInfo) {
+        super(sideInfo);
+        init(sideInfo);
+    }
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         synchronized (RdbAsyncReqRow.class) {
             if (resourceCheck) {
                 resourceCheck = false;
-                JdbcResourceCheck.getInstance().checkResourceStatus(sideInfo.getSideTableInfo());
+                JdbcResourceCheck.getInstance().checkResourceStatus(rdbSideTableInfo.getCheckProperties());
             }
         }
         super.open(parameters);
         executor = new ThreadPoolExecutor(MAX_DB_CONN_POOL_SIZE_LIMIT, MAX_DB_CONN_POOL_SIZE_LIMIT, 0, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE), new DTThreadFactory("rdbAsyncExec"), new ThreadPoolExecutor.CallerRunsPolicy());
-    }
-
-    public RdbAsyncReqRow(BaseSideInfo sideInfo) {
-        super(sideInfo);
-        init(sideInfo);
     }
 
     protected void init(BaseSideInfo sideInfo) {
@@ -121,7 +109,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture) { }
+    protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture) {
+    }
 
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
@@ -137,7 +126,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         executor.execute(() -> connectWithRetry(params, input, resultFuture, rdbSqlClient));
     }
 
-    protected void asyncQueryData(        Map<String, Object> inputParams,
+    protected void asyncQueryData(Map<String, Object> inputParams,
                                   Row input,
                                   ResultFuture<BaseRow> resultFuture,
                                   SQLClient rdbSqlClient,
@@ -145,21 +134,21 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                                   AtomicBoolean finishFlag,
                                   CountDownLatch latch) {
         doAsyncQueryData(inputParams,
-            input, resultFuture,
-            rdbSqlClient,
-            failCounter,
-            finishFlag,
-            latch);
+                input, resultFuture,
+                rdbSqlClient,
+                failCounter,
+                finishFlag,
+                latch);
     }
 
     final protected void doAsyncQueryData(
-        Map<String, Object> inputParams,
-        Row input,
-        ResultFuture<BaseRow> resultFuture,
-        SQLClient rdbSqlClient,
-        AtomicLong failCounter,
-        AtomicBoolean finishFlag,
-        CountDownLatch latch) {
+            Map<String, Object> inputParams,
+            Row input,
+            ResultFuture<BaseRow> resultFuture,
+            SQLClient rdbSqlClient,
+            AtomicLong failCounter,
+            AtomicBoolean finishFlag,
+            CountDownLatch latch) {
         rdbSqlClient.getConnection(conn -> {
             try {
                 if (conn.failed()) {
@@ -192,12 +181,13 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         while (!finishFlag.get()) {
             try {
                 CountDownLatch latch = new CountDownLatch(1);
-                asyncQueryData(inputParams,
-                    input, resultFuture,
-                    rdbSqlClient,
-                    failCounter,
-                    finishFlag,
-                    latch);
+                asyncQueryData(
+                        inputParams,
+                        input, resultFuture,
+                        rdbSqlClient,
+                        failCounter,
+                        finishFlag,
+                        latch);
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
@@ -209,11 +199,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 connectionStatus.set(false);
             }
             if (!finishFlag.get()) {
-                try {
-                    Thread.sleep(3000);
-                } catch (Exception e) {
-                    LOG.error("", e);
-                }
+                ThreadUtil.sleepMilliseconds(ThreadUtil.DEFAULT_SLEEP_TIME);
             }
         }
     }

@@ -16,24 +16,24 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.resource;
-
-import java.util.Map;
-import java.util.Properties;
+package com.dtstack.flink.sql.core.rdb;
 
 /**
- * @author: chuixue
- * @create: 2020-12-08 17:21
- * @description:资源检测
- **/
-public interface ResourceCheck {
-    String SINK_STR = "sink";
-    String SIDE_STR = "side";
-
-    /**
-     * 资源可用性检测
-     *
-     * @param checkProperties   校验资源可用性的参数配置
-     */
-    void checkResourceStatus(Map<String, String> checkProperties);
+ * @author tiezhu
+ * Date 2020-12-25
+ * Company dtstack
+ */
+public class JdbcCheckKeys {
+    public static final String DRIVER_NAME = "driverName";
+    public static final String URL_KEY = "url";
+    public static final String USER_NAME_KEY = "userName";
+    public static final String PASSWORD_KEY = "password";
+    public static final String TABLE_TYPE_KEY = "tableType";
+    public static final String SCHEMA_KEY = "schema";
+    public static final String TABLE_NAME_KEY = "tableName";
+    // create 语句中的name
+    public static final String OPERATION_NAME_KEY = "operationName";
+    // 用来检查update、replace等操作的column
+    public static final String COLUMN_KEY = "column";
+    public static final String TABLE_INFO_KEY = "tableInfo";
 }

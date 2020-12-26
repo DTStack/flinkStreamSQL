@@ -19,14 +19,14 @@
 package com.dtstack.flink.sql.sink.rdb.format;
 
 
+import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.sink.rdb.JDBCOptions;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
-import com.dtstack.flink.sql.sink.rdb.resource.JdbcResourceCheck;
+import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
 import com.dtstack.flink.sql.sink.rdb.writer.AppendOnlyWriter;
 import com.dtstack.flink.sql.sink.rdb.writer.JDBCWriter;
-import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -64,6 +65,8 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
     private final String[] keyFields;
     private final String[] partitionFields;
     private final int[] fieldTypes;
+
+    private Map<String, String> checkProperties;
 
     private final int flushMaxSize;
     private final long flushIntervalMills;
@@ -104,6 +107,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         this.allReplace = allReplace;
         this.updateMode = updateMode;
         this.jdbcWriter = jdbcWriter;
+        this.checkProperties = options.buildCheckProperties();
     }
 
     /**
@@ -118,13 +122,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         synchronized (JDBCUpsertOutputFormat.class) {
             if (resourceCheck) {
                 resourceCheck = false;
-                JdbcResourceCheck.getInstance().checkResourceStatus(name
-                        , driverName
-                        , username
-                        , dbURL
-                        , password
-                        , schema
-                        , tableName);
+                JdbcResourceCheck.getInstance().checkResourceStatus(this.checkProperties);
             }
         }
         openJdbc();
