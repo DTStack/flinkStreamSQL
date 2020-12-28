@@ -180,7 +180,8 @@ public class ExecuteProcessHelper {
         //register udf
         ExecuteProcessHelper.registerUserDefinedFunction(sqlTree, paramsInfo.getJarUrlList(), tableEnv, paramsInfo.isGetPlan());
         //register table schema
-        Set<URL> classPathSets = ExecuteProcessHelper.registerTable(sqlTree
+        Set<URL> classPathSets = ExecuteProcessHelper.registerTable(
+                sqlTree
                 , env
                 , tableEnv
                 , paramsInfo.getLocalSqlPluginPath()
@@ -192,7 +193,8 @@ public class ExecuteProcessHelper {
         // cache classPathSets
         ExecuteProcessHelper.registerPluginUrlToCachedFile(env, classPathSets);
 
-        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath()
+        ExecuteProcessHelper.sqlTranslation(
+                paramsInfo.getLocalSqlPluginPath()
                 , paramsInfo.getPluginLoadMode()
                 , tableEnv
                 , sqlTree
@@ -285,7 +287,6 @@ public class ExecuteProcessHelper {
                             }
                         }
                     }
-
                     scope++;
                 }
             }
@@ -327,7 +328,8 @@ public class ExecuteProcessHelper {
      * @return
      * @throws Exception
      */
-    public static Set<URL> registerTable(SqlTree sqlTree
+    public static Set<URL> registerTable(
+            SqlTree sqlTree
             , StreamExecutionEnvironment env
             , StreamTableEnvironment tableEnv
             , String localSqlPluginPath
@@ -372,7 +374,12 @@ public class ExecuteProcessHelper {
                 }
                 registerTableCache.put(tableInfo.getName(), regTable);
 
-                URL sourceTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractSourceTableInfo.SOURCE_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
+                URL sourceTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(
+                        tableInfo.getType()
+                        , AbstractSourceTableInfo.SOURCE_SUFFIX
+                        , localSqlPluginPath
+                        , remoteSqlPluginPath
+                        , pluginLoadMode);
                 pluginClassPathSets.add(sourceTablePathUrl);
             } else if (tableInfo instanceof AbstractTargetTableInfo) {
 
@@ -380,7 +387,12 @@ public class ExecuteProcessHelper {
                 TypeInformation[] flinkTypes = DataTypeUtils.transformTypes(tableInfo.getFieldClasses());
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
 
-                URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractTargetTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
+                URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(
+                        tableInfo.getType()
+                        , AbstractTargetTableInfo.TARGET_SUFFIX
+                        , localSqlPluginPath
+                        , remoteSqlPluginPath
+                        , pluginLoadMode);
                 pluginClassPathSets.add(sinkTablePathUrl);
             } else if (tableInfo instanceof AbstractSideTableInfo) {
                 String sideOperator = ECacheType.ALL.name().equalsIgnoreCase(((AbstractSideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
@@ -391,7 +403,13 @@ public class ExecuteProcessHelper {
                     tableEnv.registerTableSource(tableInfo.getName(), tableSource);
                 }
 
-                URL sideTablePathUrl = PluginUtil.buildSidePathByLoadMode(tableInfo.getType(), sideOperator, AbstractSideTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
+                URL sideTablePathUrl = PluginUtil.buildSidePathByLoadMode(
+                        tableInfo.getType()
+                        , sideOperator
+                        , AbstractSideTableInfo.TARGET_SUFFIX
+                        , localSqlPluginPath
+                        , remoteSqlPluginPath
+                        , pluginLoadMode);
                 pluginClassPathSets.add(sideTablePathUrl);
             } else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());

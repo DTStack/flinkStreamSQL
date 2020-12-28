@@ -27,8 +27,8 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSnapshot;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -129,18 +129,18 @@ public class CreateTmpTableParser implements IParser {
         if (Pattern.compile(EMPTY_STR).matcher(sql).find()) {
             return true;
         }
-        return NONEMPTYVIEW.matcher(sql).find();
+        return TEMPORARYVIEW.matcher(sql).find();
     }
 
     @Override
-    public void parseSql(String sql, SqlTree sqlTree) {
-        if (NONEMPTYVIEW.matcher(sql).find()) {
-            Matcher matcher = NONEMPTYVIEW.matcher(sql);
+    public void parseSql(String sql, SqlTree sqlTree, String planner) {
+        if (TEMPORARYVIEW.matcher(sql).find()) {
+            Matcher matcher = TEMPORARYVIEW.matcher(sql);
             String tableName = null;
             String selectSql = null;
             if (matcher.find()) {
-                tableName = matcher.group(1);
-                selectSql = "select " + matcher.group(2);
+                tableName = matcher.group(3);
+                selectSql = "select " + matcher.group(4);
             }
 
             SqlNode sqlNode = null;
@@ -154,8 +154,11 @@ public class CreateTmpTableParser implements IParser {
             parseNode(sqlNode, sqlParseResult);
 
             sqlParseResult.setTableName(tableName);
-            String transformSelectSql = DtStringUtil.replaceIgnoreQuota(sqlNode.toString(), "`", "");
-            sqlParseResult.setExecSql(transformSelectSql);
+            if (planner.equalsIgnoreCase(PlannerType.FLINK.name())) {
+                sqlParseResult.setExecSql(sql);
+            } else {
+                sqlParseResult.setExecSql(DtStringUtil.replaceIgnoreQuota(sqlNode.toString(), "`", ""));
+            }
             sqlTree.addTmpSql(sqlParseResult);
             sqlTree.addTmplTableInfo(tableName, sqlParseResult);
         } else {
@@ -172,6 +175,7 @@ public class CreateTmpTableParser implements IParser {
                 sqlParseResult.setTableName(tableName);
                 sqlTree.addTmplTableInfo(tableName, sqlParseResult);
             }
+
         }
     }
 
