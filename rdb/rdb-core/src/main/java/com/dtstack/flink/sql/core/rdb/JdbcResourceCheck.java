@@ -30,14 +30,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 
 /**
  * @author: chuixue
  * @create: 2020-12-08 17:24
  * @description:jdbc资源检测
  **/
-public class JdbcResourceCheck implements ResourceCheck {
+public class JdbcResourceCheck extends ResourceCheck {
     private static final String DELETE_STR = "delete";
     private static final String SELECT_STR = "select";
     private static final String INSERT_STR = "insert";
@@ -66,11 +65,16 @@ public class JdbcResourceCheck implements ResourceCheck {
 
     @Override
     public void checkResourceStatus(Map<String, String> checkProperties) {
+        if (!NEED_CHECK) {
+            LOG.info("Ignore checking data source ...");
+            return;
+        }
+        LOG.info("start checking data source ...");
         List<String> privilegeList = new ArrayList<>();
-        if (checkProperties.get(JdbcCheckKeys.TABLE_TYPE_KEY).equalsIgnoreCase(SIDE_STR)) {
+        if (checkProperties.get(TABLE_TYPE_KEY).equalsIgnoreCase(SIDE_STR)) {
             privilegeList.add(SELECT_STR);
         }
-        if (checkProperties.get(JdbcCheckKeys.TABLE_TYPE_KEY).equalsIgnoreCase(SINK_STR)) {
+        if (checkProperties.get(TABLE_TYPE_KEY).equalsIgnoreCase(SINK_STR)) {
             privilegeList.add(INSERT_STR);
             privilegeList.add(DELETE_STR);
         }
@@ -83,6 +87,8 @@ public class JdbcResourceCheck implements ResourceCheck {
                 , checkProperties.get(JdbcCheckKeys.SCHEMA_KEY)
                 , privilegeList
         );
+        LOG.info(String.format("data source is available and user [%s] has the corresponding permissions %s for [%s] table...",
+                checkProperties.get(JdbcCheckKeys.USER_NAME_KEY), privilegeList.toString(), checkProperties.get(TABLE_TYPE_KEY)));
     }
 
     public void checkPrivilege(

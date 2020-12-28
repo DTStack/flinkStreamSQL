@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,31 +31,31 @@ import com.dtstack.flink.sql.enums.EPluginLoadMode;
 public class Options {
 
     @OptionRequired(description = "Running mode")
-    private  String mode = ClusterMode.local.name();
+    private String mode = ClusterMode.local.name();
 
-    @OptionRequired(required = true,description = "Job name")
-    private  String name;
+    @OptionRequired(required = true, description = "Job name")
+    private String name;
 
-    @OptionRequired(required = true,description = "Job sql file")
-    private  String sql;
+    @OptionRequired(required = true, description = "Job sql file")
+    private String sql;
 
     @OptionRequired(description = "Flink configuration directory")
-    private  String flinkconf;
+    private String flinkconf;
 
     @OptionRequired(description = "Yarn and Hadoop configuration directory")
-    private  String yarnconf;
+    private String yarnconf;
 
     @OptionRequired(description = "Sql local plugin root")
-    private  String localSqlPluginPath;
+    private String localSqlPluginPath;
 
     @OptionRequired(description = "Sql remote plugin root")
-    private  String remoteSqlPluginPath ;
+    private String remoteSqlPluginPath;
 
     @OptionRequired(description = "sql ext jar,eg udf jar")
-    private  String addjar;
+    private String addjar;
 
     @OptionRequired(description = "sql ref prop,eg specify event time")
-    private  String confProp = "{}";
+    private String confProp = "{}";
 
     @OptionRequired(description = "flink jar path for submit of perjob mode")
     private String flinkJarPath;
@@ -68,10 +68,12 @@ public class Options {
 
     @OptionRequired(description = "plugin load mode, by classpath or shipfile")
     private String pluginLoadMode = EPluginLoadMode.CLASSPATH.name();
-    
-    @OptionRequired(description = "file add to ship file")
-    private  String addShipfile;
 
+    @OptionRequired(description = "file add to ship file")
+    private String addShipfile;
+
+    @OptionRequired(description = "check resource or not")
+    private String checkResource;
 
     public String getMode() {
         return mode;
@@ -185,4 +187,11 @@ public class Options {
         this.addShipfile = addShipfile;
     }
 
+    public String getCheckResource() {
+        return checkResource;
+    }
+
+    public void setCheckResource(String checkResource) {
+        this.checkResource = checkResource;
+    }
 }

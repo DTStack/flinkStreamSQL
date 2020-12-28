@@ -18,22 +18,27 @@
 
 package com.dtstack.flink.sql.resource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * @author: chuixue
  * @create: 2020-12-08 17:21
  * @description:资源检测
  **/
-public interface ResourceCheck {
-    String SINK_STR = "sink";
-    String SIDE_STR = "side";
+public abstract class ResourceCheck {
+    public static Boolean NEED_CHECK = true;
+    public String TABLE_TYPE_KEY = "tableType";
+    public String SINK_STR = "sink";
+    public String SIDE_STR = "side";
+    protected Logger LOG = LoggerFactory.getLogger(ResourceCheck.class);
 
     /**
      * 资源可用性检测
      *
-     * @param checkProperties   校验资源可用性的参数配置
+     * @param checkProperties 校验资源可用性的参数配置
      */
-    void checkResourceStatus(Map<String, String> checkProperties);
+    public abstract void checkResourceStatus(Map<String, String> checkProperties);
 }

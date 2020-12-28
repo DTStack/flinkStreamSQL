@@ -33,6 +33,7 @@ import com.dtstack.flink.sql.parser.FlinkPlanner;
 import com.dtstack.flink.sql.parser.InsertSqlParser;
 import com.dtstack.flink.sql.parser.SqlParser;
 import com.dtstack.flink.sql.parser.SqlTree;
+import com.dtstack.flink.sql.resource.ResourceCheck;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.SideSqlExec;
 import com.dtstack.flink.sql.sink.StreamSinkFactory;
@@ -85,9 +86,10 @@ import java.util.TimeZone;
 import java.util.stream.Stream;
 
 /**
- *  任务执行时的流程方法
+ * 任务执行时的流程方法
  * Date: 2020/2/17
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class ExecuteProcessHelper {
@@ -114,6 +116,7 @@ public class ExecuteProcessHelper {
         String remoteSqlPluginPath = options.getRemoteSqlPluginPath();
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
+        String checkResource = options.getCheckResource();
 
         Preconditions.checkArgument(checkRemoteSqlPluginPath(remoteSqlPluginPath, deployMode, pluginLoadMode),
                 "Non-local mode or shipfile deployment mode, remoteSqlPluginPath is required");
@@ -131,12 +134,14 @@ public class ExecuteProcessHelper {
                 .setDeployMode(deployMode)
                 .setConfProp(confProperties)
                 .setJarUrlList(jarUrlList)
+                .setCheckResource(checkResource)
                 .build();
 
     }
 
     /**
-     *   非local模式或者shipfile部署模式，remoteSqlPluginPath必填
+     * 非local模式或者shipfile部署模式，remoteSqlPluginPath必填
+     *
      * @param remoteSqlPluginPath
      * @param deployMode
      * @param pluginLoadMode
@@ -155,6 +160,7 @@ public class ExecuteProcessHelper {
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
         StreamTableEnvironment tableEnv = getStreamTableEnv(env, paramsInfo.getConfProp());
 
+        ResourceCheck.NEED_CHECK = Boolean.parseBoolean(paramsInfo.getCheckResource());
 
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
         SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql(), paramsInfo.getPluginLoadMode());
@@ -202,7 +208,7 @@ public class ExecuteProcessHelper {
     private static void sqlTranslation(String localSqlPluginPath,
                                        String pluginLoadMode,
                                        StreamTableEnvironment tableEnv,
-                                       SqlTree sqlTree,Map<String, AbstractSideTableInfo> sideTableMap,
+                                       SqlTree sqlTree, Map<String, AbstractSideTableInfo> sideTableMap,
                                        Map<String, Table> registerTableCache) throws Exception {
 
         SideSqlExec sideSqlExec = new SideSqlExec();
@@ -276,13 +282,14 @@ public class ExecuteProcessHelper {
     }
 
     /**
-     *    向Flink注册源表和结果表，返回执行时插件包的全路径
+     * 向Flink注册源表和结果表，返回执行时插件包的全路径
+     *
      * @param sqlTree
      * @param env
      * @param tableEnv
      * @param localSqlPluginPath
      * @param remoteSqlPluginPath
-     * @param pluginLoadMode   插件加载模式 classpath or shipfile
+     * @param pluginLoadMode      插件加载模式 classpath or shipfile
      * @param sideTableMap
      * @param registerTableCache
      * @return
@@ -356,7 +363,8 @@ public class ExecuteProcessHelper {
     }
 
     /**
-     *   perjob模式将job依赖的插件包路径存储到cacheFile，在外围将插件包路径传递给jobgraph
+     * perjob模式将job依赖的插件包路径存储到cacheFile，在外围将插件包路径传递给jobgraph
+     *
      * @param env
      * @param classPathSet
      */
@@ -400,7 +408,7 @@ public class ExecuteProcessHelper {
 
     private static void timeZoneCheck(String timeZone) {
         ArrayList<String> zones = Lists.newArrayList(TimeZone.getAvailableIDs());
-        if (!zones.contains(timeZone)){
+        if (!zones.contains(timeZone)) {
             throw new IllegalArgumentException(String.format(" timezone of %s is Incorrect!", timeZone));
         }
     }
