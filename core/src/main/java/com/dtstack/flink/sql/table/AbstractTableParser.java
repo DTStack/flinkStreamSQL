@@ -17,7 +17,6 @@
  */
 
 
-
 package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.util.ClassUtil;
@@ -38,6 +37,7 @@ import java.util.stream.Collectors;
  * Reason:
  * Date: 2018/7/4
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -47,11 +47,11 @@ public abstract class AbstractTableParser {
     private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
     private static final String CHAR_TYPE_NO_LENGTH = "CHAR";
 
-    private static Pattern primaryKeyPattern = Pattern.compile("(?i)(^\\s*)PRIMARY\\s+KEY\\s*\\((.*)\\)");
-    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+?)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
-    private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
-    private static Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
-    private static Pattern typePattern = Pattern.compile("(\\S+)\\s+(\\w+.*)");
+    private static final Pattern primaryKeyPattern = Pattern.compile("(?i)(^\\s*)PRIMARY\\s+KEY\\s*\\((.*)\\)");
+    private static final Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+?)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
+    private static final Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
+    private static final Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
+    private static final Pattern typePattern = Pattern.compile("(\\S+)\\s+(\\w+.*)");
 
 
     private Map<String, Pattern> patternMap = Maps.newHashMap();
@@ -69,14 +69,14 @@ public abstract class AbstractTableParser {
 
     public abstract AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception;
 
-    public boolean dealKeyPattern(String fieldRow, AbstractTableInfo tableInfo){
-        for(Map.Entry<String, Pattern> keyPattern : patternMap.entrySet()){
+    public boolean dealKeyPattern(String fieldRow, AbstractTableInfo tableInfo) {
+        for (Map.Entry<String, Pattern> keyPattern : patternMap.entrySet()) {
             Pattern pattern = keyPattern.getValue();
             String key = keyPattern.getKey();
             Matcher matcher = pattern.matcher(fieldRow);
-            if(matcher.find()){
+            if (matcher.find()) {
                 ITableFieldDealHandler handler = handlerMap.get(key);
-                if(handler == null){
+                if (handler == null) {
                     throw new RuntimeException("parse field [" + fieldRow + "] error.");
                 }
 
@@ -92,11 +92,12 @@ public abstract class AbstractTableParser {
 
         List<String> fieldRows = DtStringUtil.splitField(fieldsInfo);
 
-        for (String fieldRow : fieldRows) {
-            fieldRow = fieldRow.trim();
+        for (int i = 0; i < fieldRows.size(); i++) {
+            String fieldRow = fieldRows.get(i).trim();
 
             if (StringUtils.isBlank(fieldRow)) {
-                throw new RuntimeException(String.format("table [%s],exists field empty.", tableInfo.getName()));
+                throw new RuntimeException(String.format("Empty field appears in position [%s] in table [%s]",
+                        i + 1, tableInfo.getName()));
             }
 
             boolean isMatcherKey = dealKeyPattern(fieldRow, tableInfo);
@@ -115,7 +116,7 @@ public abstract class AbstractTableParser {
             if (matcher.find()) {
                 fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
                 fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
-                fieldExtraInfo.setLength(Integer.valueOf(matcher.group(1)));
+                fieldExtraInfo.setLength(Integer.parseInt(matcher.group(1)));
             } else {
                 fieldClass = dbTypeConvertToJavaType(fieldType);
             }
@@ -147,12 +148,13 @@ public abstract class AbstractTableParser {
         List<String> primaryKeys = Arrays
                 .stream(primaryFields.split(","))
                 .map(String::trim)
-                .collect(Collectors.toList());;
+                .collect(Collectors.toList());
         tableInfo.setPrimaryKeys(primaryKeys);
     }
 
     /**
      * add parser for alias field
+     *
      * @param matcher
      * @param tableInfo
      */

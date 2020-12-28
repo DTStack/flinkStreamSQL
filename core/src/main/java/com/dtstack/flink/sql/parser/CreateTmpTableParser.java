@@ -17,19 +17,19 @@
  */
 
 
-
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.enums.PlannerType;
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlMatchRecognize;
-import com.google.common.collect.Lists;
+
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,6 +40,7 @@ import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
  * parser create tmp table sql
  * Date: 2018/6/26
  * Company: www.dtstack.com
+ *
  * @author yanxi
  */
 public class CreateTmpTableParser implements IParser {
@@ -53,115 +54,59 @@ public class CreateTmpTableParser implements IParser {
 
     private static final Pattern EMPTYVIEW = Pattern.compile(EMPTY_STR);
 
-    private FlinkPlanner flinkPlanner = new FlinkPlanner();
+    private final FlinkPlanner flinkPlanner = new FlinkPlanner();
 
-    public static CreateTmpTableParser newInstance(){
+    public static CreateTmpTableParser newInstance() {
         return new CreateTmpTableParser();
     }
 
-    @Override
-    public boolean verify(String sql) {
-        if (Pattern.compile(EMPTY_STR).matcher(sql).find()){
-            return true;
-        }
-        return TEMPORARYVIEW.matcher(sql).find();
-    }
-
-    @Override
-    public void parseSql(String sql, SqlTree sqlTree, String planner) {
-        if (TEMPORARYVIEW.matcher(sql).find()){
-            Matcher matcher = TEMPORARYVIEW.matcher(sql);
-            String tableName = null;
-            String selectSql = null;
-            if(matcher.find()) {
-                tableName = matcher.group(3);
-                selectSql = "select " + matcher.group(4);
-            }
-
-            SqlNode sqlNode = null;
-            try {
-                sqlNode = flinkPlanner.getParser().parse(selectSql);
-            } catch (Exception e) {
-                throw new RuntimeException("", e);
-            }
-
-            CreateTmpTableParser.SqlParserResult sqlParseResult = new CreateTmpTableParser.SqlParserResult();
-            parseNode(sqlNode, sqlParseResult);
-
-            sqlParseResult.setTableName(tableName);
-            if (planner.equalsIgnoreCase(PlannerType.FLINK.name())) {
-                sqlParseResult.setExecSql(sql);
-            } else {
-                sqlParseResult.setExecSql(DtStringUtil.replaceIgnoreQuota(sqlNode.toString(), "`", ""));
-            }
-            sqlTree.addTmpSql(sqlParseResult);
-            sqlTree.addTmplTableInfo(tableName, sqlParseResult);
-        } else {
-            if (EMPTYVIEW.matcher(sql).find()) {
-                Matcher matcher = EMPTYVIEW.matcher(sql);
-                String tableName = null;
-                String fieldsInfoStr = null;
-                if (matcher.find()){
-                    tableName = matcher.group(1);
-                    fieldsInfoStr = matcher.group(2);
-                }
-                CreateTmpTableParser.SqlParserResult sqlParseResult = new CreateTmpTableParser.SqlParserResult();
-                sqlParseResult.setFieldsInfoStr(fieldsInfoStr);
-                sqlParseResult.setTableName(tableName);
-                sqlTree.addTmplTableInfo(tableName, sqlParseResult);
-            }
-
-        }
-
-    }
-
-    private static void parseNode(SqlNode sqlNode, CreateTmpTableParser.SqlParserResult sqlParseResult){
+    private static void parseNode(SqlNode sqlNode, CreateTmpTableParser.SqlParserResult sqlParseResult) {
         SqlKind sqlKind = sqlNode.getKind();
-        switch (sqlKind){
+        switch (sqlKind) {
             case SELECT:
-                SqlNode sqlFrom = ((SqlSelect)sqlNode).getFrom();
-                if(sqlFrom.getKind() == IDENTIFIER){
+                SqlNode sqlFrom = ((SqlSelect) sqlNode).getFrom();
+                if (sqlFrom.getKind() == IDENTIFIER) {
                     sqlParseResult.addSourceTable(sqlFrom.toString());
-                }else{
+                } else {
                     parseNode(sqlFrom, sqlParseResult);
                 }
                 break;
             case JOIN:
-                SqlNode leftNode = ((SqlJoin)sqlNode).getLeft();
-                SqlNode rightNode = ((SqlJoin)sqlNode).getRight();
+                SqlNode leftNode = ((SqlJoin) sqlNode).getLeft();
+                SqlNode rightNode = ((SqlJoin) sqlNode).getRight();
 
-                if(leftNode.getKind() == IDENTIFIER){
+                if (leftNode.getKind() == IDENTIFIER) {
                     sqlParseResult.addSourceTable(leftNode.toString());
-                }else{
+                } else {
                     parseNode(leftNode, sqlParseResult);
                 }
 
-                if(rightNode.getKind() == IDENTIFIER){
+                if (rightNode.getKind() == IDENTIFIER) {
                     sqlParseResult.addSourceTable(rightNode.toString());
-                }else{
+                } else {
                     parseNode(rightNode, sqlParseResult);
                 }
                 break;
             case AS:
                 //不解析column,所以 as 相关的都是表
-                SqlNode identifierNode = ((SqlBasicCall)sqlNode).getOperands()[0];
-                if(identifierNode.getKind() != IDENTIFIER){
+                SqlNode identifierNode = ((SqlBasicCall) sqlNode).getOperands()[0];
+                if (identifierNode.getKind() != IDENTIFIER) {
                     parseNode(identifierNode, sqlParseResult);
-                }else {
+                } else {
                     sqlParseResult.addSourceTable(identifierNode.toString());
                 }
                 break;
             case UNION:
-                SqlNode unionLeft = ((SqlBasicCall)sqlNode).getOperands()[0];
-                SqlNode unionRight = ((SqlBasicCall)sqlNode).getOperands()[1];
-                if(unionLeft.getKind() == IDENTIFIER){
+                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
+                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
+                if (unionLeft.getKind() == IDENTIFIER) {
                     sqlParseResult.addSourceTable(unionLeft.toString());
-                }else{
+                } else {
                     parseNode(unionLeft, sqlParseResult);
                 }
-                if(unionRight.getKind() == IDENTIFIER){
+                if (unionRight.getKind() == IDENTIFIER) {
                     sqlParseResult.addSourceTable(unionRight.toString());
-                }else{
+                } else {
                     parseNode(unionRight, sqlParseResult);
                 }
                 break;
@@ -176,6 +121,57 @@ public class CreateTmpTableParser implements IParser {
             default:
                 //do nothing
                 break;
+        }
+    }
+
+    @Override
+    public boolean verify(String sql) {
+        if (Pattern.compile(EMPTY_STR).matcher(sql).find()) {
+            return true;
+        }
+        return NONEMPTYVIEW.matcher(sql).find();
+    }
+
+    @Override
+    public void parseSql(String sql, SqlTree sqlTree) {
+        if (NONEMPTYVIEW.matcher(sql).find()) {
+            Matcher matcher = NONEMPTYVIEW.matcher(sql);
+            String tableName = null;
+            String selectSql = null;
+            if (matcher.find()) {
+                tableName = matcher.group(1);
+                selectSql = "select " + matcher.group(2);
+            }
+
+            SqlNode sqlNode = null;
+            try {
+                sqlNode = flinkPlanner.getParser().parse(selectSql);
+            } catch (Exception e) {
+                throw new RuntimeException("", e);
+            }
+
+            CreateTmpTableParser.SqlParserResult sqlParseResult = new CreateTmpTableParser.SqlParserResult();
+            parseNode(sqlNode, sqlParseResult);
+
+            sqlParseResult.setTableName(tableName);
+            String transformSelectSql = DtStringUtil.replaceIgnoreQuota(sqlNode.toString(), "`", "");
+            sqlParseResult.setExecSql(transformSelectSql);
+            sqlTree.addTmpSql(sqlParseResult);
+            sqlTree.addTmplTableInfo(tableName, sqlParseResult);
+        } else {
+            if (EMPTYVIEW.matcher(sql).find()) {
+                Matcher matcher = EMPTYVIEW.matcher(sql);
+                String tableName = null;
+                String fieldsInfoStr = null;
+                if (matcher.find()) {
+                    tableName = matcher.group(1);
+                    fieldsInfoStr = matcher.group(2);
+                }
+                CreateTmpTableParser.SqlParserResult sqlParseResult = new CreateTmpTableParser.SqlParserResult();
+                sqlParseResult.setFieldsInfoStr(fieldsInfoStr);
+                sqlParseResult.setTableName(tableName);
+                sqlTree.addTmplTableInfo(tableName, sqlParseResult);
+            }
         }
     }
 
@@ -212,13 +208,12 @@ public class CreateTmpTableParser implements IParser {
             this.fieldsInfoStr = fieldsInfoStr;
         }
 
-        public void addSourceTable(String sourceTable){
+        public void addSourceTable(String sourceTable) {
             sourceTableList.add(sourceTable);
         }
 
         public List<String> getSourceTableList() {
             return sourceTableList;
         }
-
     }
 }
