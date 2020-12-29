@@ -25,6 +25,8 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Reason: TODO ADD REASON(可选)
@@ -40,6 +42,10 @@ public class ClassUtil {
         String lowerStr = str.toLowerCase().trim();
         if (lowerStr.startsWith("array")) {
             return Array.newInstance(Integer.class, 0).getClass();
+        }
+        if (lowerStr.startsWith("map")) {
+            Map m = new HashMap();
+            return m.getClass();
         }
 
         switch (lowerStr) {

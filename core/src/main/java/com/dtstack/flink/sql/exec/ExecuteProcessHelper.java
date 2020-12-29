@@ -315,9 +315,7 @@ public class ExecuteProcessHelper {
             } else if (tableInfo instanceof AbstractTargetTableInfo) {
 
                 TableSink tableSink = StreamSinkFactory.getTableSink((AbstractTargetTableInfo) tableInfo, localSqlPluginPath);
-                TypeInformation[] flinkTypes = FunctionManager.transformTypes(tableInfo.getFieldClasses());
-                tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
-
+                tableEnv.registerTableSink(tableInfo.getName(), tableSink);
                 URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractTargetTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
                 pluginClassPathSets.add(sinkTablePathUrl);
             } else if (tableInfo instanceof AbstractSideTableInfo) {
