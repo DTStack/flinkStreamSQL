@@ -332,9 +332,15 @@ public class ExecuteProcessHelper {
                 URL sourceTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractSourceTableInfo.SOURCE_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
                 pluginClassPathSets.add(sourceTablePathUrl);
             } else if (tableInfo instanceof AbstractTargetTableInfo) {
-
                 TableSink tableSink = StreamSinkFactory.getTableSink((AbstractTargetTableInfo) tableInfo, localSqlPluginPath, pluginLoadMode);
-                tableEnv.registerTableSink(tableInfo.getName(), tableSink);
+                // TODO Kafka Sink直接注册，其他的Sink要修复才可以。
+                if (tableInfo.getType().startsWith("kafka")) {
+                    tableEnv.registerTableSink(tableInfo.getName(), tableSink);
+                } else {
+                    TypeInformation[] flinkTypes = FunctionManager.transformTypes(tableInfo.getFieldClasses());
+                    tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
+                }
+
                 URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractTargetTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
                 pluginClassPathSets.add(sinkTablePathUrl);
             } else if (tableInfo instanceof AbstractSideTableInfo) {
