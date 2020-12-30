@@ -141,7 +141,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
             //Reserved left table data
             try {
                 BaseRow row = fillData(input, null);
-                RowDataComplete.completeRow(resultFuture, row);
+                RowDataComplete.completeBaseRow(resultFuture, row);
             } catch (Exception e) {
                 dealFillDataError(input, resultFuture, e);
             }
@@ -223,7 +223,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
                 } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
                         BaseRow row = fillData(input, val.getContent());
-                        RowDataComplete.completeRow(resultFuture, row);
+                        RowDataComplete.completeBaseRow(resultFuture, row);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }
@@ -234,7 +234,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
                             BaseRow row = fillData(input, one);
                             rowList.add(row);
                         }
-                        RowDataComplete.completeRow(resultFuture,rowList);
+                        RowDataComplete.completeBaseRow(resultFuture,rowList);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }

@@ -278,7 +278,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                 if (openCache()) {
                     putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                 }
-                RowDataComplete.completeRow(resultFuture, rowList);
+                RowDataComplete.completeBaseRow(resultFuture, rowList);
             } else {
                 dealMissKey(input, resultFuture);
                 if (openCache()) {

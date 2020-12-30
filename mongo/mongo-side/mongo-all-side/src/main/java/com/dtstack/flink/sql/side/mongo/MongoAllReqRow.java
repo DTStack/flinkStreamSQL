@@ -107,7 +107,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
                     BaseRow data = fillData(input, null);
-                    RowDataComplete.collectRow(out, data);
+                    RowDataComplete.collectBaseRow(out, data);
                 }
                 return;
             }
@@ -119,7 +119,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
                 BaseRow row = fillData(input, null);
-                RowDataComplete.collectRow(out, row);
+                RowDataComplete.collectBaseRow(out, row);
             } else {
                 return;
             }
@@ -129,7 +129,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
 
         for (Map<String, Object> one : cacheList) {
             BaseRow row = fillData(input, one);
-            RowDataComplete.collectRow(out, row);
+            RowDataComplete.collectBaseRow(out, row);
         }
     }
 

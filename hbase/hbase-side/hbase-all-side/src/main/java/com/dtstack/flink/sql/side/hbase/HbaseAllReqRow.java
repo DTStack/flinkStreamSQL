@@ -153,7 +153,7 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
                     BaseRow data = fillData(input, null);
-                    RowDataComplete.collectRow(out, data);
+                    RowDataComplete.collectBaseRow(out, data);
                 }
                 return;
             }
@@ -171,13 +171,13 @@ public class HbaseAllReqRow extends BaseAllReqRow {
                 if (entry.getKey().startsWith(rowKeyStr)) {
                     cacheList = cacheRef.get().get(entry.getKey());
                     BaseRow row = fillData(input, cacheList);
-                    RowDataComplete.collectRow(out, row);
+                    RowDataComplete.collectBaseRow(out, row);
                 }
             }
         } else {
             cacheList = cacheRef.get().get(rowKeyStr);
             BaseRow row = fillData(input, cacheList);
-            RowDataComplete.collectRow(out, row);
+            RowDataComplete.collectBaseRow(out, row);
         }
 
     }

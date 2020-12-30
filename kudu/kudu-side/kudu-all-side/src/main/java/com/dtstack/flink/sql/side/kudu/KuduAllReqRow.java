@@ -104,14 +104,14 @@ public class KuduAllReqRow extends BaseAllReqRow {
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
                 BaseRow row = fillData(input, null);
-                RowDataComplete.collectRow(out, row);
+                RowDataComplete.collectBaseRow(out, row);
             }
             return;
         }
 
         for (Map<String, Object> one : cacheList) {
             BaseRow row = fillData(input, one);
-            RowDataComplete.collectRow(out, row);
+            RowDataComplete.collectBaseRow(out, row);
         }
     }
 

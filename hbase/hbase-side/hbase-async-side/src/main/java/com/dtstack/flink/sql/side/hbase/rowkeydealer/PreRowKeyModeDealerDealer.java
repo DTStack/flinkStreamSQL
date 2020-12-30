@@ -136,7 +136,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
         }
 
         if (rowList.size() > 0){
-            RowDataComplete.completeRow(resultFuture, rowList);
+            RowDataComplete.completeBaseRow(resultFuture, rowList);
         }
 
         if(openCache){

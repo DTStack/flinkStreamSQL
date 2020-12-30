@@ -98,7 +98,7 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<BaseRow, BaseRow
             return;
         }
         BaseRow row = fillData(value, sideInput);
-        RowDataComplete.collectRow(out, row);
+        RowDataComplete.collectBaseRow(out, row);
     }
 
     @Override

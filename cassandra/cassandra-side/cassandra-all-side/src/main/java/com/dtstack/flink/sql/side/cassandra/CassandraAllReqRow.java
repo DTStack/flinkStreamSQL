@@ -110,7 +110,7 @@ public class CassandraAllReqRow extends BaseAllReqRow {
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
                     BaseRow row = fillData(input, null);
-                    RowDataComplete.collectRow(out, row);
+                    RowDataComplete.collectBaseRow(out, row);
                 }
                 return;
             }
@@ -123,7 +123,7 @@ public class CassandraAllReqRow extends BaseAllReqRow {
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
                 BaseRow row = fillData(input, null);
-                RowDataComplete.collectRow(out, row);
+                RowDataComplete.collectBaseRow(out, row);
             } else {
                 return;
             }
@@ -133,7 +133,7 @@ public class CassandraAllReqRow extends BaseAllReqRow {
 
         for (Map<String, Object> one : cacheList) {
             BaseRow row = fillData(input, one);
-            RowDataComplete.collectRow(out, row);
+            RowDataComplete.collectBaseRow(out, row);
         }
 
     }

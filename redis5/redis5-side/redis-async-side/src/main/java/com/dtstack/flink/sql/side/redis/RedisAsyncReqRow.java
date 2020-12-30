@@ -136,7 +136,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                     try {
                         BaseRow row = fillData(input, values);
                         dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, row));
-                        RowDataComplete.completeRow(resultFuture, row);
+                        RowDataComplete.completeBaseRow(resultFuture, row);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     }

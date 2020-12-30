@@ -96,7 +96,7 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
                         if(openCache){
                             sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, sideVal));
                         }
-                        RowDataComplete.completeRow(resultFuture, row);
+                        RowDataComplete.completeBaseRow(resultFuture, row);
                     } catch (Exception e) {
                         resultFuture.completeExceptionally(e);
                     }

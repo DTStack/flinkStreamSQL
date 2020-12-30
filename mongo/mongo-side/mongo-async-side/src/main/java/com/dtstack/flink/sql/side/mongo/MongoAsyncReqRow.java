@@ -123,7 +123,7 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
                 if (openCache()) {
                     cacheContent.add(document);
                 }
-                RowDataComplete.completeRow(resultFuture, row);
+                RowDataComplete.completeBaseRow(resultFuture, row);
             }
         };
         SingleResultCallback<Void> callbackWhenFinished = new SingleResultCallback<Void>() {

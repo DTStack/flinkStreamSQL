@@ -34,22 +34,19 @@ import java.util.List;
  */
 public class RowDataComplete {
 
-    public static void completeRow(ResultFuture<BaseRow> resultFuture, BaseRow row) {
-        resultFuture.complete(Collections.singleton(row));
+    public static void completeBaseRow(ResultFuture<BaseRow> resultFuture, BaseRow row) {
+        resultFuture.complete(Collections.singleton(RowDataConvert.convertToBaseRow(row)));
     }
 
-    public static void completeRow(ResultFuture<BaseRow> resultFuture, List<BaseRow> rowList) {
-
+    public static void completeBaseRow(ResultFuture<BaseRow> resultFuture, List<BaseRow> rowList) {
         List<BaseRow> baseRowList = Lists.newArrayList();
         for (BaseRow baseRow : rowList) {
-            baseRowList.add(baseRow);
+            baseRowList.add(RowDataConvert.convertToBaseRow(baseRow));
         }
-
         resultFuture.complete(baseRowList);
     }
 
-    public static void collectRow(Collector<BaseRow> out, BaseRow row) {
-        out.collect(row);
+    public static void collectBaseRow(Collector<BaseRow> out, BaseRow row) {
+        out.collect(RowDataConvert.convertToBaseRow(row));
     }
-
 }

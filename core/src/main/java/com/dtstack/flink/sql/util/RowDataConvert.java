@@ -91,12 +91,63 @@ public class RowDataConvert {
             }
         }
 
-        if(input.f0){
+        if (input.f0) {
             BaseRowUtil.setAccumulate(genericRow);
         } else {
             BaseRowUtil.setRetract(genericRow);
         }
 
+        return genericRow;
+    }
+
+
+    public static BaseRow convertToBaseRow(BaseRow input) {
+        GenericRow row = (GenericRow) input;
+        int length = row.getArity();
+        GenericRow genericRow = new GenericRow(length);
+        genericRow.setHeader(row.getHeader());
+        for (int i = 0; i < length; i++) {
+            if (row.getField(i) == null) {
+                genericRow.setField(i, row.getField(i));
+            } else if (row.getField(i) instanceof String) {
+                genericRow.setField(i, BinaryString.fromString((String) row.getField(i)));
+            } else if (row.getField(i) instanceof Timestamp) {
+                SqlTimestamp newTimestamp = SqlTimestamp.fromTimestamp(((Timestamp) row.getField(i)));
+                genericRow.setField(i, newTimestamp);
+            } else if (row.getField(i) instanceof LocalDateTime) {
+                genericRow.setField(i, SqlTimestamp.fromLocalDateTime((LocalDateTime) row.getField(i)));
+            } else if (row.getField(i) instanceof Time) {
+                genericRow.setField(i, DataFormatConverters.TimeConverter.INSTANCE.toInternal((Time) row.getField(i)));
+            } else if (row.getField(i) instanceof Double || row.getField(i).getClass().equals(double.class)) {
+                genericRow.setField(i, DataFormatConverters.DoubleConverter.INSTANCE.toInternal((Double) row.getField(i)));
+            } else if (row.getField(i) instanceof Float || row.getField(i).getClass().equals(float.class)) {
+                genericRow.setField(i, DataFormatConverters.FloatConverter.INSTANCE.toInternal((Float) row.getField(i)));
+            } else if (row.getField(i) instanceof Long || row.getField(i).getClass().equals(long.class)) {
+                genericRow.setField(i, DataFormatConverters.LongConverter.INSTANCE.toInternal((Long) row.getField(i)));
+            } else if (row.getField(i) instanceof Boolean || row.getField(i).getClass().equals(boolean.class)) {
+                genericRow.setField(i, DataFormatConverters.BooleanConverter.INSTANCE.toInternal((Boolean) row.getField(i)));
+            } else if (row.getField(i) instanceof Integer || row.getField(i).getClass().equals(int.class)) {
+                genericRow.setField(i, DataFormatConverters.IntConverter.INSTANCE.toInternal((Integer) row.getField(i)));
+            } else if (row.getField(i) instanceof Short || row.getField(i).getClass().equals(short.class)) {
+                genericRow.setField(i, DataFormatConverters.ShortConverter.INSTANCE.toInternal((Short) row.getField(i)));
+            } else if (row.getField(i) instanceof Byte || row.getField(i).getClass().equals(byte.class)) {
+                genericRow.setField(i, DataFormatConverters.ByteConverter.INSTANCE.toInternal((Byte) row.getField(i)));
+            } else if (row.getField(i) instanceof Date) {
+                genericRow.setField(i, DataFormatConverters.DateConverter.INSTANCE.toInternal((Date) row.getField(i)));
+            } else if (row.getField(i) instanceof LocalDate) {
+                genericRow.setField(i, DataFormatConverters.LocalDateConverter.INSTANCE.toInternal((LocalDate) row.getField(i)));
+            } else if (row.getField(i) instanceof LocalTime) {
+                genericRow.setField(i, DataFormatConverters.LocalTimeConverter.INSTANCE.toInternal((LocalTime) row.getField(i)));
+            } else if (row.getField(i) instanceof BigDecimal) {
+                BigDecimal tempDecimal = (BigDecimal) row.getField(i);
+                int precision = ((BigDecimal) row.getField(i)).precision();
+                int scale = ((BigDecimal) row.getField(i)).scale();
+                DataFormatConverters.DecimalConverter decimalConverter = new DataFormatConverters.DecimalConverter(precision, scale);
+                genericRow.setField(i, decimalConverter.toExternal(Decimal.fromBigDecimal(tempDecimal, precision, scale)));
+            } else {
+                genericRow.setField(i, row.getField(i));
+            }
+        }
         return genericRow;
     }
 }

@@ -199,7 +199,7 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                         }
                         rowList.add(row);
                     }
-                    RowDataComplete.completeRow(resultFuture, rowList);
+                    RowDataComplete.completeBaseRow(resultFuture, rowList);
                     if (openCache()) {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }

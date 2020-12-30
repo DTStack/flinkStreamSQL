@@ -112,7 +112,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
         if (inputParams.size() != equalValIndex.size() && sideInfo.getJoinType() == JoinType.LEFT) {
             BaseRow row = fillData(value, null);
-            RowDataComplete.collectRow(out, row);
+            RowDataComplete.collectBaseRow(out, row);
             return;
         }
 
@@ -123,9 +123,9 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(cacheKey);
         if (CollectionUtils.isEmpty(cacheList) && sideInfo.getJoinType() == JoinType.LEFT) {
             BaseRow row = fillData(value, null);
-            RowDataComplete.collectRow(out, row);
+            RowDataComplete.collectBaseRow(out, row);
         } else if (!CollectionUtils.isEmpty(cacheList)) {
-            cacheList.forEach(one -> out.collect(fillData(value, one)));
+            cacheList.forEach(one -> RowDataComplete.collectBaseRow(out, fillData(value, one)));
         }
     }
 

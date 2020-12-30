@@ -117,7 +117,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
             if(equalObj == null){
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
                     BaseRow data = fillData(input, null);
-                    RowDataComplete.collectRow(out, data);
+                    RowDataComplete.collectBaseRow(out, data);
                 }
                 return;
             }
@@ -131,7 +131,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
         if (cacheMap == null){
             if(sideInfo.getJoinType() == JoinType.LEFT){
                 BaseRow data = fillData(input, null);
-                RowDataComplete.collectRow(out, data);
+                RowDataComplete.collectBaseRow(out, data);
             }else{
                 return;
             }
@@ -140,7 +140,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
         }
 
         BaseRow newRow = fillData(input, cacheMap);
-        RowDataComplete.collectRow(out, newRow);
+        RowDataComplete.collectBaseRow(out, newRow);
     }
 
     private void loadData(Map<String, Map<String, String>> tmpCache) throws SQLException {

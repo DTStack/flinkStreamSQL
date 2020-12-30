@@ -78,7 +78,7 @@ public abstract class AbstractRowKeyModeDealer {
             try {
                 //保留left 表数据
                 BaseRow row = fillData(input, null);
-                RowDataComplete.completeRow(resultFuture, row);
+                RowDataComplete.completeBaseRow(resultFuture, row);
             } catch (Exception e) {
                 resultFuture.completeExceptionally(e);
             }

@@ -125,7 +125,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
                             searchHits = searchResponse.getHits().getHits();
                         }
                         dealCacheData(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
-                        RowDataComplete.completeRow(resultFuture, rowList);
+                        RowDataComplete.completeBaseRow(resultFuture, rowList);
                     } catch (Exception e) {
                         dealFillDataError(input, resultFuture, e);
                     } finally {
