@@ -30,10 +30,11 @@ import java.util.Map;
  **/
 public abstract class ResourceCheck {
     public static Boolean NEED_CHECK = true;
+    public static String CHECK_STR = "checkResource";
+    protected static Logger LOG = LoggerFactory.getLogger(ResourceCheck.class);
     public String TABLE_TYPE_KEY = "tableType";
     public String SINK_STR = "sink";
     public String SIDE_STR = "side";
-    protected Logger LOG = LoggerFactory.getLogger(ResourceCheck.class);
 
     /**
      * 资源可用性检测

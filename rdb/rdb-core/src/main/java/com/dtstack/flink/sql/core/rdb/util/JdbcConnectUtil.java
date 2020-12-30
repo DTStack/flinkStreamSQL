@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.core.rdb.util;
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.util.ThreadUtil;
 import com.google.common.base.Preconditions;
+import org.apache.flink.runtime.execution.SuppressRestartsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,9 +38,9 @@ import java.util.Objects;
  * Company dtstack
  */
 public class JdbcConnectUtil {
-    private static final int DEFAULT_RETRY_NUM = 5;
+    private static final int DEFAULT_RETRY_NUM = 3;
     private static final long DEFAULT_RETRY_TIME_WAIT = 5L;
-    private static final int DEFAULT_VALID_NUM = 10;
+    private static final int DEFAULT_VALID_TIME = 10;
     private static final Logger LOG = LoggerFactory.getLogger(JdbcConnectUtil.class);
 
     /**
@@ -93,7 +94,7 @@ public class JdbcConnectUtil {
      */
     public static void commit(Connection conn) {
         try {
-            if (!conn.isClosed() && conn.isValid(DEFAULT_VALID_NUM) && !conn.getAutoCommit()) {
+            if (!conn.isClosed() && conn.isValid(DEFAULT_VALID_TIME) && !conn.getAutoCommit()) {
                 conn.commit();
             }
         } catch (SQLException e) {
@@ -108,7 +109,7 @@ public class JdbcConnectUtil {
      */
     public static void rollBack(Connection conn) {
         try {
-            if (!conn.isClosed() && conn.isValid(DEFAULT_VALID_NUM) && !conn.getAutoCommit()) {
+            if (!conn.isClosed() && conn.isValid(DEFAULT_VALID_TIME) && !conn.getAutoCommit()) {
                 conn.rollback();
             }
         } catch (SQLException e) {
@@ -138,22 +139,17 @@ public class JdbcConnectUtil {
         ClassLoaderManager.forName(driverName);
         Preconditions.checkNotNull(url, "url can't be null!");
 
-        Connection connection = null;
         for (int i = 0; i < DEFAULT_RETRY_NUM; i++) {
             try {
-                connection = Objects.isNull(userName) ?
+                return Objects.isNull(userName) ?
                         DriverManager.getConnection(url) : DriverManager.getConnection(url, userName, password);
-                // 校验connection是否可用
-                connection.isValid(DEFAULT_VALID_NUM);
-                return connection;
             } catch (Exception e) {
                 errorCause = e.getCause().toString();
                 LOG.warn(errorMessage + e.getCause());
                 LOG.warn("Connect will retry after [{}] s. Retry time [{}] ...", DEFAULT_RETRY_TIME_WAIT, i + 1);
                 ThreadUtil.sleepSeconds(DEFAULT_RETRY_TIME_WAIT);
-                closeConnectionResource(null, null, connection, false);
             }
         }
-        throw new IllegalArgumentException(errorMessage + errorCause);
+        throw new SuppressRestartsException(new Throwable(errorMessage + errorCause));
     }
 }

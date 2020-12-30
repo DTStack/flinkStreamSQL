@@ -43,11 +43,10 @@ public class JobParamsInfo {
     private final Properties confProperties;
     private final Properties yarnSessionConfProperties;
     private final String addShipFile;
-    private final String checkResource;
 
     private JobParamsInfo(String mode, String name, String queue, String localPluginRoot, String flinkConfDir, String yarnConfDir,
                           String pluginLoadMode, String[] execArgs, Properties confProperties, Properties yarnSessionConfProperties,
-                          String udfJar, String flinkJarPath, String addShipFile, String checkResource) {
+                          String udfJar, String flinkJarPath, String addShipFile) {
         this.mode = mode;
         this.name = name;
         this.queue = queue;
@@ -61,7 +60,6 @@ public class JobParamsInfo {
         this.udfJar = udfJar;
         this.flinkJarPath = flinkJarPath;
         this.addShipFile = addShipFile;
-        this.checkResource = checkResource;
     }
 
     public String getMode() {
@@ -116,10 +114,6 @@ public class JobParamsInfo {
         return addShipFile;
     }
 
-    public String getCheckResource() {
-        return checkResource;
-    }
-
     public static JobParamsInfo.Builder builder() {
         return new JobParamsInfo.Builder();
     }
@@ -139,7 +133,6 @@ public class JobParamsInfo {
         private Properties confProperties;
         private Properties yarnSessionConfProperties;
         private String addShipfile;
-        private String checkResource;
 
         public JobParamsInfo.Builder setMode(String mode) {
             this.mode = mode;
@@ -206,16 +199,10 @@ public class JobParamsInfo {
             return this;
         }
 
-        public JobParamsInfo.Builder setCheckResource(String checkResource) {
-            this.checkResource = checkResource;
-            return this;
-        }
-
         public JobParamsInfo build() {
             return new JobParamsInfo(mode, name, queue, localPluginRoot, flinkConfDir,
                     yarnConfDir, pluginLoadMode, execArgs, confProperties,
-                    yarnSessionConfProperties, udfJar, flinkJarPath, addShipfile,
-                    checkResource);
+                    yarnSessionConfProperties, udfJar, flinkJarPath, addShipfile);
         }
     }
 
@@ -235,7 +222,6 @@ public class JobParamsInfo {
                 ", confProperties=" + confProperties +
                 ", yarnSessionConfProperties=" + yarnSessionConfProperties +
                 ", addShipFile='" + addShipFile + '\'' +
-                ", checkResource='" + checkResource + '\'' +
                 '}';
     }
 }

@@ -79,7 +79,6 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        super.open(parameters);
         RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         synchronized (AbstractRdbAllReqRow.class) {
             if (resourceCheck) {
@@ -88,6 +87,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
             }
         }
         LOG.info("rdb dim table config info: {} ", tableInfo.toString());
+        super.open(parameters);
     }
 
     @Override

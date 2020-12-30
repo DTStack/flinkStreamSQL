@@ -72,9 +72,6 @@ public class Options {
     @OptionRequired(description = "file add to ship file")
     private String addShipfile;
 
-    @OptionRequired(description = "check resource or not")
-    private String checkResource;
-
     public String getMode() {
         return mode;
     }
@@ -185,13 +182,5 @@ public class Options {
 
     public void setAddShipfile(String addShipfile) {
         this.addShipfile = addShipfile;
-    }
-
-    public String getCheckResource() {
-        return checkResource;
-    }
-
-    public void setCheckResource(String checkResource) {
-        this.checkResource = checkResource;
     }
 }

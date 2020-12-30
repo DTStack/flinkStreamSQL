@@ -41,11 +41,10 @@ public class ParamsInfo {
     private String deployMode;
     private Properties confProp;
     private boolean getPlan = false;
-    private String checkResource;
 
     public ParamsInfo(String sql, String name, List<URL> jarUrlList, String localSqlPluginPath,
                       String remoteSqlPluginPath, String pluginLoadMode, String deployMode,
-                      Properties confProp, String checkResource) {
+                      Properties confProp) {
         this.sql = sql;
         this.name = name;
         this.jarUrlList = jarUrlList;
@@ -54,7 +53,6 @@ public class ParamsInfo {
         this.pluginLoadMode = pluginLoadMode;
         this.deployMode = deployMode;
         this.confProp = confProp;
-        this.checkResource = checkResource;
     }
 
     public static ParamsInfo.Builder builder() {
@@ -101,10 +99,6 @@ public class ParamsInfo {
         return confProp;
     }
 
-    public String getCheckResource() {
-        return checkResource;
-    }
-
     @Override
     public String toString() {
         return "ParamsInfo{" +
@@ -117,7 +111,6 @@ public class ParamsInfo {
                 ", deployMode='" + deployMode + '\'' +
                 ", confProp=" + confProp +
                 ", getPlan=" + getPlan +
-                ", checkResource='" + checkResource + '\'' +
                 '}';
     }
 
@@ -178,15 +171,9 @@ public class ParamsInfo {
             return this;
         }
 
-        public ParamsInfo.Builder setCheckResource(String checkResource) {
-            this.checkResource = checkResource;
-            return this;
-        }
-
         public ParamsInfo build() {
             return new ParamsInfo(sql, name, jarUrlList, localSqlPluginPath,
-                    remoteSqlPluginPath, pluginLoadMode, deployMode, confProp,
-                    checkResource);
+                    remoteSqlPluginPath, pluginLoadMode, deployMode, confProp);
         }
     }
 }

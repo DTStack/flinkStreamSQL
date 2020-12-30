@@ -72,7 +72,6 @@ public class LauncherMain {
         String queue = launcherOptions.getQueue();
         String pluginLoadMode = launcherOptions.getPluginLoadMode();
         String addShipfile = launcherOptions.getAddShipfile();
-        String checkResource = launcherOptions.getCheckResource();
 
         String yarnSessionConf = URLDecoder.decode(launcherOptions.getYarnSessionConf(), Charsets.UTF_8.toString());
         Properties yarnSessionConfProperties = PluginUtil.jsonStrToObject(yarnSessionConf, Properties.class);
@@ -94,7 +93,6 @@ public class LauncherMain {
                 .setPluginLoadMode(pluginLoadMode)
                 .setQueue(queue)
                 .setAddShipfile(addShipfile)
-                .setCheckResource(checkResource)
                 .build();
     }
 
