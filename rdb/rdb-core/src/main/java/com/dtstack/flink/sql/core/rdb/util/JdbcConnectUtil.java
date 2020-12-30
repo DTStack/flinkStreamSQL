@@ -144,8 +144,13 @@ public class JdbcConnectUtil {
                 return Objects.isNull(userName) ?
                         DriverManager.getConnection(url) : DriverManager.getConnection(url, userName, password);
             } catch (Exception e) {
-                errorCause = e.getCause().toString();
-                LOG.warn(errorMessage + e.getCause());
+                if (Objects.isNull(e.getCause())) {
+                    errorCause = e.getMessage();
+                } else {
+                    errorCause = e.getCause().toString();
+                }
+
+                LOG.warn(errorMessage + errorCause);
                 LOG.warn("Connect will retry after [{}] s. Retry time [{}] ...", DEFAULT_RETRY_TIME_WAIT, i + 1);
                 ThreadUtil.sleepSeconds(DEFAULT_RETRY_TIME_WAIT);
             }
