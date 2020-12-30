@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.sink.kafka;
 import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.kafka.table.KafkaSinkTableInfo;
+import com.dtstack.flink.sql.util.DataTypeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -38,6 +39,7 @@ import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.IntStream;
@@ -77,11 +79,21 @@ public abstract class AbstractKafkaSink implements RetractStreamTableSink<Row>, 
         }
         return props;
     }
-
+    // TODO Source有相同的方法日后可以合并
     protected TypeInformation[] getTypeInformations(KafkaSinkTableInfo kafka11SinkTableInfo) {
+        String[] fieldTypes = kafka11SinkTableInfo.getFieldTypes();
         Class<?>[] fieldClasses = kafka11SinkTableInfo.getFieldClasses();
         TypeInformation[] types = IntStream.range(0, fieldClasses.length)
-                .mapToObj(i -> TypeInformation.of(fieldClasses[i]))
+                .mapToObj(
+                    i -> {
+                        if (fieldClasses[i].isArray()) {
+                            return DataTypeUtils.convertToArray(fieldTypes[i]);
+                        }
+                        if (fieldClasses[i] == new HashMap().getClass()) {
+                            return DataTypeUtils.convertToMap(fieldTypes[i]);
+                        }
+                        return TypeInformation.of(fieldClasses[i]);
+                    })
                 .toArray(TypeInformation[]::new);
         return types;
     }

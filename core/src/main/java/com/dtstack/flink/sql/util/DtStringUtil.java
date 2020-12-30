@@ -408,4 +408,9 @@ public class DtStringUtil {
     public static String getEndQuote() {
         return "\"";
     }
+
+    public static String removeStartAndEndQuota(String str) {
+        String removeStart = StringUtils.removeStart(str, "'");
+        return StringUtils.removeEnd(removeStart, "'");
+    }
 }
