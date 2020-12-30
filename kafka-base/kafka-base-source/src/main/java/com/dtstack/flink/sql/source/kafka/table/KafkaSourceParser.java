@@ -69,6 +69,7 @@ public class KafkaSourceParser extends AbstractSourceParser {
                 );
 
         kafkaSourceTableInfo.addKafkaParam(kafkaParams);
+        parseFieldsInfo(fieldsInfo, kafkaSourceTableInfo);
         kafkaSourceTableInfo.check();
 
         return kafkaSourceTableInfo;
