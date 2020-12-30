@@ -200,7 +200,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 connectionStatus.set(false);
             }
             if (!finishFlag.get()) {
-                ThreadUtil.sleepMilliseconds(ThreadUtil.DEFAULT_SLEEP_TIME);
+                ThreadUtil.sleepSeconds(ThreadUtil.DEFAULT_SLEEP_TIME);
             }
         }
     }

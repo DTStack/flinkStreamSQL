@@ -130,8 +130,10 @@ public class JdbcConnectUtil {
             , String url
             , String userName
             , String password) {
-        String errorMessage = "Get connect failed with properties: \nurl: " + url
-                + (Objects.isNull(userName) ? "" : "\nuserName: " + userName);
+        String errorMessage = "\nGet connect failed with properties: \nurl: " + url
+                + (Objects.isNull(userName) ? "" : "\nuserName: " + userName
+                + "\nerror message: ");
+        String errorCause = null;
 
         ClassLoaderManager.forName(driverName);
         Preconditions.checkNotNull(url, "url can't be null!");
@@ -145,12 +147,13 @@ public class JdbcConnectUtil {
                 connection.isValid(DEFAULT_VALID_NUM);
                 return connection;
             } catch (Exception e) {
-                LOG.warn(errorMessage, e);
-                LOG.warn("Connect will retry after [{}] s......", DEFAULT_RETRY_TIME_WAIT);
-                ThreadUtil.sleepMilliseconds(DEFAULT_RETRY_TIME_WAIT);
+                errorCause = e.getCause().toString();
+                LOG.warn(errorMessage + e.getCause());
+                LOG.warn("Connect will retry after [{}] s. Retry time [{}] ...", DEFAULT_RETRY_TIME_WAIT, i + 1);
+                ThreadUtil.sleepSeconds(DEFAULT_RETRY_TIME_WAIT);
                 closeConnectionResource(null, null, connection, false);
             }
         }
-        throw new IllegalArgumentException(errorMessage);
+        throw new IllegalArgumentException(errorMessage + errorCause);
     }
 }

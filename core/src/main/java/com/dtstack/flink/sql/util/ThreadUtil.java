@@ -27,9 +27,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class ThreadUtil {
     public static final Long DEFAULT_SLEEP_TIME = 10L;
-    public static void sleepMilliseconds(long timeout) {
+    public static void sleepSeconds(long timeout) {
         try {
-            TimeUnit.MILLISECONDS.sleep(timeout);
+            TimeUnit.SECONDS.sleep(timeout);
         } catch (InterruptedException ie) {
             throw new RuntimeException(ie);
         }
