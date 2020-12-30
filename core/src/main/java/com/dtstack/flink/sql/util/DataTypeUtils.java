@@ -47,7 +47,6 @@ import java.util.stream.Stream;
 import static org.apache.flink.table.api.DataTypes.DECIMAL;
 import static org.apache.flink.table.api.DataTypes.TIMESTAMP;
 
-import static org.apache.commons.lang3.StringUtils.split;
 
 /**
  * @program: flink.sql
@@ -64,23 +63,6 @@ public class DataTypeUtils {
     private final static char TYPE_DELIMITER = ' ';
 
     private DataTypeUtils() {
-    }
-
-    /**
-     * 现在只支持ARRAY类型后续可以加入 MAP等类型
-     *
-     * @param compositeTypeString
-     * @return
-     */
-    public static TypeInformation convertToCompositeType(String compositeTypeString) {
-        Matcher matcher = matchCompositeType(compositeTypeString);
-        final String errorMsg = "type " + compositeTypeString + "is not support!";
-        Preconditions.checkState(matcher.find(), errorMsg);
-
-        String normalizedType = normalizeType(matcher.group(1));
-        Preconditions.checkState(ARRAY.equals(normalizedType), errorMsg);
-
-        return convertToArray(compositeTypeString);
     }
 
     /**
