@@ -34,7 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +82,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public Row fillData(Row input, Object sideInput) {
+    public BaseRow fillData(BaseRow input, Object sideInput) {
         return redisSideReqRow.fillData(input, sideInput);
     }
 
@@ -109,13 +109,14 @@ public class RedisAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
+    public void flatMap(BaseRow input, Collector<BaseRow> out) throws Exception {
+        GenericRow genericRow = (GenericRow) input;
         Map<String, Object> inputParams = Maps.newHashMap();
         for(Integer conValIndex : sideInfo.getEqualValIndex()){
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = genericRow.getField(conValIndex);
             if(equalObj == null){
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input, null);
+                    BaseRow data = fillData(input, null);
                     RowDataComplete.collectRow(out, data);
                 }
                 return;
@@ -129,7 +130,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
         if (cacheMap == null){
             if(sideInfo.getJoinType() == JoinType.LEFT){
-                Row data = fillData(input, null);
+                BaseRow data = fillData(input, null);
                 RowDataComplete.collectRow(out, data);
             }else{
                 return;
@@ -138,7 +139,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
             return;
         }
 
-        Row newRow = fillData(input, cacheMap);
+        BaseRow newRow = fillData(input, cacheMap);
         RowDataComplete.collectRow(out, newRow);
     }
 

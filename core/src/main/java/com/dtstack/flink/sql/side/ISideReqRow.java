@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.side;
 
-import org.apache.flink.types.Row;
+import org.apache.flink.table.dataformat.BaseRow;
 
 /**
  *
@@ -28,6 +28,6 @@ import org.apache.flink.types.Row;
  */
 public interface ISideReqRow {
 
-    Row fillData(Row input, Object sideInput);
+    BaseRow fillData(BaseRow input, Object sideInput);
 
 }

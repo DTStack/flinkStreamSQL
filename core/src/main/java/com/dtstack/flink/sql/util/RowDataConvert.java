@@ -18,12 +18,14 @@
 
 package com.dtstack.flink.sql.util;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.dataformat.BinaryString;
 import org.apache.flink.table.dataformat.DataFormatConverters;
 import org.apache.flink.table.dataformat.Decimal;
 import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.flink.table.dataformat.SqlTimestamp;
+import org.apache.flink.table.dataformat.util.BaseRowUtil;
 import org.apache.flink.types.Row;
 
 import java.math.BigDecimal;
@@ -42,7 +44,8 @@ import java.time.LocalTime;
  */
 public class RowDataConvert {
 
-    public static BaseRow convertToBaseRow(Row row) {
+    public static BaseRow convertToBaseRow(Tuple2<Boolean, Row> input) {
+        Row row = input.f1;
         int length = row.getArity();
         GenericRow genericRow = new GenericRow(length);
         for (int i = 0; i < length; i++) {
@@ -86,6 +89,12 @@ public class RowDataConvert {
             } else {
                 genericRow.setField(i, row.getField(i));
             }
+        }
+
+        if(input.f0){
+            BaseRowUtil.setAccumulate(genericRow);
+        } else {
+            BaseRowUtil.setRetract(genericRow);
         }
 
         return genericRow;

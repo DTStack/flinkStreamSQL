@@ -27,10 +27,9 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.hbase.async.HBaseClient;
 
-import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -74,11 +73,11 @@ public abstract class AbstractRowKeyModeDealer {
         this.sideFieldIndex = sideFieldIndex;
     }
 
-    protected void dealMissKey(Row input, ResultFuture<BaseRow> resultFuture) {
+    protected void dealMissKey(BaseRow input, ResultFuture<BaseRow> resultFuture) {
         if (joinType == JoinType.LEFT) {
             try {
                 //保留left 表数据
-                Row row = fillData(input, null);
+                BaseRow row = fillData(input, null);
                 RowDataComplete.completeRow(resultFuture, row);
             } catch (Exception e) {
                 resultFuture.completeExceptionally(e);
@@ -88,12 +87,13 @@ public abstract class AbstractRowKeyModeDealer {
         }
     }
 
-    protected Row fillData(Row input, Object sideInput){
-
+    protected BaseRow fillData(BaseRow input, Object sideInput){
+        GenericRow genericRow = (GenericRow) input;
         List<Object> sideInputList = (List<Object>) sideInput;
-        Row row = new Row(outFieldInfoList.size());
+        GenericRow row = new GenericRow(outFieldInfoList.size());
+        row.setHeader(genericRow.getHeader());
         for(Map.Entry<Integer, Integer> entry : inFieldIndex.entrySet()){
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             row.setField(entry.getKey(), obj);
         }
 
@@ -108,6 +108,6 @@ public abstract class AbstractRowKeyModeDealer {
         return row;
     }
 
-    public abstract void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<BaseRow> resultFuture,
+    public abstract void asyncGetData(String tableName, String rowKeyStr, BaseRow input, ResultFuture<BaseRow> resultFuture,
                                       AbstractSideCache sideCache);
 }

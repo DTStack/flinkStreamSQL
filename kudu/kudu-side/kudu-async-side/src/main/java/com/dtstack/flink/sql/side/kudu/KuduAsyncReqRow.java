@@ -21,6 +21,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -150,8 +151,9 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
-        Row inputCopy = Row.copy(input);
+    public void handleAsyncInvoke(Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) throws Exception {
+        GenericRow genericRow = (GenericRow) input;
+        GenericRow inputCopy = GenericRow.copyReference(genericRow);
         //scannerBuilder 设置为null重新加载过滤条件,然后connkudu重新赋值
         //todo:代码需要优化
         scannerBuilder = null;
@@ -176,7 +178,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
 
         List<Map<String, Object>> cacheContent = Lists.newArrayList();
         AsyncKuduScanner asyncKuduScanner = scannerBuilder.build();
-        List<Row> rowList = Lists.newArrayList();
+        List<BaseRow> rowList = Lists.newArrayList();
         Deferred<RowResultIterator> data = asyncKuduScanner.nextRows();
         //从之前的同步修改为调用异步的Callback
         data.addCallbackDeferring(new GetListRowCB(inputCopy, cacheContent, rowList, asyncKuduScanner, resultFuture, buildCacheKey(inputParams)));
@@ -195,11 +197,13 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
 
 
     @Override
-    public Row fillData(Row input, Object sideInput) {
+    public BaseRow fillData(BaseRow input, Object sideInput) {
+        GenericRow genericRow = (GenericRow) input;
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
+        row.setHeader(genericRow.getHeader());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
@@ -228,9 +232,9 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
     }
 
     class GetListRowCB implements Callback<Deferred<List<Row>>, RowResultIterator> {
-        private Row input;
+        private BaseRow input;
         private List<Map<String, Object>> cacheContent;
-        private List<Row> rowList;
+        private List<BaseRow> rowList;
         private AsyncKuduScanner asyncKuduScanner;
         private ResultFuture<BaseRow> resultFuture;
         private String key;
@@ -239,7 +243,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         public GetListRowCB() {
         }
 
-        GetListRowCB(Row input, List<Map<String, Object>> cacheContent, List<Row> rowList,
+        GetListRowCB(BaseRow input, List<Map<String, Object>> cacheContent, List<BaseRow> rowList,
                      AsyncKuduScanner asyncKuduScanner, ResultFuture<BaseRow> resultFuture, String key) {
             this.input = input;
             this.cacheContent = cacheContent;
@@ -260,7 +264,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                         KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
                     }
                 }
-                Row row = fillData(input, oneRow);
+                BaseRow row = fillData(input, oneRow);
                 if (openCache()) {
                     cacheContent.add(oneRow);
                 }

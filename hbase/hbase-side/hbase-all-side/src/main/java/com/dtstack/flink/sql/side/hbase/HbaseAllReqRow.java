@@ -33,8 +33,8 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.AuthUtil;
@@ -93,11 +93,13 @@ public class HbaseAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public Row fillData(Row input, Object sideInput) {
+    public BaseRow fillData(BaseRow input, Object sideInput) {
+        GenericRow genericRow = (GenericRow) input;
         Map<String, Object> sideInputList = (Map<String, Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
+        row.setHeader(genericRow.getHeader());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
@@ -142,14 +144,15 @@ public class HbaseAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
+    public void flatMap(BaseRow input, Collector<BaseRow> out) throws Exception {
+        GenericRow genericRow = (GenericRow) input;
         Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = genericRow.getField(conValIndex);
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input, null);
+                    BaseRow data = fillData(input, null);
                     RowDataComplete.collectRow(out, data);
                 }
                 return;
@@ -167,13 +170,13 @@ public class HbaseAllReqRow extends BaseAllReqRow {
             for (Map.Entry<String, Map<String, Object>> entry : cacheRef.get().entrySet()) {
                 if (entry.getKey().startsWith(rowKeyStr)) {
                     cacheList = cacheRef.get().get(entry.getKey());
-                    Row row = fillData(input, cacheList);
+                    BaseRow row = fillData(input, cacheList);
                     RowDataComplete.collectRow(out, row);
                 }
             }
         } else {
             cacheList = cacheRef.get().get(rowKeyStr);
-            Row row = fillData(input, cacheList);
+            BaseRow row = fillData(input, cacheList);
             RowDataComplete.collectRow(out, row);
         }
 

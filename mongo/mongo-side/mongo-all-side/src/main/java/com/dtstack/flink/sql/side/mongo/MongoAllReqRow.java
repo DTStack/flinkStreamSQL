@@ -18,10 +18,10 @@
 
 package com.dtstack.flink.sql.side.mongo;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.table.MongoSideTableInfo;
 import com.dtstack.flink.sql.side.mongo.utils.MongoUtil;
 import com.dtstack.flink.sql.util.RowDataComplete;
@@ -39,7 +39,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.flink.util.Collector;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -99,13 +99,14 @@ public class MongoAllReqRow extends BaseAllReqRow {
     }
 
     @Override
-    public void flatMap(Row input, Collector<BaseRow> out) throws Exception {
+    public void flatMap(BaseRow input, Collector<BaseRow> out) throws Exception {
+        GenericRow genericRow = (GenericRow) input;
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = input.getField(conValIndex);
+            Object equalObj = genericRow.getField(conValIndex);
             if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
-                    Row data = fillData(input, null);
+                    BaseRow data = fillData(input, null);
                     RowDataComplete.collectRow(out, data);
                 }
                 return;
@@ -117,7 +118,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
         List<Map<String, Object>> cacheList = cacheRef.get().get(key);
         if (CollectionUtils.isEmpty(cacheList)) {
             if (sideInfo.getJoinType() == JoinType.LEFT) {
-                Row row = fillData(input, null);
+                BaseRow row = fillData(input, null);
                 RowDataComplete.collectRow(out, row);
             } else {
                 return;
@@ -127,7 +128,7 @@ public class MongoAllReqRow extends BaseAllReqRow {
         }
 
         for (Map<String, Object> one : cacheList) {
-            Row row = fillData(input, one);
+            BaseRow row = fillData(input, one);
             RowDataComplete.collectRow(out, row);
         }
     }

@@ -18,23 +18,27 @@
 
 package com.dtstack.flink.sql.side.elasticsearch6;
 
+import com.dtstack.flink.sql.enums.ECacheContentType;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
+import com.dtstack.flink.sql.side.PredicateInfo;
+import com.dtstack.flink.sql.side.cache.CacheObj;
+import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
 import com.dtstack.flink.sql.side.elasticsearch6.util.Es6Util;
+import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.RowDataComplete;
+import com.google.common.collect.Lists;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
-
-import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.*;
-import com.dtstack.flink.sql.side.cache.CacheObj;
-import com.dtstack.flink.sql.side.elasticsearch6.table.Elasticsearch6SideTableInfo;
-import com.dtstack.flink.sql.util.ParseUtils;
-import com.google.common.collect.Lists;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -81,7 +85,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
 
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) throws Exception {
         String key = buildCacheKey(inputParams);
         BoolQueryBuilder boolQueryBuilder = Es6Util.setPredicateclause(sideInfo);
         boolQueryBuilder = setInputParams(inputParams, boolQueryBuilder);
@@ -97,7 +101,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
             public void onResponse(SearchResponse searchResponse) {
 
                 List<Object> cacheContent = Lists.newArrayList();
-                List<Row> rowList = Lists.newArrayList();
+                List<BaseRow> rowList = Lists.newArrayList();
                 SearchHit[] searchHits = searchResponse.getHits().getHits();
                 if (searchHits.length > 0) {
                     Elasticsearch6SideTableInfo tableInfo = null;
@@ -159,7 +163,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         return sb.toString();
     }
 
-    private void loadDataToCache(SearchHit[] searchHits, List<Row> rowList, List<Object> cacheContent, Row copyCrow) {
+    private void loadDataToCache(SearchHit[] searchHits, List<BaseRow> rowList, List<Object> cacheContent, BaseRow copyCrow) {
         List<Object> results = Lists.newArrayList();
         for (SearchHit searchHit : searchHits) {
             Map<String, Object> object = searchHit.getSourceAsMap();
@@ -168,10 +172,10 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
         rowList.addAll(getRows(copyCrow, cacheContent, results));
     }
 
-    protected List<Row> getRows(Row inputRow, List<Object> cacheContent, List<Object> results) {
-        List<Row> rowList = Lists.newArrayList();
+    protected List<BaseRow> getRows(BaseRow inputRow, List<Object> cacheContent, List<Object> results) {
+        List<BaseRow> rowList = Lists.newArrayList();
         for (Object line : results) {
-            Row row = fillData(inputRow, line);
+            BaseRow row = fillData(inputRow, line);
             if (null != cacheContent && openCache()) {
                 cacheContent.add(line);
             }
@@ -181,13 +185,14 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
     }
 
     @Override
-    public Row fillData(Row input, Object line) {
-
+    public BaseRow fillData(BaseRow input, Object line) {
+        GenericRow genericRow = (GenericRow) input;
         Map<String, Object> cacheInfo = (Map<String, Object>) line;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
+        row.setHeader(input.getHeader());
         String[] fields = sideInfo.getSideTableInfo().getFieldTypes();
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
             if (obj instanceof Timestamp && isTimeIndicatorTypeInfo) {
                 obj = ((Timestamp) obj).getTime();
