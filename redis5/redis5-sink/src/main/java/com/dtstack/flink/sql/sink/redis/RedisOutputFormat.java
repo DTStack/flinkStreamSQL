@@ -37,10 +37,9 @@ import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,33 +47,19 @@ import java.util.Set;
  */
 public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
-
-    private String url;
-
-    private String database;
-
-    private String tableName;
-
-    private String password;
-
-    private int redisType;
-
-    private String maxTotal;
-
-    private String maxIdle;
-
-    private String minIdle;
-
-    private String masterName;
-
     protected String[] fieldNames;
-
     protected TypeInformation<?>[] fieldTypes;
-
     protected List<String> primaryKeys;
-
-    protected int timeout;
-
+    protected int timeout = 10000;
+    private String url;
+    private String database = "0";
+    private String tableName;
+    private String password;
+    private int redisType;
+    private String maxTotal;
+    private String maxIdle;
+    private String minIdle;
+    private String masterName;
     private JedisPool pool;
 
     private JedisCommands jedis;
@@ -83,8 +68,13 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private GenericObjectPoolConfig poolConfig;
 
-    private RedisOutputFormat(){
+    private RedisOutputFormat() {
     }
+
+    public static RedisOutputFormatBuilder buildRedisOutputFormat() {
+        return new RedisOutputFormatBuilder();
+    }
+
     @Override
     public void configure(Configuration parameters) {
 
@@ -96,15 +86,15 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         initMetric();
     }
 
-    private GenericObjectPoolConfig setPoolConfig(String maxTotal, String maxIdle, String minIdle){
+    private GenericObjectPoolConfig setPoolConfig(String maxTotal, String maxIdle, String minIdle) {
         GenericObjectPoolConfig config = new GenericObjectPoolConfig();
-        if (maxTotal != null){
+        if (maxTotal != null) {
             config.setMaxTotal(Integer.parseInt(maxTotal));
         }
-        if (maxIdle != null){
+        if (maxIdle != null) {
             config.setMaxIdle(Integer.parseInt(maxIdle));
         }
-        if (minIdle != null){
+        if (minIdle != null) {
             config.setMinIdle(Integer.parseInt(minIdle));
         }
         return config;
@@ -121,31 +111,23 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         for (String ipPort : nodes) {
             ipPorts.add(ipPort);
             String[] ipPortPair = StringUtils.split(ipPort, ":");
-            addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
-        }
-        if (timeout == 0){
-            timeout = 10000;
-        }
-        if (database == null)
-        {
-            database = "0";
+            addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.parseInt(ipPortPair[1].trim())));
         }
 
-        switch (redisType){
-            //单机
-            case 1:
+        switch (RedisType.parse(redisType)) {
+            case STANDALONE:
                 pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
                 jedis = pool.getResource();
                 break;
-            //哨兵
-            case 2:
+            case SENTINEL:
                 jedisSentinelPool = new JedisSentinelPool(masterName, ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
                 jedis = jedisSentinelPool.getResource();
                 break;
-            //集群
-            case 3:
+            case CLUSTER:
                 jedis = new JedisCluster(addresses, timeout, timeout, 10, password, poolConfig);
+                break;
             default:
+                throw new RuntimeException("unsupported redis type[ " + redisType + "]");
         }
     }
 
@@ -160,38 +142,14 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         if (row.getArity() != fieldNames.length) {
             return;
         }
-
-        HashMap<String, Integer> map = new HashMap<>(8);
-        for (String primaryKey : primaryKeys) {
-            for (int i = 0; i < fieldNames.length; i++) {
-                if (fieldNames[i].equals(primaryKey)) {
-                    map.put(primaryKey, i);
-                }
-            }
-        }
-
-        List<String> kvList = new LinkedList<>();
-        for (String primaryKey : primaryKeys){
-            StringBuilder primaryKv = new StringBuilder();
-            int index = map.get(primaryKey).intValue();
-            primaryKv.append(primaryKey).append(":").append(row.getField(index));
-            kvList.add(primaryKv.toString());
-        }
-
-        String perKey = String.join(":", kvList);
+        Map<String, Object> refData = Maps.newHashMap();
         for (int i = 0; i < fieldNames.length; i++) {
-            StringBuilder key = new StringBuilder();
-            key.append(tableName).append(":").append(perKey).append(":").append(fieldNames[i]);
-
-            String value = "null";
-            Object field = row.getField(i);
-            if (field != null) {
-                value = field.toString();
-            }
-            jedis.set(key.toString(), value);
+            refData.put(fieldNames[i], row.getField(i));
         }
+        String redisKey = buildCacheKey(refData);
+        refData.forEach((key, value) -> jedis.hset(redisKey, key, String.valueOf(value)));
 
-        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
             LOG.info(record.toString());
         }
         outRecords.inc();
@@ -205,96 +163,103 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         if (pool != null) {
             pool.close();
         }
-        if (jedis != null){
-            if (jedis instanceof Closeable){
+        if (jedis != null) {
+            if (jedis instanceof Closeable) {
                 ((Closeable) jedis).close();
             }
         }
 
     }
 
-    public static RedisOutputFormatBuilder buildRedisOutputFormat(){
-        return new RedisOutputFormatBuilder();
+    public String buildCacheKey(Map<String, Object> refData) {
+        StringBuilder keyBuilder = new StringBuilder(tableName);
+        for (String primaryKey : primaryKeys) {
+            if (!refData.containsKey(primaryKey)) {
+                return null;
+            }
+            keyBuilder.append("_").append(refData.get(primaryKey));
+        }
+        return keyBuilder.toString();
     }
 
-    public static class RedisOutputFormatBuilder{
+    public static class RedisOutputFormatBuilder {
         private final RedisOutputFormat redisOutputFormat;
 
-        protected RedisOutputFormatBuilder(){
+        protected RedisOutputFormatBuilder() {
             this.redisOutputFormat = new RedisOutputFormat();
         }
 
-        public RedisOutputFormatBuilder setUrl(String url){
+        public RedisOutputFormatBuilder setUrl(String url) {
             redisOutputFormat.url = url;
             return this;
         }
 
-        public RedisOutputFormatBuilder setDatabase(String database){
+        public RedisOutputFormatBuilder setDatabase(String database) {
             redisOutputFormat.database = database;
             return this;
         }
 
-        public RedisOutputFormatBuilder setTableName(String tableName){
+        public RedisOutputFormatBuilder setTableName(String tableName) {
             redisOutputFormat.tableName = tableName;
             return this;
         }
 
-        public RedisOutputFormatBuilder setPassword(String password){
+        public RedisOutputFormatBuilder setPassword(String password) {
             redisOutputFormat.password = password;
             return this;
         }
 
-        public RedisOutputFormatBuilder setFieldNames(String[] fieldNames){
+        public RedisOutputFormatBuilder setFieldNames(String[] fieldNames) {
             redisOutputFormat.fieldNames = fieldNames;
             return this;
         }
 
-        public RedisOutputFormatBuilder setFieldTypes(TypeInformation<?>[] fieldTypes){
+        public RedisOutputFormatBuilder setFieldTypes(TypeInformation<?>[] fieldTypes) {
             redisOutputFormat.fieldTypes = fieldTypes;
             return this;
         }
 
-        public RedisOutputFormatBuilder setPrimaryKeys(List<String > primaryKeys){
+        public RedisOutputFormatBuilder setPrimaryKeys(List<String> primaryKeys) {
             redisOutputFormat.primaryKeys = primaryKeys;
             return this;
         }
 
-        public RedisOutputFormatBuilder setTimeout(int timeout){
+        public RedisOutputFormatBuilder setTimeout(int timeout) {
             redisOutputFormat.timeout = timeout;
             return this;
         }
 
-        public RedisOutputFormatBuilder setRedisType(int redisType){
+        public RedisOutputFormatBuilder setRedisType(int redisType) {
             redisOutputFormat.redisType = redisType;
             return this;
         }
 
-        public RedisOutputFormatBuilder setMaxTotal(String maxTotal){
+        public RedisOutputFormatBuilder setMaxTotal(String maxTotal) {
             redisOutputFormat.maxTotal = maxTotal;
             return this;
         }
 
-        public RedisOutputFormatBuilder setMaxIdle(String maxIdle){
+        public RedisOutputFormatBuilder setMaxIdle(String maxIdle) {
             redisOutputFormat.maxIdle = maxIdle;
             return this;
         }
 
-        public RedisOutputFormatBuilder setMinIdle(String minIdle){
+        public RedisOutputFormatBuilder setMinIdle(String minIdle) {
             redisOutputFormat.minIdle = minIdle;
             return this;
         }
 
-        public RedisOutputFormatBuilder setMasterName(String masterName){
+        public RedisOutputFormatBuilder setMasterName(String masterName) {
             redisOutputFormat.masterName = masterName;
             return this;
         }
 
-        public RedisOutputFormat finish(){
-            if (redisOutputFormat.url == null){
+        public RedisOutputFormat finish() {
+            if (redisOutputFormat.url == null) {
                 throw new IllegalArgumentException("No URL supplied.");
             }
 
-            if (redisOutputFormat.tableName == null){
+            if (redisOutputFormat.tableName == null) {
                 throw new IllegalArgumentException("No tablename supplied.");
             }
 
