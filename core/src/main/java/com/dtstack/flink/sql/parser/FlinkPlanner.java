@@ -36,12 +36,8 @@ public class FlinkPlanner {
     }
 
     public static FlinkPlannerImpl createFlinkPlanner(FrameworkConfig frameworkConfig, RelOptPlanner relOptPlanner, FlinkTypeFactory typeFactory) {
-        if (flinkPlanner == null) {
-            synchronized (FlinkPlanner.class) {
-                if (flinkPlanner == null) {
-                    flinkPlanner = new FlinkPlannerImpl(frameworkConfig, relOptPlanner, typeFactory);
-                }
-            }
+        synchronized (FlinkPlanner.class) {
+            flinkPlanner = new FlinkPlannerImpl(frameworkConfig, relOptPlanner, typeFactory);
         }
         return flinkPlanner;
     }
