@@ -221,7 +221,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
 
             String cacheKey = sideInfo.getEqualFieldList().stream()
                     .map(oneRow::get)
-                    .map(Object::toString)
+                    .map(String::valueOf)
                     .collect(Collectors.joining("_"));
 
             tmpCache.computeIfAbsent(cacheKey, key -> Lists.newArrayList())
