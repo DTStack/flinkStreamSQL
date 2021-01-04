@@ -350,7 +350,7 @@ public class ExecuteProcessHelper {
                 }
 
                 Table regTable = tableEnv.fromDataStream(adaptStream, fields);
-                tableEnv.registerTable(tableInfo.getName(), regTable);
+                tableEnv.createTemporaryView(tableInfo.getName(), regTable);
                 if (LOG.isInfoEnabled()) {
                     LOG.info("registe table {} success.", tableInfo.getName());
                 }

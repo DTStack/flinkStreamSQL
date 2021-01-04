@@ -43,7 +43,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,8 +92,9 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
-        Row inputCopy = Row.copy(input);
+    public void handleAsyncInvoke(Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) throws Exception {
+        GenericRow genericRow = (GenericRow) input;
+        GenericRow inputCopy = GenericRow.copyReference(genericRow);
         BasicDBObject basicDbObject = new BasicDBObject();
         try {
             basicDbObject.putAll(inputParams);
@@ -118,11 +119,11 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
             @Override
             public void apply(final Document document) {
                 atomicInteger.incrementAndGet();
-                Row row = fillData(inputCopy, document);
+                BaseRow row = fillData(inputCopy, document);
                 if (openCache()) {
                     cacheContent.add(document);
                 }
-                RowDataComplete.completeRow(resultFuture, row);
+                RowDataComplete.completeBaseRow(resultFuture, row);
             }
         };
         SingleResultCallback<Void> callbackWhenFinished = new SingleResultCallback<Void>() {
@@ -153,11 +154,13 @@ public class MongoAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public Row fillData(Row input, Object line) {
+    public BaseRow fillData(BaseRow input, Object line) {
+        GenericRow genericRow = (GenericRow) input;
         Document doc = (Document) line;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
+        row.setHeader(genericRow.getHeader());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
