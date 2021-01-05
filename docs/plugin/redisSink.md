@@ -44,6 +44,7 @@ redis5.0
 |minIdle|最小空闲连接数|否||0|
 |masterName| 哨兵模式下的masterName|否||
 |primarykeys|主键字段，多个字段以逗号分割|是||
+|keyExpiredTime|redis sink的key的过期时间。默认是0（永不过期），单位是ms。|否||
       
   
 ## 5.样例：

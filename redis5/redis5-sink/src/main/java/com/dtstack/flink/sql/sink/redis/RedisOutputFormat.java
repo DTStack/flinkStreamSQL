@@ -75,6 +75,8 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     protected int timeout;
 
+    protected long keyExpiredTime;
+
     private JedisPool pool;
 
     private JedisCommands jedis;
@@ -188,13 +190,31 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             if (field != null) {
                 value = field.toString();
             }
-            jedis.set(key.toString(), value);
+            saveKey(key.toString(), value);
         }
 
         if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
             LOG.info(record.toString());
         }
         outRecords.inc();
+    }
+
+    /**
+     * 1. save key and value.
+     * 2. set expired time for key when keyExpiredTime has been set.
+     * @param key
+     * @param value
+     */
+    private void saveKey(String key, String value) {
+        if (keyExpiredTime != 0L) {
+            boolean keyExist = jedis.exists(key);
+            if (keyExist) {
+                jedis.del(key);
+            }
+            jedis.set(key, value, "NX", "PX", keyExpiredTime);
+        } else {
+            jedis.set(key, value);
+        }
     }
 
     @Override
@@ -286,6 +306,11 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
         public RedisOutputFormatBuilder setMasterName(String masterName){
             redisOutputFormat.masterName = masterName;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setKeyExpiredTime(long keyExpiredTime){
+            redisOutputFormat.keyExpiredTime = keyExpiredTime;
             return this;
         }
 
