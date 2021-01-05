@@ -124,14 +124,9 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
                 .setClientKeytabFile(clientKeytabFile)
                 .setBatchSize(Integer.parseInt(batchSize))
                 .setBatchWaitInterval(Long.parseLong(batchWaitInterval))
+                .setDirtyManager(DirtyDataManager.newInstance(dirtyProperties))
                 .finish();
 
-        builder.setClientPrincipal(clientPrincipal);
-        builder.setClientKeytabFile(clientKeytabFile);
-
-        builder.setDirtyManager(DirtyDataManager.newInstance(dirtyProperties));
-
-        HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction).name(registerTabName);
 
