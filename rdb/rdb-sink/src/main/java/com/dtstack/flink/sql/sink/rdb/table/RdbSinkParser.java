@@ -51,6 +51,7 @@ public class RdbSinkParser extends AbstractTableParser {
         rdbTableInfo.setAllReplace(MathUtil.getBoolean(props.get(RdbTableInfo.ALLREPLACE_KEY.toLowerCase()), false));
         rdbTableInfo.setDriverName(MathUtil.getString(props.get(RdbTableInfo.DRIVER_NAME)));
         rdbTableInfo.setFastCheck(MathUtil.getBoolean(props.getOrDefault(RdbTableInfo.FAST_CHECK.toLowerCase(), true)));
+        rdbTableInfo.setCheckProperties();
 
         rdbTableInfo.check();
         return rdbTableInfo;
