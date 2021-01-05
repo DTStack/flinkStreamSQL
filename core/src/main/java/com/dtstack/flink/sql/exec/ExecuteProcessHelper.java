@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.exec;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
@@ -85,6 +86,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -103,6 +105,8 @@ public class ExecuteProcessHelper {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String TIME_ZONE = "timezone";
+    private static final String PLUGIN_PATH_STR = "pluginPath";
+    private static final String PLUGIN_LOAD_STR = "pluginLoadMode";
 
     public static FlinkPlanner flinkPlanner = new FlinkPlanner();
 
@@ -121,11 +125,23 @@ public class ExecuteProcessHelper {
         String pluginLoadMode = options.getPluginLoadMode();
         String deployMode = options.getMode();
         String planner = options.getPlanner();
+        String dirtyStr = options.getDirtyProperties();
 
         Preconditions.checkArgument(checkRemoteSqlPluginPath(remoteSqlPluginPath, deployMode, pluginLoadMode),
                 "Non-local mode or shipfile deployment mode, remoteSqlPluginPath is required");
         String confProp = URLDecoder.decode(options.getConfProp(), Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
+        Properties dirtyProperties = PluginUtil.jsonStrToObject(Objects.isNull(dirtyStr) ?
+                DirtyDataManager.buildDefaultDirty() : dirtyStr, Properties.class);
+
+        if (Objects.isNull(dirtyProperties.getProperty(PLUGIN_LOAD_STR))) {
+            dirtyProperties.put(PLUGIN_LOAD_STR, pluginLoadMode);
+        }
+
+        if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && Objects.isNull(dirtyProperties.getProperty(PLUGIN_PATH_STR))) {
+            dirtyProperties.setProperty(PLUGIN_PATH_STR,
+                    Objects.isNull(remoteSqlPluginPath) ? localSqlPluginPath : remoteSqlPluginPath);
+        }
 
         List<URL> jarUrlList = getExternalJarUrls(options.getAddjar());
 
@@ -139,6 +155,7 @@ public class ExecuteProcessHelper {
                 .setConfProp(confProperties)
                 .setPlanner(planner)
                 .setJarUrlList(jarUrlList)
+                .setDirtyProperties(dirtyProperties)
                 .build();
 
     }
@@ -187,6 +204,7 @@ public class ExecuteProcessHelper {
                 , paramsInfo.getLocalSqlPluginPath()
                 , paramsInfo.getRemoteSqlPluginPath()
                 , paramsInfo.getPluginLoadMode()
+                , paramsInfo.getDirtyProperties()
                 , sideTableMap
                 , registerTableCache
                 , planner);
@@ -335,12 +353,17 @@ public class ExecuteProcessHelper {
             , String localSqlPluginPath
             , String remoteSqlPluginPath
             , String pluginLoadMode
+            , Properties dirtyProperties
             , Map<String, AbstractSideTableInfo> sideTableMap
             , Map<String, Table> registerTableCache
-            , String planner) throws Exception {
+            , String planner
+    ) throws Exception {
         Set<URL> pluginClassPathSets = Sets.newHashSet();
         WaterMarkerAssigner waterMarkerAssigner = new WaterMarkerAssigner();
         for (AbstractTableInfo tableInfo : sqlTree.getTableInfoMap().values()) {
+
+            // 配置dirty manager
+            tableInfo.setDirtyProperties(dirtyProperties);
 
             if (tableInfo instanceof AbstractSourceTableInfo) {
 

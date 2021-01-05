@@ -37,6 +37,9 @@
         <module>cassandra</module>
         <module>kudu</module>
         <module>aws</module>
+
+        <!-- 脏数据插件 -->
+        <module>dirtyData</module>
 <!--        <module>localTest</module>-->
 
     </modules>
@@ -90,6 +93,11 @@
             <classifier>runtime</classifier>
             <scope>test</scope>
             <version>${jacoco.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.70</version>
         </dependency>
     </dependencies>
 
