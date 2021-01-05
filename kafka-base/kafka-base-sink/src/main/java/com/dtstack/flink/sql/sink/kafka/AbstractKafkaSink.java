@@ -116,7 +116,7 @@ public abstract class AbstractKafkaSink implements RetractStreamTableSink<Row>, 
     protected String[] getPartitionKeys(KafkaSinkTableInfo kafkaSinkTableInfo) {
         String keysStr = kafkaSinkTableInfo.getPartitionKeys();
         if (StringUtils.isNotBlank(keysStr)) {
-            String[] keys = keysStr.split(",");
+            String[] keys = StringUtils.split(keysStr, ",");
             String[] cleanedKeys = Arrays.stream(keys)
                 .map(x -> x.trim())
                 .toArray(String[]::new);
