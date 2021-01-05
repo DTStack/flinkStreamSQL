@@ -50,7 +50,7 @@ public class RedisSinkParser extends AbstractTableParser {
         redisTableInfo.setMasterName(MathUtil.getString(props.get(RedisTableInfo.MASTER_NAME.toLowerCase())));
 
         if (props.get(RedisTableInfo.KEY_EXPIRED_TIME.toLowerCase()) != null) {
-            redisTableInfo.setKeyExpiredTime(Long.parseLong(MathUtil.getString(props.get(RedisTableInfo.KEY_EXPIRED_TIME.toLowerCase()))));
+            redisTableInfo.setKeyExpiredTime(Integer.parseInt(MathUtil.getString(props.get(RedisTableInfo.KEY_EXPIRED_TIME.toLowerCase()))));
         }
 
         String primaryKeysStr = MathUtil.getString(props.get(RedisTableInfo.PRIMARY_KEYS_NAME));

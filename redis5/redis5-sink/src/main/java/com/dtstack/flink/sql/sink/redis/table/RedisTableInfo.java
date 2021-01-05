@@ -75,7 +75,7 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
 
     private String masterName;
 
-    private long keyExpiredTime;
+    private int keyExpiredTime;
 
     public String getUrl() {
         return url;
@@ -157,11 +157,11 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
         this.masterName = masterName;
     }
 
-    public long getKeyExpiredTime() {
+    public int getKeyExpiredTime() {
         return keyExpiredTime;
     }
 
-    public void setKeyExpiredTime(long keyExpiredTime) {
+    public void setKeyExpiredTime(int keyExpiredTime) {
         this.keyExpiredTime = keyExpiredTime;
     }
 

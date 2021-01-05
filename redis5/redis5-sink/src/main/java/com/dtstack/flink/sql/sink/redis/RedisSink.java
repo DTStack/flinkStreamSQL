@@ -71,9 +71,9 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     protected String registerTableName;
 
-    protected long keyExpiredTime;
+    protected int keyExpiredTime;
 
-    public RedisSink(){
+    public RedisSink() {
 
     }
 
@@ -111,7 +111,7 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     @Override
     public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         RedisOutputFormat.RedisOutputFormatBuilder builder = RedisOutputFormat.buildRedisOutputFormat();
-        builder.setUrl(this.url)
+        RedisOutputFormat redisOutputFormat = builder.setUrl(this.url)
                 .setDatabase(this.database)
                 .setTableName(this.tableName)
                 .setPassword(this.password)
@@ -124,8 +124,8 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
                 .setMaxIdle(this.maxIdle)
                 .setMinIdle(this.minIdle)
                 .setMasterName(this.masterName)
-                .setKeyExpiredTime(this.keyExpiredTime);
-        RedisOutputFormat redisOutputFormat = builder.finish();
+                .setKeyExpiredTime(this.keyExpiredTime)
+                .finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(redisOutputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction)
                 .setParallelism(parallelism)
