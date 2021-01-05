@@ -11,7 +11,18 @@
 
     <artifactId>sql.sink.elasticsearch5</artifactId>
     <name>elasticsearch-sink</name>
-
+    <repositories>
+        <repository>
+            <id>elasticsearch-releases</id>
+            <url>https://artifacts.elastic.co/maven</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
     <dependencies>
         <dependency>
             <groupId>org.elasticsearch.client</groupId>

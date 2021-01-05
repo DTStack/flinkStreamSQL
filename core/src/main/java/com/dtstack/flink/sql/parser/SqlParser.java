@@ -45,7 +45,7 @@ import java.util.regex.Pattern;
 public class SqlParser {
     private static final Logger LOG = LoggerFactory.getLogger(SqlParser.class);
 
-    private static final char SQL_DELIMITER = ';';
+    public static final char SQL_DELIMITER = ';';
 
     private static String LOCAL_SQL_PLUGIN_ROOT;
 
@@ -167,7 +167,7 @@ public class SqlParser {
     /**
      * remove add file and jar with statment etc. add file /etc/krb5.conf, add jar xxx.jar;
      */
-    private static List<String> removeAddFileAndJarStmt(List<String> stmts) {
+    public static List<String> removeAddFileAndJarStmt(List<String> stmts) {
         List<String> cleanedStmts = Lists.newArrayList();
         for (String stmt : stmts) {
             Matcher matcher = ADD_FILE_AND_JAR_PATTERN.matcher(stmt);

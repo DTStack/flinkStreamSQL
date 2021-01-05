@@ -27,12 +27,7 @@ import com.dtstack.flink.sql.environment.StreamEnvConfigManager;
 import com.dtstack.flink.sql.function.FunctionManager;
 import com.dtstack.flink.sql.option.OptionParser;
 import com.dtstack.flink.sql.option.Options;
-import com.dtstack.flink.sql.parser.CreateFuncParser;
-import com.dtstack.flink.sql.parser.CreateTmpTableParser;
-import com.dtstack.flink.sql.parser.FlinkPlanner;
-import com.dtstack.flink.sql.parser.InsertSqlParser;
-import com.dtstack.flink.sql.parser.SqlParser;
-import com.dtstack.flink.sql.parser.SqlTree;
+import com.dtstack.flink.sql.parser.*;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.SideSqlExec;
 import com.dtstack.flink.sql.sink.StreamSinkFactory;
@@ -75,13 +70,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -157,10 +146,50 @@ public class ExecuteProcessHelper {
 
 
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
-        SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql(), paramsInfo.getPluginLoadMode());
+        boolean nativeStmt = false;
+        SqlTree sqlTree = null;
+        try {
+            sqlTree = SqlParser.parseSql(paramsInfo.getSql(), paramsInfo.getPluginLoadMode());
+        } catch (Exception e) {
+            nativeStmt = true;
+        }
+        if (nativeStmt) {
+            String sql = paramsInfo.getSql();
+            if(StringUtils.isBlank(sql)){
+                throw new RuntimeException("sql is not null");
+            }
 
-        Map<String, AbstractSideTableInfo> sideTableMap = Maps.newHashMap();
-        Map<String, Table> registerTableCache = Maps.newHashMap();
+            sql = DtStringUtil.dealSqlComment(sql)
+                    .replaceAll("\r\n", " ")
+                    .replaceAll("\n", " ")
+                    .replace("\t", " ").trim();
+
+            List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SqlParser.SQL_DELIMITER);
+            sqlArr = SqlParser.removeAddFileAndJarStmt(sqlArr);
+
+            SqlCommandParser sqlCommandParser = new SqlCommandParser();
+            for(String childSql : sqlArr){
+                if(Strings.isNullOrEmpty(childSql)){
+                    continue;
+                }
+                childSql = childSql.trim();
+                Optional<SqlCommandParser.SqlCommandCall> result = sqlCommandParser.parse(childSql);
+                if(result.isPresent()) {
+                    SqlCommandParser.SqlCommandCall sqlCommandCall = result.get();
+                    switch (sqlCommandCall.command) {
+                        case CREATE_TABLE:
+                        case INSERT_INTO:
+                            tableEnv.sqlUpdate(sqlCommandCall.sql);
+                            break;
+                        default:
+                            throw new RuntimeException("Unsupported command: " + sqlCommandCall.command);
+                    }
+                }
+            }
+        } else {
+            
+            Map<String, AbstractSideTableInfo> sideTableMap = Maps.newHashMap();
+            Map<String, Table> registerTableCache = Maps.newHashMap();
 
         //register udf
         ExecuteProcessHelper.registerUserDefinedFunction(sqlTree, paramsInfo.getJarUrlList(), tableEnv, paramsInfo.isGetPlan());
@@ -172,6 +201,7 @@ public class ExecuteProcessHelper {
 
         ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), paramsInfo.getPluginLoadMode(),tableEnv, sqlTree, sideTableMap, registerTableCache);
 
+        }
         if (env instanceof MyLocalStreamEnvironment) {
             ((MyLocalStreamEnvironment) env).setClasspaths(ClassLoaderManager.getClassPath());
         }
