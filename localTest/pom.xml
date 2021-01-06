@@ -71,6 +71,18 @@
 
         <dependency>
             <groupId>com.dtstack.flink</groupId>
+            <artifactId>dirtyConsumer.console</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>dirtyConsumer.mysql</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
             <artifactId>sql.source.kafka11</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>

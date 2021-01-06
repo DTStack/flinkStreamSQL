@@ -33,6 +33,17 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.DEFAULT_BLOCKING_INTERVAL;
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.DEFAULT_ERROR_LIMIT_RATE;
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.DEFAULT_PRINT_LIMIT;
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.DEFAULT_TYPE;
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.DIRTY_BLOCK_STR;
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.DIRTY_LIMIT_RATE_STR;
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.PLUGIN_LOAD_MODE_STR;
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.PLUGIN_PATH_STR;
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.PLUGIN_TYPE_STR;
+import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.PRINT_LIMIT_STR;
+
 /**
  * @author tiezhu
  * Company dtstack
@@ -43,11 +54,7 @@ public class DirtyDataManager implements Serializable {
     public final static int MAX_POOL_SIZE_LIMIT = 5;
     private static final long serialVersionUID = 7190970299538893497L;
     private static final Logger LOG = LoggerFactory.getLogger(DirtyDataManager.class);
-    private static final String DIRTY_BLOCK_STR = "blockingInterval";
-    private static final String DIRTY_LIMIT_RATE_STR = "errorLimitRate";
     private final static int MAX_TASK_QUEUE_SIZE = 100;
-    private final static String DEFAULT_ERROR_LIMIT_RATE = "0.8";
-    private final static String DEFAULT_BLOCKING_INTERVAL = "60";
     public static AbstractDirtyDataConsumer consumer;
 
     private static ThreadPoolExecutor dirtyDataConsumer;
@@ -77,14 +84,14 @@ public class DirtyDataManager implements Serializable {
             manager.blockingInterval = Long.parseLong(String.valueOf(properties.getOrDefault(DIRTY_BLOCK_STR, DEFAULT_BLOCKING_INTERVAL)));
             manager.errorLimitRate = Double.parseDouble(String.valueOf(properties.getOrDefault(DIRTY_LIMIT_RATE_STR, DEFAULT_ERROR_LIMIT_RATE)));
             consumer = DirtyConsumerFactory.getDirtyConsumer(
-                    properties.getProperty("type")
-                    , properties.getProperty("pluginPath")
-                    , properties.getProperty("pluginLoadMode")
+                    properties.getProperty(PLUGIN_TYPE_STR, DEFAULT_TYPE)
+                    , properties.getProperty(PLUGIN_PATH_STR)
+                    , properties.getProperty(PLUGIN_LOAD_MODE_STR)
             );
             consumer.init(properties);
             consumer.setQueue(new LinkedBlockingQueue<>());
             dirtyDataConsumer = new ThreadPoolExecutor(MAX_POOL_SIZE_LIMIT, MAX_POOL_SIZE_LIMIT, 0, TimeUnit.MILLISECONDS,
-                    new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE), new DTThreadFactory("dirtyDataConsumer"), new ThreadPoolExecutor.CallerRunsPolicy());
+                    new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE), new DTThreadFactory("dirtyDataConsumer", true), new ThreadPoolExecutor.CallerRunsPolicy());
             dirtyDataConsumer.execute(consumer);
             return manager;
         } catch (Exception e) {
@@ -99,8 +106,8 @@ public class DirtyDataManager implements Serializable {
      */
     public static String buildDefaultDirty() {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("type", "console");
-        jsonObject.put("printLimit", "1000");
+        jsonObject.put(PLUGIN_TYPE_STR, DEFAULT_TYPE);
+        jsonObject.put(PRINT_LIMIT_STR, DEFAULT_PRINT_LIMIT);
         return jsonObject.toJSONString();
     }
 
@@ -128,6 +135,8 @@ public class DirtyDataManager implements Serializable {
             LOG.warn("dirty Data insert error ... Failed number: " + errorCount.incrementAndGet());
             LOG.warn("error dirty data:" + dirtyDataEntity.toString());
             if (errorCount.get() > Math.ceil(count.longValue() * errorLimitRate)) {
+                // close consumer and manager
+                close();
                 throw new RuntimeException(String.format("The number of failed number 【%s】 reaches the limit, manager fails", errorCount.get()));
             }
         }
