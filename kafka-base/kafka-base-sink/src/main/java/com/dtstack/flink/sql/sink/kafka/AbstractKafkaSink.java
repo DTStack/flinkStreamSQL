@@ -39,6 +39,7 @@ import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Properties;
@@ -128,8 +129,13 @@ public abstract class AbstractKafkaSink implements RetractStreamTableSink<Row>, 
     }
 
     protected String[] getPartitionKeys(KafkaSinkTableInfo kafkaSinkTableInfo) {
-        if (StringUtils.isNotBlank(kafkaSinkTableInfo.getPartitionKeys())) {
-            return StringUtils.split(kafkaSinkTableInfo.getPartitionKeys(), ',');
+        String keysStr = kafkaSinkTableInfo.getPartitionKeys();
+        if (StringUtils.isNotBlank(keysStr)) {
+            String[] keys = StringUtils.split(keysStr, ",");
+            String[] cleanedKeys = Arrays.stream(keys)
+                .map(x -> x.trim())
+                .toArray(String[]::new);
+            return cleanedKeys;
         }
         return null;
     }
