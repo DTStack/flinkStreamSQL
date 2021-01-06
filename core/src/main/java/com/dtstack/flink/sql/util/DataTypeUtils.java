@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -30,6 +31,8 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.commons.lang3.StringUtils.split;
+
 /**
  * @program: flink.sql
  * @author: wuren
@@ -39,27 +42,12 @@ public class DataTypeUtils {
 
     private final static Pattern COMPOSITE_TYPE_PATTERN = Pattern.compile("(.+?)<(.+)>");
     private final static String ARRAY = "ARRAY";
+    private final static String MAP = "MAP";
     private final static String ROW = "ROW";
     private final static char FIELD_DELIMITER = ',';
     private final static char TYPE_DELIMITER = ' ';
 
     private DataTypeUtils() {}
-
-    /**
-     * 现在只支持ARRAY类型后续可以加入 MAP等类型
-     * @param compositeTypeString
-     * @return
-     */
-    public static TypeInformation convertToCompositeType(String compositeTypeString) {
-        Matcher matcher = matchCompositeType(compositeTypeString);
-        final String errorMsg = "type " + compositeTypeString + "is not support!";
-        Preconditions.checkState(matcher.find(), errorMsg);
-
-        String normalizedType = normalizeType(matcher.group(1));
-        Preconditions.checkState(ARRAY.equals(normalizedType), errorMsg);
-
-        return convertToArray(compositeTypeString);
-    }
 
     /**
      * 目前ARRAY里只支持ROW和其他基本类型
@@ -87,6 +75,30 @@ public class DataTypeUtils {
     }
 
     /**
+     * 目前Map里只支持基本类型
+     * @param mapTypeString
+     * @return
+     */
+    public static TypeInformation convertToMap(String mapTypeString) {
+        Matcher matcher = matchCompositeType(mapTypeString);
+        final String errorMsg =  mapTypeString + "convert to map type error!";
+        Preconditions.checkState(matcher.find(), errorMsg);
+
+        String normalizedType = normalizeType(matcher.group(1));
+        Preconditions.checkState(MAP.equals(normalizedType), errorMsg);
+
+        String kvTypeString = matcher.group(2);
+        String[] kvTypeStringList = StringUtils.split(kvTypeString, ",");
+        final String mapTypeErrorMsg = "There can only be key and value two types in map declaration.";
+        Preconditions.checkState(kvTypeStringList.length == 2, mapTypeErrorMsg);
+        String keyTypeString = normalizeType(kvTypeStringList[0]);
+        String valueTypeString = normalizeType(kvTypeStringList[1]);
+        TypeInformation keyType = convertToAtomicType(keyTypeString);
+        TypeInformation valueType = convertToAtomicType(valueTypeString);
+        return Types.MAP(keyType, valueType);
+    }
+
+    /**
      * 目前ROW里只支持基本类型
      * @param rowTypeString
      */
@@ -103,6 +115,7 @@ public class DataTypeUtils {
         Tuple2<TypeInformation[], String[]> info = genFieldInfo(fieldInfoStrs);
         return new RowTypeInfo(info.f0, info.f1);
     }
+
 
     private static Tuple2<TypeInformation[], String[]> genFieldInfo(Iterable<String> fieldInfoStrs) {
         ArrayList<TypeInformation> types = Lists.newArrayList();

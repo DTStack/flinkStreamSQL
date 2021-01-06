@@ -43,6 +43,8 @@ public class KafkaSourceParser extends AbstractSourceParser {
         KafkaSourceTableInfo kafkaSourceTableInfo = new KafkaSourceTableInfo();
 
         kafkaSourceTableInfo.setName(tableName);
+        parseFieldsInfo(fieldsInfo, kafkaSourceTableInfo);
+
         kafkaSourceTableInfo.setType(MathUtil.getString(props.get(KafkaSourceTableInfo.TYPE_KEY.toLowerCase())));
         kafkaSourceTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(KafkaSourceTableInfo.PARALLELISM_KEY.toLowerCase())));
         kafkaSourceTableInfo.setBootstrapServers(MathUtil.getString(props.get(KafkaSourceTableInfo.BOOTSTRAPSERVERS_KEY.toLowerCase())));

@@ -1,9 +1,9 @@
 ### 1 插件列表
 #### 1.1 源表插件
 * [kafka 源表插件](plugin/kafkaSource.md)
-* [kafka 结果表插件](plugin/kafkaSink.md)
 
 #### 1.2 结果表插件
+* [kafka 结果表插件](plugin/kafkaSink.md)
 * [elasticsearch 结果表插件](plugin/elasticsearchSink.md)
 * [hbase 结果表插件](plugin/hbaseSink.md)
 * [mysql 结果表插件](plugin/mysqlSink.md)

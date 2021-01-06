@@ -19,11 +19,22 @@
 
 package com.dtstack.flink.sql.side.cassandra;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.QueryOptions;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.cassandra.table.CassandraSideTableInfo;
 import com.dtstack.flink.sql.util.RowDataComplete;
@@ -38,7 +49,7 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,7 +160,7 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) throws Exception {
 
         String key = buildCacheKey(inputParams);
         //connect Cassandra
@@ -180,15 +191,15 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
                 cluster.closeAsync();
                 if (rows.size() > 0) {
                     List<com.datastax.driver.core.Row> cacheContent = Lists.newArrayList();
-                    List<Row> rowList = Lists.newArrayList();
+                    List<BaseRow> rowList = Lists.newArrayList();
                     for (com.datastax.driver.core.Row line : rows) {
-                        Row row = fillData(input, line);
+                        BaseRow row = fillData(input, line);
                         if (openCache()) {
                             cacheContent.add(line);
                         }
                         rowList.add(row);
                     }
-                    RowDataComplete.completeRow(resultFuture, rowList);
+                    RowDataComplete.completeBaseRow(resultFuture, rowList);
                     if (openCache()) {
                         putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                     }
@@ -230,11 +241,13 @@ public class CassandraAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public Row fillData(Row input, Object line) {
+    public BaseRow fillData(BaseRow input, Object line) {
+        GenericRow genericRow = (GenericRow) input;
         com.datastax.driver.core.Row rowArray = (com.datastax.driver.core.Row) line;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
+        row.setHeader(genericRow.getHeader());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }

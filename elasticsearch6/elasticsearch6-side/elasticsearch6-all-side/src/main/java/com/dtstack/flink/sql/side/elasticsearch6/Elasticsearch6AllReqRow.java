@@ -30,8 +30,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -71,10 +71,11 @@ public class Elasticsearch6AllReqRow extends BaseAllReqRow implements Serializab
     }
 
     @Override
-    public void flatMap(Row value, Collector<BaseRow> out) throws Exception {
+    public void flatMap(BaseRow value, Collector<BaseRow> out) throws Exception {
+        GenericRow genericRow = (GenericRow) value;
         List<Object> inputParams = Lists.newArrayList();
         for (Integer conValIndex : sideInfo.getEqualValIndex()) {
-            Object equalObj = value.getField(conValIndex);
+            Object equalObj = genericRow.getField(conValIndex);
             if (equalObj == null) {
                 sendOutputRow(value, null, out);
                 return;
@@ -96,11 +97,13 @@ public class Elasticsearch6AllReqRow extends BaseAllReqRow implements Serializab
     }
 
     @Override
-    public Row fillData(Row input, Object sideInput) {
+    public BaseRow fillData(BaseRow input, Object sideInput) {
+        GenericRow genericRow = (GenericRow) input;
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
+        row.setHeader(input.getHeader());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             //Type information for indicating event or processing time. However, it behaves like a regular SQL timestamp but is serialized as Long.
