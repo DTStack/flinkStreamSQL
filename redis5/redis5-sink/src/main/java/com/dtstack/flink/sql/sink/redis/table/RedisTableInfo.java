@@ -49,6 +49,8 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
 
     public static final String PRIMARY_KEYS_NAME = "primarykeys";
 
+    public static final String KEY_EXPIRED_TIME = "keyExpiredTime";
+
     public RedisTableInfo(){
         setType(CURR_TYPE);
     }
@@ -72,6 +74,8 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
     private int redisType;
 
     private String masterName;
+
+    private int keyExpiredTime;
 
     public String getUrl() {
         return url;
@@ -151,6 +155,14 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
 
     public void setMasterName(String masterName) {
         this.masterName = masterName;
+    }
+
+    public int getKeyExpiredTime() {
+        return keyExpiredTime;
+    }
+
+    public void setKeyExpiredTime(int keyExpiredTime) {
+        this.keyExpiredTime = keyExpiredTime;
     }
 
     @Override

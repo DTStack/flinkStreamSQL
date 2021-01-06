@@ -47,19 +47,35 @@ import java.util.Set;
  */
 public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
+
     protected String[] fieldNames;
+
     protected TypeInformation<?>[] fieldTypes;
+
     protected List<String> primaryKeys;
+
     protected int timeout = 10000;
+
     private String url;
+
     private String database = "0";
+
     private String tableName;
+
     private String password;
+
     private int redisType;
+
     private String maxTotal;
+
     private String maxIdle;
+
     private String minIdle;
+
     private String masterName;
+
+    protected int keyExpiredTime;
+
     private JedisPool pool;
 
     private JedisCommands jedis;
@@ -146,13 +162,29 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         for (int i = 0; i < fieldNames.length; i++) {
             refData.put(fieldNames[i], row.getField(i));
         }
-        String redisKey = buildCacheKey(refData);
-        refData.forEach((key, value) -> jedis.hset(redisKey, key, String.valueOf(value)));
-
+        save(refData);
         if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
             LOG.info(record.toString());
         }
         outRecords.inc();
+    }
+
+
+    /**
+     *  1. build key from map.
+     *  2. save key and value.
+     *  3. set expired time for key when keyExpiredTime has been set.
+     * @param refData
+     */
+    private synchronized void save(Map<String, Object> refData) {
+        String key = buildCacheKey(refData);
+        try {
+            refData.forEach((field, value) -> jedis.hset(key, field, String.valueOf(value)));
+        } finally {
+            if (keyExpiredTime != 0) {
+                jedis.expire(key, keyExpiredTime);
+            }
+        }
     }
 
     @Override
@@ -251,6 +283,11 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
         public RedisOutputFormatBuilder setMasterName(String masterName) {
             redisOutputFormat.masterName = masterName;
+            return this;
+        }
+
+        public RedisOutputFormatBuilder setKeyExpiredTime(int keyExpiredTime){
+            redisOutputFormat.keyExpiredTime = keyExpiredTime;
             return this;
         }
 
