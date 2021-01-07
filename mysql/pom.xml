@@ -16,6 +16,7 @@
     <modules>
         <module>mysql-sink</module>
         <module>mysql-side</module>
+        <module>mysql-source</module>
     </modules>
 
     <properties>
