@@ -33,7 +33,6 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.types.Row;
-import org.apache.flink.table.dataformat.BaseRow;
 import org.hbase.async.BinaryPrefixComparator;
 import org.hbase.async.Bytes;
 import org.hbase.async.CompareFilter;
@@ -46,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

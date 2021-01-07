@@ -21,29 +21,30 @@ package com.dtstack.flink.sql.side;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
-import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.table.dataformat.GenericRow;
+import org.apache.flink.types.Row;
 
 /**
  * Date: 2020/3/25
  * Company: www.dtstack.com
  * @author maqi
  */
-public class TupleKeySelector implements ResultTypeQueryable<BaseRow>, KeySelector<BaseRow, BaseRow> {
+public class TupleKeySelector implements ResultTypeQueryable<Row>, KeySelector<Row, Row> {
 
-    private TypeInformation<BaseRow> returnType;
+    private int[] keyFields;
+    private TypeInformation<Row> returnType;
 
-    public TupleKeySelector(TypeInformation<BaseRow> returnType) {
+    public TupleKeySelector(int[] keyFields, TypeInformation<Row> returnType) {
+        this.keyFields = keyFields;
         this.returnType = returnType;
     }
 
     @Override
-    public BaseRow getKey(BaseRow value) throws Exception {
-        return GenericRow.copyReference((GenericRow)value);
+    public Row getKey(Row value) throws Exception {
+        return Row.project(value, keyFields);
     }
 
     @Override
-    public TypeInformation<BaseRow> getProducedType() {
+    public TypeInformation<Row> getProducedType() {
         return returnType;
     }
 }

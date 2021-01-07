@@ -21,9 +21,8 @@ package com.dtstack.flink.sql.side.redis.table;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.ISideReqRow;
 import com.dtstack.flink.sql.util.TableUtils;
-import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
+import org.apache.flink.types.Row;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -54,13 +53,11 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
     }
 
     @Override
-    public BaseRow fillData(BaseRow input, Object sideInput) {
-        GenericRow genericRow = (GenericRow) input;
+    public Row fillData(Row input, Object sideInput) {
         Map<String, String> sideInputMap = (Map<String, String>) sideInput;
-        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
-        row.setHeader(input.getHeader());
+        Row row = new Row(sideInfo.getOutFieldInfoList().size());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
-            Object obj = genericRow.getField(entry.getValue());
+            Object obj = input.getField(entry.getValue());
             boolean isTimeIndicatorTypeInfo = TimeIndicatorTypeInfo.class.isAssignableFrom(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass());
 
             if(obj instanceof LocalDateTime && isTimeIndicatorTypeInfo){
@@ -94,7 +91,7 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
         return keyBuilder.toString();
     }
 
-    public void setRowField(GenericRow row, Integer index, BaseSideInfo sideInfo, String value) {
+    public void setRowField(Row row, Integer index, BaseSideInfo sideInfo, String value) {
         Integer keyIndex = sideInfo.getSideFieldIndex().get(index);
         String classType = sideInfo.getSideTableInfo().getFieldClassList().get(keyIndex).getName();
         switch (classType){
