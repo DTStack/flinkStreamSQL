@@ -60,6 +60,6 @@ public class SideWithAllCacheOperator {
     public static DataStream getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo, JoinInfo joinInfo,
                                                    List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo, String pluginLoadMode) throws Exception {
         BaseAllReqRow allReqRow = loadFlatMap(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo, pluginLoadMode);
-        return inputStream.flatMap(allReqRow);
+        return inputStream.flatMap(allReqRow).setParallelism(sideTableInfo.getParallelism());
     }
 }
