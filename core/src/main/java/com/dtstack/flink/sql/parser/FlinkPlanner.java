@@ -40,6 +40,7 @@ import static org.apache.calcite.jdbc.CalciteSchemaBuilder.asRootSchema;
  * Company: www.dtstack.com
  * @author maqi
  */
+@Deprecated
 public class FlinkPlanner {
 
     private final TableConfig tableConfig = new TableConfig();
@@ -54,7 +55,8 @@ public class FlinkPlanner {
             catalogManager,
             moduleManager);
     private final PlannerContext plannerContext =
-            new PlannerContext(tableConfig,
+            new PlannerContext(
+                    tableConfig,
                     functionCatalog,
                     catalogManager,
                     asRootSchema(new CatalogManagerCalciteSchema(catalogManager, false)),

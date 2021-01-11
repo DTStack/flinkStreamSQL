@@ -28,6 +28,7 @@ import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
 import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.ParseUtils;
+import com.dtstack.flink.sql.util.RowDataConvert;
 import com.dtstack.flink.sql.util.TableUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
@@ -49,11 +50,9 @@ import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
-import org.apache.flink.table.catalog.ObjectIdentifier;
+import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
 import org.apache.flink.table.runtime.typeutils.BigDecimalTypeInfo;
 import org.apache.flink.table.runtime.typeutils.LegacyLocalDateTimeTypeInfo;
@@ -62,7 +61,6 @@ import org.apache.flink.table.types.logical.LegacyTypeInformationType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.TimestampType;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,10 +71,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.calcite.sql.SqlKind.AS;
 import static org.apache.calcite.sql.SqlKind.INSERT;
@@ -528,19 +524,17 @@ public class SideSqlExec {
 
         RowTypeInfo typeInfo = new RowTypeInfo(fieldDataTypes, targetTable.getSchema().getFieldNames());
 
-        DataStream adaptStream = tableEnv.toRetractStream(targetTable, typeInfo)
+        DataStream<BaseRow> adaptStream = tableEnv.toRetractStream(targetTable, typeInfo)
                 .filter(f -> f.f0)
-                .map(f -> f.f1);
+                .map(f -> RowDataConvert.convertToBaseRow(f));
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
         if (sideTableInfo.isPartitionedJoin()) {
-            List<String> leftJoinColList = getConditionFields(joinInfo.getCondition(), joinInfo.getLeftTableAlias(), sideTableInfo);
-            List<String> fieldNames = Arrays.asList(targetTable.getSchema().getFieldNames());
-            int[] keyIndex = leftJoinColList.stream().mapToInt(fieldNames::indexOf).toArray();
-            adaptStream = adaptStream.keyBy(new TupleKeySelector(keyIndex, projectedTypeInfo(keyIndex, targetTable.getSchema())));
+            // TODO need change
+            // adaptStream = adaptStream.keyBy(new TupleKeySelector(leftBaseTypeInfo));
         }
 
-        DataStream dsOut = null;
+        DataStream<BaseRow> dsOut = null;
         if(ECacheType.ALL.name().equalsIgnoreCase(sideTableInfo.getCacheType())){
             dsOut = SideWithAllCacheOperator.getSideJoinDataStream(adaptStream, sideTableInfo.getType(), localSqlPluginPath, typeInfo, joinInfo, sideJoinFieldInfo, sideTableInfo, pluginLoadMode);
         }else{
@@ -559,10 +553,6 @@ public class SideSqlExec {
         replaceInfo.setTargetTableName(targetTableName);
         replaceInfo.setTargetTableAlias(targetTableAlias);
 
-        ObjectIdentifier objectIdentifier = ObjectIdentifier.of(
-                EnvironmentSettings.DEFAULT_BUILTIN_CATALOG,
-                EnvironmentSettings.DEFAULT_BUILTIN_DATABASE,
-                targetTableName);
         boolean tableExists = false;
         for (String table : tableEnv.listTables()) {
             if (table.equals(targetTableName)) {
@@ -577,16 +567,6 @@ public class SideSqlExec {
             localTableCache.put(joinInfo.getNewTableName(), joinTable);
         }
     }
-
-    private TypeInformation<Row> projectedTypeInfo(int[] fields, TableSchema schema) {
-        String[] fieldNames = schema.getFieldNames();
-        TypeInformation<?>[] fieldTypes = schema.getFieldTypes();
-
-        String[] projectedNames = Arrays.stream(fields).mapToObj(i -> fieldNames[i]).toArray(String[]::new);
-        TypeInformation[] projectedTypes = Arrays.stream(fields).mapToObj(i -> fieldTypes[i]).toArray(TypeInformation[]::new);
-        return new RowTypeInfo(projectedTypes, projectedNames);
-    }
-
 
     private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table) {
         List<String> fieldNames = new LinkedList<>();

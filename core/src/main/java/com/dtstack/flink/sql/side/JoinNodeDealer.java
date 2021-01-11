@@ -551,16 +551,13 @@ public class JoinNodeDealer {
         if (  AGGREGATE.contains(condition.getKind())
                 || AVG_AGG_FUNCTIONS.contains(joinKind)
                 || COMPARISON.contains(joinKind)
-                || joinKind == OTHER_FUNCTION
-                || joinKind == DIVIDE
-                || joinKind == CAST
-                || joinKind == TRIM
-                || joinKind == TIMES
-                || joinKind == PLUS
+                || FUNCTION.contains(joinKind)
+                || COVAR_AVG_AGG_FUNCTIONS.contains(joinKind)
+                || BINARY_ARITHMETIC.contains(joinKind)
+                || BINARY_COMPARISON.contains(joinKind)
                 || joinKind == NOT_IN
                 || joinKind == OR
                 || joinKind == AND
-                || joinKind == MINUS
                 || joinKind == TUMBLE
                 || joinKind == TUMBLE_START
                 || joinKind == TUMBLE_END
@@ -578,7 +575,7 @@ public class JoinNodeDealer {
                 || joinKind == TIMESTAMP_DIFF
                 || joinKind == LIKE
                 || joinKind == COALESCE
-                || joinKind == EQUALS ){
+        ){
 
             SqlBasicCall sqlBasicCall = (SqlBasicCall) condition;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
@@ -632,16 +629,13 @@ public class JoinNodeDealer {
         }else if(  AGGREGATE.contains(selectNode.getKind())
                 || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
                 || COMPARISON.contains(selectNode.getKind())
-                || selectNode.getKind() == OTHER_FUNCTION
-                || selectNode.getKind() == DIVIDE
-                || selectNode.getKind() == CAST
-                || selectNode.getKind() == TRIM
-                || selectNode.getKind() == TIMES
-                || selectNode.getKind() == PLUS
+                || FUNCTION.contains(selectNode.getKind())
+                || COVAR_AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
+                || BINARY_ARITHMETIC.contains(selectNode.getKind())
+                || BINARY_COMPARISON.contains(selectNode.getKind())
                 || selectNode.getKind() == NOT_IN
                 || selectNode.getKind() == OR
                 || selectNode.getKind() == AND
-                || selectNode.getKind() == MINUS
                 || selectNode.getKind() == TUMBLE
                 || selectNode.getKind() == TUMBLE_START
                 || selectNode.getKind() == TUMBLE_END
@@ -906,19 +900,16 @@ public class JoinNodeDealer {
     private SqlIdentifier checkAndReplaceJoinCondition(SqlNode node, Map<String, String> tableMap){
 
         SqlKind joinKind = node.getKind();
-        if(   AGGREGATE.contains(joinKind)
+        if(AGGREGATE.contains(joinKind)
                 || AVG_AGG_FUNCTIONS.contains(joinKind)
                 || COMPARISON.contains(joinKind)
-                || joinKind == OTHER_FUNCTION
-                || joinKind == DIVIDE
-                || joinKind == CAST
-                || joinKind == TRIM
-                || joinKind == TIMES
-                || joinKind == PLUS
+                || FUNCTION.contains(joinKind)
+                || COVAR_AVG_AGG_FUNCTIONS.contains(joinKind)
+                || BINARY_ARITHMETIC.contains(joinKind)
+                || BINARY_COMPARISON.contains(joinKind)
                 || joinKind == NOT_IN
                 || joinKind == OR
                 || joinKind == AND
-                || joinKind == MINUS
                 || joinKind == TUMBLE
                 || joinKind == TUMBLE_START
                 || joinKind == TUMBLE_END
@@ -935,8 +926,7 @@ public class JoinNodeDealer {
                 || joinKind == TIMESTAMP_ADD
                 || joinKind == TIMESTAMP_DIFF
                 || joinKind == LIKE
-                || joinKind == COALESCE
-                || joinKind == EQUALS ){
+                || joinKind == COALESCE ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) node;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
                 SqlNode sqlNode = sqlBasicCall.getOperands()[i];
