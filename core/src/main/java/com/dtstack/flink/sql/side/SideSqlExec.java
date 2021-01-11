@@ -525,6 +525,7 @@ public class SideSqlExec {
         RowTypeInfo typeInfo = new RowTypeInfo(fieldDataTypes, targetTable.getSchema().getFieldNames());
 
         DataStream<BaseRow> adaptStream = tableEnv.toRetractStream(targetTable, typeInfo)
+                .filter(f -> f.f0)
                 .map(f -> RowDataConvert.convertToBaseRow(f));
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async

@@ -442,7 +442,7 @@ public class QueryOperationConverter extends QueryOperationDefaultVisitor<RelNod
                     rowType,
                     dataStream,
                     false,
-                    true,
+                    false,
                     fieldIndices,
                     tableSchema.getFieldNames(),
                     FlinkStatistic.UNKNOWN(),
