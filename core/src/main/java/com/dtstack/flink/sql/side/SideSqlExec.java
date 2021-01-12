@@ -60,12 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 import static org.apache.calcite.sql.SqlKind.*;
 
@@ -351,7 +346,7 @@ public class SideSqlExec {
 
         FieldReplaceInfo fieldReplaceInfo = parseAsQuery((SqlBasicCall) pollSqlNode, tableCache);
         if(fieldReplaceInfo == null){
-           return;
+            return;
         }
 
         //as 的源表
@@ -359,6 +354,77 @@ public class SideSqlExec {
         SqlNode fromNode = ((SqlBasicCall)pollSqlNode).getOperands()[0];
         TableUtils.getFromTableInfo(fromNode, fromTableNameSet);
 
+    }
+
+    /**
+     * check whether all table fields exist in join condition.
+     * @param conditionNode
+     * @param joinScope
+     */
+    public void checkConditionFieldsInTable(SqlNode conditionNode, JoinScope joinScope, AbstractSideTableInfo sideTableInfo) {
+        List<SqlNode> sqlNodeList = Lists.newArrayList();
+        ParseUtils.parseAnd(conditionNode, sqlNodeList);
+        for (SqlNode sqlNode : sqlNodeList) {
+            if (!SqlKind.COMPARISON.contains(sqlNode.getKind())) {
+                throw new RuntimeException("It is not comparison operator.");
+            }
+
+            SqlNode leftNode = ((SqlBasicCall) sqlNode).getOperands()[0];
+            SqlNode rightNode = ((SqlBasicCall) sqlNode).getOperands()[1];
+
+            if (leftNode.getKind() == SqlKind.IDENTIFIER) {
+                checkFieldInTable((SqlIdentifier) leftNode, joinScope, conditionNode, sideTableInfo);
+            }
+
+            if (rightNode.getKind() == SqlKind.IDENTIFIER) {
+                checkFieldInTable((SqlIdentifier) rightNode, joinScope, conditionNode, sideTableInfo);
+            }
+
+        }
+    }
+
+    /**
+     * check whether table exists and whether field is in table.
+     * @param sqlNode
+     * @param joinScope
+     * @param conditionNode
+     */
+    private void checkFieldInTable(SqlIdentifier sqlNode, JoinScope joinScope, SqlNode conditionNode,  AbstractSideTableInfo sideTableInfo) {
+        String tableName = sqlNode.getComponent(0).getSimple();
+        String fieldName = sqlNode.getComponent(1).getSimple();
+        JoinScope.ScopeChild scopeChild = joinScope.getScope(tableName);
+        String tableErrorMsg = "Table [%s] is not exist. Error condition is [%s]. If you find [%s] is exist. Please check AS statement.";
+        Preconditions.checkState(
+                scopeChild != null,
+                tableErrorMsg,
+                tableName,
+                conditionNode.toString(),
+                tableName
+        );
+
+        String[] fieldNames = scopeChild.getRowTypeInfo().getFieldNames();
+        ArrayList<String> allFieldNames = new ArrayList(
+                Arrays.asList(fieldNames)
+        );
+        // HBase、Redis这种NoSQL Primary Key不在字段列表中，所以要加进去。
+        if (sideTableInfo != null) {
+            List<String> pks = sideTableInfo.getPrimaryKeys();
+            if (pks != null) {
+                pks.stream()
+                        .filter(pk -> !allFieldNames.contains(pk))
+                        .forEach(pk -> allFieldNames.add(pk));
+            }
+        }
+
+        boolean hasField = allFieldNames.contains(fieldName);
+        String fieldErrorMsg = "Table [%s] has not [%s] field. Error join condition is [%s]. If you find it is exist. Please check AS statement.";
+        Preconditions.checkState(
+                hasField,
+                fieldErrorMsg,
+                tableName,
+                fieldName,
+                conditionNode.toString()
+        );
     }
 
     private void joinFun(Object pollObj,
@@ -394,6 +460,9 @@ public class SideSqlExec {
         joinScope.addScope(rightScopeChild);
 
         HashBasedTable<String, String, String> mappingTable = ((JoinInfo) pollObj).getTableFieldRef();
+
+        // verify whether join's columns exists in table.
+        checkConditionFieldsInTable(joinInfo.getCondition(), joinScope, sideTableInfo);
 
         //获取两个表的所有字段
         List<FieldInfo> sideJoinFieldInfo = ParserJoinField.getRowTypeInfo(joinInfo.getSelectNode(), joinScope, true);
