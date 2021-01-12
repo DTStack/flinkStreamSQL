@@ -59,7 +59,6 @@ import java.util.concurrent.TimeUnit;
 public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean, Row>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseOutputFormat.class);
-    private final List<Row> records = new ArrayList<>();
     private String host;
     private String zkParent;
     private String rowkey;
@@ -79,6 +78,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     private transient Connection conn;
     private transient Table table;
     private transient ChoreService choreService;
+    private transient List<Row> records;
+    private transient volatile boolean closed = false;
     /**
      * 批量写入的参数
      */
@@ -106,6 +107,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         LOG.warn("---open---");
+        records = new ArrayList<>();
         conf = HBaseConfiguration.create();
         openConn();
         table = conn.getTable(TableName.valueOf(tableName));
@@ -145,10 +147,9 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
 
                 this.scheduledFuture = this.scheduler.scheduleWithFixedDelay(
                         () -> {
-                            synchronized (this) {
+                            synchronized (HbaseOutputFormat.this) {
                                 if (!records.isEmpty()) {
                                     dealBatchOperation(records);
-                                    records.clear();
                                 }
                             }
                         }, batchWaitInterval, batchWaitInterval, TimeUnit.MILLISECONDS
@@ -198,7 +199,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     public void writeRecord(Tuple2<Boolean, Row> record) {
         if (record.f0) {
             if (this.batchSize != 0) {
-                writeBatchRecord(Row.copy(record.f1));
+                writeBatchRecord(record.f1);
             } else {
                 dealInsert(record.f1);
             }
@@ -210,12 +211,10 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
         // 数据累计到batchSize之后开始处理
         if (records.size() == this.batchSize) {
             dealBatchOperation(records);
-            // 添加完数据之后数据清空records
-            records.clear();
         }
     }
 
-    protected void dealBatchOperation(List<Row> records) {
+    protected synchronized void dealBatchOperation(List<Row> records) {
         // A null in the result array means that the call for that action failed, even after retries.
         Object[] results = new Object[records.size()];
         try {
@@ -245,6 +244,9 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             }
         } catch (IOException | InterruptedException e) {
             LOG.error("", e);
+        } finally {
+            // 添加完数据之后数据清空records
+            records.clear();
         }
     }
 
@@ -318,7 +320,12 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
+        if (closed) {
+            return;
+        }
+
+        closed = true;
         if (!records.isEmpty()) {
             dealBatchOperation(records);
         }
@@ -334,7 +341,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             conn.close();
             conn = null;
         }
-
     }
 
     private void fillSyncKerberosConfig(org.apache.hadoop.conf.Configuration config,
