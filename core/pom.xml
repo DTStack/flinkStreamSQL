@@ -17,7 +17,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.package.name>core</project.package.name>
-        <calcite.server.version>1.16.0</calcite.server.version>
         <jackson.version>2.7.9</jackson.version>
         <guava.version>19.0</guava.version>
         <logger.tool.version>1.0.0-SNAPSHOT</logger.tool.version>
@@ -79,20 +78,6 @@
             <version>${flink.version}</version>
         </dependency>
 
-
-        <dependency>
-            <groupId>org.apache.calcite</groupId>
-            <artifactId>calcite-server</artifactId>
-            <!-- When updating the Calcite version, make sure to update the dependency exclusions -->
-            <version>${calcite.server.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jackson-databind</artifactId>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -122,6 +107,12 @@
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
             <version>2.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
         </dependency>
     </dependencies>
 

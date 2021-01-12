@@ -17,19 +17,19 @@
  */
 
 
-
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.enums.PlannerType;
 import com.dtstack.flink.sql.util.DtStringUtil;
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSnapshot;
-import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlMatchRecognize;
-import com.google.common.collect.Lists;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSnapshot;
+
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,6 +40,7 @@ import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
  * parser create tmp table sql
  * Date: 2018/6/26
  * Company: www.dtstack.com
+ *
  * @author yanxi
  */
 public class CreateTmpTableParser implements IParser {
@@ -53,15 +54,79 @@ public class CreateTmpTableParser implements IParser {
 
     private static final Pattern EMPTYVIEW = Pattern.compile(EMPTY_STR);
 
-    private FlinkPlanner flinkPlanner = new FlinkPlanner();
+    private final FlinkPlanner flinkPlanner = new FlinkPlanner();
 
-    public static CreateTmpTableParser newInstance(){
+    public static CreateTmpTableParser newInstance() {
         return new CreateTmpTableParser();
+    }
+
+    private static void parseNode(SqlNode sqlNode, CreateTmpTableParser.SqlParserResult sqlParseResult) {
+        SqlKind sqlKind = sqlNode.getKind();
+        switch (sqlKind) {
+            case SELECT:
+                SqlNode sqlFrom = ((SqlSelect) sqlNode).getFrom();
+                if (sqlFrom.getKind() == IDENTIFIER) {
+                    sqlParseResult.addSourceTable(sqlFrom.toString());
+                } else {
+                    parseNode(sqlFrom, sqlParseResult);
+                }
+                break;
+            case JOIN:
+                SqlNode leftNode = ((SqlJoin) sqlNode).getLeft();
+                SqlNode rightNode = ((SqlJoin) sqlNode).getRight();
+
+                if (leftNode.getKind() == IDENTIFIER) {
+                    sqlParseResult.addSourceTable(leftNode.toString());
+                } else {
+                    parseNode(leftNode, sqlParseResult);
+                }
+
+                if (rightNode.getKind() == IDENTIFIER) {
+                    sqlParseResult.addSourceTable(rightNode.toString());
+                } else {
+                    parseNode(rightNode, sqlParseResult);
+                }
+                break;
+            case AS:
+                //不解析column,所以 as 相关的都是表
+                SqlNode identifierNode = ((SqlBasicCall) sqlNode).getOperands()[0];
+                if (identifierNode.getKind() != IDENTIFIER) {
+                    parseNode(identifierNode, sqlParseResult);
+                } else {
+                    sqlParseResult.addSourceTable(identifierNode.toString());
+                }
+                break;
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
+                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
+                if (unionLeft.getKind() == IDENTIFIER) {
+                    sqlParseResult.addSourceTable(unionLeft.toString());
+                } else {
+                    parseNode(unionLeft, sqlParseResult);
+                }
+                if (unionRight.getKind() == IDENTIFIER) {
+                    sqlParseResult.addSourceTable(unionRight.toString());
+                } else {
+                    parseNode(unionRight, sqlParseResult);
+                }
+                break;
+            case MATCH_RECOGNIZE:
+                SqlMatchRecognize node = (SqlMatchRecognize) sqlNode;
+                sqlParseResult.addSourceTable(node.getTableRef().toString());
+                break;
+            case SNAPSHOT:
+                SqlSnapshot sqlSnapshot = (SqlSnapshot) sqlNode;
+                sqlParseResult.addSourceTable(sqlSnapshot.getTableRef().toString());
+                break;
+            default:
+                //do nothing
+                break;
+        }
     }
 
     @Override
     public boolean verify(String sql) {
-        if (Pattern.compile(EMPTY_STR).matcher(sql).find()){
+        if (Pattern.compile(EMPTY_STR).matcher(sql).find()) {
             return true;
         }
         return TEMPORARYVIEW.matcher(sql).find();
@@ -69,11 +134,11 @@ public class CreateTmpTableParser implements IParser {
 
     @Override
     public void parseSql(String sql, SqlTree sqlTree, String planner) {
-        if (TEMPORARYVIEW.matcher(sql).find()){
+        if (TEMPORARYVIEW.matcher(sql).find()) {
             Matcher matcher = TEMPORARYVIEW.matcher(sql);
             String tableName = null;
             String selectSql = null;
-            if(matcher.find()) {
+            if (matcher.find()) {
                 tableName = matcher.group(3);
                 selectSql = "select " + matcher.group(4);
             }
@@ -101,7 +166,7 @@ public class CreateTmpTableParser implements IParser {
                 Matcher matcher = EMPTYVIEW.matcher(sql);
                 String tableName = null;
                 String fieldsInfoStr = null;
-                if (matcher.find()){
+                if (matcher.find()) {
                     tableName = matcher.group(1);
                     fieldsInfoStr = matcher.group(2);
                 }
@@ -111,71 +176,6 @@ public class CreateTmpTableParser implements IParser {
                 sqlTree.addTmplTableInfo(tableName, sqlParseResult);
             }
 
-        }
-
-    }
-
-    private static void parseNode(SqlNode sqlNode, CreateTmpTableParser.SqlParserResult sqlParseResult){
-        SqlKind sqlKind = sqlNode.getKind();
-        switch (sqlKind){
-            case SELECT:
-                SqlNode sqlFrom = ((SqlSelect)sqlNode).getFrom();
-                if(sqlFrom.getKind() == IDENTIFIER){
-                    sqlParseResult.addSourceTable(sqlFrom.toString());
-                }else{
-                    parseNode(sqlFrom, sqlParseResult);
-                }
-                break;
-            case JOIN:
-                SqlNode leftNode = ((SqlJoin)sqlNode).getLeft();
-                SqlNode rightNode = ((SqlJoin)sqlNode).getRight();
-
-                if(leftNode.getKind() == IDENTIFIER){
-                    sqlParseResult.addSourceTable(leftNode.toString());
-                }else{
-                    parseNode(leftNode, sqlParseResult);
-                }
-
-                if(rightNode.getKind() == IDENTIFIER){
-                    sqlParseResult.addSourceTable(rightNode.toString());
-                }else{
-                    parseNode(rightNode, sqlParseResult);
-                }
-                break;
-            case AS:
-                //不解析column,所以 as 相关的都是表
-                SqlNode identifierNode = ((SqlBasicCall)sqlNode).getOperands()[0];
-                if(identifierNode.getKind() != IDENTIFIER){
-                    parseNode(identifierNode, sqlParseResult);
-                }else {
-                    sqlParseResult.addSourceTable(identifierNode.toString());
-                }
-                break;
-            case UNION:
-                SqlNode unionLeft = ((SqlBasicCall)sqlNode).getOperands()[0];
-                SqlNode unionRight = ((SqlBasicCall)sqlNode).getOperands()[1];
-                if(unionLeft.getKind() == IDENTIFIER){
-                    sqlParseResult.addSourceTable(unionLeft.toString());
-                }else{
-                    parseNode(unionLeft, sqlParseResult);
-                }
-                if(unionRight.getKind() == IDENTIFIER){
-                    sqlParseResult.addSourceTable(unionRight.toString());
-                }else{
-                    parseNode(unionRight, sqlParseResult);
-                }
-                break;
-            case MATCH_RECOGNIZE:
-                SqlMatchRecognize node = (SqlMatchRecognize) sqlNode;
-                sqlParseResult.addSourceTable(node.getTableRef().toString());
-                break;
-            case SNAPSHOT:
-                SqlSnapshot sqlSnapshot = (SqlSnapshot) sqlNode;
-                sqlParseResult.addSourceTable(sqlSnapshot.getTableRef().toString());
-                break;
-            default:
-                //do nothing
-                break;
         }
     }
 
@@ -212,13 +212,12 @@ public class CreateTmpTableParser implements IParser {
             this.fieldsInfoStr = fieldsInfoStr;
         }
 
-        public void addSourceTable(String sourceTable){
+        public void addSourceTable(String sourceTable) {
             sourceTableList.add(sourceTable);
         }
 
         public List<String> getSourceTableList() {
             return sourceTableList;
         }
-
     }
 }

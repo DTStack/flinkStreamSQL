@@ -20,13 +20,12 @@
 
 package com.dtstack.flink.sql.util;
 
-import com.dtstack.flink.sql.classloader.DtClassLoader;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
-import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

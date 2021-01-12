@@ -18,8 +18,8 @@
 
 package com.dtstack.flink.sql.side.redis.table;
 
-import com.dtstack.flink.sql.side.ISideReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
+import com.dtstack.flink.sql.side.ISideReqRow;
 import com.dtstack.flink.sql.util.TableUtils;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;

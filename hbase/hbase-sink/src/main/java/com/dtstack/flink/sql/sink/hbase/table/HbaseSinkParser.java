@@ -74,27 +74,26 @@ public class HbaseSinkParser extends AbstractTableParser {
         HbaseTableInfo hbaseTableInfo = new HbaseTableInfo();
         hbaseTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, hbaseTableInfo);
-        hbaseTableInfo.setTableName((String) props.get(TABLE_NAME_KEY.toLowerCase()));
+        hbaseTableInfo.setTableName(MathUtil.getString(props.get(TABLE_NAME_KEY.toLowerCase())));
         hbaseTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(PARALLELISM_KEY.toLowerCase())));
-        hbaseTableInfo.setHost((String) props.get(HBASE_ZOOKEEPER_QUORUM.toLowerCase()));
-        hbaseTableInfo.setParent((String)props.get(ZOOKEEPER_PARENT.toLowerCase()));
-        String rk = (String) props.get(HBASE_ROWKEY.toLowerCase());
+        hbaseTableInfo.setHost(MathUtil.getString(props.get(HBASE_ZOOKEEPER_QUORUM.toLowerCase())));
+        hbaseTableInfo.setParent(MathUtil.getString(props.get(ZOOKEEPER_PARENT.toLowerCase())));
+        String rk = MathUtil.getString(props.get(HBASE_ROWKEY.toLowerCase()));
         hbaseTableInfo.setRowkey(rk);
-        String updateMode = (String) props.getOrDefault(UPDATE_KEY, EUpdateMode.APPEND.name());
+        String updateMode = MathUtil.getString(props.getOrDefault(UPDATE_KEY, EUpdateMode.APPEND.name()));
         hbaseTableInfo.setUpdateMode(updateMode);
 
         hbaseTableInfo.setKerberosAuthEnable(MathUtil.getBoolean(props.get(KERBEROS_AUTH_ENABLE_KEY.toLowerCase()), false));
-        hbaseTableInfo.setRegionserverKeytabFile((String) props.get(REGIONSERVER_KEYTAB_FILE_KEY.toLowerCase()));
-        hbaseTableInfo.setRegionserverPrincipal((String) props.get(REGIONSERVER_PRINCIPAL_KEY.toLowerCase()));
-        hbaseTableInfo.setSecurityKrb5Conf((String) props.get(SECURITY_KRB5_CONF_KEY.toLowerCase()));
-        hbaseTableInfo.setZookeeperSaslClient((String) props.get(ZOOKEEPER_SASL_CLINT_KEY.toLowerCase()));
+        hbaseTableInfo.setRegionserverKeytabFile(MathUtil.getString(props.get(REGIONSERVER_KEYTAB_FILE_KEY.toLowerCase())));
+        hbaseTableInfo.setRegionserverPrincipal((MathUtil.getString(props.get(REGIONSERVER_PRINCIPAL_KEY.toLowerCase()))));
+        hbaseTableInfo.setSecurityKrb5Conf(MathUtil.getString(props.get(SECURITY_KRB5_CONF_KEY.toLowerCase())));
+        hbaseTableInfo.setZookeeperSaslClient(MathUtil.getString(props.get(ZOOKEEPER_SASL_CLINT_KEY.toLowerCase())));
 
-        hbaseTableInfo.setClientPrincipal((String) props.get(CLIENT_PRINCIPAL_KEY.toLowerCase()));
-        hbaseTableInfo.setClientKeytabFile((String) props.get(CLIENT_KEYTABFILE_KEY.toLowerCase()));
+        hbaseTableInfo.setClientPrincipal(MathUtil.getString(props.get(CLIENT_PRINCIPAL_KEY.toLowerCase())));
+        hbaseTableInfo.setClientKeytabFile(MathUtil.getString(props.get(CLIENT_KEYTABFILE_KEY.toLowerCase())));
 
         hbaseTableInfo.setBatchSize(MathUtil.getString(props.getOrDefault(BATCH_SIZE.toLowerCase(), "100")));
         hbaseTableInfo.setBatchWaitInterval(MathUtil.getString(props.getOrDefault(BATCH_WAIT_INTERVAL.toLowerCase(), "1000")));
-
         return hbaseTableInfo;
     }
 

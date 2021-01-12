@@ -72,7 +72,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public final static int DEFAULT_DB_CONN_POOL_SIZE = DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE + DEFAULT_VERTX_WORKER_POOL_SIZE;
 
-    public final static int MAX_DB_CONN_POOL_SIZE_LIMIT = 20;
+    public final static int MAX_DB_CONN_POOL_SIZE_LIMIT = 5;
 
     public final static int DEFAULT_IDLE_CONNECTION_TEST_PEROID = 60;
 

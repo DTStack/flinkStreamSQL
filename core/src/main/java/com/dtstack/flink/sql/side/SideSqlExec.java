@@ -569,10 +569,6 @@ public class SideSqlExec {
         replaceInfo.setTargetTableName(targetTableName);
         replaceInfo.setTargetTableAlias(targetTableAlias);
 
-        ObjectIdentifier objectIdentifier = ObjectIdentifier.of(
-                EnvironmentSettings.DEFAULT_BUILTIN_CATALOG,
-                EnvironmentSettings.DEFAULT_BUILTIN_DATABASE,
-                targetTableName);
         boolean tableExists = false;
         for (String table : tableEnv.listTables()) {
             if (table.equals(targetTableName)) {

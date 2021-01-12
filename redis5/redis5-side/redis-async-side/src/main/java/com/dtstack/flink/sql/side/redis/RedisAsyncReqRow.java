@@ -19,7 +19,11 @@
 package com.dtstack.flink.sql.side.redis;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
-import com.dtstack.flink.sql.side.*;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
+import com.dtstack.flink.sql.side.BaseAsyncReqRow;
+import com.dtstack.flink.sql.side.CacheMissVal;
+import com.dtstack.flink.sql.side.FieldInfo;
+import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.redis.enums.RedisType;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
