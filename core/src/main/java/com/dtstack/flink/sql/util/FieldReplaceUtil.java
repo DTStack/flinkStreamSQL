@@ -243,19 +243,16 @@ public class FieldReplaceUtil {
             return createNewIdentify((SqlIdentifier) selectNode, oldTbName, newTbName, mappingField);
         }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
             return selectNode;
-        }else if(  AGGREGATE.contains(selectNode.getKind())
+        }else if(AGGREGATE.contains(selectNode.getKind())
                 || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
                 || COMPARISON.contains(selectNode.getKind())
-                || selectNode.getKind() == OTHER_FUNCTION
-                || selectNode.getKind() == DIVIDE
-                || selectNode.getKind() == CAST
-                || selectNode.getKind() == TRIM
-                || selectNode.getKind() == TIMES
-                || selectNode.getKind() == PLUS
+                || FUNCTION.contains(selectNode.getKind())
+                || COVAR_AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
+                || BINARY_ARITHMETIC.contains(selectNode.getKind())
+                || BINARY_COMPARISON.contains(selectNode.getKind())
                 || selectNode.getKind() == NOT_IN
                 || selectNode.getKind() == OR
                 || selectNode.getKind() == AND
-                || selectNode.getKind() == MINUS
                 || selectNode.getKind() == TUMBLE
                 || selectNode.getKind() == TUMBLE_START
                 || selectNode.getKind() == TUMBLE_END
@@ -273,7 +270,6 @@ public class FieldReplaceUtil {
                 || selectNode.getKind() == TIMESTAMP_DIFF
                 || selectNode.getKind() == LIKE
                 || selectNode.getKind() == COALESCE
-
         ){
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
