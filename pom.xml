@@ -37,7 +37,7 @@
         <module>oceanbase</module>
         <module>tidb</module>
         <module>kingbase</module>
-        <module>aws</module>
+<!--        <module>aws</module>-->
 <!--        <module>localTest</module>-->
 
     </modules>
