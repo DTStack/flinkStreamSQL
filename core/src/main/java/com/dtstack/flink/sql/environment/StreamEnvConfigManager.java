@@ -85,7 +85,7 @@ public final class StreamEnvConfigManager {
         ExecutionConfig exeConfig = streamEnv.getConfig();
         if (exeConfig.getGlobalJobParameters() == null) {
             exeConfig.setGlobalJobParameters(globalJobParameters);
-        } else if (exeConfig.getGlobalJobParameters() instanceof ExecutionConfig.GlobalJobParameters) {
+        } else if (exeConfig.getGlobalJobParameters() != null) {
             exeConfig.setGlobalJobParameters(globalJobParameters);
         }
 
@@ -367,10 +367,9 @@ public final class StreamEnvConfigManager {
         }
     }
 
-    private static StreamExecutionEnvironment disableChainOperator(StreamExecutionEnvironment env, Configuration configuration) {
+    private static void disableChainOperator(StreamExecutionEnvironment env, Configuration configuration) {
         if(configuration.getBoolean("disableChainOperator", false)) {
             env.disableOperatorChaining();
         }
-        return env;
     }
 }

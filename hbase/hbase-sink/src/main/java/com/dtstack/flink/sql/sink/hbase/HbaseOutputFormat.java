@@ -19,8 +19,8 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
@@ -93,6 +93,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
      */
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture<?> scheduledFuture;
+    private DirtyDataManager dirtyDataManager;
 
     private HbaseOutputFormat() {
     }
@@ -100,7 +101,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     public static HbaseOutputFormatBuilder buildHbaseOutputFormat() {
         return new HbaseOutputFormatBuilder();
     }
-    private DirtyDataManager dirtyDataManager;
 
     @Override
     public void configure(Configuration parameters) {
@@ -164,6 +164,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             throw new RuntimeException(e);
         }
     }
+
     private void openKerberosConn() throws Exception {
         conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_QUORUM, host);
         conf.set(HbaseConfigUtils.KEY_HBASE_ZOOKEEPER_ZNODE_QUORUM, zkParent);
