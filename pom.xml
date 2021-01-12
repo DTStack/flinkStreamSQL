@@ -36,7 +36,7 @@
         <module>elasticsearch6</module>
         <module>cassandra</module>
         <module>kudu</module>
-        <module>aws</module>
+<!--        <module>aws</module>-->
 
         <!-- 脏数据插件 -->
         <module>dirtyData</module>
