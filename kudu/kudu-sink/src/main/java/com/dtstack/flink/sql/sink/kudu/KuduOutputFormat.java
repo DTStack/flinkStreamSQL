@@ -25,8 +25,6 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.kudu.client.AsyncKuduClient;
-import org.apache.kudu.client.AsyncKuduSession;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
@@ -52,26 +50,12 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(KuduOutputFormat.class);
-
-    public enum WriteMode {
-        // insert
-        INSERT,
-        // update
-        UPDATE,
-        // update or insert
-        UPSERT
-    }
-
-    private String kuduMasters;
-
-    private String tableName;
-
-    private WriteMode writeMode;
-
     protected String[] fieldNames;
-
     TypeInformation<?>[] fieldTypes;
-
+    boolean enableKrb;
+    private String kuduMasters;
+    private String tableName;
+    private WriteMode writeMode;
     private KuduClient client;
 
     private KuduTable table;
@@ -90,9 +74,12 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private String principal;
     private String keytab;
     private String krb5conf;
-    boolean enableKrb;
 
     private KuduOutputFormat() {
+    }
+
+    public static KuduOutputFormatBuilder buildKuduOutputFormat() {
+        return new KuduOutputFormatBuilder();
     }
 
     @Override
@@ -112,11 +99,11 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             kuduClientBuilder.workerCount(workerCount);
         }
         if (null != defaultSocketReadTimeoutMs) {
-            kuduClientBuilder.workerCount(defaultSocketReadTimeoutMs);
+            kuduClientBuilder.defaultSocketReadTimeoutMs(defaultSocketReadTimeoutMs);
         }
 
         if (null != defaultOperationTimeoutMs) {
-            kuduClientBuilder.workerCount(defaultOperationTimeoutMs);
+            kuduClientBuilder.defaultOperationTimeoutMs(defaultOperationTimeoutMs);
         }
 
         if (enableKrb) {
@@ -130,10 +117,16 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         } else {
             client = kuduClientBuilder.build();
         }
-        LOG.info("connect kudu is succeed!");
+
         if (client.tableExists(tableName)) {
             table = client.openTable(tableName);
         }
+        if (Objects.isNull(table)) {
+            throw new IllegalArgumentException(
+                    String.format("Table [%s] Open Failed , please check table exists", tableName));
+        }
+        LOG.info("connect kudu is succeed!");
+
         session = client.newSession();
     }
 
@@ -188,8 +181,97 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
     }
 
-    public static KuduOutputFormatBuilder buildKuduOutputFormat() {
-        return new KuduOutputFormatBuilder();
+    private Operation toOperation(WriteMode writeMode, Row row) {
+        Operation operation = toOperation(writeMode);
+        PartialRow partialRow = operation.getRow();
+
+        for (int index = 0; index < row.getArity(); index++) {
+            //解决kudu中全小写字段找不到的bug
+            String fieldName = fieldNames[index].toLowerCase();
+            if (row.getField(index) == null) {
+                partialRow.setNull(fieldName);
+            } else {
+                if (fieldTypes[index].getTypeClass() == String.class) {
+                    partialRow.addString(fieldName, (String) row.getField(index));
+                    continue;
+                }
+                if (fieldTypes[index].getTypeClass() == Float.class) {
+                    partialRow.addFloat(fieldName, (Float) row.getField(index));
+                    continue;
+                }
+                if (fieldTypes[index].getTypeClass() == Byte.class) {
+                    partialRow.addByte(fieldName, (Byte) row.getField(index));
+                    continue;
+                }
+
+                if (fieldTypes[index].getTypeClass() == Short.class) {
+                    partialRow.addShort(fieldName, (Short) row.getField(index));
+                    continue;
+                }
+
+                if (fieldTypes[index].getTypeClass() == Integer.class) {
+                    partialRow.addInt(fieldName, (Integer) row.getField(index));
+                    continue;
+                }
+
+                if (fieldTypes[index].getTypeClass() == Long.class) {
+                    partialRow.addLong(fieldName, (Long) row.getField(index));
+                    continue;
+                }
+
+                if (fieldTypes[index].getTypeClass() == Double.class) {
+                    partialRow.addDouble(fieldName, (Double) row.getField(index));
+                    continue;
+                }
+
+                if (fieldTypes[index].getTypeClass() == BigDecimal.class) {
+                    partialRow.addDecimal(fieldName, (BigDecimal) row.getField(index));
+                    continue;
+                }
+                if (fieldTypes[index].getTypeClass() == Boolean.class) {
+                    partialRow.addBoolean(fieldName, (Boolean) row.getField(index));
+                    continue;
+                }
+
+                if (fieldTypes[index].getTypeClass() == Date.class) {
+                    partialRow.addTimestamp(fieldName, new Timestamp(((Date) row.getField(index)).getTime()));
+                    continue;
+                }
+
+                if (fieldTypes[index].getTypeClass() == Timestamp.class) {
+                    partialRow.addTimestamp(fieldName, (Timestamp) row.getField(index));
+                    continue;
+                }
+
+                if (fieldTypes[index].getTypeClass() == byte[].class) {
+                    partialRow.addBinary(fieldName, (byte[]) row.getField(index));
+                    continue;
+                }
+                throw new IllegalArgumentException("Illegal var type: " + fieldTypes[index]);
+            }
+        }
+        return operation;
+
+    }
+
+    private Operation toOperation(WriteMode writeMode) {
+        switch (writeMode) {
+            case INSERT:
+                return table.newInsert();
+            case UPDATE:
+                return table.newUpdate();
+            default:
+                return table.newUpsert();
+        }
+    }
+
+    public enum WriteMode {
+        // insert
+        INSERT,
+        // update
+        UPDATE,
+        // update or insert
+        UPSERT
     }
 
     public static class KuduOutputFormatBuilder {
@@ -273,95 +355,6 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             }
 
             return kuduOutputFormat;
-        }
-    }
-
-    private Operation toOperation(WriteMode writeMode, Row row) {
-        if (null == table) {
-            throw new IllegalArgumentException("Table Open Failed , please check table exists");
-        }
-        Operation operation = toOperation(writeMode);
-        PartialRow partialRow = operation.getRow();
-
-        for (int index = 0; index < row.getArity(); index++) {
-            //解决kudu中全小写字段找不到的bug
-            String fieldName = fieldNames[index].toLowerCase();
-            if (row.getField(index) == null) {
-                partialRow.setNull(fieldName);
-            } else {
-                if (fieldTypes[index].getTypeClass() == String.class) {
-                    partialRow.addString(fieldName, (String) row.getField(index));
-                    continue;
-                }
-                if (fieldTypes[index].getTypeClass() == Float.class) {
-                    partialRow.addFloat(fieldName, (Float) row.getField(index));
-                    continue;
-                }
-                if (fieldTypes[index].getTypeClass() == Byte.class) {
-                    partialRow.addByte(fieldName, (Byte) row.getField(index));
-                    continue;
-                }
-
-                if (fieldTypes[index].getTypeClass() == Short.class) {
-                    partialRow.addShort(fieldName, (Short) row.getField(index));
-                    continue;
-                }
-
-                if (fieldTypes[index].getTypeClass() == Integer.class) {
-                    partialRow.addInt(fieldName, (Integer) row.getField(index));
-                    continue;
-                }
-
-                if (fieldTypes[index].getTypeClass() == Long.class) {
-                    partialRow.addLong(fieldName, (Long) row.getField(index));
-                    continue;
-                }
-
-                if (fieldTypes[index].getTypeClass() == Double.class) {
-                    partialRow.addDouble(fieldName, (Double) row.getField(index));
-                    continue;
-                }
-
-                if (fieldTypes[index].getTypeClass() == BigDecimal.class) {
-                    partialRow.addDecimal(fieldName, (BigDecimal) row.getField(index));
-                    continue;
-                }
-                if (fieldTypes[index].getTypeClass() == Boolean.class) {
-                    partialRow.addBoolean(fieldName, (Boolean) row.getField(index));
-                    continue;
-                }
-
-                if (fieldTypes[index].getTypeClass() == Date.class) {
-                    partialRow.addTimestamp(fieldName, new Timestamp(((Date) row.getField(index)).getTime()));
-                    continue;
-                }
-
-                if (fieldTypes[index].getTypeClass() == Timestamp.class) {
-                    partialRow.addTimestamp(fieldName, (Timestamp) row.getField(index));
-                    continue;
-                }
-
-                if (fieldTypes[index].getTypeClass() == byte[].class) {
-                    partialRow.addBinary(fieldName, (byte[]) row.getField(index));
-                    continue;
-                }
-                throw new IllegalArgumentException("Illegal var type: " + fieldTypes[index]);
-            }
-        }
-        return operation;
-
-    }
-
-    private Operation toOperation(WriteMode writeMode) {
-        switch (writeMode) {
-            case INSERT:
-                return table.newInsert();
-            case UPDATE:
-                return table.newUpdate();
-            case UPSERT:
-                return table.newUpsert();
-            default:
-                return table.newUpsert();
         }
     }
 
