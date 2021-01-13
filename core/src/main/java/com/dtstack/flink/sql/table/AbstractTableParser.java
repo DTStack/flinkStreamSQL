@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.table;
 
+import com.dtstack.flink.sql.parser.SqlParser;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
@@ -26,6 +27,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +47,8 @@ import java.util.stream.Collectors;
  */
 
 public abstract class AbstractTableParser {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractTableParser.class);
 
     private static final String PRIMARY_KEY = "primaryKey";
     private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
@@ -117,7 +122,13 @@ public abstract class AbstractTableParser {
         if (tableInfo instanceof AbstractSideTableInfo) {
             tableInfo.getPrimaryKeys().stream()
                     .filter(pk -> !tableInfo.getFieldList().contains(pk))
-                    .forEach(pk -> handleKeyNotHaveAlias(String.format("%s varchar", pk), tableInfo));
+                    .forEach(pk -> {
+                        try {
+                            handleKeyNotHaveAlias(String.format("%s varchar", pk), tableInfo);
+                        } catch (Exception e) {
+                            LOG.error(String.format("Handle primary key failed. Reason: %s", e.getMessage()));
+                        }
+                    });
         }
 
         tableInfo.finish();

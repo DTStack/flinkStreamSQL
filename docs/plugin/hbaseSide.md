@@ -146,7 +146,7 @@ CREATE TABLE MyResult(
  CREATE TABLE sideTable (  
         wtz:message varchar as message,
         wtz:info varchar as info , 
-        PRIMARY KEY (rowkey),
+        PRIMARY KEY (md5(rowkey1) + rowkey2 + 'test'),
          PERIOD FOR SYSTEM_TIME
 ) WITH (
         type = 'hbase',
@@ -174,7 +174,7 @@ into
         MyTable a
     left join
         sideTable b
-            on a.id=b.rowkey;
+            on a.id=b.rowkey1 and a.name = b.rowkey2;
 ```
 ### kerberos维表示例
 ```
