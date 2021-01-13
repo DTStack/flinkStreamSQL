@@ -115,15 +115,9 @@ public abstract class AbstractTableParser {
          *  because some no-sql database is not primary key. eg :redis、hbase etc...
          */
         if (tableInfo instanceof AbstractSideTableInfo) {
-            List<String> pks = new ArrayList<>();
-            tableInfo.getPrimaryKeys().stream().forEach(pk -> {
-                if (!tableInfo.getFieldList().contains(pk)) {
-                    pks.add(String.format("%s varchar", pk));
-                }
-            });
-            pks.stream().forEach(pk -> {
-                handleKeyNotHaveAlias(pk, tableInfo);
-            });
+            tableInfo.getPrimaryKeys().stream()
+                    .filter(pk -> !tableInfo.getFieldList().contains(pk))
+                    .forEach(pk -> handleKeyNotHaveAlias(String.format("%s varchar", pk), tableInfo));
         }
 
         tableInfo.finish();
