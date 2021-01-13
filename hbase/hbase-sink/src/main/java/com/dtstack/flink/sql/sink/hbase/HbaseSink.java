@@ -17,7 +17,6 @@
  */
 
 
-
 package com.dtstack.flink.sql.sink.hbase;
 
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
@@ -42,13 +41,13 @@ import java.util.Properties;
 /**
  * Date: 2018/09/14
  * Company: www.dtstack.com
+ *
  * @author sishu.yss
  */
 public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<HbaseSink> {
 
     protected String[] fieldNames;
     protected Map<String, String> columnNameFamily;
-    TypeInformation<?>[] fieldTypes;
     protected String zookeeperQuorum;
     protected String port;
     protected String parent;
@@ -56,19 +55,19 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     protected String updateMode;
     protected String rowkey;
     protected String registerTabName;
-
     protected boolean kerberosAuthEnable;
     protected String regionserverKeytabFile;
     protected String regionserverPrincipal;
     protected String securityKrb5Conf;
     protected String zookeeperSaslClient;
-
+    protected String batchSize;
+    protected String batchWaitInterval;
+    TypeInformation<?>[] fieldTypes;
     private String clientPrincipal;
     private String clientKeytabFile;
     private int parallelism = 1;
 
     private Properties dirtyProperties;
-
 
     public HbaseSink() {
         // TO DO NOTHING
@@ -83,7 +82,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.tableName = hbaseTableInfo.getTableName();
         this.rowkey = hbaseTableInfo.getRowkey();
         this.columnNameFamily = hbaseTableInfo.getColumnNameFamily();
-        this.registerTabName =  hbaseTableInfo.getName();
+        this.registerTabName = hbaseTableInfo.getName();
 
         this.kerberosAuthEnable = hbaseTableInfo.isKerberosAuthEnable();
         this.regionserverKeytabFile = hbaseTableInfo.getRegionserverKeytabFile();
@@ -100,6 +99,9 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         if (tmpSinkParallelism != null) {
             this.parallelism = tmpSinkParallelism;
         }
+
+        this.batchSize = hbaseTableInfo.getBatchSize();
+        this.batchWaitInterval = hbaseTableInfo.getBatchWaitInterval();
         return this;
     }
 
@@ -111,30 +113,33 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     @Override
     public DataStreamSink<Tuple2<Boolean, Row>> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         HbaseOutputFormat.HbaseOutputFormatBuilder builder = HbaseOutputFormat.buildHbaseOutputFormat();
-        builder.setHost(this.zookeeperQuorum).setZkParent(this.parent).setTable(this.tableName);
 
-        builder.setRowkey(rowkey);
-        builder.setColumnNames(fieldNames);
-        builder.setColumnNameFamily(columnNameFamily);
-        builder.setKerberosAuthEnable(kerberosAuthEnable);
-        builder.setRegionserverKeytabFile(regionserverKeytabFile);
-        builder.setRegionserverPrincipal(regionserverPrincipal);
-        builder.setSecurityKrb5Conf(securityKrb5Conf);
-        builder.setZookeeperSaslClient(zookeeperSaslClient);
+        HbaseOutputFormat outputFormat = builder
+                .setHost(this.zookeeperQuorum)
+                .setZkParent(this.parent)
+                .setTable(this.tableName)
+                .setRowkey(rowkey)
+                .setColumnNames(fieldNames)
+                .setColumnNameFamily(columnNameFamily)
+                .setKerberosAuthEnable(kerberosAuthEnable)
+                .setRegionserverKeytabFile(regionserverKeytabFile)
+                .setRegionserverPrincipal(regionserverPrincipal)
+                .setSecurityKrb5Conf(securityKrb5Conf)
+                .setZookeeperSaslClient(zookeeperSaslClient)
+                .setClientPrincipal(clientPrincipal)
+                .setClientKeytabFile(clientKeytabFile)
+                .setBatchSize(Integer.parseInt(batchSize))
+                .setBatchWaitInterval(Long.parseLong(batchWaitInterval))
+                .setDirtyManager(DirtyDataManager.newInstance(dirtyProperties))
+                .finish();
 
-        builder.setClientPrincipal(clientPrincipal);
-        builder.setClientKeytabFile(clientKeytabFile);
-
-        builder.setDirtyManager(DirtyDataManager.newInstance(dirtyProperties));
-
-        HbaseOutputFormat outputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction).name(registerTabName);
 
         if (parallelism > 0) {
             dataStreamSink.setParallelism(parallelism);
         }
-        
+
         return dataStreamSink;
     }
 
