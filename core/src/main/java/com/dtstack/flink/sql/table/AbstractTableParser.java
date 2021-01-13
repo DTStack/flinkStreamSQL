@@ -20,7 +20,6 @@
 package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.base.Preconditions;
