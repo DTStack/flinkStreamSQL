@@ -20,13 +20,13 @@ package com.dtstack.flink.sql.option;
 
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
-import com.dtstack.flink.sql.enums.PlannerType;
 
 
 /**
  * This class define commandline options for the Launcher program
- *
+ * <p>
  * Company: www.dtstack.com
+ *
  * @author huyifan.zju@163.com
  */
 public class Options {

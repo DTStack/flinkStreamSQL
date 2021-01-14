@@ -16,28 +16,24 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.side.tidb.table;
-
-import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
-import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
-
-import java.util.Map;
+package com.dtstack.flink.sql.core.rdb;
 
 /**
  * @author tiezhu
- * Date 2020/6/1
- * company www.dtstack.com
+ * Date 2020-12-25
+ * Company dtstack
  */
-public class TidbSideParser extends RdbSideParser {
-
-    private static final String CURRENT_TYPE = "tidb";
-
-    @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        props.put(JdbcCheckKeys.DRIVER_NAME, "com.mysql.jdbc.Driver");
-        AbstractTableInfo tableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-        tableInfo.setType(CURRENT_TYPE);
-        return tableInfo;
-    }
+public class JdbcCheckKeys {
+    public static final String DRIVER_NAME = "driverName";
+    public static final String URL_KEY = "url";
+    public static final String USER_NAME_KEY = "userName";
+    public static final String PASSWORD_KEY = "password";
+    public static final String TABLE_TYPE_KEY = "tableType";
+    public static final String SCHEMA_KEY = "schema";
+    public static final String TABLE_NAME_KEY = "tableName";
+    // create 语句中的name
+    public static final String OPERATION_NAME_KEY = "operationName";
+    // 用来检查update、replace等操作的column
+    public static final String COLUMN_KEY = "column";
+    public static final String TABLE_INFO_KEY = "tableInfo";
 }

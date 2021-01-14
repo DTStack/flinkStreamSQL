@@ -17,6 +17,7 @@
  */
 package com.dtstack.flink.sql.sink.oceanbase.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 
@@ -32,6 +33,7 @@ public class OceanbaseSinkParser extends RdbSinkParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        props.put(JdbcCheckKeys.DRIVER_NAME, "com.mysql.jdbc.Driver");
 
         AbstractTableInfo oceanbaseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
 

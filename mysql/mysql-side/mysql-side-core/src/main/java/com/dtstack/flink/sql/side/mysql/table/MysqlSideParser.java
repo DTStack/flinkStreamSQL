@@ -19,7 +19,9 @@
 
 package com.dtstack.flink.sql.side.mysql.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 
 import java.util.Map;
@@ -38,7 +40,8 @@ public class MysqlSideParser extends RdbSideParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        AbstractTableInfo mysqlTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
+        props.put(JdbcCheckKeys.DRIVER_NAME, "com.mysql.jdbc.Driver");
+        RdbSideTableInfo mysqlTableInfo = (RdbSideTableInfo) super.getTableInfo(tableName, fieldsInfo, props);
         mysqlTableInfo.setType(CURR_TYPE);
         return mysqlTableInfo;
     }

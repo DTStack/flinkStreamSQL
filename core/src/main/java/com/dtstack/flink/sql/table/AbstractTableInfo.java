@@ -53,6 +53,7 @@ public abstract class AbstractTableInfo implements Serializable {
     private List<String> primaryKeys;
 
     private Integer parallelism = -1;
+    private Map<String, String> checkProperties;
 
     /**
      * 构建脏数据插件的相关信息
@@ -171,6 +172,18 @@ public abstract class AbstractTableInfo implements Serializable {
 
     public List<FieldExtraInfo> getFieldExtraInfoList() {
         return fieldExtraInfoList;
+    }
+
+    public Map<String, String> getCheckProperties() {
+        return checkProperties;
+    }
+
+    public void setCheckProperties() {
+        this.checkProperties = buildCheckProperties();
+    }
+
+    public Map<String, String> buildCheckProperties() {
+        return Maps.newHashMap();
     }
 
     public Properties getDirtyProperties() {

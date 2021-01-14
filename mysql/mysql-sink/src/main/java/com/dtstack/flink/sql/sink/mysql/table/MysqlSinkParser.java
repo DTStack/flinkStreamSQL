@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.sink.mysql.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 
@@ -37,6 +38,7 @@ public class MysqlSinkParser extends RdbSinkParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        props.put(JdbcCheckKeys.DRIVER_NAME, "com.mysql.jdbc.Driver");
         AbstractTableInfo mysqlTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         mysqlTableInfo.setType(CURR_TYPE);
         return mysqlTableInfo;

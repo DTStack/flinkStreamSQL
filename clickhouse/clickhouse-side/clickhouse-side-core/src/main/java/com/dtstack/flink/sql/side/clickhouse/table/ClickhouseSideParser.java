@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.side.clickhouse.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import ru.yandex.clickhouse.domain.ClickHouseDataType;
@@ -39,6 +40,7 @@ public class ClickhouseSideParser extends RdbSideParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        props.put(JdbcCheckKeys.DRIVER_NAME, "ru.yandex.clickhouse.ClickHouseDriver");
         AbstractTableInfo clickhouseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         clickhouseTableInfo.setType(CURR_TYPE);
         return clickhouseTableInfo;

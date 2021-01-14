@@ -124,7 +124,7 @@ public class ParamsInfo {
         return "ParamsInfo{" +
                 "sql='" + sql + '\'' +
                 ", name='" + name + '\'' +
-                ", jarUrlList=" + convertJarUrlListToString(jarUrlList) +
+                ", jarUrlList=" + jarUrlList +
                 ", localSqlPluginPath='" + localSqlPluginPath + '\'' +
                 ", remoteSqlPluginPath='" + remoteSqlPluginPath + '\'' +
                 ", pluginLoadMode='" + pluginLoadMode + '\'' +

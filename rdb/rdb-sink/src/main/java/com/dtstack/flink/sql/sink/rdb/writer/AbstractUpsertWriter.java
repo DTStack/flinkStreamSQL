@@ -69,7 +69,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                 Arrays.stream(pkFields).map(f -> fieldTypes[f]).toArray();
 
         String deleteSql = dialect.getDeleteStatement(schema, tableName, keyFields);
-        LOG.info("deleteSQL is :{}", deleteSql);
+        // LOG.info("deleteSQL is :{}", deleteSql);
 
         Optional<String> upsertSql = dialect.getUpsertStatement(schema, tableName, fieldNames, keyFields, allReplace);
         LOG.info("execute UpsertStatement: {}", upsertSql.orElse("use UsingInsertUpdateStatement"));

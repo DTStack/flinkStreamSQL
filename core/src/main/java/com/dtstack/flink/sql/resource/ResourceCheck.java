@@ -16,28 +16,30 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.side.tidb.table;
+package com.dtstack.flink.sql.resource;
 
-import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
-import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
-import com.dtstack.flink.sql.table.AbstractTableInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 /**
- * @author tiezhu
- * Date 2020/6/1
- * company www.dtstack.com
- */
-public class TidbSideParser extends RdbSideParser {
+ * @author: chuixue
+ * @create: 2020-12-08 17:21
+ * @description:资源检测
+ **/
+public abstract class ResourceCheck {
+    public static Boolean NEED_CHECK = true;
+    public static String CHECK_STR = "checkResource";
+    protected static Logger LOG = LoggerFactory.getLogger(ResourceCheck.class);
+    public String TABLE_TYPE_KEY = "tableType";
+    public String SINK_STR = "sink";
+    public String SIDE_STR = "side";
 
-    private static final String CURRENT_TYPE = "tidb";
-
-    @Override
-    public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        props.put(JdbcCheckKeys.DRIVER_NAME, "com.mysql.jdbc.Driver");
-        AbstractTableInfo tableInfo = super.getTableInfo(tableName, fieldsInfo, props);
-        tableInfo.setType(CURRENT_TYPE);
-        return tableInfo;
-    }
+    /**
+     * 资源可用性检测
+     *
+     * @param checkProperties 校验资源可用性的参数配置
+     */
+    public abstract void checkResourceStatus(Map<String, String> checkProperties);
 }
