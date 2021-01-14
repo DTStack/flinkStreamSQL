@@ -111,7 +111,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
                         List<Object> sideVal = Lists.newArrayList();
                         for (String key : colNames) {
 
-                            if (ROWKEY.equalsIgnoreCase(key)) {
+                            if (!sideMap.containsKey(key)) {
                                 sideVal.add(rowKeyStr);
                                 continue;
                             }
