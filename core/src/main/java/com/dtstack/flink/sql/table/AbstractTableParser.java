@@ -119,14 +119,8 @@ public abstract class AbstractTableParser {
          */
         if (tableInfo instanceof AbstractSideTableInfo) {
             tableInfo.getPrimaryKeys().stream()
-                    .filter(pk -> !tableInfo.getFieldList().contains(pk))
-                    .forEach(pk -> {
-                        try {
-                            handleKeyNotHaveAlias(String.format("%s varchar", pk), tableInfo);
-                        } catch (Exception e) {
-                            LOG.error(String.format("Handle primary key failed. Reason: %s", e.getMessage()));
-                        }
-                    });
+                    .filter(pk -> (!tableInfo.getFieldList().contains(pk) && pk.equals("rowkey")))
+                    .forEach(pk -> handleKeyNotHaveAlias(String.format("%s varchar", pk), tableInfo));
         }
 
         tableInfo.finish();
