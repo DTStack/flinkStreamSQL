@@ -34,6 +34,9 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
     private String principal;
     private String keytab;
     private String krb5conf;
+    private Integer batchSize;
+    private Integer batchWaitInterval;
+    private String flushMode;
 
     @Override
     public KuduSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
@@ -51,6 +54,9 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.parallelism = Objects.isNull(kuduTableInfo.getParallelism()) ?
                 parallelism : kuduTableInfo.getParallelism();
 
+        this.batchSize = kuduTableInfo.getBatchSize();
+        this.batchWaitInterval = kuduTableInfo.getBatchWaitInterval();
+        this.flushMode = kuduTableInfo.getFlushMode();
         return this;
     }
 
@@ -74,6 +80,9 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
                 .setKeytab(this.keytab)
                 .setKrb5conf(this.krb5conf)
                 .setEnableKrb(this.enableKrb)
+                .setBatchSize(this.batchSize)
+                .setBatchWaitInterval(this.batchWaitInterval)
+                .setFlushMode(this.flushMode)
                 .finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(kuduOutputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);

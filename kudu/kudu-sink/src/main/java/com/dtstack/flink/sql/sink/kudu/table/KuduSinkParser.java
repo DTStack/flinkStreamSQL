@@ -2,14 +2,15 @@ package com.dtstack.flink.sql.sink.kudu.table;
 
 import com.dtstack.flink.sql.constant.PluginParamConsts;
 import com.dtstack.flink.sql.sink.kudu.KuduOutputFormat;
-import com.dtstack.flink.sql.table.AbstractTableParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.table.AbstractTableParser;
 import com.dtstack.flink.sql.util.MathUtil;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.dtstack.flink.sql.table.AbstractTableInfo.PARALLELISM_KEY;
 
@@ -27,6 +28,16 @@ public class KuduSinkParser extends AbstractTableParser {
 
     public static final String SOCKET_READ_TIMEOUT_MS = "defaultSocketReadTimeoutMs";
 
+    public static final String BATCH_SIZE_KEY = "batchSize";
+
+    public static final Integer DEFAULT_BATCH_SIZE = 1000;
+
+    public static final String BATCH_WAIT_INTERVAL_KEY = "batchWaitInterval";
+
+    public static final Integer DEFAULT_BATCH_WAIT_INTERVAL = 60 * 1000;
+
+    public static final String SESSION_FLUSH_MODE_KEY = "flushMode";
+
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         KuduTableInfo kuduTableInfo = new KuduTableInfo();
@@ -40,15 +51,27 @@ public class KuduSinkParser extends AbstractTableParser {
         kuduTableInfo.setWorkerCount(MathUtil.getIntegerVal(props.get(WORKER_COUNT.toLowerCase())));
         kuduTableInfo.setDefaultOperationTimeoutMs(MathUtil.getIntegerVal(props.get(OPERATION_TIMEOUT_MS.toLowerCase())));
         kuduTableInfo.setDefaultSocketReadTimeoutMs(MathUtil.getIntegerVal(props.get(SOCKET_READ_TIMEOUT_MS.toLowerCase())));
+        kuduTableInfo.setBatchSize(MathUtil.getIntegerVal(props.getOrDefault(BATCH_SIZE_KEY, DEFAULT_BATCH_SIZE)));
+        kuduTableInfo.setBatchWaitInterval(MathUtil.getIntegerVal(props.getOrDefault(BATCH_WAIT_INTERVAL_KEY, DEFAULT_BATCH_WAIT_INTERVAL)));
+
+        if (Objects.isNull(props.get(SESSION_FLUSH_MODE_KEY))) {
+            if (kuduTableInfo.getBatchSize() > 1) {
+                kuduTableInfo.setFlushMode(KuduTableInfo.KuduFlushMode.MANUAL_FLUSH.name());
+            } else {
+                kuduTableInfo.setFlushMode(KuduTableInfo.KuduFlushMode.AUTO_FLUSH_SYNC.name());
+            }
+        } else {
+            kuduTableInfo.setFlushMode(MathUtil.getString(props.get(SESSION_FLUSH_MODE_KEY)));
+        }
 
         kuduTableInfo.setPrincipal(
-            MathUtil.getString(props.get(PluginParamConsts.PRINCIPAL))
+                MathUtil.getString(props.get(PluginParamConsts.PRINCIPAL))
         );
         kuduTableInfo.setKeytab(
-            MathUtil.getString(props.get(PluginParamConsts.KEYTAB))
+                MathUtil.getString(props.get(PluginParamConsts.KEYTAB))
         );
         kuduTableInfo.setKrb5conf(
-            MathUtil.getString(props.get(PluginParamConsts.KRB5_CONF))
+                MathUtil.getString(props.get(PluginParamConsts.KRB5_CONF))
         );
         kuduTableInfo.judgeKrbEnable();
 

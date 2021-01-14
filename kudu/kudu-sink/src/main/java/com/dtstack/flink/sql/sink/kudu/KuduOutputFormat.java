@@ -18,7 +18,9 @@
 
 package com.dtstack.flink.sql.sink.kudu;
 
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.sink.kudu.table.KuduTableInfo;
 import com.dtstack.flink.sql.util.KrbUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -31,6 +33,7 @@ import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.PartialRow;
+import org.apache.kudu.client.SessionConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,12 +43,17 @@ import java.security.PrivilegedAction;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author gituser
  * @modify xiuzhu
  */
-public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
+public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean, Row>> {
 
     private static final long serialVersionUID = 1L;
 
@@ -75,6 +83,24 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private String keytab;
     private String krb5conf;
 
+    /**
+     * batch size
+     */
+    private Integer batchSize;
+    private Integer batchWaitInterval;
+    /**
+     * kudu session flush mode
+     */
+    private String flushMode;
+
+    private transient AtomicInteger rowCount;
+
+    /**
+     * 定时任务
+     */
+    private transient ScheduledExecutorService scheduler;
+    private transient ScheduledFuture<?> scheduledFuture;
+
     private KuduOutputFormat() {
     }
 
@@ -91,6 +117,33 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     public void open(int taskNumber, int numTasks) throws IOException {
         establishConnection();
         initMetric();
+        initSchedulerTask();
+        rowCount = new AtomicInteger(0);
+    }
+
+    /**
+     * init the scheduler task of {@link KuduOutputFormat#flush()}
+     */
+    private void initSchedulerTask() {
+        try {
+            if (batchWaitInterval > 0) {
+                this.scheduler = new ScheduledThreadPoolExecutor(
+                        1,
+                        new DTThreadFactory("kudu-batch-flusher")
+                );
+
+                this.scheduledFuture = this.scheduler.scheduleWithFixedDelay(
+                        () -> {
+                            synchronized (KuduOutputFormat.this) {
+                                flush();
+                            }
+                        }, batchWaitInterval, batchWaitInterval, TimeUnit.MILLISECONDS
+                );
+            }
+        } catch (Exception e) {
+            LOG.error("init schedule task failed !");
+            throw new RuntimeException(e);
+        }
     }
 
     private void establishConnection() throws IOException {
@@ -127,17 +180,46 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
         LOG.info("connect kudu is succeed!");
 
-        session = client.newSession();
+        session = buildSessionWithFlushMode(flushMode, client);
+    }
+
+    /**
+     * According to the different flush mode, construct different session. Detail see {@link SessionConfiguration.FlushMode}
+     *
+     * @param flushMode  flush mode
+     * @param kuduClient kudu client
+     * @return KuduSession with flush mode
+     * @throws KuduException kudu exception when session flush
+     */
+    private KuduSession buildSessionWithFlushMode(String flushMode, KuduClient kuduClient) throws KuduException {
+        KuduSession kuduSession = kuduClient.newSession();
+        if (flushMode.equalsIgnoreCase(KuduTableInfo.KuduFlushMode.MANUAL_FLUSH.name())) {
+            kuduSession.setFlushMode(SessionConfiguration.FlushMode.MANUAL_FLUSH);
+            kuduSession.setMutationBufferSpace(
+                    Integer.parseInt(String.valueOf(Math.round(batchSize * 1.2)))
+            );
+        }
+
+        if (flushMode.equalsIgnoreCase(KuduTableInfo.KuduFlushMode.AUTO_FLUSH_SYNC.name())) {
+            LOG.warn("Parameter [batchSize] will not take effect at AUTO_FLUSH_SYNC mode.");
+            kuduSession.setFlushMode(SessionConfiguration.FlushMode.AUTO_FLUSH_SYNC);
+        }
+
+        if (flushMode.equalsIgnoreCase(KuduTableInfo.KuduFlushMode.AUTO_FLUSH_BACKGROUND.name())) {
+            LOG.warn("Unable to determine the order of data at AUTO_FLUSH_BACKGROUND mode.");
+            kuduSession.setFlushMode(SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND);
+        }
+
+        return kuduSession;
     }
 
     @Override
-    public void writeRecord(Tuple2 record) throws IOException {
-        Tuple2<Boolean, Row> tupleTrans = record;
-        Boolean retract = tupleTrans.getField(0);
+    public void writeRecord(Tuple2<Boolean, Row> record) throws IOException {
+        Boolean retract = record.getField(0);
         if (!retract) {
             return;
         }
-        Row row = tupleTrans.getField(1);
+        Row row = record.getField(1);
         if (row.getArity() != fieldNames.length) {
             if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
                 LOG.error("record insert failed ..{}", row.toString());
@@ -151,6 +233,9 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
                 LOG.info("Receive data : {}", row);
             }
+            if (rowCount.getAndIncrement() >= batchSize) {
+                flush();
+            }
             session.apply(toOperation(writeMode, row));
             outRecords.inc();
         } catch (KuduException e) {
@@ -159,6 +244,22 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
                 LOG.error("", e);
             }
             outDirtyRecords.inc();
+        }
+    }
+
+    private synchronized void flush() {
+        try {
+            if (session.isClosed()) {
+                throw new IllegalStateException("session is closed! flush data error!");
+            }
+
+            session.flush();
+            // clear
+            rowCount.set(0);
+        } catch (KuduException kuduException) {
+            LOG.error(
+                    "flush data error!", kuduException);
+            throw new RuntimeException(kuduException);
         }
     }
 
@@ -178,6 +279,14 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             } catch (Exception e) {
                 throw new IllegalArgumentException("[closeKuduClient]:" + e.getMessage());
             }
+        }
+
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(false);
+        }
+
+        if (scheduler != null) {
+            scheduler.shutdownNow();
         }
     }
 
@@ -342,6 +451,21 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
         public KuduOutputFormatBuilder setEnableKrb(boolean enableKrb) {
             kuduOutputFormat.enableKrb = enableKrb;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setBatchSize(Integer batchSize) {
+            kuduOutputFormat.batchSize = batchSize;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setBatchWaitInterval(Integer batchWaitInterval) {
+            kuduOutputFormat.batchWaitInterval = batchWaitInterval;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setFlushMode(String flushMode) {
+            kuduOutputFormat.flushMode = flushMode;
             return this;
         }
 
