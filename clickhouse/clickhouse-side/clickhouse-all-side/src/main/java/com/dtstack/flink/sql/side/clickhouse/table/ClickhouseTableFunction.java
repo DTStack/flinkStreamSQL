@@ -18,10 +18,10 @@
 
 package com.dtstack.flink.sql.side.clickhouse.table;
 
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.clickhouse.ClickhouseAllSideInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbTableFunction;
-import com.dtstack.flink.sql.util.JDBCUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +46,7 @@ public class ClickhouseTableFunction extends AbstractRdbTableFunction {
     public Connection getConn(String dbUrl, String userName, String passWord) {
         try {
             Connection connection ;
-            JDBCUtils.forName(CLICKHOUSE_DRIVER, getClass().getClassLoader());
+            ClassLoaderManager.forName(CLICKHOUSE_DRIVER, getClass().getClassLoader());
             // ClickHouseProperties contains all properties
             if (userName == null) {
                 connection = DriverManager.getConnection(dbUrl);

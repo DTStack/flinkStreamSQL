@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.option;
 
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
+import com.dtstack.flink.sql.enums.PlannerType;
 
 
 /**
@@ -192,13 +193,14 @@ public class Options {
         this.addShipfile = addShipfile;
     }
 
+    public String getPlanner() {
+        return planner;
+    }
+
     public void setPlanner(String planner) {
         this.planner = planner;
     }
 
-    public String getPlanner() {
-        return planner;
-    }
     public String getDirtyProperties() {
         return dirtyProperties;
     }

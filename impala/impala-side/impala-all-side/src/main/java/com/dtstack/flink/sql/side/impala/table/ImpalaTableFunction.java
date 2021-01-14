@@ -18,10 +18,10 @@
 
 package com.dtstack.flink.sql.side.impala.table;
 
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.ImpalaAllSideInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbTableFunction;
-import com.dtstack.flink.sql.util.JDBCUtils;
 import com.dtstack.flink.sql.util.KrbUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
@@ -58,7 +58,7 @@ public class ImpalaTableFunction extends AbstractRdbTableFunction {
         try {
             Connection connection;
             String url = getUrl();
-            JDBCUtils.forName(IMPALA_DRIVER, getClass().getClassLoader());
+            ClassLoaderManager.forName(IMPALA_DRIVER, getClass().getClassLoader());
             // Kerberos
             if (impalaSideTableInfo.getAuthMech() == 1) {
                 String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
@@ -87,7 +87,7 @@ public class ImpalaTableFunction extends AbstractRdbTableFunction {
         String newUrl = "";
         Integer authMech = impalaSideTableInfo.getAuthMech();
 
-        StringBuffer urlBuffer = new StringBuffer(impalaSideTableInfo.getUrl());
+        StringBuilder urlBuffer = new StringBuilder(impalaSideTableInfo.getUrl());
         if (authMech == 0) {
             newUrl = urlBuffer.toString();
 
