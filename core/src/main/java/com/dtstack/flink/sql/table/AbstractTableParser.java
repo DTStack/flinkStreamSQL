@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.table;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.base.Preconditions;
@@ -105,30 +106,44 @@ public abstract class AbstractTableParser {
                 continue;
             }
 
-            Tuple2<String, String> t = extractType(fieldRow, tableInfo.getName());
-            String fieldName = t.f0;
-            String fieldType = t.f1;
+            handleKeyNotHaveAlias(fieldRow, tableInfo);
+        }
 
-            Class fieldClass;
-            AbstractTableInfo.FieldExtraInfo fieldExtraInfo = null;
-
-            Matcher matcher = charTypePattern.matcher(fieldType);
-            if (matcher.find()) {
-                fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
-                fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
-                fieldExtraInfo.setLength(Integer.parseInt(matcher.group(1)));
-            } else {
-                fieldClass = dbTypeConvertToJavaType(fieldType);
-            }
-
-            tableInfo.addPhysicalMappings(fieldName, fieldName);
-            tableInfo.addField(fieldName);
-            tableInfo.addFieldClass(fieldClass);
-            tableInfo.addFieldType(fieldType);
-            tableInfo.addFieldExtraInfo(fieldExtraInfo);
+        /*
+         *  check whether filed list contains pks and then add pks into field list.
+         *  because some no-sql database is not primary key. eg :redis、hbase etc...
+         */
+        if (tableInfo instanceof AbstractSideTableInfo) {
+            tableInfo.getPrimaryKeys().stream()
+                    .filter(pk -> (!tableInfo.getFieldList().contains(pk) && pk.equals("rowkey")))
+                    .forEach(pk -> handleKeyNotHaveAlias(String.format("%s varchar", pk), tableInfo));
         }
 
         tableInfo.finish();
+    }
+
+    private void handleKeyNotHaveAlias(String fieldRow, AbstractTableInfo tableInfo) {
+        Tuple2<String, String> t = extractType(fieldRow, tableInfo.getName());
+        String fieldName = t.f0;
+        String fieldType = t.f1;
+
+        Class fieldClass;
+        AbstractTableInfo.FieldExtraInfo fieldExtraInfo = null;
+
+        Matcher matcher = charTypePattern.matcher(fieldType);
+        if (matcher.find()) {
+            fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
+            fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
+            fieldExtraInfo.setLength(Integer.parseInt(matcher.group(1)));
+        } else {
+            fieldClass = dbTypeConvertToJavaType(fieldType);
+        }
+
+        tableInfo.addPhysicalMappings(fieldName, fieldName);
+        tableInfo.addField(fieldName);
+        tableInfo.addFieldClass(fieldClass);
+        tableInfo.addFieldType(fieldType);
+        tableInfo.addFieldExtraInfo(fieldExtraInfo);
     }
 
     private Tuple2<String, String> extractType(String fieldRow, String tableName) {

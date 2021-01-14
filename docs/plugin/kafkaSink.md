@@ -221,3 +221,29 @@ into
     from
             MyTable a
 ```
+## MAP类型示例
+目前Kafka Sink支持Map类型
+```sql
+CREATE TABLE ods(
+    id INT,
+    name STRING
+) WITH (
+    ...
+);
+
+CREATE TABLE dwd (
+    id INT,
+    dids MAP<STRING, INT>>
+) WITH (
+    type ='kafka',
+    bootstrapServers ='localhost:9092',
+    offsetReset ='latest',
+    groupId='wuren_foo',
+    topic ='luna_foo',
+    parallelism ='1'
+);
+
+INSERT INTO dwd
+    SELECT ods.id, MAP['foo', 1, 'bar', 2] AS dids
+    FROM ods;
+```

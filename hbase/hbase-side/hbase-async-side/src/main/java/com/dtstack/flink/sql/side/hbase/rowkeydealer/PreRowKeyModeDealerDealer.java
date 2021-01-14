@@ -32,8 +32,14 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
-import org.hbase.async.*;
+import org.hbase.async.BinaryPrefixComparator;
+import org.hbase.async.Bytes;
+import org.hbase.async.CompareFilter;
+import org.hbase.async.HBaseClient;
+import org.hbase.async.KeyValue;
+import org.hbase.async.RowFilter;
+import org.hbase.async.ScanFilter;
+import org.hbase.async.Scanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +66,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
     }
 
     @Override
-    public void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<BaseRow> resultFuture,
+    public void asyncGetData(String tableName, String rowKeyStr, BaseRow input, ResultFuture<BaseRow> resultFuture,
                              AbstractSideCache sideCache) {
         Scanner prefixScanner = hBaseClient.newScanner(tableName);
         ScanFilter scanFilter = new RowFilter(CompareFilter.CompareOp.EQUAL, new BinaryPrefixComparator(Bytes.UTF8(rowKeyStr)));
@@ -74,7 +80,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
     }
 
 
-    private String dealOneRow(ArrayList<ArrayList<KeyValue>> args, String rowKeyStr, Row input,
+    private String dealOneRow(ArrayList<ArrayList<KeyValue>> args, String rowKeyStr, BaseRow input,
                               ResultFuture<BaseRow> resultFuture, AbstractSideCache sideCache) {
         if(args == null || args.size() == 0){
             dealMissKey(input, resultFuture);
@@ -84,7 +90,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
         }
 
         List<Object> cacheContent = Lists.newArrayList();
-        List<Row> rowList = Lists.newArrayList();
+        List<BaseRow> rowList = Lists.newArrayList();
 
         for(List<KeyValue> oneRow : args){
             try {
@@ -104,6 +110,12 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
                         //The order of the fields defined in the data conversion table
                         List<Object> sideVal = Lists.newArrayList();
                         for (String key : colNames) {
+
+                            if (ROWKEY.equalsIgnoreCase(key)) {
+                                sideVal.add(rowKeyStr);
+                                continue;
+                            }
+
                             Object val = sideMap.get(key);
                             if (val == null) {
                                 LOG.error("can't get data with column {}", key);
@@ -112,7 +124,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
                             sideVal.add(val);
                         }
 
-                        Row row = fillData(input, sideVal);
+                        BaseRow row = fillData(input, sideVal);
                         if (openCache) {
                             cacheContent.add(sideVal);
                         }
@@ -130,7 +142,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
         }
 
         if (rowList.size() > 0){
-            RowDataComplete.completeRow(resultFuture, rowList);
+            RowDataComplete.completeBaseRow(resultFuture, rowList);
         }
 
         if(openCache){
@@ -140,7 +152,7 @@ public class PreRowKeyModeDealerDealer extends AbstractRowKeyModeDealer {
         return "";
     }
 
-    private String dealFail(Object arg2, Row input, ResultFuture<BaseRow> resultFuture){
+    private String dealFail(Object arg2, BaseRow input, ResultFuture<BaseRow> resultFuture){
         LOG.error("record:" + input);
         LOG.error("get side record exception:" + arg2);
         resultFuture.complete(Collections.EMPTY_LIST);

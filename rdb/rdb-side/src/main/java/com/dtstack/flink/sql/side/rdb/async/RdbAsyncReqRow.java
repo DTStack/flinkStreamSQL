@@ -41,7 +41,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,11 +109,10 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    protected void preInvoke(Row input, ResultFuture<BaseRow> resultFuture) {
-    }
+    protected void preInvoke(BaseRow input, ResultFuture<BaseRow> resultFuture) { }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) throws Exception {
         AtomicLong networkLogCounter = new AtomicLong(0L);
         //network is unhealthy
         while (!connectionStatus.get()) {
@@ -127,7 +126,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     protected void asyncQueryData(Map<String, Object> inputParams,
-                                  Row input,
+                                  BaseRow input,
                                   ResultFuture<BaseRow> resultFuture,
                                   SQLClient rdbSqlClient,
                                   AtomicLong failCounter,
@@ -143,13 +142,13 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     final protected void doAsyncQueryData(
-            Map<String, Object> inputParams,
-            Row input,
-            ResultFuture<BaseRow> resultFuture,
-            SQLClient rdbSqlClient,
-            AtomicLong failCounter,
-            AtomicBoolean finishFlag,
-            CountDownLatch latch) {
+        Map<String, Object> inputParams,
+        BaseRow input,
+        ResultFuture<BaseRow> resultFuture,
+        SQLClient rdbSqlClient,
+        AtomicLong failCounter,
+        AtomicBoolean finishFlag,
+        CountDownLatch latch) {
         rdbSqlClient.getConnection(conn -> {
             try {
                 if (conn.failed()) {
@@ -176,7 +175,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         });
     }
 
-    private void connectWithRetry(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture, SQLClient rdbSqlClient) {
+    private void connectWithRetry(Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture, SQLClient rdbSqlClient) {
         AtomicLong failCounter = new AtomicLong(0);
         AtomicBoolean finishFlag = new AtomicBoolean(false);
         while (!finishFlag.get()) {
@@ -247,11 +246,13 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public Row fillData(Row input, Object line) {
+    public BaseRow fillData(BaseRow input, Object line) {
+        GenericRow genericRow = (GenericRow) input;
         JsonArray jsonArray = (JsonArray) line;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
+        row.setHeader(input.getHeader());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }
@@ -287,7 +288,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         this.rdbSqlClient = rdbSqlClient;
     }
 
-    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) {
+    private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) {
         String key = buildCacheKey(inputParams);
         JsonArray params = new JsonArray(Lists.newArrayList(inputParams.values()));
         connection.queryWithParams(sideInfo.getSqlCondition(), params, rs -> {
@@ -300,10 +301,10 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
             int resultSize = rs.result().getResults().size();
             if (resultSize > 0) {
-                List<Row> rowList = Lists.newArrayList();
+                List<BaseRow> rowList = Lists.newArrayList();
 
                 for (JsonArray line : rs.result().getResults()) {
-                    Row row = fillData(input, line);
+                    BaseRow row = fillData(input, line);
                     if (openCache()) {
                         cacheContent.add(line);
                     }
@@ -313,7 +314,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 if (openCache()) {
                     putCache(key, CacheObj.buildCacheObj(ECacheContentType.MultiLine, cacheContent));
                 }
-                RowDataComplete.completeRow(resultFuture, rowList);
+                RowDataComplete.completeBaseRow(resultFuture, rowList);
             } else {
                 dealMissKey(input, resultFuture);
                 if (openCache()) {

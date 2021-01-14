@@ -32,7 +32,6 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
 import org.hbase.async.GetRequest;
 import org.hbase.async.HBaseClient;
 import org.hbase.async.KeyValue;
@@ -62,7 +61,7 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
 
 
     @Override
-    public void asyncGetData(String tableName, String rowKeyStr, Row input, ResultFuture<BaseRow> resultFuture,
+    public void asyncGetData(String tableName, String rowKeyStr, BaseRow input, ResultFuture<BaseRow> resultFuture,
                              AbstractSideCache sideCache){
         //TODO 是否有查询多个col family 和多个col的方法
         GetRequest getRequest = new GetRequest(tableName, rowKeyStr);
@@ -85,6 +84,12 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
                         //The order of the fields defined in the data conversion table
                         List<Object> sideVal = Lists.newArrayList();
                         for(String key : colNames){
+
+                            if (ROWKEY.equalsIgnoreCase(key)) {
+                                sideVal.add(rowKeyStr);
+                                continue;
+                            }
+
                             Object val = sideMap.get(key);
                             if(val == null){
                                 LOG.error("can't get data with column {}", key);
@@ -93,11 +98,11 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
                             sideVal.add(val);
                         }
 
-                        Row row = fillData(input, sideVal);
+                        BaseRow row = fillData(input, sideVal);
                         if(openCache){
                             sideCache.putCache(rowKeyStr, CacheObj.buildCacheObj(ECacheContentType.SingleLine, sideVal));
                         }
-                        RowDataComplete.completeRow(resultFuture, row);
+                        RowDataComplete.completeBaseRow(resultFuture, row);
                     } catch (Exception e) {
                         resultFuture.completeExceptionally(e);
                     }
