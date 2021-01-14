@@ -55,8 +55,6 @@ public abstract class AbstractRowKeyModeDealer {
 
     protected List<FieldInfo> outFieldInfoList;
 
-    protected static final String ROWKEY = "rowkey";
-
     //key:Returns the value of the position, returns the index values ​​in the input data
     protected Map<Integer, Integer> inFieldIndex = Maps.newHashMap();
 
