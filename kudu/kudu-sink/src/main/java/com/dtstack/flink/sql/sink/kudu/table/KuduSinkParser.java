@@ -51,8 +51,8 @@ public class KuduSinkParser extends AbstractTableParser {
         kuduTableInfo.setWorkerCount(MathUtil.getIntegerVal(props.get(WORKER_COUNT.toLowerCase())));
         kuduTableInfo.setDefaultOperationTimeoutMs(MathUtil.getIntegerVal(props.get(OPERATION_TIMEOUT_MS.toLowerCase())));
         kuduTableInfo.setDefaultSocketReadTimeoutMs(MathUtil.getIntegerVal(props.get(SOCKET_READ_TIMEOUT_MS.toLowerCase())));
-        kuduTableInfo.setBatchSize(MathUtil.getIntegerVal(props.getOrDefault(BATCH_SIZE_KEY, DEFAULT_BATCH_SIZE)));
-        kuduTableInfo.setBatchWaitInterval(MathUtil.getIntegerVal(props.getOrDefault(BATCH_WAIT_INTERVAL_KEY, DEFAULT_BATCH_WAIT_INTERVAL)));
+        kuduTableInfo.setBatchSize(MathUtil.getIntegerVal(props.getOrDefault(BATCH_SIZE_KEY.toLowerCase(), DEFAULT_BATCH_SIZE)));
+        kuduTableInfo.setBatchWaitInterval(MathUtil.getIntegerVal(props.getOrDefault(BATCH_WAIT_INTERVAL_KEY.toLowerCase(), DEFAULT_BATCH_WAIT_INTERVAL)));
 
         if (Objects.isNull(props.get(SESSION_FLUSH_MODE_KEY))) {
             if (kuduTableInfo.getBatchSize() > 1) {
