@@ -23,8 +23,6 @@ public class KuduSideParser extends AbstractSideTableParser {
 
     public static final String OPERATION_TIMEOUT_MS = "defaultOperationTimeoutMs";
 
-    public static final String SOCKET_READ_TIMEOUT_MS = "defaultSocketReadTimeoutMs";
-
     /**
      * 查询返回的最大字节数
      */
@@ -64,7 +62,6 @@ public class KuduSideParser extends AbstractSideTableParser {
         kuduSideTableInfo.setTableName(MathUtil.getString(props.get(TABLE_NAME.toLowerCase())));
         kuduSideTableInfo.setWorkerCount(MathUtil.getIntegerVal(props.get(WORKER_COUNT.toLowerCase())));
         kuduSideTableInfo.setDefaultOperationTimeoutMs(MathUtil.getIntegerVal(props.get(OPERATION_TIMEOUT_MS.toLowerCase())));
-        kuduSideTableInfo.setDefaultSocketReadTimeoutMs(MathUtil.getIntegerVal(props.get(SOCKET_READ_TIMEOUT_MS.toLowerCase())));
         kuduSideTableInfo.setBatchSizeBytes(MathUtil.getIntegerVal(props.get(BATCH_SIZE_BYTES.toLowerCase())));
         kuduSideTableInfo.setLimitNum(MathUtil.getLongVal(props.get(LIMIT_NUM.toLowerCase())));
         kuduSideTableInfo.setFaultTolerant(MathUtil.getBoolean(props.get(IS_FAULT_TO_LERANT.toLowerCase())));

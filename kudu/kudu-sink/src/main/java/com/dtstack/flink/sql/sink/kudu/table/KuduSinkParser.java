@@ -26,8 +26,6 @@ public class KuduSinkParser extends AbstractTableParser {
 
     public static final String OPERATION_TIMEOUT_MS = "defaultOperationTimeoutMs";
 
-    public static final String SOCKET_READ_TIMEOUT_MS = "defaultSocketReadTimeoutMs";
-
     public static final String BATCH_SIZE_KEY = "batchSize";
 
     public static final Integer DEFAULT_BATCH_SIZE = 1000;
@@ -50,18 +48,17 @@ public class KuduSinkParser extends AbstractTableParser {
         kuduTableInfo.setWriteMode(transWriteMode(MathUtil.getString(props.get(WRITE_MODE.toLowerCase()))));
         kuduTableInfo.setWorkerCount(MathUtil.getIntegerVal(props.get(WORKER_COUNT.toLowerCase())));
         kuduTableInfo.setDefaultOperationTimeoutMs(MathUtil.getIntegerVal(props.get(OPERATION_TIMEOUT_MS.toLowerCase())));
-        kuduTableInfo.setDefaultSocketReadTimeoutMs(MathUtil.getIntegerVal(props.get(SOCKET_READ_TIMEOUT_MS.toLowerCase())));
         kuduTableInfo.setBatchSize(MathUtil.getIntegerVal(props.getOrDefault(BATCH_SIZE_KEY.toLowerCase(), DEFAULT_BATCH_SIZE)));
         kuduTableInfo.setBatchWaitInterval(MathUtil.getIntegerVal(props.getOrDefault(BATCH_WAIT_INTERVAL_KEY.toLowerCase(), DEFAULT_BATCH_WAIT_INTERVAL)));
 
-        if (Objects.isNull(props.get(SESSION_FLUSH_MODE_KEY))) {
+        if (Objects.isNull(props.get(SESSION_FLUSH_MODE_KEY.toLowerCase()))) {
             if (kuduTableInfo.getBatchSize() > 1) {
                 kuduTableInfo.setFlushMode(KuduTableInfo.KuduFlushMode.MANUAL_FLUSH.name());
             } else {
                 kuduTableInfo.setFlushMode(KuduTableInfo.KuduFlushMode.AUTO_FLUSH_SYNC.name());
             }
         } else {
-            kuduTableInfo.setFlushMode(MathUtil.getString(props.get(SESSION_FLUSH_MODE_KEY)));
+            kuduTableInfo.setFlushMode(MathUtil.getString(props.get(SESSION_FLUSH_MODE_KEY.toLowerCase())));
         }
 
         kuduTableInfo.setPrincipal(
@@ -84,8 +81,6 @@ public class KuduSinkParser extends AbstractTableParser {
                 return KuduOutputFormat.WriteMode.INSERT;
             case "update":
                 return KuduOutputFormat.WriteMode.UPDATE;
-            case "upsert":
-                return KuduOutputFormat.WriteMode.UPSERT;
             default:
                 return KuduOutputFormat.WriteMode.UPSERT;
         }

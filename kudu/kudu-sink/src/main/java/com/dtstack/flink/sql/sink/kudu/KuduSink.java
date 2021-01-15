@@ -29,7 +29,6 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
     private KuduOutputFormat.WriteMode writeMode;
     private Integer workerCount;
     private Integer defaultOperationTimeoutMs;
-    private Integer defaultSocketReadTimeoutMs;
     private int parallelism = 1;
     private String principal;
     private String keytab;
@@ -44,7 +43,6 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.kuduMasters = kuduTableInfo.getKuduMasters();
         this.tableName = kuduTableInfo.getTableName();
         this.defaultOperationTimeoutMs = kuduTableInfo.getDefaultOperationTimeoutMs();
-        this.defaultSocketReadTimeoutMs = kuduTableInfo.getDefaultSocketReadTimeoutMs();
         this.workerCount = kuduTableInfo.getWorkerCount();
         this.writeMode = kuduTableInfo.getWriteMode();
         this.principal = kuduTableInfo.getPrincipal();
@@ -73,7 +71,6 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
                 .setWriteMode(writeMode)
                 .setWorkerCount(this.workerCount)
                 .setDefaultOperationTimeoutMs(this.defaultOperationTimeoutMs)
-                .setDefaultSocketReadTimeoutMs(this.defaultSocketReadTimeoutMs)
                 .setFieldNames(this.fieldNames)
                 .setFieldTypes(this.fieldTypes)
                 .setPrincipal(this.principal)

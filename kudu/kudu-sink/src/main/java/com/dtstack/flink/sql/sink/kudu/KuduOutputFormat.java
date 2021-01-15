@@ -32,7 +32,9 @@ import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
+import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.PartialRow;
+import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.SessionConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,8 +75,6 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
     private Integer workerCount;
 
     private Integer defaultOperationTimeoutMs;
-
-    private Integer defaultSocketReadTimeoutMs;
 
     /**
      * kerberos
@@ -133,12 +133,7 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
                 );
 
                 this.scheduledFuture = this.scheduler.scheduleWithFixedDelay(
-                        () -> {
-                            synchronized (KuduOutputFormat.this) {
-                                flush();
-                            }
-                        }, batchWaitInterval, batchWaitInterval, TimeUnit.MILLISECONDS
-                );
+                        this::flush, batchWaitInterval, batchWaitInterval, TimeUnit.MILLISECONDS);
             }
         } catch (Exception e) {
             LOG.error("init schedule task failed !");
@@ -150,9 +145,6 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
         KuduClient.KuduClientBuilder kuduClientBuilder = new KuduClient.KuduClientBuilder(kuduMasters);
         if (null != workerCount) {
             kuduClientBuilder.workerCount(workerCount);
-        }
-        if (null != defaultSocketReadTimeoutMs) {
-            kuduClientBuilder.defaultSocketReadTimeoutMs(defaultSocketReadTimeoutMs);
         }
 
         if (null != defaultOperationTimeoutMs) {
@@ -184,14 +176,13 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
     }
 
     /**
-     * According to the different flush mode, construct different session. Detail see {@link SessionConfiguration.FlushMode}
+     * According to the different flush mode, build different session. Detail see {@link SessionConfiguration.FlushMode}
      *
      * @param flushMode  flush mode
      * @param kuduClient kudu client
      * @return KuduSession with flush mode
-     * @throws KuduException kudu exception when session flush
      */
-    private KuduSession buildSessionWithFlushMode(String flushMode, KuduClient kuduClient) throws KuduException {
+    private KuduSession buildSessionWithFlushMode(String flushMode, KuduClient kuduClient) {
         KuduSession kuduSession = kuduClient.newSession();
         if (flushMode.equalsIgnoreCase(KuduTableInfo.KuduFlushMode.MANUAL_FLUSH.name())) {
             kuduSession.setFlushMode(SessionConfiguration.FlushMode.MANUAL_FLUSH);
@@ -220,14 +211,6 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
             return;
         }
         Row row = record.getField(1);
-        if (row.getArity() != fieldNames.length) {
-            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
-                LOG.error("record insert failed ..{}", row.toString());
-                LOG.error("cause by row.getArity() != fieldNames.length");
-            }
-            outDirtyRecords.inc();
-            return;
-        }
 
         try {
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
@@ -236,30 +219,66 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
             if (rowCount.getAndIncrement() >= batchSize) {
                 flush();
             }
+            // At AUTO_FLUSH_SYNC mode, kudu automatically flush once session apply operation, then get the response from kudu server.
+            if (flushMode.equalsIgnoreCase(SessionConfiguration.FlushMode.AUTO_FLUSH_SYNC.name())) {
+                dealResponse(session.apply(toOperation(writeMode, row)));
+            }
+
             session.apply(toOperation(writeMode, row));
             outRecords.inc();
         } catch (KuduException e) {
-            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
-                LOG.error("record insert failed, total dirty record:{} current row:{}", outDirtyRecords.getCount(), row.toString());
-                LOG.error("", e);
-            }
-            outDirtyRecords.inc();
+            throw new RuntimeException(e);
         }
     }
 
+    /**
+     * Flush data with session, then deal the responses of operations and reset rowCount.
+     * Detail of flush see {@link KuduSession#flush()}
+     */
     private synchronized void flush() {
         try {
             if (session.isClosed()) {
-                throw new IllegalStateException("session is closed! flush data error!");
+                throw new IllegalStateException("Session is closed! Flush data error!");
             }
 
-            session.flush();
+            // At AUTO_FLUSH_SYNC mode, kudu automatically flush once session apply operation
+            if (flushMode.equalsIgnoreCase(SessionConfiguration.FlushMode.AUTO_FLUSH_SYNC.name())) {
+                return;
+            }
+            session.flush().forEach(this::dealResponse);
             // clear
             rowCount.set(0);
         } catch (KuduException kuduException) {
-            LOG.error(
-                    "flush data error!", kuduException);
+            LOG.error("flush data error!", kuduException);
             throw new RuntimeException(kuduException);
+        }
+    }
+
+    /**
+     * Deal response when operation apply.
+     * At MANUAL_FLUSH mode, response returns after {@link KuduSession#flush()}.
+     * But at AUTO_FLUSH_SYNC mode, response returns after {@link KuduSession#apply(Operation)}
+     *
+     * @param response {@link OperationResponse} response after operation done.
+     */
+    private void dealResponse(OperationResponse response) {
+        if (response.hasRowError()) {
+            RowError error = response.getRowError();
+            String errorMsg = error.getErrorStatus().toString();
+            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
+                LOG.error(errorMsg);
+                LOG.error(String.format("Dirty data count: [%s]. Row data: [%s]",
+                        outDirtyRecords.getCount() + 1, error.getOperation().getRow().toString()));
+            }
+            outDirtyRecords.inc();
+
+            if (error.getErrorStatus().isNotFound()
+                    || error.getErrorStatus().isIOError()
+                    || error.getErrorStatus().isRuntimeError()
+                    || error.getErrorStatus().isServiceUnavailable()
+                    || error.getErrorStatus().isIllegalState()) {
+                throw new RuntimeException(errorMsg);
+            }
         }
     }
 
@@ -426,11 +445,6 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
 
         public KuduOutputFormatBuilder setDefaultOperationTimeoutMs(Integer defaultOperationTimeoutMs) {
             kuduOutputFormat.defaultOperationTimeoutMs = defaultOperationTimeoutMs;
-            return this;
-        }
-
-        public KuduOutputFormatBuilder setDefaultSocketReadTimeoutMs(Integer defaultSocketReadTimeoutMs) {
-            kuduOutputFormat.defaultSocketReadTimeoutMs = defaultSocketReadTimeoutMs;
             return this;
         }
 

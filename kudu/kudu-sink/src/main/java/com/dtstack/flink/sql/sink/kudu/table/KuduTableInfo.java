@@ -19,8 +19,6 @@ public class KuduTableInfo extends AbstractTargetTableInfo implements KerberosTa
 
     private Integer defaultOperationTimeoutMs;
 
-    private Integer defaultSocketReadTimeoutMs;
-
     /**
      * kerberos
      */
@@ -80,14 +78,6 @@ public class KuduTableInfo extends AbstractTargetTableInfo implements KerberosTa
 
     public void setDefaultOperationTimeoutMs(Integer defaultOperationTimeoutMs) {
         this.defaultOperationTimeoutMs = defaultOperationTimeoutMs;
-    }
-
-    public Integer getDefaultSocketReadTimeoutMs() {
-        return defaultSocketReadTimeoutMs;
-    }
-
-    public void setDefaultSocketReadTimeoutMs(Integer defaultSocketReadTimeoutMs) {
-        this.defaultSocketReadTimeoutMs = defaultSocketReadTimeoutMs;
     }
 
     @Override
