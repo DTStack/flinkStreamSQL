@@ -19,6 +19,7 @@ package com.dtstack.flink.sql.side.rdb.table;
 
 import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
+import com.dtstack.flink.sql.resource.ResourceCheck;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -134,6 +135,7 @@ public class RdbSideTableInfo extends AbstractSideTableInfo {
         properties.put(JdbcCheckKeys.TABLE_NAME_KEY, getTableName());
         properties.put(JdbcCheckKeys.OPERATION_NAME_KEY, getName());
         properties.put(JdbcCheckKeys.TABLE_TYPE_KEY, "side");
+        properties.put(JdbcCheckKeys.NEED_CHECK, ResourceCheck.NEED_CHECK+"");
         return properties;
     }
 }

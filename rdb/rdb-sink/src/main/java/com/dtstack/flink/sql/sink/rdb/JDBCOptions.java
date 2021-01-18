@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.sink.rdb;
 
 
 import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
+import com.dtstack.flink.sql.resource.ResourceCheck;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import com.google.common.collect.Maps;
 
@@ -89,6 +90,7 @@ public class JDBCOptions {
 		properties.put(JdbcCheckKeys.TABLE_NAME_KEY, getTableName());
 		properties.put(JdbcCheckKeys.OPERATION_NAME_KEY, "jdbcOutputFormat");
 		properties.put(JdbcCheckKeys.TABLE_TYPE_KEY, "sink");
+		properties.put(JdbcCheckKeys.NEED_CHECK, ResourceCheck.NEED_CHECK+"");
 		return properties;
 	}
 

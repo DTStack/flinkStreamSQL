@@ -85,8 +85,8 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
                 JdbcResourceCheck.getInstance().checkResourceStatus(tableInfo.getCheckProperties());
             }
         }
-        LOG.info("rdb dim table config info: {} ", tableInfo.toString());
         super.open(parameters);
+        LOG.info("rdb dim table config info: {} ", tableInfo.toString());
     }
 
     @Override

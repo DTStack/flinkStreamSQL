@@ -29,6 +29,7 @@ public class JdbcCheckKeys {
     public static final String USER_NAME_KEY = "userName";
     public static final String PASSWORD_KEY = "password";
     public static final String TABLE_TYPE_KEY = "tableType";
+    public static final String NEED_CHECK = "needCheck";
     public static final String SCHEMA_KEY = "schema";
     public static final String TABLE_NAME_KEY = "tableName";
     // create 语句中的name
