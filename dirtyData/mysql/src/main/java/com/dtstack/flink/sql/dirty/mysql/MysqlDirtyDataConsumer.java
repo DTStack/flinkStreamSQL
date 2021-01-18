@@ -131,6 +131,7 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
         statement.addBatch();
 
         if (count.get() % batchSize == 0) {
+            LOG.warn("Get dirty Data: " + entity.getDirtyData());
             statement.executeBatch();
         }
     }
