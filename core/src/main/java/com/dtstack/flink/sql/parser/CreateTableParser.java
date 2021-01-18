@@ -21,7 +21,6 @@ package com.dtstack.flink.sql.parser;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;

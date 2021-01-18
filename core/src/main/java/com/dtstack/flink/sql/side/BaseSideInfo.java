@@ -75,12 +75,15 @@ public abstract class BaseSideInfo implements Serializable{
 
     protected AbstractSideCache sideCache;
 
+    protected JoinInfo joinInfo;
+
     public BaseSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
                         AbstractSideTableInfo sideTableInfo){
         this.rowTypeInfo = rowTypeInfo;
         this.outFieldInfoList = outFieldInfoList;
         this.joinType = joinInfo.getJoinType();
         this.sideTableInfo = sideTableInfo;
+        this.joinInfo = joinInfo;
         parseSelectFields(joinInfo);
         buildEqualInfo(joinInfo, sideTableInfo);
     }
@@ -118,7 +121,7 @@ public abstract class BaseSideInfo implements Serializable{
     public String getTargetFieldType(String fieldName){
         int fieldIndex = sideTableInfo.getFieldList().indexOf(fieldName);
         if(fieldIndex == -1){
-            throw new RuntimeException(sideTableInfo.getName() + "can't find field: " + fieldName);
+            throw new RuntimeException(sideTableInfo.getName() + " can't find field: " + fieldName);
         }
 
         return sideTableInfo.getFieldTypes()[fieldIndex];
@@ -178,9 +181,7 @@ public abstract class BaseSideInfo implements Serializable{
      */
     private void evalConstantEquation(SqlLiteral literal, SqlIdentifier identifier) {
         String tableName = identifier.getComponent(0).getSimple();
-        String sideTableName = sideTableInfo.getName();
-        String errorMsg = "only support set side table constant field, error field " + identifier;
-        Preconditions.checkState(tableName.equals(sideTableName), errorMsg);
+        checkSupport(identifier);
         String fieldName = identifier.getComponent(1).getSimple();
         Object constant = literal.getValue();
         List<PredicateInfo> predicateInfos = sideTableInfo.getPredicateInfoes();
@@ -192,6 +193,22 @@ public abstract class BaseSideInfo implements Serializable{
             .setCondition(constant.toString())
             .build();
         predicateInfos.add(predicate);
+    }
+
+    private void checkSupport(SqlIdentifier identifier) {
+        String tableName = identifier.getComponent(0).getSimple();
+        String sideTableName;
+        String sideTableAlias;
+        if (joinInfo.isLeftIsSideTable()) {
+            sideTableName = joinInfo.getLeftTableName();
+            sideTableAlias = joinInfo.getLeftTableAlias();
+        } else {
+            sideTableName = joinInfo.getRightTableName();
+            sideTableAlias = joinInfo.getRightTableAlias();
+        }
+        boolean isSide = tableName.equals(sideTableName) || tableName.equals(sideTableAlias);
+        String errorMsg = "only support set side table constant field, error field " + identifier;
+        Preconditions.checkState(isSide, errorMsg);
     }
 
     private void associateField(String sourceTableField, String sideTableField, SqlNode sqlNode) {
