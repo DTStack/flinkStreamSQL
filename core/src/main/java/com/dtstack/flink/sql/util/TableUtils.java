@@ -528,11 +528,25 @@ public class TableUtils {
 
             String tableName = sqlIdentifier.names.asList().get(0);
             String tableField = sqlIdentifier.names.asList().get(1);
-            String fieldKey = tableName + "_" + tableField;
+            String fieldKey = tableName + "." + tableField;
 
             if(tableName.equalsIgnoreCase(oldTbName)){
 
-                String newFieldName = fieldReplaceRef.get(fieldKey) == null ? tableField : fieldReplaceRef.get(fieldKey);
+                /*
+                 *  ****Before replace:*****
+                 *  fieldKey: b.department
+                 *  fieldReplaceRef : b.department -> a_b_0.department0
+                 *  oldFieldRef: a_b_0.department0
+                 *  oldTbName: b
+                 *  oldFieldName: department
+                 *  ****After replace:*****
+                 *  newTbName: a_b_0
+                 *  newFieldName: department0
+                 */
+                String oldFieldRef = fieldReplaceRef.get(fieldKey);
+                String newFieldName = (oldFieldRef != null && !StringUtils.substringAfter(oldFieldRef, ".").isEmpty()) ?
+                        StringUtils.substringAfter(oldFieldRef, ".") : tableField;
+
                 SqlIdentifier newField = ((SqlIdentifier)selectNode).setName(0, newTbName);
                 newField = newField.setName(1, newFieldName);
                 ((SqlIdentifier)selectNode).assignNamesFrom(newField);
