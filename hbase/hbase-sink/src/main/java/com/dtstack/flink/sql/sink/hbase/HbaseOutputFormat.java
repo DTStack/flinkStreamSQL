@@ -19,9 +19,8 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
-import com.dtstack.flink.sql.enums.EUpdateMode;
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
@@ -202,7 +201,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     @Override
     public void writeRecord(Tuple2<Boolean, Row> record) {
         if (record.f0) {
-            if (this.batchSize != 0) {
+            if (this.batchSize > 1) {
                 writeBatchRecord(record.f1);
             } else {
                 dealInsert(record.f1);
@@ -231,10 +230,11 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             // 判断数据是否插入成功
             for (int i = 0; i < results.length; i++) {
                 if (results[i] == null) {
-                    if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                        LOG.error("record insert failed ..{}", records.get(i).toString());
-                    }
                     // 脏数据记录
+                    dirtyDataManager.collectDirtyData(
+                            records.get(i).toString(),
+                            "Batch Hbase Sink Error"
+                    );
                     outDirtyRecords.inc();
                 } else {
                     // 输出结果条数记录
@@ -264,6 +264,9 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
 
         try {
             table.put(put);
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                LOG.info(record.toString());
+            }
         } catch (Exception e) {
             dirtyDataManager.collectDirtyData(
                     record.toString()
@@ -271,9 +274,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             outDirtyRecords.inc();
         }
 
-        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-            LOG.info(record.toString());
-        }
         outRecords.inc();
     }
 

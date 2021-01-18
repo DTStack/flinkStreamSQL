@@ -83,8 +83,7 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
             }
         } catch (Exception e) {
             LOG.error("consume dirtyData error", e);
-            errorCount.incrementAndGet();
-            if (errorCount.get() > errorLimit) {
+            if (errorCount.getAndIncrement() > errorLimit) {
                 throw new RuntimeException("The task failed due to the number of dirty data consume failed reached the limit " + errorLimit);
             }
         }
