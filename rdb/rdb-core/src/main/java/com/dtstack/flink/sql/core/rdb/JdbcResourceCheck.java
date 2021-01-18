@@ -65,18 +65,23 @@ public class JdbcResourceCheck extends ResourceCheck {
 
     @Override
     public void checkResourceStatus(Map<String, String> checkProperties) {
-        if (!NEED_CHECK) {
-            LOG.info("Ignore checking data source ...");
+        if (!NEED_CHECK || !Boolean.parseBoolean(checkProperties.get(JdbcCheckKeys.NEED_CHECK))) {
+            LOG.warn("Ignore checking [{}] type data source , tableName is [{}]."
+                    , checkProperties.get(JdbcCheckKeys.TABLE_TYPE_KEY)
+                    , checkProperties.get(JdbcCheckKeys.TABLE_NAME_KEY));
             return;
         }
-        LOG.info("start checking data source ...");
+
+        LOG.info("start checking [{}] type data source , tableName is [{}]."
+                , checkProperties.get(JdbcCheckKeys.TABLE_TYPE_KEY)
+                , checkProperties.get(JdbcCheckKeys.TABLE_NAME_KEY));
         List<String> privilegeList = new ArrayList<>();
         if (checkProperties.get(TABLE_TYPE_KEY).equalsIgnoreCase(SIDE_STR)) {
             privilegeList.add(SELECT_STR);
         }
         if (checkProperties.get(TABLE_TYPE_KEY).equalsIgnoreCase(SINK_STR)) {
             privilegeList.add(INSERT_STR);
-            privilegeList.add(DELETE_STR);
+            // privilegeList.add(DELETE_STR);
         }
         checkPrivilege(
                 checkProperties.get(JdbcCheckKeys.DRIVER_NAME)
@@ -87,8 +92,11 @@ public class JdbcResourceCheck extends ResourceCheck {
                 , checkProperties.get(JdbcCheckKeys.SCHEMA_KEY)
                 , privilegeList
         );
-        LOG.info(String.format("data source is available and user [%s] has the corresponding permissions %s for [%s] table...",
-                checkProperties.get(JdbcCheckKeys.USER_NAME_KEY), privilegeList.toString(), checkProperties.get(TABLE_TYPE_KEY)));
+        LOG.info("data source is available and user [{}] has the corresponding permissions {} for [{}] type , tableName is [{}]"
+                , checkProperties.get(JdbcCheckKeys.USER_NAME_KEY)
+                , privilegeList.toString()
+                , checkProperties.get(JdbcCheckKeys.TABLE_TYPE_KEY)
+                , checkProperties.get(JdbcCheckKeys.TABLE_NAME_KEY));
     }
 
     public void checkPrivilege(
@@ -108,8 +116,13 @@ public class JdbcResourceCheck extends ResourceCheck {
             statement = connection.createStatement();
             for (String s : privilegeList) {
                 privilege = s;
-                statement.executeQuery(
-                        String.format(PRIVILEGE_SQL_MAP.get(privilege.toLowerCase()), tableInfo));
+                if (privilege.startsWith(SELECT_STR)) {
+                    statement.executeQuery(
+                            String.format(PRIVILEGE_SQL_MAP.get(privilege.toLowerCase()), tableInfo));
+                } else {
+                    statement.executeUpdate(
+                            String.format(PRIVILEGE_SQL_MAP.get(privilege.toLowerCase()), tableInfo, tableInfo));
+                }
             }
         } catch (SQLException sqlException) {
             if (sqlException.getMessage().contains("command denied")) {

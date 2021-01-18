@@ -19,9 +19,11 @@
 
 package com.dtstack.flink.sql.side.rdb.async;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
+import com.dtstack.flink.sql.resource.ResourceCheck;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.CacheMissVal;

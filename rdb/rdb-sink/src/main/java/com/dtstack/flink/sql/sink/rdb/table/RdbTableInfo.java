@@ -20,13 +20,13 @@ package com.dtstack.flink.sql.sink.rdb.table;
 import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.enums.EUpdateMode;
+import com.dtstack.flink.sql.resource.ResourceCheck;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * Reason:
@@ -233,6 +233,7 @@ public class RdbTableInfo extends AbstractTargetTableInfo {
         properties.put(JdbcCheckKeys.TABLE_NAME_KEY, getTableName());
         properties.put(JdbcCheckKeys.OPERATION_NAME_KEY, getName());
         properties.put(JdbcCheckKeys.TABLE_TYPE_KEY, "sink");
+        properties.put(JdbcCheckKeys.NEED_CHECK, ResourceCheck.NEED_CHECK+"");
 
         return properties;
     }

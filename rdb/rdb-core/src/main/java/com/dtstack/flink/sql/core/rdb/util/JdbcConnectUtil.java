@@ -39,7 +39,7 @@ import java.util.Objects;
  */
 public class JdbcConnectUtil {
     private static final int DEFAULT_RETRY_NUM = 3;
-    private static final long DEFAULT_RETRY_TIME_WAIT = 5L;
+    private static final long DEFAULT_RETRY_TIME_WAIT = 3L;
     private static final int DEFAULT_VALID_TIME = 10;
     private static final Logger LOG = LoggerFactory.getLogger(JdbcConnectUtil.class);
 
@@ -136,7 +136,7 @@ public class JdbcConnectUtil {
                 + "\nerror message: ");
         String errorCause = null;
 
-        ClassLoaderManager.forName(driverName);
+        forName(driverName);
         Preconditions.checkNotNull(url, "url can't be null!");
 
         for (int i = 0; i < DEFAULT_RETRY_NUM; i++) {
@@ -156,5 +156,17 @@ public class JdbcConnectUtil {
             }
         }
         throw new SuppressRestartsException(new Throwable(errorMessage + errorCause));
+    }
+
+    /**
+     * @param clazz
+     */
+    public synchronized static void forName(String clazz) {
+        try {
+            Class<?> driverClass = Class.forName(clazz);
+            driverClass.newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
