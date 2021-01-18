@@ -84,7 +84,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     public final static String PREFERRED_TEST_QUERY_SQL = "SELECT 1 FROM DUAL";
 
-    private transient SQLClient rdbSqlClient;
+    private static SQLClient rdbSqlClient;
 
     private AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
@@ -126,7 +126,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             Thread.sleep(100);
         }
         Map<String, Object> params = formatInputParam(inputParams);
-        executor.execute(() -> connectWithRetry(params, input, resultFuture, rdbSqlClient));
+        executor.execute(() -> connectWithRetry(params, input, resultFuture, RdbAsyncReqRow.rdbSqlClient));
     }
 
     protected void asyncQueryData(Map<String, Object> inputParams,
@@ -280,8 +280,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
-        if (rdbSqlClient != null) {
-            rdbSqlClient.close();
+        if (RdbAsyncReqRow.rdbSqlClient != null) {
+            RdbAsyncReqRow.rdbSqlClient.close();
         }
 
         if (executor != null) {
@@ -291,7 +291,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     public void setRdbSqlClient(SQLClient rdbSqlClient) {
-        this.rdbSqlClient = rdbSqlClient;
+        RdbAsyncReqRow.rdbSqlClient = rdbSqlClient;
     }
 
     private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) {
