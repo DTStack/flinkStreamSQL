@@ -19,11 +19,9 @@
 
 package com.dtstack.flink.sql.side.rdb.async;
 
-import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
-import com.dtstack.flink.sql.resource.ResourceCheck;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.CacheMissVal;
@@ -111,7 +109,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    protected void preInvoke(BaseRow input, ResultFuture<BaseRow> resultFuture) { }
+    protected void preInvoke(BaseRow input, ResultFuture<BaseRow> resultFuture) {
+    }
 
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) throws Exception {
@@ -144,13 +143,13 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     final protected void doAsyncQueryData(
-        Map<String, Object> inputParams,
-        BaseRow input,
-        ResultFuture<BaseRow> resultFuture,
-        SQLClient rdbSqlClient,
-        AtomicLong failCounter,
-        AtomicBoolean finishFlag,
-        CountDownLatch latch) {
+            Map<String, Object> inputParams,
+            BaseRow input,
+            ResultFuture<BaseRow> resultFuture,
+            SQLClient rdbSqlClient,
+            AtomicLong failCounter,
+            AtomicBoolean finishFlag,
+            CountDownLatch latch) {
         rdbSqlClient.getConnection(conn -> {
             try {
                 if (conn.failed()) {

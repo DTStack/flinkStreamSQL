@@ -233,7 +233,7 @@ public class RdbTableInfo extends AbstractTargetTableInfo {
         properties.put(JdbcCheckKeys.TABLE_NAME_KEY, getTableName());
         properties.put(JdbcCheckKeys.OPERATION_NAME_KEY, getName());
         properties.put(JdbcCheckKeys.TABLE_TYPE_KEY, "sink");
-        properties.put(JdbcCheckKeys.NEED_CHECK, ResourceCheck.NEED_CHECK+"");
+        properties.put(JdbcCheckKeys.NEED_CHECK, String.valueOf(ResourceCheck.NEED_CHECK));
 
         return properties;
     }
