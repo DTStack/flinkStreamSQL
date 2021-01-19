@@ -20,10 +20,12 @@ package com.dtstack.flink.sql.classloader;
 
 import com.dtstack.flink.sql.util.PluginUtil;
 import com.dtstack.flink.sql.util.ReflectionUtils;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -73,7 +75,17 @@ public class ClassLoaderManager {
 
     private static DtClassLoader retrieveClassLoad(List<URL> jarUrls) {
         jarUrls.sort(Comparator.comparing(URL::toString));
-        String jarUrlkey = StringUtils.join(jarUrls, "_");
+
+        List<String> jarMd5s = new ArrayList<>(jarUrls.size());
+        for (URL jarUrl : jarUrls) {
+            try (FileInputStream inputStream = new FileInputStream(jarUrl.getPath())){
+                String jarMd5 = DigestUtils.md5Hex(inputStream);
+                jarMd5s.add(jarMd5);
+            } catch (Exception e) {
+                throw new RuntimeException("Exceptions appears when read file:" + e);
+            }
+        }
+        String jarUrlkey = StringUtils.join(jarMd5s, "_");
         return pluginClassLoader.computeIfAbsent(jarUrlkey, k -> {
             try {
                 URL[] urls = jarUrls.toArray(new URL[jarUrls.size()]);
