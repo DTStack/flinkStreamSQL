@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -45,6 +46,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.api.Table;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -731,6 +733,69 @@ public class TableUtils {
         }
 
         return TableUtils.buildTableNameWithScope(newName, scope) + "_" + System.currentTimeMillis();
+    }
+
+    /**
+     * 判断目标查询是否是基于新构建出来的表的窗口group by
+     * @param sqlNode
+     * @param newRegisterTableList
+     * @return
+     */
+    public static boolean checkIsGroupByTimeWindow(SqlNode sqlNode, Collection<String> newRegisterTableList) {
+        SqlKind sqlKind = sqlNode.getKind();
+        switch (sqlKind) {
+            case SELECT:
+                SqlSelect selectNode = (SqlSelect) sqlNode;
+                SqlNodeList groupNodeList = selectNode.getGroup();
+                if ( groupNodeList == null || groupNodeList.size() == 0) {
+                    return false;
+                }
+
+                SqlNode fromNode = selectNode.getFrom();
+                if (fromNode.getKind() != IDENTIFIER
+                    && fromNode.getKind() != AS) {
+                    return false;
+                }
+
+                if(selectNode.getFrom().getKind() == AS){
+                    SqlNode asNode = ((SqlBasicCall) selectNode.getFrom()).getOperands()[0];
+                    if(asNode.getKind() != IDENTIFIER){
+                        return false;
+                    }
+
+                    fromNode = asNode;
+                }
+
+                String tableName = fromNode.toString();
+                for (SqlNode node : groupNodeList.getList()) {
+                    if (node.getKind() == OTHER_FUNCTION) {
+                        String functionName = ((SqlBasicCall) node).getOperator().toString().toLowerCase();
+                        boolean isTimeGroupByFunction = checkIsTimeGroupByFunction(functionName);
+                        if(isTimeGroupByFunction && newRegisterTableList.contains(tableName)){
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            case INSERT:
+                return checkIsGroupByTimeWindow(((SqlInsert) sqlNode).getSource(), newRegisterTableList);
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
+                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
+                return checkIsGroupByTimeWindow(unionLeft, newRegisterTableList)
+                        || checkIsGroupByTimeWindow(unionRight, newRegisterTableList);
+
+            default:
+                    return false;
+
+        }
+    }
+
+    public static boolean checkIsTimeGroupByFunction(String functionName ){
+        return functionName.equalsIgnoreCase("tumble")
+                || functionName.equalsIgnoreCase("session")
+                || functionName.equalsIgnoreCase("hop");
     }
 
 }

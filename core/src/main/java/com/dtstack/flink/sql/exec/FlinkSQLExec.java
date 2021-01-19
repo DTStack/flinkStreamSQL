@@ -18,7 +18,9 @@
 
 package com.dtstack.flink.sql.exec;
 
+import com.dtstack.flink.sql.util.TableUtils;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.sql.parser.dml.RichSqlInsert;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.internal.TableEnvironmentImpl;
@@ -32,6 +34,7 @@ import org.apache.flink.table.planner.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.planner.delegation.PlannerBase;
 import org.apache.flink.table.planner.delegation.StreamPlanner;
 import org.apache.flink.table.planner.operations.SqlToOperationConverter;
+import org.apache.flink.table.planner.plan.QueryOperationConverter;
 import org.apache.flink.table.sinks.TableSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +44,7 @@ import scala.Tuple2;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 
 
 /**
@@ -51,14 +55,62 @@ import java.util.Arrays;
 public class FlinkSQLExec {
     private static final Logger LOG = LoggerFactory.getLogger(FlinkSQLExec.class);
 
-    public static void sqlUpdate(StreamTableEnvironment tableEnv, String stmt) throws Exception {
+    public static void sqlInsert(StreamTableEnvironment tableEnv, SqlNode sqlNode, Collection<String> newRegisterTableList) throws Exception{
+        boolean isGroupByTimeWindow = TableUtils.checkIsGroupByTimeWindow(sqlNode, newRegisterTableList);
+        if(!isGroupByTimeWindow){
+            QueryOperationConverter.setProducesUpdates(true);
+        }
+
+        sqlInsert(tableEnv, (RichSqlInsert) sqlNode);
+        QueryOperationConverter.setProducesUpdates(false);
+    }
+
+    public static void sqlInsert(StreamTableEnvironment tableEnv, String stmt, Collection<String> newRegisterTableList) throws Exception{
         StreamTableEnvironmentImpl tableEnvImpl = ((StreamTableEnvironmentImpl) tableEnv);
         StreamPlanner streamPlanner = (StreamPlanner) tableEnvImpl.getPlanner();
         FlinkPlannerImpl flinkPlanner = streamPlanner.createFlinkPlanner();
 
         RichSqlInsert insert = (RichSqlInsert) flinkPlanner.validate(flinkPlanner.parser().parse(stmt));
-        TableImpl queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
+        boolean isGroupByTimeWindow = TableUtils.checkIsGroupByTimeWindow(insert, newRegisterTableList);
+        if(!isGroupByTimeWindow){
+            QueryOperationConverter.setProducesUpdates(true);
+        }
 
+        sqlInsert(tableEnv, insert);
+        QueryOperationConverter.setProducesUpdates(false);
+    }
+
+    public static Table sqlQuery(StreamTableEnvironment tableEnv, SqlNode sqlNode, Collection<String> newRegisterTableList){
+        boolean isGroupByTimeWindow = TableUtils.checkIsGroupByTimeWindow(sqlNode, newRegisterTableList);
+        if(!isGroupByTimeWindow){
+            QueryOperationConverter.setProducesUpdates(true);
+        }
+
+        Table resultTable = tableEnv.sqlQuery(sqlNode.toString());
+        QueryOperationConverter.setProducesUpdates(false);
+        return resultTable;
+    }
+
+    public static void insertInto(StreamTableEnvironment tableEnv,
+                                  SqlNode sqlNode,
+                                  String targetTableName,
+                                  Table fromTable,
+                                  Collection<String> newRegisterTableList){
+        boolean isGroupByTimeWindow = TableUtils.checkIsGroupByTimeWindow(sqlNode, newRegisterTableList);
+        if(!isGroupByTimeWindow){
+            QueryOperationConverter.setProducesUpdates(true);
+        }
+
+        tableEnv.insertInto(targetTableName, fromTable);
+        QueryOperationConverter.setProducesUpdates(false);
+    }
+
+    public static void sqlInsert(StreamTableEnvironment tableEnv, RichSqlInsert insert) throws Exception {
+        StreamTableEnvironmentImpl tableEnvImpl = ((StreamTableEnvironmentImpl) tableEnv);
+        StreamPlanner streamPlanner = (StreamPlanner) tableEnvImpl.getPlanner();
+        FlinkPlannerImpl flinkPlanner = streamPlanner.createFlinkPlanner();
+
+        TableImpl queryResult = extractQueryTableFromInsertCaluse(tableEnvImpl, flinkPlanner, insert);
         String targetTableName = ((SqlIdentifier) insert.getTargetTable()).names.get(0);
         TableSink tableSink = getTableSinkByPlanner(streamPlanner, targetTableName);
 
