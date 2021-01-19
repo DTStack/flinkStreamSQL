@@ -264,6 +264,9 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
 
         try {
             table.put(put);
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                LOG.info(record.toString());
+            }
         } catch (Exception e) {
             dirtyDataManager.collectDirtyData(
                     record.toString()
@@ -271,9 +274,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             outDirtyRecords.inc();
         }
 
-        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-            LOG.info(record.toString());
-        }
         outRecords.inc();
     }
 

@@ -196,7 +196,13 @@ public class ExecuteProcessHelper {
         // cache classPathSets
         ExecuteProcessHelper.registerPluginUrlToCachedFile(env, classPathSets);
 
-        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), paramsInfo.getPluginLoadMode(), tableEnv, sqlTree, sideTableMap, registerTableCache);
+        ExecuteProcessHelper.sqlTranslation(
+                paramsInfo.getLocalSqlPluginPath(),
+                paramsInfo.getPluginLoadMode(),
+                tableEnv,
+                sqlTree,
+                sideTableMap,
+                registerTableCache);
 
         if (env instanceof MyLocalStreamEnvironment) {
             ((MyLocalStreamEnvironment) env).setClasspaths(ClassLoaderManager.getClassPath());
