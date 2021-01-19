@@ -136,7 +136,7 @@ public class JdbcConnectUtil {
                 + "\nerror message: ");
         String errorCause = null;
 
-        forName(driverName);
+        ClassLoaderManager.forName(driverName, JdbcConnectUtil.class.getClassLoader());
         Preconditions.checkNotNull(url, "url can't be null!");
 
         for (int i = 0; i < DEFAULT_RETRY_NUM; i++) {
@@ -156,17 +156,5 @@ public class JdbcConnectUtil {
             }
         }
         throw new SuppressRestartsException(new Throwable(errorMessage + errorCause));
-    }
-
-    /**
-     * @param clazz
-     */
-    public synchronized static void forName(String clazz) {
-        try {
-            Class<?> driverClass = Class.forName(clazz);
-            driverClass.newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 }
