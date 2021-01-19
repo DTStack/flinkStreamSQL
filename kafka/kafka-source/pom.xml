@@ -20,7 +20,7 @@
             <artifactId>sql.source.kafka-base</artifactId>
             <exclusions>
                 <exclusion>
-                    <artifactId>flink-connector-kafka_2.11</artifactId>
+                    <artifactId>flink-connector-kafka_${scala.binary.version}</artifactId>
                     <groupId>org.apache.flink</groupId>
                 </exclusion>
             </exclusions>
