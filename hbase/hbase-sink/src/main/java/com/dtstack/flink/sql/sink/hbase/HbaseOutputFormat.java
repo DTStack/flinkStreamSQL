@@ -227,13 +227,19 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             }
             table.batch(puts, results);
 
+            // 打印结果
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                // 只打印最后一条数据
+                LOG.info(records.get(records.size() - 1).toString());
+            }
+        } catch (IOException | InterruptedException e) {
             // 判断数据是否插入成功
             for (int i = 0; i < results.length; i++) {
-                if (results[i] == null) {
+                if (results[i] != null) {
                     // 脏数据记录
                     dirtyDataManager.collectDirtyData(
                             records.get(i).toString(),
-                            "Batch Hbase Sink Error"
+                            ((Exception) results[i]).getMessage()
                     );
                     outDirtyRecords.inc();
                 } else {
@@ -241,13 +247,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
                     outRecords.inc();
                 }
             }
-            // 打印结果
-            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-                // 只打印最后一条数据
-                LOG.info(records.get(records.size() - 1).toString());
-            }
-        } catch (IOException | InterruptedException e) {
-            LOG.error("", e);
         } finally {
             // 添加完数据之后数据清空records
             records.clear();

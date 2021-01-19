@@ -129,15 +129,17 @@ public class DirtyDataManager implements Serializable {
     public void collectDirtyData(String dataInfo, String cause) {
         DirtyDataEntity dirtyDataEntity = new DirtyDataEntity(dataInfo, System.currentTimeMillis(), cause);
         try {
-            consumer.collectDirtyData(dirtyDataEntity, blockingInterval);
             count.incrementAndGet();
-        } catch (Exception ignored) {
+            consumer.collectDirtyData(dirtyDataEntity, blockingInterval);
+        } catch (Exception e) {
             LOG.warn("dirty Data insert error ... Failed number: " + errorCount.incrementAndGet());
-            LOG.warn("error dirty data:" + dirtyDataEntity.toString());
+            LOG.warn("error cause: " + e.getMessage());
+            LOG.warn("error dirty data:" + dirtyDataEntity.getDirtyData());
             if (errorCount.get() > Math.ceil(count.longValue() * errorLimitRate)) {
                 // close consumer and manager
                 close();
-                throw new RuntimeException(String.format("The number of failed number 【%s】 reaches the limit, manager fails", errorCount.get()));
+                throw new RuntimeException(
+                        String.format("The number of failed number 【%s】 reaches the limit, manager fails", errorCount.get()));
             }
         }
     }
