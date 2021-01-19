@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -25,8 +25,9 @@ import com.dtstack.flink.sql.enums.PlannerType;
 
 /**
  * This class define commandline options for the Launcher program
- *
+ * <p>
  * Company: www.dtstack.com
+ *
  * @author huyifan.zju@163.com
  */
 public class Options {
@@ -192,13 +193,14 @@ public class Options {
         this.addShipfile = addShipfile;
     }
 
+    public String getPlanner() {
+        return planner;
+    }
+
     public void setPlanner(String planner) {
         this.planner = planner;
     }
 
-    public String getPlanner() {
-        return planner;
-    }
     public String getDirtyProperties() {
         return dirtyProperties;
     }

@@ -18,6 +18,7 @@
  */
 package com.dtstack.flink.sql.side.polardb.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 
@@ -26,6 +27,7 @@ import java.util.Map;
 /**
  * Date: 2019/12/20
  * Company: www.dtstack.com
+ *
  * @author yinxi
  */
 public class PolardbSideParser extends RdbSideParser {
@@ -33,6 +35,7 @@ public class PolardbSideParser extends RdbSideParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        props.put(JdbcCheckKeys.DRIVER_NAME, "com.mysql.cj.jdbc.Driver");
         AbstractTableInfo mysqlTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         mysqlTableInfo.setType(CURR_TYPE);
         return mysqlTableInfo;

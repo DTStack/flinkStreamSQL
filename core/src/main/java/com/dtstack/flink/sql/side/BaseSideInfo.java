@@ -135,7 +135,7 @@ public abstract class BaseSideInfo implements Serializable{
     public String getTargetFieldType(String fieldName){
         int fieldIndex = sideTableInfo.getFieldList().indexOf(fieldName);
         if(fieldIndex == -1){
-            throw new RuntimeException(sideTableInfo.getName() + "can't find field: " + fieldName);
+            throw new RuntimeException(sideTableInfo.getName() + " can't find field: " + fieldName);
         }
 
         return sideTableInfo.getFieldTypes()[fieldIndex];

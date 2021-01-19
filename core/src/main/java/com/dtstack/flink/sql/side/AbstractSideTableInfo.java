@@ -45,6 +45,8 @@ import java.util.Optional;
 
 public abstract class AbstractSideTableInfo extends AbstractTableInfo implements Serializable {
 
+    public static final String FAST_CHECK = "fastCheck";
+
     public static final String TARGET_SUFFIX = "Side";
 
     public static final String CACHE_KEY = "cache";
@@ -91,6 +93,8 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
     private Integer connectRetryMaxNum;
 
     private List<PredicateInfo>  predicateInfoes = Lists.newArrayList();
+
+    private boolean fastCheck;
 
     public RowTypeInfo getRowTypeInfo(){
         Class[] fieldClass = getFieldClasses();
@@ -213,6 +217,15 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
     public void setConnectRetryMaxNum(Integer connectRetryMaxNum) {
         this.connectRetryMaxNum = connectRetryMaxNum;
     }
+
+    public boolean getFastCheck() {
+        return fastCheck;
+    }
+
+    public void setFastCheck(boolean fastCheck) {
+        this.fastCheck = fastCheck;
+    }
+
     @Override
     public String toString() {
         return "Cache Info{" +
@@ -224,6 +237,7 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
                 ", asyncPoolSize=" + asyncPoolSize +
                 ", asyncFailMaxNum=" + asyncFailMaxNum +
                 ", partitionedJoin=" + partitionedJoin +
+                ", fastCheck='" + fastCheck +
                 ", cacheMode='" + cacheMode + '\'' +
                 '}';
     }

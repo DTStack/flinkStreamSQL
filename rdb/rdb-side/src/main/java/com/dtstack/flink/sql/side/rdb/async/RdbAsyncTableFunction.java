@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.side.rdb.async;
 
+import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.BaseSideInfo;
@@ -88,8 +89,17 @@ public class RdbAsyncTableFunction extends BaseAsyncTableFunction {
 
     private final static int MAX_TASK_QUEUE_SIZE = 100000;
 
+    private static volatile boolean resourceCheck = true;
+
     @Override
     public void open(FunctionContext context) throws Exception {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        synchronized (RdbAsyncReqRow.class) {
+            if (resourceCheck) {
+                resourceCheck = false;
+                JdbcResourceCheck.getInstance().checkResourceStatus(rdbSideTableInfo.getCheckProperties());
+            }
+        }
         super.open(context);
         executor = new ThreadPoolExecutor(MAX_DB_CONN_POOL_SIZE_LIMIT, MAX_DB_CONN_POOL_SIZE_LIMIT, 0, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE), new DTThreadFactory("rdbAsyncExec"), new ThreadPoolExecutor.CallerRunsPolicy());

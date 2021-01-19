@@ -58,6 +58,7 @@ public class MysqlSink extends AbstractRdbSink implements IStreamSinkGener<Abstr
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
                 .setUpdateMode(updateMode)
+                .setName(name)
                 .build();
     }
 }

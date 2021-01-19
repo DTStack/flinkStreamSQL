@@ -57,6 +57,8 @@ public abstract class AbstractRowKeyModeDealer {
 
     protected List<FieldInfo> outFieldInfoList;
 
+    protected static final String ROWKEY = "rowkey";
+
     protected BaseSideInfo sideInfo;
 
     protected BaseAsyncTableFunction baseAsyncTableFunction;

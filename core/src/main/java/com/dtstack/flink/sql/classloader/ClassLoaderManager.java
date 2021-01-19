@@ -28,6 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -45,10 +46,31 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ClassLoaderManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClassLoaderManager.class);
+    private static final Map<String, DtClassLoader> pluginClassLoader = new ConcurrentHashMap<>();
+    private static final Object LOCK = new Object();
 
-    private static Map<String, DtClassLoader> pluginClassLoader = new ConcurrentHashMap<>();
     // 维表插件的classloader，该集合存放的是AppClassloader
     private static Map<String, URLClassLoader> pluginAppClassLoader = new ConcurrentHashMap<>();
+
+    public static void forName(String clazz, ClassLoader classLoader) {
+        synchronized (LOCK) {
+            try {
+                Class.forName(clazz, true, classLoader);
+                DriverManager.setLoginTimeout(10);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public synchronized static void forName(String clazz) {
+        try {
+            Class<?> driverClass = Class.forName(clazz);
+            driverClass.newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static <R> R newInstance(String pluginJarPath, ClassLoaderSupplier<R> supplier) throws Exception {
         ClassLoader classLoader = retrieveClassLoad(pluginJarPath);
@@ -57,8 +79,9 @@ public class ClassLoaderManager {
 
     /**
      * 使用AppClassloader实例化维表插件
+     *
      * @param pluginJarPath 插件路径
-     * @param supplier 类加载器
+     * @param supplier      类加载器
      * @param <R>
      * @return
      * @throws Exception
@@ -90,6 +113,7 @@ public class ClassLoaderManager {
 
     /**
      * 使用AppClassloader加载维表插件
+     *
      * @param pluginJarPath 插件路径
      * @return
      */
@@ -133,7 +157,7 @@ public class ClassLoaderManager {
         }
 
         Set<URL> appClassPaths = new HashSet<URL>();
-        for(Map.Entry<String, URLClassLoader> entry : pluginAppClassLoader.entrySet()){
+        for (Map.Entry<String, URLClassLoader> entry : pluginAppClassLoader.entrySet()) {
             appClassPaths.addAll(Arrays.asList(entry.getValue().getURLs()));
         }
         classPaths.addAll(appClassPaths);
@@ -141,11 +165,10 @@ public class ClassLoaderManager {
     }
 
 
-
     public static URLClassLoader loadExtraJar(List<URL> jarUrlList, URLClassLoader classLoader)
-            throws  IllegalAccessException, InvocationTargetException {
-        for(URL url : jarUrlList){
-            if(url.toString().endsWith(".jar")){
+            throws IllegalAccessException, InvocationTargetException {
+        for (URL url : jarUrlList) {
+            if (url.toString().endsWith(".jar")) {
                 urlClassLoaderAddUrl(classLoader, url);
             }
         }

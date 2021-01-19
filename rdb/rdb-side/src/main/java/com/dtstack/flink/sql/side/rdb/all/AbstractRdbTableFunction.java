@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.side.rdb.all;
 
+import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
@@ -41,6 +42,7 @@ import java.util.Map;
  **/
 abstract public class AbstractRdbTableFunction extends BaseTableFunction {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractRdbTableFunction.class);
+    private static volatile boolean resourceCheck = true;
 
     public AbstractRdbTableFunction(BaseSideInfo sideInfo) {
         super(sideInfo);
@@ -48,8 +50,14 @@ abstract public class AbstractRdbTableFunction extends BaseTableFunction {
 
     @Override
     public void open(FunctionContext context) throws Exception {
-        super.open(context);
         RdbSideTableInfo tableInfo = (RdbSideTableInfo) sideTableInfo;
+        synchronized (AbstractRdbAllReqRow.class) {
+            if (resourceCheck) {
+                resourceCheck = false;
+                JdbcResourceCheck.getInstance().checkResourceStatus(tableInfo.getCheckProperties());
+            }
+        }
+        super.open(context);
         LOG.info("rdb dim table config info: {} ", tableInfo.toString());
     }
 

@@ -19,8 +19,12 @@
 package com.dtstack.flink.sql.sink.rdb;
 
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
+import com.dtstack.flink.sql.resource.ResourceCheck;
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
+import com.google.common.collect.Maps;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -75,6 +79,20 @@ public class JDBCOptions {
     public String getSchema() {
         return schema;
     }
+
+    public Map<String, String> buildCheckProperties() {
+		Map<String, String> properties = Maps.newHashMap();
+		properties.put(JdbcCheckKeys.DRIVER_NAME, getDriverName());
+		properties.put(JdbcCheckKeys.URL_KEY, getDbUrl());
+		properties.put(JdbcCheckKeys.USER_NAME_KEY, getUsername());
+		properties.put(JdbcCheckKeys.PASSWORD_KEY, getPassword());
+		properties.put(JdbcCheckKeys.SCHEMA_KEY, getSchema());
+		properties.put(JdbcCheckKeys.TABLE_NAME_KEY, getTableName());
+		properties.put(JdbcCheckKeys.OPERATION_NAME_KEY, "jdbcOutputFormat");
+		properties.put(JdbcCheckKeys.TABLE_TYPE_KEY, "sink");
+		properties.put(JdbcCheckKeys.NEED_CHECK, ResourceCheck.NEED_CHECK+"");
+		return properties;
+	}
 
     public static Builder builder() {
 		return new Builder();

@@ -101,6 +101,12 @@ public class RowKeyEqualModeDealer extends AbstractRowKeyModeDealer {
                         //The order of the fields defined in the data conversion table
                         List<Object> sideVal = Lists.newArrayList();
                         for (String key : colNames) {
+
+                            if (ROWKEY.equalsIgnoreCase(key)) {
+                                sideVal.add(rowKeyStr);
+                                continue;
+                            }
+
                             Object val = sideMap.get(key);
                             if (val == null) {
                                 LOG.error("can't get data with column {}", key);
