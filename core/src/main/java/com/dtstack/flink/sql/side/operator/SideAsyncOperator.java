@@ -28,6 +28,7 @@ import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.table.dataformat.BaseRow;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -60,8 +61,8 @@ public class SideAsyncOperator {
                         .newInstance(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
     }
 
-    public static DataStream getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo,  JoinInfo joinInfo,
-                                            List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo, String pluginLoadMode) throws Exception {
+    public static DataStream<BaseRow> getSideJoinDataStream(DataStream inputStream, String sideType, String sqlRootDir, RowTypeInfo rowTypeInfo, JoinInfo joinInfo,
+                                                            List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo, String pluginLoadMode) throws Exception {
         BaseAsyncReqRow asyncDbReq = loadAsyncReq(sideType, sqlRootDir, rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo, pluginLoadMode);
 
         //TODO How much should be set for the degree of parallelism? Timeout? capacity settings?

@@ -26,8 +26,8 @@ import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
-import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +36,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.TimeZone;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -50,7 +49,7 @@ import java.util.concurrent.TimeUnit;
  * @author xuchao
  */
 
-public abstract class BaseAllReqRow extends RichFlatMapFunction<Row, BaseRow> implements ISideReqRow {
+public abstract class BaseAllReqRow extends RichFlatMapFunction<BaseRow, BaseRow> implements ISideReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseAllReqRow.class);
 
@@ -94,22 +93,23 @@ public abstract class BaseAllReqRow extends RichFlatMapFunction<Row, BaseRow> im
         return obj;
     }
 
-    protected void sendOutputRow(Row value, Object sideInput, Collector<BaseRow> out) {
+    protected void sendOutputRow(BaseRow value, Object sideInput, Collector<BaseRow> out) {
         if (sideInput == null && sideInfo.getJoinType() != JoinType.LEFT) {
             return;
         }
-        Row row = fillData(value, sideInput);
-        RowDataComplete.collectRow(out, row);
+        BaseRow row = fillData(value, sideInput);
+        RowDataComplete.collectBaseRow(out, row);
     }
 
     @Override
-    public Row fillData(Row input, Object sideInput) {
+    public BaseRow fillData(BaseRow input, Object sideInput) {
+        GenericRow genericRow = (GenericRow) input;
         Map<String, Object> cacheInfo = (Map<String, Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
-
+        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
+        row.setHeader(genericRow.getHeader());
         for (Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()) {
             // origin value
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             obj = dealTimeAttributeType(sideInfo.getRowTypeInfo().getTypeAt(entry.getValue()).getClass(), obj);
             row.setField(entry.getKey(), obj);
         }

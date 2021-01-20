@@ -40,7 +40,7 @@ import org.apache.flink.runtime.security.DynamicConfiguration;
 import org.apache.flink.runtime.security.KerberosUtils;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.dataformat.GenericRow;
 import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.hbase.async.Config;
 import org.hbase.async.HBaseClient;
@@ -173,7 +173,7 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public void handleAsyncInvoke(Map<String, Object> inputParams, Row input, ResultFuture<BaseRow> resultFuture) throws Exception {
+    public void handleAsyncInvoke(Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) throws Exception {
         rowKeyMode.asyncGetData(tableName, buildCacheKey(inputParams), input, resultFuture, sideInfo.getSideCache());
     }
 
@@ -183,11 +183,13 @@ public class HbaseAsyncReqRow extends BaseAsyncReqRow {
     }
 
     @Override
-    public Row fillData(Row input, Object sideInput){
+    public BaseRow fillData(BaseRow input, Object sideInput){
+        GenericRow genericRow = (GenericRow) input;
         List<Object> sideInputList = (List<Object>) sideInput;
-        Row row = new Row(sideInfo.getOutFieldInfoList().size());
+        GenericRow row = new GenericRow(sideInfo.getOutFieldInfoList().size());
+        row.setHeader(genericRow.getHeader());
         for(Map.Entry<Integer, Integer> entry : sideInfo.getInFieldIndex().entrySet()){
-            Object obj = input.getField(entry.getValue());
+            Object obj = genericRow.getField(entry.getValue());
             obj = convertTimeIndictorTypeInfo(entry.getValue(), obj);
             row.setField(entry.getKey(), obj);
         }

@@ -17,16 +17,15 @@
  */
 
 
-
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.enums.ETableType;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.table.AbstractTableInfoParser;
 import com.dtstack.flink.sql.util.DtStringUtil;
-import org.apache.commons.lang3.StringUtils;
-import com.google.common.collect.Lists;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +38,7 @@ import java.util.regex.Pattern;
  * Reason:
  * Date: 2018/6/22
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
@@ -46,29 +46,27 @@ public class SqlParser {
     private static final Logger LOG = LoggerFactory.getLogger(SqlParser.class);
 
     public static final char SQL_DELIMITER = ';';
-
+    private static final Pattern ADD_FILE_AND_JAR_PATTERN = Pattern.compile("(?i).*add\\s+file\\s+.+|(?i).*add\\s+jar\\s+.+");
     private static String LOCAL_SQL_PLUGIN_ROOT;
-
     private static List<IParser> sqlParserList = Lists.newArrayList(CreateFuncParser.newInstance(),
             CreateTableParser.newInstance(), InsertSqlParser.newInstance(), CreateTmpTableParser.newInstance());
 
-    public static void setLocalSqlPluginRoot(String localSqlPluginRoot){
+    public static void setLocalSqlPluginRoot(String localSqlPluginRoot) {
         LOCAL_SQL_PLUGIN_ROOT = localSqlPluginRoot;
     }
-
-    private static final Pattern ADD_FILE_AND_JAR_PATTERN = Pattern.compile("(?i).*add\\s+file\\s+.+|(?i).*add\\s+jar\\s+.+");
 
     /**
      * flink support sql syntax
      * CREATE TABLE sls_stream() with ();
      * CREATE (TABLE|SCALA) FUNCTION fcnName WITH com.dtstack.com;
      * insert into tb1 select * from tb2;
+     *
      * @param sql
      */
     public static SqlTree parseSql(String sql, String pluginLoadMode) throws Exception {
 
-        if(StringUtils.isBlank(sql)){
-            throw new RuntimeException("sql is not null");
+        if (StringUtils.isBlank(sql)) {
+            throw new IllegalArgumentException("SQL must be not empty!");
         }
 
         sql = DtStringUtil.dealSqlComment(sql)
@@ -80,12 +78,12 @@ public class SqlParser {
         sqlArr = removeAddFileAndJarStmt(sqlArr);
         SqlTree sqlTree = new SqlTree();
         AbstractTableInfoParser tableInfoParser = new AbstractTableInfoParser();
-        for(String childSql : sqlArr){
-            if(Strings.isNullOrEmpty(childSql)){
+        for (String childSql : sqlArr) {
+            if (Strings.isNullOrEmpty(childSql)) {
                 continue;
             }
             boolean result = false;
-            for(IParser sqlParser : sqlParserList){
+            for (IParser sqlParser : sqlParserList) {
                 try {
                     if (!sqlParser.verify(childSql)) {
                         continue;
@@ -100,67 +98,78 @@ public class SqlParser {
                 }
             }
 
-            if(!result){
-                throw new RuntimeException(String.format("%s:Syntax does not support,the format of SQL like insert into tb1 select * from tb2.", childSql));
+            if (!result) {
+                throw new RuntimeException(String.format("%s \nSyntax like this does not support, the format of SQL like 'insert into tb1 select field from tb2'.", childSql));
             }
         }
 
         //解析exec-sql
-        if(sqlTree.getExecSqlList().size() == 0){
+        if (sqlTree.getExecSqlList().size() == 0) {
             throw new RuntimeException("sql no executable statement");
         }
 
-        for(InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()){
+        for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
             List<String> sourceTableList = result.getSourceTableList();
             List<String> targetTableList = result.getTargetTableList();
             Set<String> tmpTableList = sqlTree.getTmpTableMap().keySet();
 
-            for(String tableName : sourceTableList){
-                if (!tmpTableList.contains(tableName)){
+            for (String tableName : sourceTableList) {
+                if (!tmpTableList.contains(tableName)) {
                     CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
-                    if(createTableResult == null){
+                    if (createTableResult == null) {
                         throw new RuntimeException("can't find table " + tableName);
                     }
 
-                    AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
-                            createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode);
+                    AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(
+                            ETableType.SOURCE.getType(),
+                            createTableResult,
+                            LOCAL_SQL_PLUGIN_ROOT,
+                            pluginLoadMode
+                    );
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }
             }
 
-            for(String tableName : targetTableList){
-                if (!tmpTableList.contains(tableName)){
+            for (String tableName : targetTableList) {
+                if (!tmpTableList.contains(tableName)) {
                     CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
-                    if(createTableResult == null){
+                    if (createTableResult == null) {
                         throw new RuntimeException("can't find table " + tableName);
                     }
 
-                    AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SINK.getType(),
-                            createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode);
+                    AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(
+                            ETableType.SINK.getType(),
+                            createTableResult,
+                            LOCAL_SQL_PLUGIN_ROOT,
+                            pluginLoadMode
+                    );
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }
             }
         }
 
-        for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()){
+        for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
             List<String> sourceTableList = result.getSourceTableList();
-            for(String tableName : sourceTableList){
-                if (!sqlTree.getTableInfoMap().keySet().contains(tableName)){
+            for (String tableName : sourceTableList) {
+                if (!sqlTree.getTableInfoMap().containsKey(tableName)) {
                     CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
-                    if(createTableResult == null){
+                    if (createTableResult == null) {
                         CreateTmpTableParser.SqlParserResult tmpTableResult = sqlTree.getTmpTableMap().get(tableName);
-                        if (tmpTableResult == null){
+                        if (tmpTableResult == null) {
                             throw new RuntimeException("can't find table " + tableName);
                         }
                     } else {
-                        AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
-                                createTableResult, LOCAL_SQL_PLUGIN_ROOT, pluginLoadMode);
+                        AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(
+                                ETableType.SOURCE.getType(),
+                                createTableResult,
+                                LOCAL_SQL_PLUGIN_ROOT,
+                                pluginLoadMode
+                        );
                         sqlTree.addTableInfo(tableName, tableInfo);
                     }
                 }
             }
         }
-
         return sqlTree;
     }
 
@@ -171,7 +180,7 @@ public class SqlParser {
         List<String> cleanedStmts = Lists.newArrayList();
         for (String stmt : stmts) {
             Matcher matcher = ADD_FILE_AND_JAR_PATTERN.matcher(stmt);
-            if(!matcher.matches()) {
+            if (!matcher.matches()) {
                 cleanedStmts.add(stmt);
             }
         }
