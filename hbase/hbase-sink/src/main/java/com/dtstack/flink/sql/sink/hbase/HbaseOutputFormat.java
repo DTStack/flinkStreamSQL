@@ -224,11 +224,19 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             }
             table.batch(puts, results);
 
+            // 打印结果
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                // 只打印最后一条数据
+                LOG.info(records.get(records.size() - 1).toString());
+            }
+        } catch (IOException | InterruptedException ignored) {
+        } finally {
             // 判断数据是否插入成功
             for (int i = 0; i < results.length; i++) {
-                if (results[i] == null) {
-                    if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                        LOG.error("record insert failed ..{}", records.get(i).toString());
+                if (results[i] != null) {
+                    if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
+                        LOG.error("Get dirty data: {}", records.get(i).toString());
+                        LOG.error("Error cause: " + results[i]);
                     }
                     // 脏数据记录
                     outDirtyRecords.inc();
@@ -237,14 +245,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
                     outRecords.inc();
                 }
             }
-            // 打印结果
-            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-                // 只打印最后一条数据
-                LOG.info(records.get(records.size() - 1).toString());
-            }
-        } catch (IOException | InterruptedException e) {
-            LOG.error("", e);
-        } finally {
             // 添加完数据之后数据清空records
             records.clear();
         }
