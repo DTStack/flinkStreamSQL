@@ -37,4 +37,7 @@ public class DirtyKeys {
     public final static String PLUGIN_LOAD_MODE_STR = "pluginLoadMode";
 
     public final static String PRINT_LIMIT_STR = "printLimit";
+
+    public final static String ENV_CLASSLOADER = "envClassLoader";
+    public final static String TABLE_NAME = "tableName";
 }

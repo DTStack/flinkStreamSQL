@@ -21,12 +21,14 @@ package com.dtstack.flink.sql.exec;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 /**
  * 解析传递的参数信息
  * Date: 2020/2/24
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class ParamsInfo {
@@ -40,7 +42,7 @@ public class ParamsInfo {
     private String deployMode;
     private Properties confProp;
     private boolean getPlan = false;
-    private Properties dirtyProperties;
+    private Map<String, Object> dirtyProperties;
 
     public ParamsInfo(
             String sql
@@ -50,7 +52,7 @@ public class ParamsInfo {
             , String pluginLoadMode
             , String deployMode
             , Properties confProp
-            , Properties dirtyProperties) {
+            , Map<String, Object> dirtyProperties) {
         this.sql = sql;
         this.name = name;
         this.jarUrlList = jarUrlList;
@@ -102,7 +104,7 @@ public class ParamsInfo {
         return confProp;
     }
 
-    public Properties getDirtyProperties() {
+    public Map<String, Object> getDirtyProperties() {
         return dirtyProperties;
     }
 
@@ -140,7 +142,7 @@ public class ParamsInfo {
         private String pluginLoadMode;
         private String deployMode;
         private Properties confProp;
-        private Properties dirtyProperties;
+        private Map<String, Object> dirtyProperties;
 
         public ParamsInfo.Builder setSql(String sql) {
             this.sql = sql;
@@ -183,7 +185,7 @@ public class ParamsInfo {
             return this;
         }
 
-        public ParamsInfo.Builder setDirtyProperties(Properties dirtyProperties) {
+        public ParamsInfo.Builder setDirtyProperties(Map<String, Object> dirtyProperties) {
             this.dirtyProperties = dirtyProperties;
             return this;
         }

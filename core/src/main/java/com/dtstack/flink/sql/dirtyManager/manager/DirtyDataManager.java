@@ -27,7 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.Properties;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -50,14 +51,17 @@ import static com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys.PRINT_LIMIT_S
  * Date 2020/8/27 星期四
  */
 public class DirtyDataManager implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     public final static int MAX_POOL_SIZE_LIMIT = 5;
-    private static final long serialVersionUID = 7190970299538893497L;
     private static final Logger LOG = LoggerFactory.getLogger(DirtyDataManager.class);
     private final static int MAX_TASK_QUEUE_SIZE = 100;
-    public static AbstractDirtyDataConsumer consumer;
 
-    private static ThreadPoolExecutor dirtyDataConsumer;
+    private AbstractDirtyDataConsumer consumer;
+    private transient ThreadPoolExecutor dirtyDataConsumer;
+
+    private static final DirtyDataManager INSTANCE = new DirtyDataManager();
+
     /**
      * 统计manager收集到的脏数据条数
      */
@@ -75,27 +79,48 @@ public class DirtyDataManager implements Serializable {
      */
     private double errorLimitRate;
 
+    private DirtyDataManager() {
+
+    }
+
     /**
      * 通过参数生成manager实例，并同时将consumer实例化
      */
-    public static DirtyDataManager newInstance(Properties properties) {
+    public static DirtyDataManager newInstance(Map<String, Object> properties) {
         try {
-            DirtyDataManager manager = new DirtyDataManager();
-            manager.blockingInterval = Long.parseLong(String.valueOf(properties.getOrDefault(DIRTY_BLOCK_STR, DEFAULT_BLOCKING_INTERVAL)));
-            manager.errorLimitRate = Double.parseDouble(String.valueOf(properties.getOrDefault(DIRTY_LIMIT_RATE_STR, DEFAULT_ERROR_LIMIT_RATE)));
-            consumer = DirtyConsumerFactory.getDirtyConsumer(
-                    properties.getProperty(PLUGIN_TYPE_STR, DEFAULT_TYPE)
-                    , properties.getProperty(PLUGIN_PATH_STR)
-                    , properties.getProperty(PLUGIN_LOAD_MODE_STR)
-            );
-            consumer.init(properties);
-            consumer.setQueue(new LinkedBlockingQueue<>());
-            dirtyDataConsumer = new ThreadPoolExecutor(MAX_POOL_SIZE_LIMIT, MAX_POOL_SIZE_LIMIT, 0, TimeUnit.MILLISECONDS,
-                    new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE), new DTThreadFactory("dirtyDataConsumer", true), new ThreadPoolExecutor.CallerRunsPolicy());
-            dirtyDataConsumer.execute(consumer);
-            return manager;
+            INSTANCE.setBlockingInterval(Long.parseLong(
+                    String.valueOf(properties.getOrDefault(DIRTY_BLOCK_STR, DEFAULT_BLOCKING_INTERVAL))));
+            INSTANCE.setErrorLimitRate(Double.parseDouble(
+                    String.valueOf(properties.getOrDefault(DIRTY_LIMIT_RATE_STR, DEFAULT_ERROR_LIMIT_RATE))));
+
+            INSTANCE.setConsumer(properties);
+            return INSTANCE;
         } catch (Exception e) {
             throw new RuntimeException("create dirtyManager error!", e);
+        }
+    }
+
+    private void setConsumer(Map<String, Object> properties) throws Exception {
+        consumer = DirtyConsumerFactory.getDirtyConsumer(
+                String.valueOf(properties.getOrDefault(PLUGIN_TYPE_STR, DEFAULT_TYPE)),
+                String.valueOf(properties.get(PLUGIN_PATH_STR)),
+                String.valueOf(properties.get(PLUGIN_LOAD_MODE_STR))
+        );
+        consumer.init(properties);
+        consumer.setQueue(new LinkedBlockingQueue<>());
+    }
+
+    public void execute() {
+        if (Objects.isNull(dirtyDataConsumer)) {
+            dirtyDataConsumer = new ThreadPoolExecutor(
+                    MAX_POOL_SIZE_LIMIT,
+                    MAX_POOL_SIZE_LIMIT,
+                    0,
+                    TimeUnit.MILLISECONDS,
+                    new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE),
+                    new DTThreadFactory("dirtyDataConsumer", true),
+                    new ThreadPoolExecutor.CallerRunsPolicy());
+            dirtyDataConsumer.execute(consumer);
         }
     }
 
@@ -113,7 +138,6 @@ public class DirtyDataManager implements Serializable {
 
     /**
      * 脏数据收集任务停止，任务停止之前，需要将队列中所有的数据清空
-     * TODO consumer 关闭时仍有数据没有消费到，假如有500条数据，在结束时实际消费数量可能只有493
      */
     public void close() {
         if (checkConsumer()) {
@@ -149,5 +173,29 @@ public class DirtyDataManager implements Serializable {
      */
     public boolean checkConsumer() {
         return consumer.isRunning();
+    }
+
+    public AtomicLong getCount() {
+        return count;
+    }
+
+    public AtomicLong getErrorCount() {
+        return errorCount;
+    }
+
+    public long getBlockingInterval() {
+        return blockingInterval;
+    }
+
+    public void setBlockingInterval(long blockingInterval) {
+        this.blockingInterval = blockingInterval;
+    }
+
+    public double getErrorLimitRate() {
+        return errorLimitRate;
+    }
+
+    public void setErrorLimitRate(double errorLimitRate) {
+        this.errorLimitRate = errorLimitRate;
     }
 }

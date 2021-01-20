@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.exec;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
+import com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys;
 import com.dtstack.flink.sql.enums.ClusterMode;
 import com.dtstack.flink.sql.enums.ECacheType;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
@@ -87,9 +88,10 @@ import java.util.TimeZone;
 import java.util.stream.Stream;
 
 /**
- *  任务执行时的流程方法
+ * 任务执行时的流程方法
  * Date: 2020/2/17
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class ExecuteProcessHelper {
@@ -104,6 +106,7 @@ public class ExecuteProcessHelper {
 
     public static FlinkPlanner flinkPlanner = new FlinkPlanner();
 
+    @SuppressWarnings("unchecked")
     public static ParamsInfo parseParams(String[] args) throws Exception {
         LOG.info("------------program params-------------------------");
         Arrays.stream(args).forEach(arg -> LOG.info("{}", arg));
@@ -124,15 +127,15 @@ public class ExecuteProcessHelper {
                 "Non-local mode or shipfile deployment mode, remoteSqlPluginPath is required");
         String confProp = URLDecoder.decode(options.getConfProp(), Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
-        Properties dirtyProperties = PluginUtil.jsonStrToObject(Objects.isNull(dirtyStr) ?
-                DirtyDataManager.buildDefaultDirty() : dirtyStr, Properties.class);
+        Map<String, Object> dirtyProperties = (Map<String, Object>) PluginUtil.jsonStrToObject(Objects.isNull(dirtyStr) ?
+                DirtyDataManager.buildDefaultDirty() : dirtyStr, Map.class);
 
-        if (Objects.isNull(dirtyProperties.getProperty(PLUGIN_LOAD_STR))) {
+        if (Objects.isNull(dirtyProperties.get(PLUGIN_LOAD_STR))) {
             dirtyProperties.put(PLUGIN_LOAD_STR, pluginLoadMode);
         }
 
-        if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && Objects.isNull(dirtyProperties.getProperty(PLUGIN_PATH_STR))) {
-            dirtyProperties.setProperty(PLUGIN_PATH_STR,
+        if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && Objects.isNull(dirtyProperties.get(PLUGIN_PATH_STR))) {
+            dirtyProperties.put(PLUGIN_PATH_STR,
                     Objects.isNull(remoteSqlPluginPath) ? localSqlPluginPath : remoteSqlPluginPath);
         }
 
@@ -210,7 +213,7 @@ public class ExecuteProcessHelper {
         return env;
     }
 
-
+    @SuppressWarnings("unchecked")
     public static List<URL> getExternalJarUrls(String addJarListStr) throws java.io.IOException {
         List<URL> jarUrlList = Lists.newArrayList();
         if (Strings.isNullOrEmpty(addJarListStr)) {
@@ -322,7 +325,7 @@ public class ExecuteProcessHelper {
             , String localSqlPluginPath
             , String remoteSqlPluginPath
             , String pluginLoadMode
-            , Properties dirtyProperties
+            , Map<String, Object> dirtyProperties
             , Map<String, AbstractSideTableInfo> sideTableMap
             , Map<String, Table> registerTableCache
     ) throws Exception {
@@ -389,11 +392,17 @@ public class ExecuteProcessHelper {
         if (localSqlPluginPath == null || localSqlPluginPath.isEmpty()) {
             return Sets.newHashSet();
         }
+        pluginClassPathSets.add(PluginUtil.buildDirtyPluginUrl(
+               String.valueOf(dirtyProperties.get(DirtyKeys.PLUGIN_TYPE_STR)),
+               String.valueOf(dirtyProperties.get(DirtyKeys.PLUGIN_PATH_STR)),
+               String.valueOf(dirtyProperties.get(DirtyKeys.PLUGIN_LOAD_MODE_STR))
+        ));
         return pluginClassPathSets;
     }
 
     /**
-     *   perjob模式将job依赖的插件包路径存储到cacheFile，在外围将插件包路径传递给jobgraph
+     * perjob模式将job依赖的插件包路径存储到cacheFile，在外围将插件包路径传递给jobgraph
+     *
      * @param env
      * @param classPathSet
      */

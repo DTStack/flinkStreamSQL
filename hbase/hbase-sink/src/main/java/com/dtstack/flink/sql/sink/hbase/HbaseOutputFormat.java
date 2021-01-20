@@ -92,14 +92,17 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture<?> scheduledFuture;
 
+    /**
+     * 脏数据管理
+     */
+    private DirtyDataManager dirtyDataManager;
+
     private HbaseOutputFormat() {
     }
 
     public static HbaseOutputFormatBuilder buildHbaseOutputFormat() {
         return new HbaseOutputFormatBuilder();
     }
-
-    private DirtyDataManager dirtyDataManager;
 
     @Override
     public void configure(Configuration parameters) {
@@ -233,9 +236,12 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
                 LOG.info(records.get(records.size() - 1).toString());
             }
         } catch (IOException | InterruptedException e) {
+            // ignore exception
+        } finally {
             // 判断数据是否插入成功
             for (int i = 0; i < results.length; i++) {
                 if (results[i] != null) {
+                    dirtyDataManager.execute();
                     // 脏数据记录
                     dirtyDataManager.collectDirtyData(
                             records.get(i).toString(),
@@ -247,7 +253,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
                     outRecords.inc();
                 }
             }
-        } finally {
             // 添加完数据之后数据清空records
             records.clear();
         }

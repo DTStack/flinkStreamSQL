@@ -31,8 +31,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 /**
@@ -154,11 +154,11 @@ public class MysqlDirtyDataConsumer extends AbstractDirtyDataConsumer {
     }
 
     @Override
-    public void init(Properties properties) throws Exception {
+    public void init(Map<String, Object> properties) throws Exception {
         SimpleDateFormat timeFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
         String tableName = (String) properties.getOrDefault("dirtyTableName",
                 "DirtyData_"
-                        + properties.getProperty("tableName") + "_"
+                        + properties.get("tableName") + "_"
                         + timeFormat.format(System.currentTimeMillis()));
 
         String userName = (String) properties.get("userName");

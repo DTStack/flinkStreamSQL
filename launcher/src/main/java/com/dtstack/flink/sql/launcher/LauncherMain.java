@@ -54,7 +54,7 @@ import java.util.Properties;
 public class LauncherMain {
 
 
-
+    @SuppressWarnings("unchecked")
     public static JobParamsInfo parseArgs(String[] args) throws Exception {
         if (args.length == 1 && args[0].endsWith(".json")) {
             args = parseJson(args);
@@ -81,8 +81,8 @@ public class LauncherMain {
 
         String confProp = URLDecoder.decode(launcherOptions.getConfProp(), Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
-        Properties dirtyProperties = PluginUtil.jsonStrToObject(Objects.isNull(dirtyStr) ?
-               DirtyDataManager.buildDefaultDirty() : dirtyStr, Properties.class);
+        Map<String, Object> dirtyProperties = PluginUtil.jsonStrToObject(Objects.isNull(dirtyStr) ?
+               DirtyDataManager.buildDefaultDirty() : dirtyStr, Map.class);
 
         return JobParamsInfo.builder()
                 .setExecArgs(execArgs)

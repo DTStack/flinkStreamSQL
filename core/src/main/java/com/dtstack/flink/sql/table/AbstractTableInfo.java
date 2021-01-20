@@ -18,13 +18,13 @@
 
 package com.dtstack.flink.sql.table;
 
+import com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * Reason:
@@ -57,7 +57,7 @@ public abstract class AbstractTableInfo implements Serializable {
     /**
      * 构建脏数据插件的相关信息
      */
-    private Properties dirtyProperties;
+    private Map<String, Object> dirtyProperties;
 
     public String[] getFieldTypes() {
         return fieldTypes;
@@ -173,12 +173,12 @@ public abstract class AbstractTableInfo implements Serializable {
         return fieldExtraInfoList;
     }
 
-    public Properties getDirtyProperties() {
-        dirtyProperties.setProperty("tableName", this.name);
+    public Map<String, Object> getDirtyProperties() {
+        dirtyProperties.put(DirtyKeys.TABLE_NAME, this.name);
         return dirtyProperties;
     }
 
-    public void setDirtyProperties(Properties dirtyProperties) {
+    public void setDirtyProperties(Map<String, Object> dirtyProperties) {
         this.dirtyProperties = dirtyProperties;
     }
 

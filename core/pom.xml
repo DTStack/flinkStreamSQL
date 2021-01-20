@@ -108,17 +108,6 @@
             <artifactId>joda-time</artifactId>
             <version>2.5</version>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.30</version>
-        </dependency>
-
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.17</version>
-        </dependency>
     </dependencies>
 
     <build>
@@ -187,6 +176,7 @@
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
+                                <!--suppress UnresolvedMavenProperty -->
                                 <move file="${basedir}/../sqlplugins/${project.artifactId}-${project.version}.jar"
                                       tofile="${basedir}/../sqlplugins/${project.name}-${git.branch}.jar" />
                             </tasks>
