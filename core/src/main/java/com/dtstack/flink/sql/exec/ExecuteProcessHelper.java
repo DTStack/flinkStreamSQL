@@ -48,6 +48,7 @@ import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.dtstack.flink.sql.util.DataTypeUtils;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.PluginUtil;
+import com.dtstack.flink.sql.util.SampleUtils;
 import com.dtstack.flink.sql.util.SqlFormatterUtil;
 import com.dtstack.flink.sql.watermarker.WaterMarkerAssigner;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -91,6 +92,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
+
+import static com.dtstack.flink.sql.constrant.ConfigConstrant.SAMPLE_INTERVAL_COUNT;
 
 /**
  * 任务执行时的流程方法
@@ -177,7 +180,6 @@ public class ExecuteProcessHelper {
         return true;
     }
 
-
     public static StreamTableEnvironment getStreamExecution(ParamsInfo paramsInfo) throws Exception {
 
         ClassLoader envClassLoader = Thread.currentThread().getContextClassLoader();
@@ -187,6 +189,7 @@ public class ExecuteProcessHelper {
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
         StreamTableEnvironment tableEnv = getStreamTableEnv(env, paramsInfo.getConfProp());
 
+        setSamplingIntervalCount(paramsInfo);
         ResourceCheck.NEED_CHECK = Boolean.parseBoolean(paramsInfo.getConfProp().getProperty(ResourceCheck.CHECK_STR, "true"));
 
         String planner = paramsInfo.getPlanner();
@@ -228,6 +231,13 @@ public class ExecuteProcessHelper {
         return tableEnv;
     }
 
+    private static void setSamplingIntervalCount(ParamsInfo paramsInfo) {
+        SampleUtils.setSamplingIntervalCount(
+            Integer.parseInt(
+                paramsInfo.getConfProp().getProperty(SAMPLE_INTERVAL_COUNT, "0")
+            )
+        );
+    }
 
     public static List<URL> getExternalJarUrls(String addJarListStr) throws java.io.IOException {
         List<URL> jarUrlList = Lists.newArrayList();

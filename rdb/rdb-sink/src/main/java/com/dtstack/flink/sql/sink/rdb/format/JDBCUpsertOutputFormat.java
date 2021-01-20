@@ -27,6 +27,7 @@ import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
 import com.dtstack.flink.sql.sink.rdb.writer.AbstractUpsertWriter;
 import com.dtstack.flink.sql.sink.rdb.writer.AppendOnlyWriter;
 import com.dtstack.flink.sql.sink.rdb.writer.JDBCWriter;
+import com.dtstack.flink.sql.util.SampleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.types.Row;
@@ -54,8 +55,6 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(JDBCUpsertOutputFormat.class);
-
-    static final int RECEIVEDATA_PRINT_FREQUENTY = 1000;
 
     private final String name;
     private final String schema;
@@ -171,13 +170,10 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
     }
 
     @Override
-    public synchronized void writeRecord(Tuple2<Boolean, Row> tuple2) throws IOException {
+    public synchronized void writeRecord(Tuple2<Boolean, Row> tuple2) {
         checkConnectionOpen();
         try {
-            if (outRecords.getCount() % RECEIVEDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
-                LOG.info("Receive data : {}", tuple2);
-            }
-            // Receive data
+            SampleUtils.samplingSinkPrint(samplingIntervalCount, LOG, outRecords.getCount(), tuple2.toString());
             outRecords.inc();
 
             jdbcWriter.addRecord(tuple2);

@@ -24,6 +24,7 @@ import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.JDBCTypeConvertUtils;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.KrbUtils;
+import com.dtstack.flink.sql.util.SampleUtils;
 import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -78,7 +79,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private static final String[] NEED_QUOTE_TYPE = {"string", "timestamp", "varchar"};
 
     private static final Integer DEFAULT_CONN_TIME_OUT = 60;
-    private static final int RECEIVE_DATA_PRINT_FREQUENCY = 1000;
     private static final int DIRTY_DATA_PRINT_FREQUENCY = 1000;
 
     private static final String KUDU_TYPE = "kudu";
@@ -393,9 +393,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 return;
             }
 
-            if (outRecords.getCount() % RECEIVE_DATA_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                LOG.info("Receive data : {}", record);
-            }
+            SampleUtils.samplingSinkPrint(samplingIntervalCount, LOG, outRecords.getCount(), record.toString());
 
             if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
                 rows.add(Row.copy(record.f1));

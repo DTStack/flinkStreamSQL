@@ -137,7 +137,6 @@ public class LauncherMain {
         return list.toArray(new String[0]);
     }
 
-
     public static void main(String[] args) throws Exception {
         JobParamsInfo jobParamsInfo = parseArgs(args);
         ClusterMode execMode = ClusterMode.valueOf(jobParamsInfo.getMode());
