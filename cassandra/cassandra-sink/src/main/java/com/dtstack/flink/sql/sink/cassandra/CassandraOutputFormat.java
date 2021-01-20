@@ -38,6 +38,7 @@
 
 package com.dtstack.flink.sql.sink.cassandra;
 
+import com.dtstack.flink.sql.util.SampleUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -192,7 +193,7 @@ public class CassandraOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
      * @see PreparedStatement
      */
     @Override
-    public void writeRecord(Tuple2 tuple2) throws IOException {
+    public void writeRecord(Tuple2 tuple2) {
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
         Row row = tupleTrans.getField(1);
@@ -209,10 +210,7 @@ public class CassandraOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private void insertWrite(Row row) {
         try {
-
-            if(outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
-                LOG.info("Receive data : {}", row);
-            }
+            SampleUtils.samplingSinkPrint(samplingIntervalCount, LOG, outRecords.getCount(), row.toString());
 
             String cql = buildSql(row);
             if (cql != null) {

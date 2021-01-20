@@ -22,6 +22,7 @@ package com.dtstack.flink.sql.sink.hbase;
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.util.SampleUtils;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -241,11 +242,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
                     outRecords.inc();
                 }
             }
-            // 打印结果
-            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-                // 只打印最后一条数据
-                LOG.info(records.get(records.size() - 1).toString());
-            }
+            // 只打印最后一条数据
+            SampleUtils.samplingSinkPrint(samplingIntervalCount, LOG, outRecords.getCount(), records.get(records.size() - 1).toString());
         } catch (IOException | InterruptedException e) {
             LOG.error("", e);
         } finally {
@@ -271,9 +269,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             outDirtyRecords.inc();
         }
 
-        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-            LOG.info(record.toString());
-        }
+        SampleUtils.samplingSinkPrint(samplingIntervalCount, LOG, outRecords.getCount(), record.toString());
         outRecords.inc();
     }
 

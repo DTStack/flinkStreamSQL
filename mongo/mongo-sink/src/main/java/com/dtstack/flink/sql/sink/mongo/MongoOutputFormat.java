@@ -20,6 +20,7 @@
 package com.dtstack.flink.sql.sink.mongo;
 
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.util.SampleUtils;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
@@ -70,7 +71,7 @@ public class MongoOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     @Override
-    public void writeRecord(Tuple2 tuple2) throws IOException {
+    public void writeRecord(Tuple2 tuple2) {
 
         Tuple2<Boolean, Row> tupleTrans = tuple2;
         Boolean retract = tupleTrans.getField(0);
@@ -102,9 +103,7 @@ public class MongoOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             dbCollection.insertOne(doc);
         }
 
-        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
-            LOG.info(record.toString());
-        }
+        SampleUtils.samplingSinkPrint(samplingIntervalCount, LOG, outRecords.getCount(), record.toString());
         outRecords.inc();
     }
 

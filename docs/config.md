@@ -79,6 +79,7 @@ sh submit.sh -key1 val1 -key2 val2
         * savePointPath：任务恢复点的路径（默认无）
         * allowNonRestoredState：指示保存点是否允许非还原状态的标志（默认false）
         * logLevel: 日志级别动态配置（默认info）
+        * sample.interval.count：间隔一定数据条数后，将本次进入Flink的数据抽样打印到日志中。默认为0，不进行抽样打印。可以设置一个整数，例如：1000000。
         * [prometheus 相关参数](./prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
 	

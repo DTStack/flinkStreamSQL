@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.sink.kudu;
 
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.dtstack.flink.sql.util.KrbUtils;
+import com.dtstack.flink.sql.util.SampleUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -131,7 +132,7 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     @Override
-    public void writeRecord(Tuple2 record) throws IOException {
+    public void writeRecord(Tuple2 record) {
         Tuple2<Boolean, Row> tupleTrans = record;
         Boolean retract = tupleTrans.getField(0);
         if (!retract) {
@@ -148,9 +149,7 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
         }
 
         try {
-            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-                LOG.info("Receive data : {}", row);
-            }
+            SampleUtils.samplingSinkPrint(samplingIntervalCount, LOG, outRecords.getCount(), row.toString());
             session.apply(toOperation(writeMode, row));
             outRecords.inc();
         } catch (KuduException e) {

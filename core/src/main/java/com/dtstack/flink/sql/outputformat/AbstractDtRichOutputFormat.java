@@ -18,6 +18,7 @@
 package com.dtstack.flink.sql.outputformat;
 
 import com.dtstack.flink.sql.metric.MetricConstant;
+import com.dtstack.flink.sql.util.SampleUtils;
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Meter;
@@ -32,8 +33,8 @@ public abstract class AbstractDtRichOutputFormat<T> extends RichOutputFormat<T>{
     public transient Counter outRecords;
     public transient Counter outDirtyRecords;
     public transient Meter outRecordsRate;
+    protected int samplingIntervalCount = SampleUtils.getSamplingIntervalCount();
 
-    protected static int ROW_PRINT_FREQUENCY = 1000;
     protected static int DIRTY_PRINT_FREQUENCY = 1000;
 
     public void initMetric() {
