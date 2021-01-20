@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.side.impala.table;
 
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,6 +62,8 @@ public class ImpalaSideParser extends RdbSideParser {
         impalaSideTableInfo.setPassword(MathUtil.getString(props.get(ImpalaSideTableInfo.PASSWORD_KEY.toLowerCase())));
         impalaSideTableInfo.setSchema(MathUtil.getString(props.get(ImpalaSideTableInfo.SCHEMA_KEY.toLowerCase())));
         impalaSideTableInfo.setDriverName("com.cloudera.impala.jdbc41.Driver");
+        impalaSideTableInfo.setFastCheck(MathUtil.getBoolean(props.getOrDefault(RdbSideTableInfo.FAST_CHECK.toLowerCase(), true)));
+        impalaSideTableInfo.setCheckProperties();
 
 
         //set authmech params

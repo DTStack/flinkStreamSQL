@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.core.rdb;
 
 import com.dtstack.flink.sql.core.rdb.util.JdbcConnectUtil;
 import com.dtstack.flink.sql.resource.ResourceCheck;
+import org.apache.commons.lang.StringUtils;
 import org.apache.flink.runtime.execution.SuppressRestartsException;
 
 import java.sql.Connection;
@@ -43,9 +44,9 @@ public class JdbcResourceCheck extends ResourceCheck {
     private static final String UPDATE_STR = "update";
     private static final String REPLACE_STR = "replace";
 
-    private static final String CHECK_SELECT_SQL = "select 1 from %s where 1=1;";
-    private static final String CHECK_DELETE_SQL = "delete from %s where 1 = 3;";
-    private static final String CHECK_INSERT_SQL = "insert into %s (select * from %s where 1 = 2);";
+    private static final String CHECK_SELECT_SQL = "select 1 from $table where 1=2;";
+    private static final String CHECK_DELETE_SQL = "delete from $table where 1=3;";
+    private static final String CHECK_INSERT_SQL = "insert into $table (select * from $table where 1=2);";
 
     private static final Map<String, String> PRIVILEGE_SQL_MAP = new HashMap<>();
     private static final JdbcResourceCheck Instance = new JdbcResourceCheck();
@@ -116,13 +117,13 @@ public class JdbcResourceCheck extends ResourceCheck {
             statement = connection.createStatement();
             for (String s : privilegeList) {
                 privilege = s;
-                if (privilege.startsWith(SELECT_STR)) {
-                    statement.executeQuery(
-                            String.format(PRIVILEGE_SQL_MAP.get(privilege.toLowerCase()), tableInfo));
-                } else {
-                    statement.executeUpdate(
-                            String.format(PRIVILEGE_SQL_MAP.get(privilege.toLowerCase()), tableInfo, tableInfo));
-                }
+                statement.execute(
+                        StringUtils.replace(
+                                PRIVILEGE_SQL_MAP.get(privilege.toLowerCase()),
+                                "$table",
+                                tableName
+                        )
+                );
             }
         } catch (SQLException sqlException) {
             if (sqlException.getMessage().contains("command denied")) {
@@ -130,7 +131,7 @@ public class JdbcResourceCheck extends ResourceCheck {
                         String.format("user [%s] don't have [%s] privilege of table [%s]", userName, privilege, tableInfo)));
             }
 
-            throw new SuppressRestartsException(new Throwable(sqlException.getMessage()));
+            throw new SuppressRestartsException(new IllegalArgumentException(sqlException.getMessage()));
         } finally {
             JdbcConnectUtil.closeConnectionResource(null, statement, connection, false);
         }
