@@ -53,6 +53,7 @@ import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -75,13 +76,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -215,7 +210,11 @@ public class ExecuteProcessHelper {
             scope++;
         }
 
+        final Map<String, AbstractSideTableInfo> tmpTableMap = new HashMap<>();
         for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
+            // prevent current sql use last sql's sideTableInfo
+            sideTableMap.forEach((s, abstractSideTableInfo) -> tmpTableMap.put(s, SerializationUtils.clone(abstractSideTableInfo)));
+            
             if (LOG.isInfoEnabled()) {
                 LOG.info("exe-sql:\n" + result.getExecSql());
             }
@@ -251,6 +250,7 @@ public class ExecuteProcessHelper {
 
                 scope++;
             }
+            tmpTableMap.clear();
         }
     }
 
