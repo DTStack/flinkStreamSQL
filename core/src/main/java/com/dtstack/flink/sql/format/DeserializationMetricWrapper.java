@@ -71,7 +71,7 @@ public class DeserializationMetricWrapper extends AbstractDeserializationSchema<
 
     protected transient Meter numInBytesRate;
 
-    protected  DirtyDataManager dirtyDataManager;
+    protected DirtyDataManager dirtyDataManager;
 
     public DeserializationMetricWrapper(
             TypeInformation<Row> typeInfo
@@ -110,6 +110,7 @@ public class DeserializationMetricWrapper extends AbstractDeserializationSchema<
             return row;
         } catch (Exception e) {
             //add metric of dirty data
+            dirtyDataManager.execute();
             dirtyDataManager.collectDirtyData(new String(message), e.getMessage());
             dirtyDataCounter.inc();
             return null;

@@ -33,10 +33,10 @@ import static com.dtstack.flink.sql.util.PluginUtil.upperCaseFirstChar;
  * Date 2020/12/21 星期一
  */
 public class DirtyConsumerFactory {
-    private static final String DEFAULT_DIRTY_TYPE = "console";
-    private static final String DIRTY_CONSUMER_PATH = "dirtyData";
-    private static final String CLASS_PRE_STR = "com.dtstack.flink.sql.dirty";
-    private static final String CLASS_POST_STR = "DirtyDataConsumer";
+    public static final String DEFAULT_DIRTY_TYPE = "console";
+    public static final String DIRTY_CONSUMER_PATH = "dirtyData";
+    public static final String CLASS_PRE_STR = "com.dtstack.flink.sql.dirty";
+    public static final String CLASS_POST_STR = "DirtyDataConsumer";
 
     /**
      * 通过动态方式去加载脏数据插件

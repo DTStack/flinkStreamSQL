@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.Properties;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -66,7 +66,7 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
      * @param properties 任务参数
      * @throws Exception throw exception
      */
-    public abstract void init(Properties properties) throws Exception;
+    public abstract void init(Map<String, Object> properties) throws Exception;
 
     /**
      * 检验consumer是否正在执行
@@ -83,8 +83,7 @@ public abstract class AbstractDirtyDataConsumer implements Runnable, Serializabl
             }
         } catch (Exception e) {
             LOG.error("consume dirtyData error", e);
-            errorCount.incrementAndGet();
-            if (errorCount.get() > errorLimit) {
+            if (errorCount.getAndIncrement() > errorLimit) {
                 throw new RuntimeException("The task failed due to the number of dirty data consume failed reached the limit " + errorLimit);
             }
         }

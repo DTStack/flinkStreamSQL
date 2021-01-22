@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.launcher.entity;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -43,7 +44,7 @@ public class JobParamsInfo {
     private final Properties confProperties;
     private final Properties yarnSessionConfProperties;
     private final String addShipFile;
-    private final Properties dirtyProperties;
+    private final Map<String, Object> dirtyProperties;
 
     private JobParamsInfo(
             String mode
@@ -59,7 +60,7 @@ public class JobParamsInfo {
             , String udfJar
             , String flinkJarPath
             , String addShipFile
-            , Properties dirtyProperties) {
+            , Map<String, Object> dirtyProperties) {
         this.mode = mode;
         this.name = name;
         this.queue = queue;
@@ -132,7 +133,7 @@ public class JobParamsInfo {
         return addShipFile;
     }
 
-    public Properties getDirtyProperties() {
+    public Map<String, Object> getDirtyProperties() {
         return dirtyProperties;
     }
 
@@ -150,7 +151,7 @@ public class JobParamsInfo {
         private Properties confProperties;
         private Properties yarnSessionConfProperties;
         private String addShipfile;
-        private Properties dirtyProperties;
+        private Map<String, Object> dirtyProperties;
 
         public JobParamsInfo.Builder setMode(String mode) {
             this.mode = mode;
@@ -217,7 +218,7 @@ public class JobParamsInfo {
             return this;
         }
 
-        public JobParamsInfo.Builder setDirtyProperties(Properties dirtyProperties) {
+        public JobParamsInfo.Builder setDirtyProperties(Map<String, Object> dirtyProperties) {
             this.dirtyProperties = dirtyProperties;
             return this;
         }

@@ -23,8 +23,8 @@ import com.dtstack.flink.sql.dirtyManager.entity.DirtyDataEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 
 /**
  * @author tiezhu
@@ -43,8 +43,7 @@ public class ConsoleDirtyDataConsumer extends AbstractDirtyDataConsumer {
     @Override
     public void consume() throws InterruptedException {
         DirtyDataEntity dataEntity = queue.take();
-        count.incrementAndGet();
-        if (count.get() % printLimit == 0) {
+        if (count.getAndIncrement() % printLimit == 0) {
             LOG.warn("\nget dirtyData: " + dataEntity.getDirtyData() + "\n"
                     + "cause: " + dataEntity.getCause() + "\n"
                     + "processTime: " + dataEntity.getProcessDate() + "\n"
@@ -59,7 +58,7 @@ public class ConsoleDirtyDataConsumer extends AbstractDirtyDataConsumer {
     }
 
     @Override
-    public void init(Properties properties) {
+    public void init(Map<String, Object> properties) {
         LOG.info("console dirty consumer init ...");
         Object printLimit = properties.get("printLimit");
         this.printLimit = Objects.isNull(printLimit) ?

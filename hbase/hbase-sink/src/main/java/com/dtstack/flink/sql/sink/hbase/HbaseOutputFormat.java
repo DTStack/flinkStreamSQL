@@ -19,9 +19,8 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
-import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
-import com.dtstack.flink.sql.enums.EUpdateMode;
+import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
@@ -93,14 +92,17 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     private transient ScheduledExecutorService scheduler;
     private transient ScheduledFuture<?> scheduledFuture;
 
+    /**
+     * 脏数据管理
+     */
+    private DirtyDataManager dirtyDataManager;
+
     private HbaseOutputFormat() {
     }
 
     public static HbaseOutputFormatBuilder buildHbaseOutputFormat() {
         return new HbaseOutputFormatBuilder();
     }
-
-    private DirtyDataManager dirtyDataManager;
 
     @Override
     public void configure(Configuration parameters) {
@@ -202,7 +204,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     @Override
     public void writeRecord(Tuple2<Boolean, Row> record) {
         if (record.f0) {
-            if (this.batchSize != 0) {
+            if (this.batchSize > 1) {
                 writeBatchRecord(record.f1);
             } else {
                 dealInsert(record.f1);
@@ -228,27 +230,29 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             }
             table.batch(puts, results);
 
-            // 判断数据是否插入成功
-            for (int i = 0; i < results.length; i++) {
-                if (results[i] == null) {
-                    if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                        LOG.error("record insert failed ..{}", records.get(i).toString());
-                    }
-                    // 脏数据记录
-                    outDirtyRecords.inc();
-                } else {
-                    // 输出结果条数记录
-                    outRecords.inc();
-                }
-            }
             // 打印结果
             if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
                 // 只打印最后一条数据
                 LOG.info(records.get(records.size() - 1).toString());
             }
         } catch (IOException | InterruptedException e) {
-            LOG.error("", e);
+            // ignore exception
         } finally {
+            // 判断数据是否插入成功
+            for (int i = 0; i < results.length; i++) {
+                if (results[i] != null) {
+                    dirtyDataManager.execute();
+                    // 脏数据记录
+                    dirtyDataManager.collectDirtyData(
+                            records.get(i).toString(),
+                            ((Exception) results[i]).getMessage()
+                    );
+                    outDirtyRecords.inc();
+                } else {
+                    // 输出结果条数记录
+                    outRecords.inc();
+                }
+            }
             // 添加完数据之后数据清空records
             records.clear();
         }
@@ -264,6 +268,9 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
 
         try {
             table.put(put);
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                LOG.info(record.toString());
+            }
         } catch (Exception e) {
             dirtyDataManager.collectDirtyData(
                     record.toString()
@@ -271,9 +278,6 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             outDirtyRecords.inc();
         }
 
-        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-            LOG.info(record.toString());
-        }
         outRecords.inc();
     }
 

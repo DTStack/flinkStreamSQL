@@ -76,8 +76,9 @@
                                     </fileset>
                                 </copy>
 
+                                <!--suppress UnresolvedMavenProperty -->
                                 <move file="${basedir}/../../sqlplugins/dirtyData/mysql/${project.artifactId}-${project.version}.jar"
-                                      tofile="${basedir}/../../sqlplugins/dirtyData/mysql/${project.name}.jar"/>
+                                      tofile="${basedir}/../../sqlplugins/dirtyData/mysql/${project.name}-${git.branch}.jar"/>
                             </tasks>
                         </configuration>
                     </execution>
