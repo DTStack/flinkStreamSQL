@@ -26,7 +26,6 @@ import com.dtstack.flink.sql.side.PredicateInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -54,9 +53,45 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.sql.SqlKind.*;
+import static org.apache.calcite.sql.SqlKind.AGGREGATE;
+import static org.apache.calcite.sql.SqlKind.AND;
+import static org.apache.calcite.sql.SqlKind.AS;
+import static org.apache.calcite.sql.SqlKind.AVG_AGG_FUNCTIONS;
+import static org.apache.calcite.sql.SqlKind.BETWEEN;
 import static org.apache.calcite.sql.SqlKind.CASE;
+import static org.apache.calcite.sql.SqlKind.CAST;
+import static org.apache.calcite.sql.SqlKind.COALESCE;
+import static org.apache.calcite.sql.SqlKind.COMPARISON;
+import static org.apache.calcite.sql.SqlKind.CONTAINS;
+import static org.apache.calcite.sql.SqlKind.DIVIDE;
+import static org.apache.calcite.sql.SqlKind.EQUALS;
+import static org.apache.calcite.sql.SqlKind.HOP;
+import static org.apache.calcite.sql.SqlKind.HOP_END;
+import static org.apache.calcite.sql.SqlKind.HOP_START;
+import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
+import static org.apache.calcite.sql.SqlKind.IS_NOT_NULL;
+import static org.apache.calcite.sql.SqlKind.IS_NULL;
+import static org.apache.calcite.sql.SqlKind.LIKE;
+import static org.apache.calcite.sql.SqlKind.LITERAL;
+import static org.apache.calcite.sql.SqlKind.LITERAL_CHAIN;
+import static org.apache.calcite.sql.SqlKind.MINUS;
+import static org.apache.calcite.sql.SqlKind.NOT_IN;
+import static org.apache.calcite.sql.SqlKind.OR;
 import static org.apache.calcite.sql.SqlKind.OTHER;
+import static org.apache.calcite.sql.SqlKind.OTHER_FUNCTION;
+import static org.apache.calcite.sql.SqlKind.PLUS;
+import static org.apache.calcite.sql.SqlKind.SELECT;
+import static org.apache.calcite.sql.SqlKind.SESSION;
+import static org.apache.calcite.sql.SqlKind.SESSION_END;
+import static org.apache.calcite.sql.SqlKind.SESSION_START;
+import static org.apache.calcite.sql.SqlKind.TIMES;
+import static org.apache.calcite.sql.SqlKind.TIMESTAMP_ADD;
+import static org.apache.calcite.sql.SqlKind.TIMESTAMP_DIFF;
+import static org.apache.calcite.sql.SqlKind.TRIM;
+import static org.apache.calcite.sql.SqlKind.TUMBLE;
+import static org.apache.calcite.sql.SqlKind.TUMBLE_END;
+import static org.apache.calcite.sql.SqlKind.TUMBLE_START;
+import static org.apache.calcite.sql.SqlKind.UNION;
 
 /**
  * 表的解析相关
@@ -798,4 +833,89 @@ public class TableUtils {
                 || functionName.equalsIgnoreCase("hop");
     }
 
+    /**
+     * 判断group by中是否包含维表，包含则需要撤回，不管嵌套多少层子查询只要有一层包含都需要撤回
+     *
+     * @param sqlNode              sql语句
+     * @param newRegisterTableList 维表集合
+     * @return true:需要撤回，false:和原生保持一样
+     */
+    public static boolean checkIsDimTableGroupBy(SqlNode sqlNode, Collection<String> newRegisterTableList) {
+        // 维表集合为空
+        if (newRegisterTableList == null || newRegisterTableList.size() == 0) {
+            return false;
+        }
+        SqlKind sqlKind = sqlNode.getKind();
+        switch (sqlKind) {
+            case SELECT:
+                SqlSelect selectNode = (SqlSelect) sqlNode;
+                SqlNodeList groupNodeList = selectNode.getGroup();
+                SqlNode fromNode = selectNode.getFrom();
+
+                // 1.(sub query) group by
+                // 2.(sub query) as alias group by
+                // 3.tableName group by
+                // 4.tableName as alias group by
+
+                // (子查询) group by：1.(sub query) group by
+                if (fromNode.getKind() == SELECT) {
+                    return checkIsDimTableGroupBy(fromNode, newRegisterTableList);
+                }
+
+                // 表名 as 别名 group by、(子查询) as 别名 group by、表名 group by
+                if (fromNode.getKind() == AS || fromNode.getKind() == IDENTIFIER) {
+                    SqlNode operand;
+                    // 表名 as 别名 group by：4.tableName as alias group by
+                    if (fromNode.getKind() == AS) {
+                        operand = ((SqlBasicCall) fromNode).getOperands()[0];
+                    } else {
+                        // 表名 group by：3.tableName group by
+                        operand = fromNode;
+                    }
+                    // 最里层是表名 group by，且group by字段不为空，且表名包含在维表中
+                    if (operand.getKind() == IDENTIFIER
+                            && groupNodeList != null
+                            && groupNodeList.size() != 0
+                            && newRegisterTableList.contains(operand.toString())) {
+                        boolean isRetract = false;
+                        // 判断完所有的group by字段
+                        for (SqlNode node : groupNodeList.getList()) {
+                            // 判断是否有函数
+                            if (node.getKind() == OTHER_FUNCTION) {
+                                String functionName = ((SqlBasicCall) node).getOperator().toString().toLowerCase();
+                                boolean isTimeGroupByFunction = checkIsTimeGroupByFunction(functionName);
+                                // 只要有窗口就不需要撤回，直接返回
+                                if (isTimeGroupByFunction) {
+                                    return false;
+                                }
+                                // 非窗口需要撤回，继续迭代后面的字段
+                                isRetract = true;
+                            } else {
+                                // 其他情况需要撤回，继续迭代后面的字段
+                                isRetract = true;
+                            }
+                        }
+                        return isRetract;
+                    } else {
+                        // (子查询) as 别名 group by：2.(sub query) as alias group by
+                        // 没有group by语句也会走进来，但是最后会返回不需要撤回
+                        return checkIsDimTableGroupBy(fromNode, newRegisterTableList);
+                    }
+                }
+
+                return false;
+            case INSERT:
+                return checkIsDimTableGroupBy(((SqlInsert) sqlNode).getSource(), newRegisterTableList);
+            case UNION:
+                SqlNode unionLeft = ((SqlBasicCall) sqlNode).getOperands()[0];
+                SqlNode unionRight = ((SqlBasicCall) sqlNode).getOperands()[1];
+                return checkIsDimTableGroupBy(unionLeft, newRegisterTableList)
+                        || checkIsDimTableGroupBy(unionRight, newRegisterTableList);
+            case AS:
+                SqlNode info = ((SqlBasicCall) sqlNode).getOperands()[0];
+                return checkIsDimTableGroupBy(info, newRegisterTableList);
+            default:
+                return false;
+        }
+    }
 }

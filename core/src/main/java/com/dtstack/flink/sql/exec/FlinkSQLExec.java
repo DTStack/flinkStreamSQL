@@ -56,8 +56,8 @@ public class FlinkSQLExec {
     private static final Logger LOG = LoggerFactory.getLogger(FlinkSQLExec.class);
 
     public static void sqlInsert(StreamTableEnvironment tableEnv, SqlNode sqlNode, Collection<String> newRegisterTableList) throws Exception{
-        boolean isGroupByTimeWindow = TableUtils.checkIsGroupByTimeWindow(sqlNode, newRegisterTableList);
-        if(!isGroupByTimeWindow){
+        boolean isGroupByTimeWindow = TableUtils.checkIsDimTableGroupBy(sqlNode, newRegisterTableList);
+        if(isGroupByTimeWindow){
             QueryOperationConverter.setProducesUpdates(true);
         }
 
@@ -71,8 +71,8 @@ public class FlinkSQLExec {
         FlinkPlannerImpl flinkPlanner = streamPlanner.createFlinkPlanner();
 
         RichSqlInsert insert = (RichSqlInsert) flinkPlanner.validate(flinkPlanner.parser().parse(stmt));
-        boolean isGroupByTimeWindow = TableUtils.checkIsGroupByTimeWindow(insert, newRegisterTableList);
-        if(!isGroupByTimeWindow){
+        boolean isGroupByTimeWindow = TableUtils.checkIsDimTableGroupBy(insert, newRegisterTableList);
+        if(isGroupByTimeWindow){
             QueryOperationConverter.setProducesUpdates(true);
         }
 
@@ -81,8 +81,8 @@ public class FlinkSQLExec {
     }
 
     public static Table sqlQuery(StreamTableEnvironment tableEnv, SqlNode sqlNode, Collection<String> newRegisterTableList){
-        boolean isGroupByTimeWindow = TableUtils.checkIsGroupByTimeWindow(sqlNode, newRegisterTableList);
-        if(!isGroupByTimeWindow){
+        boolean isGroupByTimeWindow = TableUtils.checkIsDimTableGroupBy(sqlNode, newRegisterTableList);
+        if(isGroupByTimeWindow){
             QueryOperationConverter.setProducesUpdates(true);
         }
 
@@ -96,8 +96,8 @@ public class FlinkSQLExec {
                                   String targetTableName,
                                   Table fromTable,
                                   Collection<String> newRegisterTableList){
-        boolean isGroupByTimeWindow = TableUtils.checkIsGroupByTimeWindow(sqlNode, newRegisterTableList);
-        if(!isGroupByTimeWindow){
+        boolean isGroupByTimeWindow = TableUtils.checkIsDimTableGroupBy(sqlNode, newRegisterTableList);
+        if(isGroupByTimeWindow){
             QueryOperationConverter.setProducesUpdates(true);
         }
 

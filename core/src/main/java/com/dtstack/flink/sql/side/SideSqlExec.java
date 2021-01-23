@@ -53,6 +53,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.planner.plan.QueryOperationConverter;
 import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
 import org.apache.flink.table.runtime.typeutils.BigDecimalTypeInfo;
 import org.apache.flink.table.runtime.typeutils.LegacyLocalDateTimeTypeInfo;
@@ -147,13 +148,15 @@ public class SideSqlExec {
                     }
 
                 } else if (pollSqlNode.getKind() == AS) {
-                    dealAsSourceTable(tableEnv, pollSqlNode, tableCache);
+                    Collection<String> newRegisterTableList = dimTableNewTable.keySet();
+                    dealAsSourceTable(tableEnv, pollSqlNode, tableCache, newRegisterTableList);
 
                 } else if (pollSqlNode.getKind() == WITH_ITEM) {
                     SqlWithItem sqlWithItem = (SqlWithItem) pollSqlNode;
-                    String TableAlias = sqlWithItem.name.toString();
-                    Table table = tableEnv.sqlQuery(sqlWithItem.query.toString());
-                    tableEnv.createTemporaryView(TableAlias, table);
+                    String tableAlias = sqlWithItem.name.toString();
+                    Collection<String> newRegisterTableList = dimTableNewTable.keySet();
+                    Table table = FlinkSQLExec.sqlQuery(tableEnv, sqlWithItem.query, newRegisterTableList);
+                    tableEnv.createTemporaryView(tableAlias, table);
 
                 } else if (pollSqlNode.getKind() == SELECT) {
                     Preconditions.checkState(createView != null, "select sql must included by create view");
@@ -420,14 +423,21 @@ public class SideSqlExec {
 
     protected void dealAsSourceTable(StreamTableEnvironment tableEnv,
                                      SqlNode pollSqlNode,
-                                     Map<String, Table> tableCache) throws SqlParseException {
+                                     Map<String, Table> tableCache,
+                                     Collection<String> newRegisterTableList) throws SqlParseException {
 
         AliasInfo aliasInfo = parseASNode(pollSqlNode);
         if (localTableCache.containsKey(aliasInfo.getName())) {
             return;
         }
 
+        boolean isGroupByTimeWindow = TableUtils.checkIsDimTableGroupBy(pollSqlNode, newRegisterTableList);
+        if(isGroupByTimeWindow){
+            QueryOperationConverter.setProducesUpdates(true);
+        }
         Table table = tableEnv.sqlQuery(aliasInfo.getName());
+        QueryOperationConverter.setProducesUpdates(false);
+
         tableEnv.registerTable(aliasInfo.getAlias(), table);
         localTableCache.put(aliasInfo.getAlias(), table);
 
