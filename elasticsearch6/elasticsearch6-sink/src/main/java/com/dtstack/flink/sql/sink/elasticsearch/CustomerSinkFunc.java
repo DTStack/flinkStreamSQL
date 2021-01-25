@@ -53,7 +53,7 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private String type;
 
-    private List<Integer> idFieldIndexList;
+    private List<String> idFiledNames;
 
     private List<String> fieldNames;
 
@@ -63,12 +63,12 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private transient Counter outDirtyRecords;
 
-    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<Integer> idFieldIndexes) {
+    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<String> idFiledNames) {
         this.index = index;
         this.type = type;
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;
-        this.idFieldIndexList = idFieldIndexes;
+        this.idFiledNames = idFiledNames;
     }
 
     @Override
@@ -99,14 +99,6 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
     }
 
     private IndexRequest createIndexRequest(Row element) {
-        String idFieldStr = "";
-        if (null != idFieldIndexList) {
-            // index start at 1,
-            idFieldStr = idFieldIndexList.stream()
-                    .filter(index -> index > 0 && index <= element.getArity())
-                    .map(index -> element.getField(index - 1).toString())
-                    .collect(Collectors.joining(ID_VALUE_SPLIT));
-        }
 
         Map<String, Object> dataMap = Es6Util.rowToJsonMap(element, fieldNames, fieldTypes);
         int length = Math.min(element.getArity(), fieldNames.size());
@@ -118,6 +110,12 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
             dataMap.put(fieldNames.get(i), element.getField(i));
         }
 
+        String idFieldStr = "";
+        if (null != idFiledNames) {
+            idFieldStr = idFiledNames.stream()
+                    .map(idFiledName -> dataMap.get(idFiledName).toString())
+                    .collect(Collectors.joining(ID_VALUE_SPLIT));
+        }
 
         if (StringUtils.isEmpty(idFieldStr)) {
             return Requests.indexRequest()

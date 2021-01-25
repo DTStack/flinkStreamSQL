@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.sink.elasticsearch;
 
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.google.common.base.Preconditions;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -61,7 +62,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private String type = "";
 
-    private List<Integer> idIndexList;
+    private List<String> idFiledNames;
 
     protected String[] fieldNames;
 
@@ -105,6 +106,12 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
 
     private RichSinkFunction createEsSinkFunction() {
+
+        // check whether id fields is exists in columns
+        List<String> filedNamesLists = Arrays.asList(fieldNames);
+        Preconditions.checkState(filedNamesLists.containsAll(idFiledNames), "elasticsearch6 type of id %s is should be exists in columns %s.", idFiledNames, filedNamesLists);
+        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, filedNamesLists, Arrays.asList(columnTypes), idFiledNames);
+
         Map<String, String> userConfig = Maps.newHashMap();
         userConfig.put("cluster.name", clusterName);
         // This instructs the sink to emit after every element, otherwise they would be buffered
@@ -118,7 +125,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
                     return new HttpHost(host.trim(), port, ES_DEFAULT_SCHEMA);
                 }).collect(Collectors.toList());
 
-        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), idIndexList);
+
         return new MetricElasticsearch6Sink(userConfig, transports, customerSinkFunc, esTableInfo);
     }
 
@@ -150,7 +157,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         parallelism = Objects.isNull(esTableInfo.getParallelism()) ? parallelism : esTableInfo.getParallelism();
 
         if (!StringUtils.isEmpty(id)) {
-            idIndexList = Arrays.stream(StringUtils.split(id, ",")).map(Integer::valueOf).collect(Collectors.toList());
+            idFiledNames = Arrays.stream(StringUtils.split(id, ",")).map(String::valueOf).collect(Collectors.toList());
         }
         return this;
     }
