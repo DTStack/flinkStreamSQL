@@ -55,6 +55,7 @@ import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -79,6 +80,7 @@ import java.net.URLDecoder;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -244,7 +246,11 @@ public class ExecuteProcessHelper {
             scope++;
         }
 
+        final Map<String, AbstractSideTableInfo> tmpTableMap = new HashMap<>();
         for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
+            // prevent current sql use last sql's sideTableInfo
+            sideTableMap.forEach((s, abstractSideTableInfo) -> tmpTableMap.put(s, SerializationUtils.clone(abstractSideTableInfo)));
+
             if (LOG.isInfoEnabled()) {
                 LOG.info("exe-sql:\n" + result.getExecSql());
             }
@@ -257,17 +263,17 @@ public class ExecuteProcessHelper {
                     SqlNode sqlNode = flinkPlanner.getParser().parse(realSql);
                     String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
                     tmp.setExecSql(tmpSql);
-                    sideSqlExec.exec(tmp.getExecSql(), sideTableMap, tableEnv, registerTableCache, tmp, scope + "");
+                    sideSqlExec.exec(tmp.getExecSql(), tmpTableMap, tableEnv, registerTableCache, tmp, scope + "");
                 } else {
                     for (String sourceTable : result.getSourceTableList()) {
-                        if (sideTableMap.containsKey(sourceTable)) {
+                        if (tmpTableMap.containsKey(sourceTable)) {
                             isSide = true;
                             break;
                         }
                     }
                     if (isSide) {
                         //sql-dimensional table contains the dimension table of execution
-                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, null, String.valueOf(scope));
+                        sideSqlExec.exec(result.getExecSql(), tmpTableMap, tableEnv, registerTableCache, null, String.valueOf(scope));
                     } else {
                         LOG.info("----------exec sql without dimension join-----------");
                         LOG.info("----------real sql exec is--------------------------\n{}", result.getExecSql());
@@ -280,6 +286,7 @@ public class ExecuteProcessHelper {
 
                 scope++;
             }
+            tmpTableMap.clear();
         }
     }
 
