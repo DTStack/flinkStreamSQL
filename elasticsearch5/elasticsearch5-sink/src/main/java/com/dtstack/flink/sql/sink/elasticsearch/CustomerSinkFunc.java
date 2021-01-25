@@ -53,7 +53,7 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private String type;
 
-    private List<Integer> idFieldIndexList;
+    private List<String> idFiledNames;
 
     private List<String> fieldNames;
 
@@ -61,15 +61,12 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     public transient Counter outRecords;
 
-    /** 默认分隔符为'_' */
-    private char sp = '_';
-
-    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<Integer> idFieldIndexes){
+    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<String> idFiledNames){
         this.index = index;
         this.type = type;
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;
-        this.idFieldIndexList = idFieldIndexes;
+        this.idFiledNames = idFiledNames;
     }
 
     @Override
@@ -95,19 +92,18 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
     }
 
     private IndexRequest createIndexRequest(Row element) {
-        String idFieldStr = "";
-        if (null != idFieldIndexList) {
-            // index start at 1,
-            idFieldStr = idFieldIndexList.stream()
-                    .filter(index -> index > 0 && index <= element.getArity())
-                    .map(index -> element.getField(index - 1).toString())
-                    .collect(Collectors.joining(ID_VALUE_SPLIT));
-        }
 
         Map<String, Object> dataMap = EsUtil.rowToJsonMap(element,fieldNames,fieldTypes);
         int length = Math.min(element.getArity(), fieldNames.size());
         for(int i=0; i<length; i++){
             dataMap.put(fieldNames.get(i), element.getField(i));
+        }
+
+        String idFieldStr = "";
+        if (null != idFiledNames) {
+            idFieldStr = idFiledNames.stream()
+                    .map(idFiledName -> dataMap.get(idFiledName).toString())
+                    .collect(Collectors.joining(ID_VALUE_SPLIT));
         }
 
         if (StringUtils.isEmpty(idFieldStr)) {

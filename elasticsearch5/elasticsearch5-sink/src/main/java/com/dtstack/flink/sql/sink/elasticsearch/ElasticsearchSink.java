@@ -21,6 +21,7 @@
 package com.dtstack.flink.sql.sink.elasticsearch;
 
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.google.common.base.Preconditions;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -68,7 +69,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private String type = "";
 
-    private List<Integer> idIndexList;
+    private List<String> idFiledNames;
 
     protected String[] fieldNames;
 
@@ -113,6 +114,10 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private RichSinkFunction createEsSinkFunction(){
 
+        // check whether id fields is exists in columns
+        List<String> filedNamesLists = Arrays.asList(fieldNames);
+        Preconditions.checkState(filedNamesLists.containsAll(idFiledNames), "elasticsearch5 type of id %s is should be exists in columns %s.", idFiledNames, filedNamesLists);
+        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, filedNamesLists, Arrays.asList(columnTypes), idFiledNames);
 
         Map<String, String> userConfig = new HashMap<>();
         userConfig.put("cluster.name", clusterName);
@@ -141,8 +146,6 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
             String authPassword = esTableInfo.getUserName() + ":" + esTableInfo.getPassword();
             userConfig.put("xpack.security.user", authPassword);
         }
-
-        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), idIndexList);
 
         return new MetricElasticsearchSink(userConfig, transports, customerSinkFunc, esTableInfo);
     }
@@ -179,13 +182,13 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         type = elasticsearchTableInfo.getEsType();
         String id = elasticsearchTableInfo.getId();
         String[] idField = StringUtils.split(id, ",");
-        idIndexList = new ArrayList<>();
+        idFiledNames = new ArrayList<>();
         registerTableName = elasticsearchTableInfo.getName();
         parallelism = Objects.isNull(elasticsearchTableInfo.getParallelism()) ?
                 parallelism : elasticsearchTableInfo.getParallelism();
 
         for(int i = 0; i < idField.length; ++i) {
-            idIndexList.add(Integer.valueOf(idField[i]));
+            idFiledNames.add(String.valueOf(idField[i]));
         }
 
         columnTypes = elasticsearchTableInfo.getFieldTypes();
