@@ -827,12 +827,6 @@ public class TableUtils {
         }
     }
 
-    public static boolean checkIsTimeGroupByFunction(String functionName ){
-        return functionName.equalsIgnoreCase("tumble")
-                || functionName.equalsIgnoreCase("session")
-                || functionName.equalsIgnoreCase("hop");
-    }
-
     /**
      * 判断group by中是否包含维表，包含则需要撤回，不管嵌套多少层子查询只要有一层包含都需要撤回
      *
@@ -856,6 +850,14 @@ public class TableUtils {
                 // 2.(sub query) as alias group by
                 // 3.tableName group by
                 // 4.tableName as alias group by
+                // 5.tableName no group by
+                // 6.tableName as alias no group by
+
+                // 没有group by：5.no group by
+                if (fromNode.getKind() == IDENTIFIER
+                        && (groupNodeList == null || groupNodeList.size() == 0)) {
+                    return false;
+                }
 
                 // (子查询) group by：1.(sub query) group by
                 if (fromNode.getKind() == SELECT) {
@@ -863,43 +865,21 @@ public class TableUtils {
                 }
 
                 // 表名 as 别名 group by、(子查询) as 别名 group by、表名 group by
-                if (fromNode.getKind() == AS || fromNode.getKind() == IDENTIFIER) {
-                    SqlNode operand;
+                if (fromNode.getKind() == AS) {
                     // 表名 as 别名 group by：4.tableName as alias group by
-                    if (fromNode.getKind() == AS) {
-                        operand = ((SqlBasicCall) fromNode).getOperands()[0];
-                    } else {
-                        // 表名 group by：3.tableName group by
-                        operand = fromNode;
+                    SqlNode operand = ((SqlBasicCall) fromNode).getOperands()[0];
+                    // (子查询) as 别名 group by：2.(sub query) as alias group by
+                    if (operand.getKind() != IDENTIFIER) {
+                        return checkIsDimTableGroupBy(fromNode, newRegisterTableList);
                     }
+
                     // 最里层是表名 group by，且group by字段不为空，且表名包含在维表中
+                    // 6.tableName as alias no group by，会在这一层过滤掉
                     if (operand.getKind() == IDENTIFIER
                             && groupNodeList != null
                             && groupNodeList.size() != 0
                             && newRegisterTableList.contains(operand.toString())) {
-                        boolean isRetract = false;
-                        // 判断完所有的group by字段
-                        for (SqlNode node : groupNodeList.getList()) {
-                            // 判断是否有函数
-                            if (node.getKind() == OTHER_FUNCTION) {
-                                String functionName = ((SqlBasicCall) node).getOperator().toString().toLowerCase();
-                                boolean isTimeGroupByFunction = checkIsTimeGroupByFunction(functionName);
-                                // 只要有窗口就不需要撤回，直接返回
-                                if (isTimeGroupByFunction) {
-                                    return false;
-                                }
-                                // 非窗口需要撤回，继续迭代后面的字段
-                                isRetract = true;
-                            } else {
-                                // 其他情况需要撤回，继续迭代后面的字段
-                                isRetract = true;
-                            }
-                        }
-                        return isRetract;
-                    } else {
-                        // (子查询) as 别名 group by：2.(sub query) as alias group by
-                        // 没有group by语句也会走进来，但是最后会返回不需要撤回
-                        return checkIsDimTableGroupBy(fromNode, newRegisterTableList);
+                        return checkGroupByNode(groupNodeList);
                     }
                 }
 
@@ -917,5 +897,38 @@ public class TableUtils {
             default:
                 return false;
         }
+    }
+
+    /**
+     * 遍历每一个group by节点，判断是否需要撤回
+     * @param groupNodeList
+     * @return
+     */
+    private static boolean checkGroupByNode(SqlNodeList groupNodeList) {
+        boolean isRetract = false;
+        // 判断完所有的group by字段
+        for (SqlNode node : groupNodeList.getList()) {
+            // 判断是否有函数
+            if (node.getKind() == OTHER_FUNCTION) {
+                String functionName = ((SqlBasicCall) node).getOperator().toString().toLowerCase();
+                boolean isTimeGroupByFunction = checkIsTimeGroupByFunction(functionName);
+                // 只要有窗口就不需要撤回，直接返回
+                if (isTimeGroupByFunction) {
+                    return false;
+                }
+                // 非窗口需要撤回，继续迭代后面的字段
+                isRetract = true;
+            } else {
+                // 其他情况需要撤回，继续迭代后面的字段
+                isRetract = true;
+            }
+        }
+        return isRetract;
+    }
+
+    public static boolean checkIsTimeGroupByFunction(String functionName ){
+        return functionName.equalsIgnoreCase("tumble")
+                || functionName.equalsIgnoreCase("session")
+                || functionName.equalsIgnoreCase("hop");
     }
 }
