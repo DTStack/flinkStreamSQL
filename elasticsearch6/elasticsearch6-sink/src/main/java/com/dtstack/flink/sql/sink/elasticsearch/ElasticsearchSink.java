@@ -62,7 +62,10 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private String type = "";
 
-    private List<String> idFiledNames;
+    private List<Object> ids;
+
+    // true means generation doc's id by position "1[,1]"
+    private boolean usePosition = false;
 
     protected String[] fieldNames;
 
@@ -107,10 +110,12 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private RichSinkFunction createEsSinkFunction() {
 
-        // check whether id fields is exists in columns
-        List<String> filedNamesLists = Arrays.asList(fieldNames);
-        Preconditions.checkState(filedNamesLists.containsAll(idFiledNames), "elasticsearch6 type of id %s is should be exists in columns %s.", idFiledNames, filedNamesLists);
-        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, filedNamesLists, Arrays.asList(columnTypes), idFiledNames);
+        // check whether id fields is exists in columns if not use position to generate doc's id
+        if (!usePosition) {
+            List<String> filedNamesLists = Arrays.asList(fieldNames);
+            Preconditions.checkState(filedNamesLists.containsAll(ids), "elasticsearch6 type of id %s is should be exists in columns %s.", ids, filedNamesLists);
+        }
+        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), ids, usePosition);
 
         Map<String, String> userConfig = Maps.newHashMap();
         userConfig.put("cluster.name", clusterName);
@@ -156,8 +161,15 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         registerTableName = esTableInfo.getName();
         parallelism = Objects.isNull(esTableInfo.getParallelism()) ? parallelism : esTableInfo.getParallelism();
 
+        // check mode of generate doc's id
         if (!StringUtils.isEmpty(id)) {
-            idFiledNames = Arrays.stream(StringUtils.split(id, ",")).map(String::valueOf).collect(Collectors.toList());
+            if (!Es6Util.checkWhetherUsePosition(id)) {
+                ids = Arrays.stream(StringUtils.split(id, ",")).map(String::valueOf).collect(Collectors.toList());
+            } else {
+                //compatible old version of generate doc' id
+                usePosition = true;
+                ids = Arrays.stream(StringUtils.split(id, ",")).map(Integer::valueOf).collect(Collectors.toList());
+            }
         }
         return this;
     }
