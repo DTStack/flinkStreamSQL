@@ -133,6 +133,8 @@ public class SideSqlExec {
         sideSQLParser.setLocalTableCache(localTableCache);
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet(), scope);
         Object pollObj = null;
+        // create view中是否包含维表
+        boolean includeDimTable = false;
 
         while ((pollObj = exeQueue.poll()) != null) {
 
@@ -175,9 +177,13 @@ public class SideSqlExec {
                     }
 
                     localTableCache.put(createView.getTableName(), table);
+                    if(includeDimTable){
+                        dimTableNewTable.put(createView.getTableName(), table);
+                    }
                 }
-
+                includeDimTable = false;
             } else if (pollObj instanceof JoinInfo) {
+                includeDimTable = true;
                 LOG.info("----------exec join info----------\n{}", pollObj.toString());
                 joinFun(pollObj, localTableCache, dimTableNewTable,sideTableMap, tableEnv);
             }

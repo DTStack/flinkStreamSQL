@@ -850,14 +850,7 @@ public class TableUtils {
                 // 2.(sub query) as alias group by
                 // 3.tableName group by
                 // 4.tableName as alias group by
-                // 5.tableName no group by
-                // 6.tableName as alias no group by
-
-                // 没有group by：5.no group by
-                if (fromNode.getKind() == IDENTIFIER
-                        && (groupNodeList == null || groupNodeList.size() == 0)) {
-                    return false;
-                }
+                // 5.others return false
 
                 // (子查询) group by：1.(sub query) group by
                 if (fromNode.getKind() == SELECT) {
@@ -865,16 +858,21 @@ public class TableUtils {
                 }
 
                 // 表名 as 别名 group by、(子查询) as 别名 group by、表名 group by
-                if (fromNode.getKind() == AS) {
-                    // 表名 as 别名 group by：4.tableName as alias group by
-                    SqlNode operand = ((SqlBasicCall) fromNode).getOperands()[0];
-                    // (子查询) as 别名 group by：2.(sub query) as alias group by
-                    if (operand.getKind() != IDENTIFIER) {
-                        return checkIsDimTableGroupBy(fromNode, newRegisterTableList);
+                if (fromNode.getKind() == AS || fromNode.getKind() == IDENTIFIER) {
+                    SqlNode operand;
+                    // 表名 group by：3.tableName group by
+                    if (fromNode.getKind() == IDENTIFIER) {
+                        operand = fromNode;
+                    } else {
+                        // 表名 as 别名 group by：4.tableName as alias group by
+                        operand = ((SqlBasicCall) fromNode).getOperands()[0];
+                        // (子查询) as 别名 group by：2.(sub query) as alias group by
+                        if (operand.getKind() != IDENTIFIER) {
+                            return checkIsDimTableGroupBy(fromNode, newRegisterTableList);
+                        }
                     }
 
                     // 最里层是表名 group by，且group by字段不为空，且表名包含在维表中
-                    // 6.tableName as alias no group by，会在这一层过滤掉
                     if (operand.getKind() == IDENTIFIER
                             && groupNodeList != null
                             && groupNodeList.size() != 0
