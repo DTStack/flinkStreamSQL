@@ -9,7 +9,7 @@ CREATE TABLE tableName(
     cluster='clusterName',
     esType ='esType',
     index ='index',
-    id ='num[,num]',
+    id ='num[,num]'(id = 'field[,field]'),
     authMesh = 'true',
     userName = 'userName',
     password = 'password',
@@ -35,7 +35,7 @@ CREATE TABLE tableName(
 |cluster | ES 集群名称 |是||
 |index | 选择的ES上的index名称|是||
 |esType | 选择ES上的type名称|是||
-|id | 生成id的规则(当前是根据指定的字段名称获取字段信息,拼接生成id;|否||
+|id | 生成id的规则(当前是根据指定的字段名称(或者字段position)获取字段信息,拼接生成id)|否||
 | |若id为空字符串或索引都超出范围，则随机生成id值)|||
 |authMesh | 是否进行用户名密码认证 | 否 | false|
 |userName | 用户名 | 否，authMesh='true'时为必填 ||
