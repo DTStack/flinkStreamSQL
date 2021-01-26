@@ -53,7 +53,10 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private String type;
 
-    private List<String> idFiledNames;
+    private List<Object> ids;
+
+    // true means generation doc's id by position "1[,1]"
+    private boolean usePosition;
 
     private List<String> fieldNames;
 
@@ -61,12 +64,13 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     public transient Counter outRecords;
 
-    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<String> idFiledNames){
+    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<Object> ids, boolean usePosition) {
         this.index = index;
         this.type = type;
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;
-        this.idFiledNames = idFiledNames;
+        this.ids = ids;
+        this.usePosition = usePosition;
     }
 
     @Override
@@ -100,10 +104,21 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
         }
 
         String idFieldStr = "";
-        if (null != idFiledNames) {
-            idFieldStr = idFiledNames.stream()
-                    .map(idFiledName -> dataMap.get(idFiledName).toString())
-                    .collect(Collectors.joining(ID_VALUE_SPLIT));
+        if (null != ids) {
+            if (!usePosition) {
+                idFieldStr = ids.stream()
+                        .map(filedName -> (String) filedName)
+                        .map(filedName -> dataMap.get(filedName).toString())
+                        .collect(Collectors.joining(ID_VALUE_SPLIT));
+            } else {
+                // compatible old version of generate doc's id
+                // index start at 1,
+                idFieldStr = ids.stream()
+                        .map(index -> (Integer) index)
+                        .filter(index -> index > 0 && index <= element.getArity())
+                        .map(index -> element.getField( index - 1).toString())
+                        .collect(Collectors.joining(ID_VALUE_SPLIT));
+            }
         }
 
         if (StringUtils.isEmpty(idFieldStr)) {

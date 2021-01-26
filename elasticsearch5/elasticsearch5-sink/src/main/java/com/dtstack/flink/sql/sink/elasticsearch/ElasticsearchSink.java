@@ -47,6 +47,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * table output elastic5plugin
@@ -69,7 +70,10 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private String type = "";
 
-    private List<String> idFiledNames;
+    private List<Object> ids;
+
+    // true means generation doc's id by position "1[,1]"
+    private boolean usePosition = false;
 
     protected String[] fieldNames;
 
@@ -114,10 +118,12 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private RichSinkFunction createEsSinkFunction(){
 
-        // check whether id fields is exists in columns
-        List<String> filedNamesLists = Arrays.asList(fieldNames);
-        Preconditions.checkState(filedNamesLists.containsAll(idFiledNames), "elasticsearch5 type of id %s is should be exists in columns %s.", idFiledNames, filedNamesLists);
-        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, filedNamesLists, Arrays.asList(columnTypes), idFiledNames);
+        // check whether id fields is exists in columns if not use position to generate doc's id
+        if (!usePosition) {
+            List<String> filedNamesLists = Arrays.asList(fieldNames);
+            Preconditions.checkState(filedNamesLists.containsAll(ids), "elasticsearch6 type of id %s is should be exists in columns %s.", ids, filedNamesLists);
+        }
+        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), ids, usePosition);
 
         Map<String, String> userConfig = new HashMap<>();
         userConfig.put("cluster.name", clusterName);
@@ -182,14 +188,20 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         type = elasticsearchTableInfo.getEsType();
         String id = elasticsearchTableInfo.getId();
         String[] idField = StringUtils.split(id, ",");
-        idFiledNames = new ArrayList<>();
         registerTableName = elasticsearchTableInfo.getName();
         parallelism = Objects.isNull(elasticsearchTableInfo.getParallelism()) ?
                 parallelism : elasticsearchTableInfo.getParallelism();
 
         for(int i = 0; i < idField.length; ++i) {
-            idFiledNames.add(String.valueOf(idField[i]));
+            if (!EsUtil.checkWhetherUsePosition(id)) {
+                ids = Arrays.stream(org.apache.commons.lang.StringUtils.split(id, ",")).map(String::valueOf).collect(Collectors.toList());
+            } else {
+                //compatible old version of generate doc' id
+                usePosition = true;
+                ids = Arrays.stream(org.apache.commons.lang.StringUtils.split(id, ",")).map(Integer::valueOf).collect(Collectors.toList());
+            }
         }
+
 
         columnTypes = elasticsearchTableInfo.getFieldTypes();
 
