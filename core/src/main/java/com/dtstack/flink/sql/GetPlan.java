@@ -30,9 +30,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 
 /**
- *  local模式获取sql任务的执行计划
+ * local模式获取sql任务的执行计划
  * Date: 2020/2/17
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class GetPlan {
@@ -46,7 +47,9 @@ public class GetPlan {
             ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
             paramsInfo.setGetPlan(true);
             ClassLoader envClassLoader = StreamExecutionEnvironment.class.getClassLoader();
-            ClassLoader plannerClassLoader = URLClassLoader.newInstance(new URL[0], envClassLoader);
+            ClassLoader plannerClassLoader = URLClassLoader.newInstance(
+                    paramsInfo.getJarUrlList().toArray(new URL[0]),
+                    envClassLoader);
             Thread.currentThread().setContextClassLoader(plannerClassLoader);
             StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
             String executionPlan = env.getExecutionPlan();
