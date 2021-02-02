@@ -32,7 +32,6 @@ import com.dtstack.flink.sql.util.DateUtil;
 import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonArray;
@@ -95,13 +94,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private transient Vertx vertx;
 
-    private transient VertxOptions vertxOptions;
-
-    private transient JsonObject jdbcConfig;
-
     private int asyncPoolSize = 1;
 
-    private int errorLogPrintNum = 3;
+    private final int errorLogPrintNum = 3;
 
     private final AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
@@ -114,9 +109,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
 
-        vertxOptions = new VertxOptions();
+        VertxOptions vertxOptions = new VertxOptions();
 
-        jdbcConfig = buildJdbcConfig();
+        JsonObject jdbcConfig = buildJdbcConfig();
         System.setProperty("vertx.disableFileCPResolving", "true");
         vertxOptions
                 .setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE)
@@ -131,6 +126,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 new LinkedBlockingQueue<>(MAX_TASK_QUEUE_SIZE),
                 new DTThreadFactory("rdbAsyncExec"),
                 new ThreadPoolExecutor.CallerRunsPolicy());
+
+        vertx = Vertx.vertx(vertxOptions);
+        rdbSqlClient = JDBCClient.createNonShared(vertx, jdbcConfig);
     }
 
     public RdbAsyncReqRow(BaseSideInfo sideInfo) {
@@ -153,8 +151,6 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     protected void preInvoke(BaseRow input, ResultFuture<BaseRow> resultFuture) {
-        vertx = Vertx.vertx(vertxOptions);
-        rdbSqlClient = JDBCClient.createNonShared(vertx, jdbcConfig);
     }
 
     @Override
@@ -163,7 +159,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         //network is unhealthy
         while (!connectionStatus.get()) {
             if (networkLogCounter.getAndIncrement() % 1000 == 0) {
-                LOG.info("network unhealth to block task");
+                LOG.info("network unhealthy to block task");
             }
             Thread.sleep(100);
         }
@@ -178,12 +174,14 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                                   AtomicLong failCounter,
                                   AtomicBoolean finishFlag,
                                   CountDownLatch latch) {
-        doAsyncQueryData(inputParams,
-            input, resultFuture,
-            rdbSqlClient,
-            failCounter,
-            finishFlag,
-            latch);
+        doAsyncQueryData(
+                inputParams,
+                input,
+                resultFuture,
+                rdbSqlClient,
+                failCounter,
+                finishFlag,
+                latch);
     }
 
     final protected void doAsyncQueryData(
@@ -198,18 +196,23 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             try {
                 String errorMsg;
                 Integer retryMaxNum = sideInfo.getSideTableInfo().getConnectRetryMaxNum(3);
+                int logPrintTime = retryMaxNum / errorLogPrintNum == 0 ?
+                        retryMaxNum : retryMaxNum / errorLogPrintNum;
                 if (conn.failed()) {
                     connectionStatus.set(false);
                     errorMsg = ExceptionTrace.traceOriginalCause(conn.cause());
-                    if (failCounter.getAndIncrement() %
-                            (retryMaxNum / 3 == 0 ? retryMaxNum : retryMaxNum / 3) == 0) {
+                    if (failCounter.getAndIncrement() % logPrintTime == 0) {
                         LOG.error("getConnection error. cause by " + errorMsg);
                     }
                     LOG.error(String.format("retry ... current time [%s]", failCounter.get()));
                     if (failCounter.get() >= retryMaxNum) {
                         resultFuture.completeExceptionally(
                                 new SuppressRestartsException(
-                                        new Throwable(ExceptionTrace.traceOriginalCause(conn.cause()))));
+                                        new Throwable(
+                                                ExceptionTrace.traceOriginalCause(conn.cause())
+                                        )
+                                )
+                        );
                         finishFlag.set(true);
                     }
                     return;
@@ -233,12 +236,14 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         while (!finishFlag.get()) {
             try {
                 CountDownLatch latch = new CountDownLatch(1);
-                asyncQueryData(inputParams,
-                    input, resultFuture,
-                    rdbSqlClient,
-                    failCounter,
-                    finishFlag,
-                    latch);
+                asyncQueryData(
+                        inputParams,
+                        input,
+                        resultFuture,
+                        rdbSqlClient,
+                        failCounter,
+                        finishFlag,
+                        latch);
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
@@ -331,7 +336,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         if (rdbSqlClient != null) {
             rdbSqlClient.close(done -> {
                 if (done.failed()) {
-                    LOG.error("sql client close failed! ", done.cause());
+                    LOG.error("sql client close failed! " +
+                            ExceptionTrace.traceOriginalCause(done.cause())
+                    );
                 }
 
                 if (done.succeeded()) {
@@ -348,7 +355,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         if (Objects.nonNull(vertx)) {
             vertx.close(done -> {
                 if (done.failed()) {
-                    LOG.error("vert.x close error. cause by " + done.cause().getMessage());
+                    LOG.error("vert.x close error. cause by " +
+                            ExceptionTrace.traceOriginalCause(done.cause())
+                    );
                 }
             });
         }
@@ -363,7 +372,9 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                     LOG.error(
                             String.format("\nget data with sql [%s] failed! \ncause: [%s]",
                                     sideInfo.getSqlCondition(),
-                                    rs.cause().getMessage()));
+                                    rs.cause().getMessage()
+                            )
+                    );
                     dealFillDataError(input, resultFuture, rs.cause());
                     return;
                 }
@@ -397,7 +408,10 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 connection.close(done -> {
                     if (done.failed()) {
                         throw new SuppressRestartsException(
-                                new Throwable(ExceptionTrace.traceOriginalCause(done.cause())));
+                                new Throwable(
+                                        ExceptionTrace.traceOriginalCause(done.cause())
+                                )
+                        );
                     }
                 });
             }
@@ -410,9 +424,5 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             result.put(k, convertDataType(v));
         });
         return result;
-    }
-
-    protected int getAsyncPoolSize() {
-        return asyncPoolSize;
     }
 }
