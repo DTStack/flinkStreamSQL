@@ -119,7 +119,9 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     private RichSinkFunction createEsSinkFunction(){
 
         // check whether id fields is exists in columns if not use position to generate doc's id
-        if (!usePosition) {
+        if (!usePosition
+                && ids != null
+                && ids.size() != 0) {
             List<String> filedNamesLists = Arrays.asList(fieldNames);
             Preconditions.checkState(filedNamesLists.containsAll(ids), "elasticsearch6 type of id %s is should be exists in columns %s.", ids, filedNamesLists);
         }
