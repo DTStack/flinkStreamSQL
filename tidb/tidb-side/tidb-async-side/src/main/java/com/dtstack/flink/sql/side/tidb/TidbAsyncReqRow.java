@@ -18,23 +18,16 @@
 
 package com.dtstack.flink.sql.side.tidb;
 
-import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author tiezhu
@@ -52,6 +45,10 @@ public class TidbAsyncReqRow extends RdbAsyncReqRow {
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
+    }
+
+    @Override
+    public JsonObject buildJdbcConfig() {
         JsonObject tidbClientConfig = new JsonObject();
         RdbSideTableInfo sideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         tidbClientConfig.put("url", sideTableInfo.getUrl())
@@ -64,13 +61,6 @@ public class TidbAsyncReqRow extends RdbAsyncReqRow {
                 .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN)
                 .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID);
 
-        System.setProperty("vertx.disableFileCPResolving", "true");
-
-        VertxOptions vo = new VertxOptions();
-        vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(sideTableInfo.getAsyncPoolSize());
-        vo.setFileResolverCachingEnabled(false);
-        Vertx vertx = Vertx.vertx(vo);
-        setRdbSqlClient(JDBCClient.createNonShared(vertx, tidbClientConfig));
+        return tidbClientConfig;
     }
 }
