@@ -34,6 +34,7 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
+import org.apache.flink.runtime.execution.SuppressRestartsException;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
@@ -275,7 +276,7 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
         parseErrorRecords.inc();
         if (parseErrorRecords.getCount() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)) {
             LOG.info("dealFillDataError", e);
-            resultFuture.completeExceptionally(e);
+            resultFuture.completeExceptionally(new SuppressRestartsException(e));
         } else {
             dealMissKey(input, resultFuture);
         }

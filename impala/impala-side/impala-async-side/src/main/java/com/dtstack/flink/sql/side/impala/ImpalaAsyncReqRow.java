@@ -24,13 +24,11 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.util.KrbUtils;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.execution.SuppressRestartsException;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -65,41 +63,38 @@ public class ImpalaAsyncReqRow extends RdbAsyncReqRow {
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        ImpalaSideTableInfo impalaSideTableInfo = (ImpalaSideTableInfo) sideInfo.getSideTableInfo();
-        if (impalaSideTableInfo.getAuthMech() == 1) {
-            String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
-            String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
-            String principal = impalaSideTableInfo.getPrincipal();
-            ugi = KrbUtils.loginAndReturnUgi(principal, keyTabFilePath, krb5FilePath);
-            openJdbc(parameters);
-        } else {
-            openJdbc(parameters);
-        }
+        super.open(parameters);
     }
 
-    public void openJdbc(Configuration parameters) throws Exception {
-        super.open(parameters);
+    @Override
+    public JsonObject buildJdbcConfig() {
         ImpalaSideTableInfo impalaSideTableInfo = (ImpalaSideTableInfo) sideInfo.getSideTableInfo();
+
+        try {
+            if (impalaSideTableInfo.getAuthMech() == 1) {
+                String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();
+                String krb5FilePath = impalaSideTableInfo.getKrb5FilePath();
+                String principal = impalaSideTableInfo.getPrincipal();
+                ugi = KrbUtils.loginAndReturnUgi(principal, keyTabFilePath, krb5FilePath);
+            }
+        } catch (Exception e) {
+            throw new SuppressRestartsException(
+                    new Throwable("impala login with kerberos error. cause by: " + e.getMessage()));
+        }
+
         JsonObject impalaClientConfig = new JsonObject();
         impalaClientConfig.put("url", getUrl())
-            .put("driver_class", IMPALA_DRIVER)
-            .put("max_pool_size", impalaSideTableInfo.getAsyncPoolSize())
-            .put("provider_class", DT_PROVIDER_CLASS)
-            .put("idle_connection_test_period", 300)
-            .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN)
-            .put("max_idle_time", 600)
-            .put("preferred_test_query", PREFERRED_TEST_QUERY_SQL)
-            .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
-            .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
+                .put("driver_class", IMPALA_DRIVER)
+                .put("max_pool_size", impalaSideTableInfo.getAsyncPoolSize())
+                .put("provider_class", DT_PROVIDER_CLASS)
+                .put("idle_connection_test_period", 300)
+                .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN)
+                .put("max_idle_time", 600)
+                .put("preferred_test_query", PREFERRED_TEST_QUERY_SQL)
+                .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
+                .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
 
-        System.setProperty("vertx.disableFileCPResolving", "true");
-
-        VertxOptions vo = new VertxOptions();
-        vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(impalaSideTableInfo.getAsyncPoolSize());
-        vo.setFileResolverCachingEnabled(false);
-        Vertx vertx = Vertx.vertx(vo);
-        setRdbSqlClient(JDBCClient.createNonShared(vertx, impalaClientConfig));
+        return impalaClientConfig;
     }
 
     public String getUrl() {

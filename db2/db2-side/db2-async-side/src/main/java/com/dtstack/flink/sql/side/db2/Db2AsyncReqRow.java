@@ -18,23 +18,16 @@
 
 package com.dtstack.flink.sql.side.db2;
 
-import com.dtstack.flink.sql.factory.DTThreadFactory;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
-import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Reason:
@@ -56,9 +49,13 @@ public class Db2AsyncReqRow extends RdbAsyncReqRow {
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        JsonObject db2lientConfig = new JsonObject();
+    }
+
+    @Override
+    public JsonObject buildJdbcConfig() {
+        JsonObject db2ClientConfig = new JsonObject();
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
-        db2lientConfig.put("url", rdbSideTableInfo.getUrl())
+        db2ClientConfig.put("url", rdbSideTableInfo.getUrl())
                 .put("driver_class", DB2_DRIVER)
                 .put("max_pool_size", rdbSideTableInfo.getAsyncPoolSize())
                 .put("user", rdbSideTableInfo.getUserName())
@@ -67,15 +64,6 @@ public class Db2AsyncReqRow extends RdbAsyncReqRow {
                 .put("preferred_test_query", DB2_PREFERRED_TEST_QUERY_SQL)
                 .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
                 .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
-
-        System.setProperty("vertx.disableFileCPResolving", "true");
-
-        VertxOptions vo = new VertxOptions();
-        vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
-        vo.setFileResolverCachingEnabled(false);
-        Vertx vertx = Vertx.vertx(vo);
-        setRdbSqlClient(JDBCClient.createNonShared(vertx, db2lientConfig));
+        return db2ClientConfig;
     }
-
 }
