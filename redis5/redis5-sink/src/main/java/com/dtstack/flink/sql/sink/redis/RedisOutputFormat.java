@@ -41,12 +41,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author yanxi
  */
-public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
+public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean, Row>> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisOutputFormat.class);
+
+    private static final Pattern HOST_PORT_PATTERN = Pattern.compile("(?<host>(.*)):(?<port>\\d+)*");
 
     protected String[] fieldNames;
 
@@ -82,8 +86,6 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     private JedisSentinelPool jedisSentinelPool;
 
-    private GenericObjectPoolConfig poolConfig;
-
     private RedisOutputFormat() {
     }
 
@@ -117,17 +119,27 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     private void establishConnection() {
-        poolConfig = setPoolConfig(maxTotal, maxIdle, minIdle);
+        GenericObjectPoolConfig poolConfig = setPoolConfig(maxTotal, maxIdle, minIdle);
         String[] nodes = StringUtils.split(url, ",");
         String[] firstIpPort = StringUtils.split(nodes[0], ":");
         String firstIp = firstIpPort[0];
         String firstPort = firstIpPort[1];
         Set<HostAndPort> addresses = new HashSet<>();
         Set<String> ipPorts = new HashSet<>();
-        for (String ipPort : nodes) {
-            ipPorts.add(ipPort);
-            String[] ipPortPair = StringUtils.split(ipPort, ":");
-            addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.parseInt(ipPortPair[1].trim())));
+
+        // 对ipv6 支持
+        for (String node : nodes) {
+            ipPorts.add(node);
+            Matcher matcher = HOST_PORT_PATTERN.matcher(node);
+            if (matcher.find()) {
+                String host = matcher.group("host").trim();
+                String portStr = matcher.group("port").trim();
+                if (StringUtils.isNotBlank(host) && StringUtils.isNotBlank(portStr)) {
+                    // 转化为int格式的端口
+                    int port = Integer.parseInt(portStr);
+                    addresses.add(new HostAndPort(host, port));
+                }
+            }
         }
 
         switch (RedisType.parse(redisType)) {
@@ -148,13 +160,12 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     @Override
-    public void writeRecord(Tuple2 record) throws IOException {
-        Tuple2<Boolean, Row> tupleTrans = record;
-        Boolean retract = tupleTrans.getField(0);
+    public void writeRecord(Tuple2<Boolean, Row> record) throws IOException {
+        Boolean retract = record.getField(0);
         if (!retract) {
             return;
         }
-        Row row = tupleTrans.getField(1);
+        Row row = record.getField(1);
         if (row.getArity() != fieldNames.length) {
             return;
         }
