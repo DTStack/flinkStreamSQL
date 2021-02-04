@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.sink.redis;
 
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.dtstack.flink.sql.sink.redis.enums.RedisType;
+import com.dtstack.flink.sql.util.SampleUtils;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -148,7 +149,7 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     }
 
     @Override
-    public void writeRecord(Tuple2 record) throws IOException {
+    public void writeRecord(Tuple2 record) {
         Tuple2<Boolean, Row> tupleTrans = record;
         Boolean retract = tupleTrans.getField(0);
         if (!retract) {
@@ -163,9 +164,7 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             refData.put(fieldNames[i], row.getField(i));
         }
         save(refData);
-        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-            LOG.info(record.toString());
-        }
+        SampleUtils.samplingSinkPrint(samplingIntervalCount, LOG, outRecords.getCount(), row.toString());
         outRecords.inc();
     }
 

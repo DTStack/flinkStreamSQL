@@ -67,7 +67,7 @@ public class ConfigConstrant {
     public static final String STATE_BACKEND_KEY = "state.backend";
     public static final String CHECKPOINTS_DIRECTORY_KEY = "state.checkpoints.dir";
     public static final String STATE_BACKEND_INCREMENTAL_KEY = "state.backend.incremental";
-
+    public static final String SAMPLE_INTERVAL_COUNT = "sample.interval.count";
     public static final String RESTOREENABLE = "restore.enable";
 
     public static final String LOG_LEVEL_KEY = "logLevel";

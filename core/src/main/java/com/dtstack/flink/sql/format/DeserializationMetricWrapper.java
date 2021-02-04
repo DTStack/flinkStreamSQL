@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.format;
 
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
 import com.dtstack.flink.sql.metric.MetricConstant;
+import com.dtstack.flink.sql.util.SampleUtils;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
@@ -45,7 +46,7 @@ public class DeserializationMetricWrapper extends AbstractDeserializationSchema<
 
     private static final Logger LOG = LoggerFactory.getLogger(DeserializationMetricWrapper.class);
 
-    private static int dataPrintFrequency = 1000;
+    private int samplingIntervalCount = SampleUtils.getSamplingIntervalCount();
 
     private DeserializationSchema<Row> deserializationSchema;
 
@@ -96,11 +97,14 @@ public class DeserializationMetricWrapper extends AbstractDeserializationSchema<
     }
 
     @Override
-    public Row deserialize(byte[] message) throws IOException {
+    public Row deserialize(byte[] message) {
         try {
-            if (numInRecord.getCount() % dataPrintFrequency == 0) {
-                LOG.info("receive source data:" + new String(message, StandardCharsets.UTF_8));
-            }
+            SampleUtils.samplingSourcePrint(
+                samplingIntervalCount,
+                LOG,
+                numInRecord.getCount(),
+                new String(message, StandardCharsets.UTF_8)
+            );
             numInRecord.inc();
             numInBytes.inc(message.length);
             beforeDeserialize();
