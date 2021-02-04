@@ -47,8 +47,6 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
 
     public static final String MASTER_NAME = "masterName";
 
-    public static final String PRIMARY_KEYS_NAME = "primarykeys";
-
     public static final String KEY_EXPIRED_TIME = "keyExpiredTime";
 
     public RedisTableInfo(){

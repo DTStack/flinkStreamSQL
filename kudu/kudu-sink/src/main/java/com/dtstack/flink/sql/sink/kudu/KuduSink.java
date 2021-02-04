@@ -29,11 +29,13 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
     private KuduOutputFormat.WriteMode writeMode;
     private Integer workerCount;
     private Integer defaultOperationTimeoutMs;
-    private Integer defaultSocketReadTimeoutMs;
     private int parallelism = 1;
     private String principal;
     private String keytab;
     private String krb5conf;
+    private Integer batchSize;
+    private Integer batchWaitInterval;
+    private String flushMode;
 
     @Override
     public KuduSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
@@ -41,7 +43,6 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.kuduMasters = kuduTableInfo.getKuduMasters();
         this.tableName = kuduTableInfo.getTableName();
         this.defaultOperationTimeoutMs = kuduTableInfo.getDefaultOperationTimeoutMs();
-        this.defaultSocketReadTimeoutMs = kuduTableInfo.getDefaultSocketReadTimeoutMs();
         this.workerCount = kuduTableInfo.getWorkerCount();
         this.writeMode = kuduTableInfo.getWriteMode();
         this.principal = kuduTableInfo.getPrincipal();
@@ -51,6 +52,9 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.parallelism = Objects.isNull(kuduTableInfo.getParallelism()) ?
                 parallelism : kuduTableInfo.getParallelism();
 
+        this.batchSize = kuduTableInfo.getBatchSize();
+        this.batchWaitInterval = kuduTableInfo.getBatchWaitInterval();
+        this.flushMode = kuduTableInfo.getFlushMode();
         return this;
     }
 
@@ -67,13 +71,15 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
                 .setWriteMode(writeMode)
                 .setWorkerCount(this.workerCount)
                 .setDefaultOperationTimeoutMs(this.defaultOperationTimeoutMs)
-                .setDefaultSocketReadTimeoutMs(this.defaultSocketReadTimeoutMs)
                 .setFieldNames(this.fieldNames)
                 .setFieldTypes(this.fieldTypes)
                 .setPrincipal(this.principal)
                 .setKeytab(this.keytab)
                 .setKrb5conf(this.krb5conf)
                 .setEnableKrb(this.enableKrb)
+                .setBatchSize(this.batchSize)
+                .setBatchWaitInterval(this.batchWaitInterval)
+                .setFlushMode(this.flushMode)
                 .finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(kuduOutputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);

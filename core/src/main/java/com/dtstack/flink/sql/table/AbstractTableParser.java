@@ -19,12 +19,15 @@
 
 package com.dtstack.flink.sql.table;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.util.ClassUtil;
 import com.dtstack.flink.sql.util.DtStringUtil;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,6 +45,8 @@ import java.util.stream.Collectors;
  */
 
 public abstract class AbstractTableParser {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractTableParser.class);
 
     private static final String PRIMARY_KEY = "primaryKey";
     private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
@@ -105,30 +110,50 @@ public abstract class AbstractTableParser {
                 continue;
             }
 
-            Tuple2<String, String> t = extractType(fieldRow, tableInfo.getName());
-            String fieldName = t.f0;
-            String fieldType = t.f1;
+            handleKeyNotHaveAlias(fieldRow, tableInfo);
+        }
 
-            Class fieldClass;
-            AbstractTableInfo.FieldExtraInfo fieldExtraInfo = null;
-
-            Matcher matcher = charTypePattern.matcher(fieldType);
-            if (matcher.find()) {
-                fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
-                fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
-                fieldExtraInfo.setLength(Integer.parseInt(matcher.group(1)));
-            } else {
-                fieldClass = dbTypeConvertToJavaType(fieldType);
-            }
-
-            tableInfo.addPhysicalMappings(fieldName, fieldName);
-            tableInfo.addField(fieldName);
-            tableInfo.addFieldClass(fieldClass);
-            tableInfo.addFieldType(fieldType);
-            tableInfo.addFieldExtraInfo(fieldExtraInfo);
+        /*
+         *  check whether filed list contains pks and then add pks into field list.
+         *  because some no-sql database is not primary key. eg :redis、hbase etc...
+         */
+        if (tableInfo instanceof AbstractSideTableInfo) {
+            tableInfo.getPrimaryKeys().stream()
+                    .filter(pk -> (!tableInfo.getFieldList().contains(pk)))
+                    .forEach(pk -> {
+                        try {
+                            handleKeyNotHaveAlias(String.format("%s varchar", pk.trim()), tableInfo);
+                        } catch (Exception e) {
+                            LOG.error(String.format("Add primary key to field list failed. Reason: %s", e.getMessage()));
+                        }
+                    });
         }
 
         tableInfo.finish();
+    }
+
+    private void handleKeyNotHaveAlias(String fieldRow, AbstractTableInfo tableInfo) {
+        Tuple2<String, String> t = extractType(fieldRow, tableInfo.getName());
+        String fieldName = t.f0;
+        String fieldType = t.f1;
+
+        Class fieldClass;
+        AbstractTableInfo.FieldExtraInfo fieldExtraInfo = null;
+
+        Matcher matcher = charTypePattern.matcher(fieldType);
+        if (matcher.find()) {
+            fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
+            fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
+            fieldExtraInfo.setLength(Integer.parseInt(matcher.group(1)));
+        } else {
+            fieldClass = dbTypeConvertToJavaType(fieldType);
+        }
+
+        tableInfo.addPhysicalMappings(fieldName, fieldName);
+        tableInfo.addField(fieldName);
+        tableInfo.addFieldClass(fieldClass);
+        tableInfo.addFieldType(fieldType);
+        tableInfo.addFieldExtraInfo(fieldExtraInfo);
     }
 
     private Tuple2<String, String> extractType(String fieldRow, String tableName) {

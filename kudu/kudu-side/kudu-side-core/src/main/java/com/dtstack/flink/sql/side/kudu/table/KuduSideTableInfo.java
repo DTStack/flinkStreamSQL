@@ -18,7 +18,6 @@ public class KuduSideTableInfo extends AbstractSideTableInfo implements Kerberos
 
     private Integer defaultOperationTimeoutMs;
 
-    private Integer defaultSocketReadTimeoutMs;
     /**
      * 查询返回的最大字节数
      */
@@ -89,14 +88,6 @@ public class KuduSideTableInfo extends AbstractSideTableInfo implements Kerberos
 
     public void setDefaultOperationTimeoutMs(Integer defaultOperationTimeoutMs) {
         this.defaultOperationTimeoutMs = defaultOperationTimeoutMs;
-    }
-
-    public Integer getDefaultSocketReadTimeoutMs() {
-        return defaultSocketReadTimeoutMs;
-    }
-
-    public void setDefaultSocketReadTimeoutMs(Integer defaultSocketReadTimeoutMs) {
-        this.defaultSocketReadTimeoutMs = defaultSocketReadTimeoutMs;
     }
 
     public Integer getBatchSizeBytes() {

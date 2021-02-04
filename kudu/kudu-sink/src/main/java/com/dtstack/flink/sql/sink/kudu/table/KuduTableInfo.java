@@ -19,8 +19,6 @@ public class KuduTableInfo extends AbstractTargetTableInfo implements KerberosTa
 
     private Integer defaultOperationTimeoutMs;
 
-    private Integer defaultSocketReadTimeoutMs;
-
     /**
      * kerberos
      */
@@ -28,6 +26,15 @@ public class KuduTableInfo extends AbstractTargetTableInfo implements KerberosTa
     private String keytab;
     private String krb5conf;
     boolean enableKrb;
+    /**
+     * batchSize
+     */
+    private Integer batchSize;
+    private Integer batchWaitInterval;
+    /**
+     * kudu session flush mode
+     */
+    private String flushMode;
 
     public KuduTableInfo() {
         setType(CURR_TYPE);
@@ -71,14 +78,6 @@ public class KuduTableInfo extends AbstractTargetTableInfo implements KerberosTa
 
     public void setDefaultOperationTimeoutMs(Integer defaultOperationTimeoutMs) {
         this.defaultOperationTimeoutMs = defaultOperationTimeoutMs;
-    }
-
-    public Integer getDefaultSocketReadTimeoutMs() {
-        return defaultSocketReadTimeoutMs;
-    }
-
-    public void setDefaultSocketReadTimeoutMs(Integer defaultSocketReadTimeoutMs) {
-        this.defaultSocketReadTimeoutMs = defaultSocketReadTimeoutMs;
     }
 
     @Override
@@ -133,4 +132,33 @@ public class KuduTableInfo extends AbstractTargetTableInfo implements KerberosTa
         this.enableKrb = enableKrb;
     }
 
+    public Integer getBatchSize() {
+        return batchSize;
+    }
+
+    public void setBatchSize(Integer batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    public Integer getBatchWaitInterval() {
+        return batchWaitInterval;
+    }
+
+    public void setBatchWaitInterval(Integer batchWaitInterval) {
+        this.batchWaitInterval = batchWaitInterval;
+    }
+
+    public String getFlushMode() {
+        return flushMode;
+    }
+
+    public void setFlushMode(String flushMode) {
+        this.flushMode = flushMode;
+    }
+
+    public enum KuduFlushMode {
+        AUTO_FLUSH_SYNC,
+        AUTO_FLUSH_BACKGROUND,
+        MANUAL_FLUSH
+    }
 }
