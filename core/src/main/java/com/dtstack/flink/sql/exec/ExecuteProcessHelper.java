@@ -250,18 +250,10 @@ public class ExecuteProcessHelper {
     public static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv, boolean isGetPlan)
             throws IllegalAccessException, InvocationTargetException {
         // udf和tableEnv须由同一个类加载器加载
-        ClassLoader levelClassLoader = tableEnv.getClass().getClassLoader();
         ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
-        URLClassLoader classLoader = null;
+        URLClassLoader classLoader = ClassLoaderManager.loadExtraJar(jarUrlList, (URLClassLoader) currentClassLoader);
         List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
         for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
-            if (isGetPlan) {
-                classLoader = ClassLoaderManager.loadExtraJar(jarUrlList, (URLClassLoader) currentClassLoader);
-            }
-            //classloader
-            if (classLoader == null) {
-                classLoader = ClassLoaderManager.loadExtraJar(jarUrlList, (URLClassLoader) levelClassLoader);
-            }
             FunctionManager.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(), tableEnv, classLoader);
         }
     }
