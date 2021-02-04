@@ -73,7 +73,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
 
     private RedisSideTableInfo redisSideTableInfo;
 
-    private RedisSideReqRow redisSideReqRow;
+    private final RedisSideReqRow redisSideReqRow;
 
     public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -98,7 +98,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
             case STANDALONE:
                 RedisURI redisURI = RedisURI.create("redis://" + url);
                 redisURI.setPassword(password);
-                redisURI.setDatabase(Integer.valueOf(database));
+                redisURI.setDatabase(Integer.parseInt(database));
                 redisClient = RedisClient.create(redisURI);
                 connection = redisClient.connect();
                 async = connection.async();
@@ -106,7 +106,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
             case SENTINEL:
                 RedisURI redisSentinelURI = RedisURI.create("redis-sentinel://" + url);
                 redisSentinelURI.setPassword(password);
-                redisSentinelURI.setDatabase(Integer.valueOf(database));
+                redisSentinelURI.setDatabase(Integer.parseInt(database));
                 redisSentinelURI.setSentinelMasterId(redisSideTableInfo.getMasterName());
                 redisClient = RedisClient.create(redisSentinelURI);
                 connection = redisClient.connect();
@@ -135,21 +135,18 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
             return;
         }
         RedisFuture<Map<String, String>> future = ((RedisHashAsyncCommands) async).hgetall(key);
-        future.thenAccept(new Consumer<Map<String, String>>() {
-            @Override
-            public void accept(Map<String, String> values) {
-                if (MapUtils.isNotEmpty(values)) {
-                    try {
-                        Row row = fillData(input.row(), values);
-                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, values));
-                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
-                    } catch (Exception e) {
-                        dealFillDataError(input, resultFuture, e);
-                    }
-                } else {
-                    dealMissKey(input, resultFuture);
-                    dealCacheData(key,CacheMissVal.getMissKeyObj());
+        future.thenAccept(values -> {
+            if (MapUtils.isNotEmpty(values)) {
+                try {
+                    Row row = fillData(input.row(), values);
+                    dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, values));
+                    resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
+                } catch (Exception e) {
+                    dealFillDataError(input, resultFuture, e);
                 }
+            } else {
+                dealMissKey(input, resultFuture);
+                dealCacheData(key,CacheMissVal.getMissKeyObj());
             }
         });
     }
