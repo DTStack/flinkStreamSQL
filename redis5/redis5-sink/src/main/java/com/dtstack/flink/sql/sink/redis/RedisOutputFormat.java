@@ -37,9 +37,11 @@ import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -121,41 +123,68 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     private void establishConnection() {
         GenericObjectPoolConfig poolConfig = setPoolConfig(maxTotal, maxIdle, minIdle);
         String[] nodes = StringUtils.split(url, ",");
-        String[] firstIpPort = StringUtils.split(nodes[0], ":");
-        String firstIp = firstIpPort[0];
-        String firstPort = firstIpPort[1];
-        Set<HostAndPort> addresses = new HashSet<>();
-        Set<String> ipPorts = new HashSet<>();
 
-        // 对ipv6 支持
-        for (String node : nodes) {
-            ipPorts.add(node);
-            Matcher matcher = HOST_PORT_PATTERN.matcher(node);
-            if (matcher.find()) {
-                String host = matcher.group("host").trim();
-                String portStr = matcher.group("port").trim();
-                if (StringUtils.isNotBlank(host) && StringUtils.isNotBlank(portStr)) {
-                    // 转化为int格式的端口
-                    int port = Integer.parseInt(portStr);
-                    addresses.add(new HostAndPort(host, port));
-                }
-            }
-        }
-
-        switch (RedisType.parse(redisType)) {
+        switch (RedisType.parse(redisType)){
             case STANDALONE:
-                pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
-                jedis = pool.getResource();
+                String firstIp = null;
+                String firstPort = null;
+                Matcher standalone = HOST_PORT_PATTERN.matcher(nodes[0]);
+                if (standalone.find()) {
+                    firstIp = standalone.group("host").trim();
+                    firstPort = standalone.group("port").trim();
+                }
+                if (Objects.nonNull(firstIp)) {
+                    pool = new JedisPool(
+                            poolConfig,
+                            firstIp,
+                            Integer.parseInt(firstPort),
+                            timeout,
+                            password,
+                            Integer.parseInt(database));
+
+                    jedis = pool.getResource();
+                } else {
+                    throw new IllegalArgumentException(
+                            String.format("redis url error. current url [%s]", nodes[0]));
+                }
                 break;
             case SENTINEL:
-                jedisSentinelPool = new JedisSentinelPool(masterName, ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
+                Set<String> ipPorts = new HashSet<>(Arrays.asList(nodes));
+                jedisSentinelPool = new JedisSentinelPool(
+                        masterName,
+                        ipPorts,
+                        poolConfig,
+                        timeout,
+                        password,
+                        Integer.parseInt(database));
+
                 jedis = jedisSentinelPool.getResource();
                 break;
             case CLUSTER:
-                jedis = new JedisCluster(addresses, timeout, timeout, 10, password, poolConfig);
+                Set<HostAndPort> addresses = new HashSet<>();
+                // 对ipv6 支持
+                for (String node : nodes) {
+                    Matcher matcher = HOST_PORT_PATTERN.matcher(node);
+                    if (matcher.find()) {
+                        String host = matcher.group("host").trim();
+                        String portStr = matcher.group("port").trim();
+                        if (StringUtils.isNotBlank(host) && StringUtils.isNotBlank(portStr)) {
+                            // 转化为int格式的端口
+                            int port = Integer.parseInt(portStr);
+                            addresses.add(new HostAndPort(host, port));
+                        }
+                    }
+                }
+                jedis = new JedisCluster(
+                        addresses,
+                        timeout,
+                        timeout,
+                        10,
+                        password,
+                        poolConfig);
                 break;
             default:
-                throw new RuntimeException("unsupported redis type[ " + redisType + "]");
+                throw new IllegalArgumentException("unsupported redis type[ " + redisType + "]");
         }
     }
 

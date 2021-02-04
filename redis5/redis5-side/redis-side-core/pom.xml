@@ -12,14 +12,7 @@
     </parent>
 
     <artifactId>sql.side.redis.core</artifactId>
-    <dependencies>
-        <dependency>
-            <groupId>com.dtstack.flink</groupId>
-            <artifactId>sql.core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
+
     <packaging>jar</packaging>
 
     

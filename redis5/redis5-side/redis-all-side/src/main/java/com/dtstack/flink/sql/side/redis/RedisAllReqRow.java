@@ -30,7 +30,6 @@ import com.esotericsoftware.minlog.Log;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.dataformat.BaseRow;
@@ -48,10 +47,12 @@ import redis.clients.jedis.JedisSentinelPool;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
@@ -117,9 +118,9 @@ public class RedisAllReqRow extends BaseAllReqRow {
     public void flatMap(BaseRow input, Collector<BaseRow> out) throws Exception {
         GenericRow genericRow = (GenericRow) input;
         Map<String, Object> inputParams = Maps.newHashMap();
-        for(Integer conValIndex : sideInfo.getEqualValIndex()){
+        for (Integer conValIndex : sideInfo.getEqualValIndex()) {
             Object equalObj = genericRow.getField(conValIndex);
-            if(equalObj == null){
+            if (equalObj == null) {
                 if (sideInfo.getJoinType() == JoinType.LEFT) {
                     BaseRow data = fillData(input, null);
                     RowDataComplete.collectBaseRow(out, data);
@@ -133,11 +134,11 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
         Map<String, String> cacheMap = cacheRef.get().get(key);
 
-        if (cacheMap == null){
-            if(sideInfo.getJoinType() == JoinType.LEFT){
+        if (cacheMap == null) {
+            if (sideInfo.getJoinType() == JoinType.LEFT) {
                 BaseRow data = fillData(input, null);
                 RowDataComplete.collectBaseRow(out, data);
-            }else{
+            } else {
                 return;
             }
 
@@ -187,49 +188,54 @@ public class RedisAllReqRow extends BaseAllReqRow {
         String url = tableInfo.getUrl();
         String password = tableInfo.getPassword();
         String database = tableInfo.getDatabase() == null ? "0" : tableInfo.getDatabase();
+        String masterName = tableInfo.getMasterName();
         int timeout = tableInfo.getTimeout();
-        if (timeout == 0){
-            timeout = 1000;
+        if (timeout == 0) {
+            timeout = 10000;
         }
 
-        String[] nodes = StringUtils.split(url, ",");
-        String[] firstIpPort = StringUtils.split(nodes[0], ":");
-        String firstIp = firstIpPort[0];
-        String firstPort = firstIpPort[1];
-        Set<HostAndPort> addresses = new HashSet<>();
-        Set<String> ipPorts = new HashSet<>();
-
-        // 对ipv6 支持
-        for (String node : nodes) {
-            ipPorts.add(node);
-            Matcher matcher = HOST_PORT_PATTERN.matcher(node);
-            if (matcher.find()) {
-                String host = matcher.group("host").trim();
-                String portStr = matcher.group("port").trim();
-                if (StringUtils.isNotBlank(host) && StringUtils.isNotBlank(portStr)) {
-                    // 转化为int格式的端口
-                    int port = Integer.parseInt(portStr);
-                    addresses.add(new HostAndPort(host, port));
-                }
-            }
-        }
-
+        String[] nodes = url.split(",");
         JedisCommands jedis = null;
         GenericObjectPoolConfig poolConfig = setPoolConfig(tableInfo.getMaxTotal(), tableInfo.getMaxIdle(), tableInfo.getMinIdle());
-        switch (RedisType.parse(tableInfo.getRedisType())){
-            //单机
+        switch (RedisType.parse(tableInfo.getRedisType())) {
             case STANDALONE:
-                pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
-                jedis = pool.getResource();
+                String firstIp = null;
+                String firstPort = null;
+                Matcher standalone = HOST_PORT_PATTERN.matcher(nodes[0]);
+                if (standalone.find()) {
+                    firstIp = standalone.group("host").trim();
+                    firstPort = standalone.group("port").trim();
+                }
+                if (Objects.nonNull(firstIp)) {
+                    pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
+                    jedis = pool.getResource();
+                } else {
+                    throw new IllegalArgumentException(
+                            String.format("redis url error. current url [%s]", nodes[0]));
+                }
                 break;
-            //哨兵
             case SENTINEL:
-                jedisSentinelPool = new JedisSentinelPool(tableInfo.getMasterName(), ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
+                Set<String> ipPorts = new HashSet<>(Arrays.asList(nodes));
+                jedisSentinelPool = new JedisSentinelPool(masterName, ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
                 jedis = jedisSentinelPool.getResource();
                 break;
-            //集群
             case CLUSTER:
-                jedis = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
+                Set<HostAndPort> addresses = new HashSet<>();
+                // 对ipv6 支持
+                for (String node : nodes) {
+                    Matcher matcher = HOST_PORT_PATTERN.matcher(node);
+                    if (matcher.find()) {
+                        String host = matcher.group("host").trim();
+                        String portStr = matcher.group("port").trim();
+                        if (org.apache.commons.lang3.StringUtils.isNotBlank(host) && org.apache.commons.lang3.StringUtils.isNotBlank(portStr)) {
+                            // 转化为int格式的端口
+                            int port = Integer.parseInt(portStr);
+                            addresses.add(new HostAndPort(host, port));
+                        }
+                    }
+                }
+                jedis = new JedisCluster(addresses, timeout, timeout, 10, password, poolConfig);
+                break;
             default:
                 break;
         }
@@ -257,35 +263,32 @@ public class RedisAllReqRow extends BaseAllReqRow {
         return null;
     }
 
-    private Set<String> getRedisKeys(RedisType redisType, JedisCommands jedis, String keyPattern){
-        if(!redisType.equals(RedisType.CLUSTER)){
+    private Set<String> getRedisKeys(RedisType redisType, JedisCommands jedis, String keyPattern) {
+        if (!redisType.equals(RedisType.CLUSTER)) {
             return ((Jedis) jedis).keys(keyPattern);
         }
         Set<String> keys = new TreeSet<>();
-        Map<String, JedisPool> clusterNodes = ((JedisCluster)jedis).getClusterNodes();
-        for(String k : clusterNodes.keySet()){
+        Map<String, JedisPool> clusterNodes = ((JedisCluster) jedis).getClusterNodes();
+        for (String k : clusterNodes.keySet()) {
             JedisPool jp = clusterNodes.get(k);
-            Jedis connection = jp.getResource();
-            try {
+            try (Jedis connection = jp.getResource()) {
                 keys.addAll(connection.keys(keyPattern));
-            } catch (Exception e){
-                LOG.error("Getting keys error: {}", e);
-            } finally {
-                connection.close();
+            } catch (Exception e) {
+                LOG.error("Getting keys error", e);
             }
         }
         return keys;
     }
 
-    private GenericObjectPoolConfig setPoolConfig(String maxTotal, String maxIdle, String minIdle){
+    private GenericObjectPoolConfig setPoolConfig(String maxTotal, String maxIdle, String minIdle) {
         GenericObjectPoolConfig config = new GenericObjectPoolConfig();
-        if (maxTotal != null){
+        if (maxTotal != null) {
             config.setMaxTotal(Integer.parseInt(maxTotal));
         }
-        if (maxIdle != null){
+        if (maxIdle != null) {
             config.setMaxIdle(Integer.parseInt(maxIdle));
         }
-        if (minIdle != null){
+        if (minIdle != null) {
             config.setMinIdle(Integer.parseInt(minIdle));
         }
         return config;
