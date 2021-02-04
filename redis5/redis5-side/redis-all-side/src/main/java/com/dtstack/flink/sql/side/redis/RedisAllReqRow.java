@@ -55,12 +55,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * @author yanxi
  */
 public class RedisAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = 7578879189085344807L;
+
+    private static final Pattern HOST_PORT_PATTERN = Pattern.compile("(?<host>(.*)):(?<port>\\d+)*");
 
     private static final Logger LOG = LoggerFactory.getLogger(RedisAllReqRow.class);
 
@@ -72,9 +77,9 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
     private RedisSideTableInfo tableInfo;
 
-    private AtomicReference<Map<String, Map<String, String>>> cacheRef = new AtomicReference<>();
+    private final AtomicReference<Map<String, Map<String, String>>> cacheRef = new AtomicReference<>();
 
-    private RedisSideReqRow redisSideReqRow;
+    private final RedisSideReqRow redisSideReqRow;
 
     public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -147,7 +152,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
         JedisCommands jedis = null;
         try {
             StringBuilder keyPattern = new StringBuilder(tableInfo.getTableName());
-            for (String key : tableInfo.getPrimaryKeys()) {
+            for (int i = 0; i < tableInfo.getPrimaryKeys().size(); i++) {
                 keyPattern.append("_").append("*");
             }
             jedis = getJedisWithRetry(CONN_RETRY_NUM);
@@ -193,14 +198,22 @@ public class RedisAllReqRow extends BaseAllReqRow {
         String firstPort = firstIpPort[1];
         Set<HostAndPort> addresses = new HashSet<>();
         Set<String> ipPorts = new HashSet<>();
-        for (String ipPort : nodes) {
-            ipPorts.add(ipPort);
-            String[] ipPortPair = ipPort.split(":");
-            addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
+
+        // 对ipv6 支持
+        for (String node : nodes) {
+            ipPorts.add(node);
+            Matcher matcher = HOST_PORT_PATTERN.matcher(node);
+            if (matcher.find()) {
+                String host = matcher.group("host").trim();
+                String portStr = matcher.group("port").trim();
+                if (StringUtils.isNotBlank(host) && StringUtils.isNotBlank(portStr)) {
+                    // 转化为int格式的端口
+                    int port = Integer.parseInt(portStr);
+                    addresses.add(new HostAndPort(host, port));
+                }
+            }
         }
-        if (timeout == 0){
-            timeout = 1000;
-        }
+
         JedisCommands jedis = null;
         GenericObjectPoolConfig poolConfig = setPoolConfig(tableInfo.getMaxTotal(), tableInfo.getMaxIdle(), tableInfo.getMinIdle());
         switch (RedisType.parse(tableInfo.getRedisType())){
