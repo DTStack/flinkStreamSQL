@@ -53,6 +53,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.planner.plan.QueryOperationConverter;
 import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
 import org.apache.flink.table.runtime.typeutils.BigDecimalTypeInfo;
 import org.apache.flink.table.runtime.typeutils.LegacyLocalDateTimeTypeInfo;
@@ -68,6 +69,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +103,9 @@ public class SideSqlExec {
 
     private Map<String, Table> localTableCache = Maps.newHashMap();
 
+    //维表重新注册之后的名字缓存
+    private static Map<String, Table> dimTableNewTable = Maps.newHashMap();
+
     public void exec(String sql,
                      Map<String, AbstractSideTableInfo> sideTableMap,
                      StreamTableEnvironment tableEnv,
@@ -128,6 +133,8 @@ public class SideSqlExec {
         sideSQLParser.setLocalTableCache(localTableCache);
         Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet(), scope);
         Object pollObj = null;
+        // create view中是否包含维表
+        boolean includeDimTable = false;
 
         while ((pollObj = exeQueue.poll()) != null) {
 
@@ -136,41 +143,49 @@ public class SideSqlExec {
 
 
                 if (pollSqlNode.getKind() == INSERT) {
-                    FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString());
+                    Collection<String> newRegisterTableList = dimTableNewTable.keySet();
+                    FlinkSQLExec.sqlInsert(tableEnv, pollSqlNode, newRegisterTableList);
                     if (LOG.isInfoEnabled()) {
                         LOG.info("----------real exec sql-----------\n{}", pollSqlNode.toString());
                     }
 
                 } else if (pollSqlNode.getKind() == AS) {
-                    dealAsSourceTable(tableEnv, pollSqlNode, tableCache);
+                    Collection<String> newRegisterTableList = dimTableNewTable.keySet();
+                    dealAsSourceTable(tableEnv, pollSqlNode, tableCache, newRegisterTableList);
 
                 } else if (pollSqlNode.getKind() == WITH_ITEM) {
                     SqlWithItem sqlWithItem = (SqlWithItem) pollSqlNode;
-                    String TableAlias = sqlWithItem.name.toString();
-                    Table table = tableEnv.sqlQuery(sqlWithItem.query.toString());
-                    tableEnv.registerTable(TableAlias, table);
+                    String tableAlias = sqlWithItem.name.toString();
+                    Collection<String> newRegisterTableList = dimTableNewTable.keySet();
+                    Table table = FlinkSQLExec.sqlQuery(tableEnv, sqlWithItem.query, newRegisterTableList);
+                    tableEnv.createTemporaryView(tableAlias, table);
 
                 } else if (pollSqlNode.getKind() == SELECT) {
                     Preconditions.checkState(createView != null, "select sql must included by create view");
-                    Table table = tableEnv.sqlQuery(pollObj.toString());
+                    Collection<String> newRegisterTableList = dimTableNewTable.keySet();
+                    Table table = FlinkSQLExec.sqlQuery(tableEnv, pollSqlNode, newRegisterTableList);
 
                     if (createView.getFieldsInfoStr() == null) {
                         tableEnv.registerTable(createView.getTableName(), table);
                     } else {
                         if (checkFieldsInfo(createView, table)) {
                             table = table.as(tmpFields);
-                            tableEnv.registerTable(createView.getTableName(), table);
+                            tableEnv.createTemporaryView(createView.getTableName(), table);
                         } else {
                             throw new RuntimeException("Fields mismatch");
                         }
                     }
 
                     localTableCache.put(createView.getTableName(), table);
+                    if(includeDimTable){
+                        dimTableNewTable.put(createView.getTableName(), table);
+                    }
                 }
-
+                includeDimTable = false;
             } else if (pollObj instanceof JoinInfo) {
+                includeDimTable = true;
                 LOG.info("----------exec join info----------\n{}", pollObj.toString());
-                joinFun(pollObj, localTableCache, sideTableMap, tableEnv);
+                joinFun(pollObj, localTableCache, dimTableNewTable,sideTableMap, tableEnv);
             }
         }
 
@@ -414,14 +429,21 @@ public class SideSqlExec {
 
     protected void dealAsSourceTable(StreamTableEnvironment tableEnv,
                                      SqlNode pollSqlNode,
-                                     Map<String, Table> tableCache) throws SqlParseException {
+                                     Map<String, Table> tableCache,
+                                     Collection<String> newRegisterTableList) throws SqlParseException {
 
         AliasInfo aliasInfo = parseASNode(pollSqlNode);
         if (localTableCache.containsKey(aliasInfo.getName())) {
             return;
         }
 
+        boolean isGroupByTimeWindow = TableUtils.checkIsDimTableGroupBy(pollSqlNode, newRegisterTableList);
+        if(isGroupByTimeWindow){
+            QueryOperationConverter.setProducesUpdates(true);
+        }
         Table table = tableEnv.sqlQuery(aliasInfo.getName());
+        QueryOperationConverter.setProducesUpdates(false);
+
         tableEnv.registerTable(aliasInfo.getAlias(), table);
         localTableCache.put(aliasInfo.getAlias(), table);
 
@@ -441,6 +463,7 @@ public class SideSqlExec {
 
     private void joinFun(Object pollObj,
                          Map<String, Table> localTableCache,
+                         Map<String, Table> dimTableNewTable,
                          Map<String, AbstractSideTableInfo> sideTableMap,
                          StreamTableEnvironment tableEnv) throws Exception {
         JoinInfo joinInfo = (JoinInfo) pollObj;
@@ -525,7 +548,6 @@ public class SideSqlExec {
         RowTypeInfo typeInfo = new RowTypeInfo(fieldDataTypes, targetTable.getSchema().getFieldNames());
 
         DataStream<BaseRow> adaptStream = tableEnv.toRetractStream(targetTable, typeInfo)
-                .filter(f -> f.f0)
                 .map(f -> RowDataConvert.convertToBaseRow(f));
 
         //join side table before keyby ===> Reducing the size of each dimension table cache of async
@@ -565,6 +587,7 @@ public class SideSqlExec {
             Table joinTable = tableEnv.fromDataStream(dsOut);
             tableEnv.createTemporaryView(targetTableName, joinTable);
             localTableCache.put(joinInfo.getNewTableName(), joinTable);
+            dimTableNewTable.put(joinInfo.getNewTableName(), joinTable);
         }
     }
 
@@ -591,6 +614,10 @@ public class SideSqlExec {
         }
         tmpFields = String.join(",", fieldNames);
         return true;
+    }
+
+    public static Map<String, Table> getDimTableNewTable(){
+        return dimTableNewTable;
     }
 
 }
