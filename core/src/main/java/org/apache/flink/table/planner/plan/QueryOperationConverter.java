@@ -132,11 +132,21 @@ public class QueryOperationConverter extends QueryOperationDefaultVisitor<RelNod
     private final AggregateVisitor aggregateVisitor = new AggregateVisitor();
     private final TableAggregateVisitor tableAggregateVisitor = new TableAggregateVisitor();
     private final JoinExpressionVisitor joinExpressionVisitor = new JoinExpressionVisitor();
+    private static boolean isAccRetract = false;
+    private static boolean producesUpdates = false;
 
     public QueryOperationConverter(FlinkRelBuilder relBuilder, FunctionLookup functionCatalog) {
         this.relBuilder = relBuilder;
         this.callResolver = new LookupCallResolver(functionCatalog);
         this.expressionConverter = new ExpressionConverter(relBuilder);
+    }
+
+    public static void setAccRetract(boolean isAccRetract){
+        QueryOperationConverter.isAccRetract = isAccRetract;
+    }
+
+    public static void setProducesUpdates(boolean producesUpdates){
+        QueryOperationConverter.producesUpdates = producesUpdates;
     }
 
     @Override
@@ -441,7 +451,7 @@ public class QueryOperationConverter extends QueryOperationDefaultVisitor<RelNod
                     names,
                     rowType,
                     dataStream,
-                    false,
+                    producesUpdates,
                     false,
                     fieldIndices,
                     tableSchema.getFieldNames(),
