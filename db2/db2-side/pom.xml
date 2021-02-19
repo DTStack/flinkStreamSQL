@@ -30,6 +30,14 @@
             <artifactId>sql.side.rdb</artifactId>
             <version>${rdb.side.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.side.rdb</artifactId>
+            <version>${rdb.side.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 
