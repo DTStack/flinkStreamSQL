@@ -178,12 +178,11 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             if (!storeType.equalsIgnoreCase(KUDU_TYPE)) {
                 throw new IllegalArgumentException("update mode not support for non-kudu table!");
             }
-
             updateStatement = connection.prepareStatement(buildUpdateSql(schema, tableName, fieldNames, primaryKeys));
-            return;
+        } else {
+            valueFieldNames = rebuildFieldNameListAndTypeList(fieldNames, staticPartitionFields, fieldTypes, partitionFields);
         }
 
-        valueFieldNames = rebuildFieldNameListAndTypeList(fieldNames, staticPartitionFields, fieldTypes, partitionFields);
     }
 
     private void initScheduledTask(Long batchWaitInterval) {
@@ -331,7 +330,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     }
 
     private List<String> rebuildFieldNameListAndTypeList(List<String> fieldNames, List<String> staticPartitionFields, List<String> fieldTypes, String partitionFields) {
-        if (partitionFields.isEmpty()) {
+        if (partitionFields == null || partitionFields.isEmpty()) {
             return fieldNames;
         }
 

@@ -76,26 +76,33 @@ public class YarnJobClusterExecutor {
         YarnClusterDescriptor clusterDescriptor = (YarnClusterDescriptor) YarnClusterClientFactory.INSTANCE
                 .createClusterDescriptor(jobParamsInfo.getYarnConfDir(), flinkConfiguration);
 
-        List<File> shipFiles = getShipFiles(jobParamsInfo.getFlinkJarPath(), jobParamsInfo.getPluginLoadMode(), jobGraph, clusterDescriptor);
+        try {
+            List<File> shipFiles = getShipFiles(jobParamsInfo.getFlinkJarPath(), jobParamsInfo.getPluginLoadMode(), jobGraph, clusterDescriptor);
 
-        if (jobParamsInfo.getAddShipFile() != null) {
-            List<String> addShipFilesPath = parsePathFromStr(jobParamsInfo.getAddShipFile());
-            for (String path : addShipFilesPath) {
-                shipFiles.add(getAddShipFile(path));
+            if (jobParamsInfo.getAddShipFile() != null) {
+                List<String> addShipFilesPath = parsePathFromStr(jobParamsInfo.getAddShipFile());
+                for (String path : addShipFilesPath) {
+                    shipFiles.add(getAddShipFile(path));
+                }
+            }
+
+            dumpSameKeytab(flinkConfiguration, shipFiles);
+            clusterDescriptor.addShipFiles(shipFiles);
+
+            ClusterSpecification clusterSpecification = YarnClusterClientFactory.INSTANCE.getClusterSpecification(flinkConfiguration);
+            ClusterClientProvider<ApplicationId> applicationIdClusterClientProvider = clusterDescriptor.deployJobCluster(clusterSpecification, jobGraph, true);
+
+            String applicationId = applicationIdClusterClientProvider.getClusterClient().getClusterId().toString();
+            String flinkJobId = jobGraph.getJobID().toString();
+
+            LOG.info(String.format("deploy per_job with appId: %s, jobId: %s", applicationId, flinkJobId));
+        } finally {
+            try {
+                clusterDescriptor.close();
+            } catch (Exception e) {
+                LOG.info("Could not properly close the yarn cluster descriptor.", e);
             }
         }
-
-        dumpSameKeytab(flinkConfiguration, shipFiles);
-
-        clusterDescriptor.addShipFiles(shipFiles);
-
-        ClusterSpecification clusterSpecification = YarnClusterClientFactory.INSTANCE.getClusterSpecification(flinkConfiguration);
-        ClusterClientProvider<ApplicationId> applicationIdClusterClientProvider = clusterDescriptor.deployJobCluster(clusterSpecification, jobGraph, true);
-
-        String applicationId = applicationIdClusterClientProvider.getClusterClient().getClusterId().toString();
-        String flinkJobId = jobGraph.getJobID().toString();
-
-        LOG.info(String.format("deploy per_job with appId: %s, jobId: %s", applicationId, flinkJobId));
     }
 
     private void dumpSameKeytab(Configuration flinkConfiguration, List<File> shipFiles) {
