@@ -23,6 +23,7 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.sinks.TableSink;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.mockito.PowerMockito;
@@ -31,6 +32,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -44,33 +46,50 @@ import static org.mockito.Mockito.when;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({SqlParser.class, PluginUtil.class, StreamSourceFactory.class, StreamSinkFactory.class})
 public class ExecuteProcessHelperTest {
+    
+    private Map<String, Object> dirtyMap;
+    
+    @Before
+    public void setUp() {
+        dirtyMap = new HashMap<>();
+        dirtyMap.put("type", "console");
+        // 多少条数据打印一次
+        dirtyMap.put("printLimit", "100");
+        dirtyMap.put("url", "jdbc:mysql://localhost:3306/tiezhu");
+        dirtyMap.put("userName", "root");
+        dirtyMap.put("password", "abc123");
+        dirtyMap.put("isCreateTable", "false");
+        // 多少条数据写入一次
+        dirtyMap.put("batchSize", "1");
+        dirtyMap.put("tableName", "dirtyData");
+    }
 
     @Test
     public void parseParams() throws Exception {
         String[] sql = new String[]{"-mode", "yarnPer", "-sql", "/Users/maqi/tmp/json/group_tmp4.txt", "-name", "PluginLoadModeTest",
-                "-localSqlPluginPath", "/Users/maqi/code/dtstack/dt-center-flinkStreamSQL/plugins",
-                "-remoteSqlPluginPath", "/Users/maqi/code/dtstack/dt-center-flinkStreamSQL/plugins",
-                "-flinkconf", "/Users/maqi/tmp/flink-1.8.1/conf",
-                "-confProp", "{\"sql.checkpoint.cleanup.mode\":\"false\",\"sql.checkpoint.interval\":10000,\"time.characteristic\":\"EventTime\"}",
-                "-yarnconf", "/Users/maqi/tmp/hadoop", "-flinkJarPath", "/Users/maqi/tmp/flink-1.8.1/lib", "-queue", "c", "-pluginLoadMode", "shipfile"};
+            "-localSqlPluginPath", "/Users/maqi/code/dtstack/dt-center-flinkStreamSQL/plugins",
+            "-remoteSqlPluginPath", "/Users/maqi/code/dtstack/dt-center-flinkStreamSQL/plugins",
+            "-flinkconf", "/Users/maqi/tmp/flink-1.8.1/conf",
+            "-confProp", "{\"sql.checkpoint.cleanup.mode\":\"false\",\"sql.checkpoint.interval\":10000,\"time.characteristic\":\"EventTime\"}",
+            "-yarnconf", "/Users/maqi/tmp/hadoop", "-flinkJarPath", "/Users/maqi/tmp/flink-1.8.1/lib", "-queue", "c", "-pluginLoadMode", "shipfile"};
 
         ExecuteProcessHelper.parseParams(sql);
     }
 
     @Test
-    public void checkRemoteSqlPluginPath(){
-        ExecuteProcessHelper.checkRemoteSqlPluginPath(null, EPluginLoadMode.SHIPFILE.name(),  ClusterMode.local.name());
+    public void checkRemoteSqlPluginPath() {
+        ExecuteProcessHelper.checkRemoteSqlPluginPath(null, EPluginLoadMode.SHIPFILE.name(), ClusterMode.local.name());
 
     }
 
     // @Test
     public void getStreamExecution() throws Exception {
         String[] sql = new String[]{"-mode", "yarnPer", "-sql", "/Users/maqi/tmp/json/group_tmp4.txt", "-name", "PluginLoadModeTest",
-                "-localSqlPluginPath", "/Users/maqi/code/dtstack/dt-center-flinkStreamSQL/plugins",
-                "-remoteSqlPluginPath", "/Users/maqi/code/dtstack/dt-center-flinkStreamSQL/plugins",
-                "-flinkconf", "/Users/maqi/tmp/flink-1.8.1/conf",
-                "-confProp", "{\"sql.checkpoint.cleanup.mode\":\"false\",\"sql.checkpoint.interval\":10000,\"time.characteristic\":\"EventTime\"}",
-                "-yarnconf", "/Users/maqi/tmp/hadoop", "-flinkJarPath", "/Users/maqi/tmp/flink-1.8.1/lib", "-queue", "c", "-pluginLoadMode", "shipfile"};
+            "-localSqlPluginPath", "/Users/maqi/code/dtstack/dt-center-flinkStreamSQL/plugins",
+            "-remoteSqlPluginPath", "/Users/maqi/code/dtstack/dt-center-flinkStreamSQL/plugins",
+            "-flinkconf", "/Users/maqi/tmp/flink-1.8.1/conf",
+            "-confProp", "{\"sql.checkpoint.cleanup.mode\":\"false\",\"sql.checkpoint.interval\":10000,\"time.characteristic\":\"EventTime\"}",
+            "-yarnconf", "/Users/maqi/tmp/hadoop", "-flinkJarPath", "/Users/maqi/tmp/flink-1.8.1/lib", "-queue", "c", "-pluginLoadMode", "shipfile"};
         ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(sql);
         PowerMockito.mockStatic(SqlParser.class);
         SqlTree sqlTree = mock(SqlTree.class);
@@ -113,7 +132,7 @@ public class ExecuteProcessHelperTest {
         PowerMockito.mockStatic(PluginUtil.class);
 
         PowerMockito.mockStatic(StreamSourceFactory.class);
-        when(StreamSourceFactory.getStreamSource(anyObject(), anyObject(), anyObject(), anyString(),anyString())).thenReturn(table);
+        when(StreamSourceFactory.getStreamSource(anyObject(), anyObject(), anyObject(), anyString(), anyString())).thenReturn(table);
 
         TableSink tableSink = mock(TableSink.class);
         PowerMockito.mockStatic(StreamSinkFactory.class);
@@ -133,7 +152,7 @@ public class ExecuteProcessHelperTest {
         when(sideTableInfo.getCacheType()).thenReturn("all");
         when(sideTableInfo.getName()).thenReturn("sideTable");
         when(sideTableInfo.getType()).thenReturn("redis");
-        when(PluginUtil.buildSidePathByLoadMode(anyString(), anyString(), anyString(), anyString(), anyString(),anyString())).thenReturn(new URL("file://a"));
+        when(PluginUtil.buildSidePathByLoadMode(anyString(), anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(new URL("file://a"));
 
         AbstractTargetTableInfo targetTableInfo = mock(AbstractTargetTableInfo.class);
         when(targetTableInfo.getName()).thenReturn("sinkTable");
@@ -147,12 +166,21 @@ public class ExecuteProcessHelperTest {
         tableMap.put("target", targetTableInfo);
         when(sqlTree.getTableInfoMap()).thenReturn(tableMap);
 
-        ExecuteProcessHelper.registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode, sideTableMap, registerTableCache);
+        //     SqlTree sqlTree
+        //            , StreamExecutionEnvironment env
+        //            , StreamTableEnvironment tableEnv
+        //            , String localSqlPluginPath
+        //            , String remoteSqlPluginPath
+        //            , String pluginLoadMode
+        //            , Map<String, Object> dirtyProperties
+        //            , Map<String, AbstractSideTableInfo> sideTableMap
+        //            , Map<String, Table> registerTableCache
+        ExecuteProcessHelper.registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode, dirtyMap, sideTableMap, registerTableCache);
     }
 
     @Test
     public void registerPluginUrlToCachedFile() throws Exception {
-        StreamExecutionEnvironment executionEnvironment =  ExecuteProcessHelper.getStreamExeEnv(new Properties(), "local");
+        StreamExecutionEnvironment executionEnvironment = ExecuteProcessHelper.getStreamExeEnv(new Properties(), "local");
         Set<URL> classPathSet = Sets.newHashSet();
         classPathSet.add(new URL("file://"));
         ExecuteProcessHelper.registerPluginUrlToCachedFile(executionEnvironment, classPathSet);
@@ -162,7 +190,6 @@ public class ExecuteProcessHelperTest {
     public void getStreamExeEnv() throws Exception {
         ExecuteProcessHelper.getStreamExeEnv(new Properties(), "local");
     }
-
 
 
 }
