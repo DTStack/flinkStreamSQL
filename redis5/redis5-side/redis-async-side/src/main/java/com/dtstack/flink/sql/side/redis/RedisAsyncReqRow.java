@@ -18,20 +18,9 @@
 
 package com.dtstack.flink.sql.side.redis;
 
+import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.BaseAsyncReqRow;
-import io.lettuce.core.KeyValue;
-import io.lettuce.core.RedisURI;
-import io.lettuce.core.api.async.RedisAsyncCommands;
-import io.lettuce.core.api.async.RedisStringAsyncCommands;
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.async.ResultFuture;
-import org.apache.flink.table.runtime.types.CRow;
-import org.apache.flink.types.Row;
-
-import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.side.CacheMissVal;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
@@ -41,6 +30,7 @@ import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisFuture;
+import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisHashAsyncCommands;
 import io.lettuce.core.api.async.RedisKeyAsyncCommands;
@@ -48,12 +38,19 @@ import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
-import com.google.common.collect.Maps;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.async.ResultFuture;
+import org.apache.flink.table.runtime.types.CRow;
+import org.apache.flink.types.Row;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+
 /**
  * @author yanxi
  */
@@ -104,11 +101,34 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                 async = connection.async();
                 break;
             case SENTINEL:
-                RedisURI redisSentinelURI = RedisURI.create("redis-sentinel://" + url);
-                redisSentinelURI.setPassword(password);
-                redisSentinelURI.setDatabase(Integer.valueOf(database));
-                redisSentinelURI.setSentinelMasterId(redisSideTableInfo.getMasterName());
-                redisClient = RedisClient.create(redisSentinelURI);
+                String[] urlSplit = StringUtils.split(url, ",");
+                RedisURI.Builder builder = null;
+                for (String item : urlSplit) {
+                    Matcher mather = RedisSideReqRow.HOST_PORT_PATTERN.matcher(item);
+                    if (mather.find()) {
+                        builder = buildSentinelUri(
+                                mather.group("host"),
+                                mather.group("port"),
+                                builder
+                        );
+                    } else {
+                        throw new IllegalArgumentException(
+                                String.format("Illegal format with redis url [%s]", item)
+                        );
+                    }
+                }
+
+                if (Objects.nonNull(builder)) {
+                    builder
+                            .withPassword(tableInfo.getPassword())
+                            .withDatabase(Integer.parseInt(tableInfo.getDatabase()))
+                            .withSentinelMasterId(tableInfo.getMasterName());
+                } else {
+                    throw new NullPointerException("build redis uri error!");
+                }
+
+                RedisURI uri = builder.build();
+                redisClient = RedisClient.create(uri);
                 connection = redisClient.connect();
                 async = connection.async();
                 break;
@@ -121,6 +141,18 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
             default:
                 break;
         }
+    }
+
+    private RedisURI.Builder buildSentinelUri(
+            String host,
+            String port,
+            RedisURI.Builder builder) {
+        if (Objects.nonNull(builder)) {
+            builder.withSentinel(host, Integer.parseInt(port));
+        } else {
+            builder = RedisURI.Builder.sentinel(host, Integer.parseInt(port));
+        }
+        return builder;
     }
 
     @Override
