@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
+import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
 import com.dtstack.flink.sql.sink.hbase.table.HbaseTableInfo;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
@@ -35,6 +36,7 @@ import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Date: 2018/09/14
@@ -65,6 +67,8 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
     private String clientKeytabFile;
     private int parallelism = 1;
 
+    private Map<String, Object> dirtyProperties;
+
     public HbaseSink() {
         // TO DO NOTHING
     }
@@ -88,6 +92,8 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
         this.clientKeytabFile = hbaseTableInfo.getClientKeytabFile();
         this.clientPrincipal = hbaseTableInfo.getClientPrincipal();
+
+        this.dirtyProperties = hbaseTableInfo.getDirtyProperties();
 
         Integer tmpSinkParallelism = hbaseTableInfo.getParallelism();
         if (tmpSinkParallelism != null) {
@@ -124,6 +130,7 @@ public class HbaseSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
                 .setClientKeytabFile(clientKeytabFile)
                 .setBatchSize(Integer.parseInt(batchSize))
                 .setBatchWaitInterval(Long.parseLong(batchWaitInterval))
+                .setDirtyManager(DirtyDataManager.newInstance(dirtyProperties))
                 .finish();
 
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(outputFormat);

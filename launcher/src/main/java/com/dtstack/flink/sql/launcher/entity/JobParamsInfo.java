@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.launcher.entity;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -43,10 +44,23 @@ public class JobParamsInfo {
     private final Properties confProperties;
     private final Properties yarnSessionConfProperties;
     private final String addShipFile;
+    private final Map<String, Object> dirtyProperties;
 
-    private JobParamsInfo(String mode, String name, String queue, String localPluginRoot, String flinkConfDir, String yarnConfDir,
-                          String pluginLoadMode, String[] execArgs, Properties confProperties, Properties yarnSessionConfProperties,
-                          String udfJar, String flinkJarPath, String addShipFile) {
+    private JobParamsInfo(
+            String mode
+            , String name
+            , String queue
+            , String localPluginRoot
+            , String flinkConfDir
+            , String yarnConfDir
+            , String pluginLoadMode
+            , String[] execArgs
+            , Properties confProperties
+            , Properties yarnSessionConfProperties
+            , String udfJar
+            , String flinkJarPath
+            , String addShipFile
+            , Map<String, Object> dirtyProperties) {
         this.mode = mode;
         this.name = name;
         this.queue = queue;
@@ -60,6 +74,11 @@ public class JobParamsInfo {
         this.udfJar = udfJar;
         this.flinkJarPath = flinkJarPath;
         this.addShipFile = addShipFile;
+        this.dirtyProperties = dirtyProperties;
+    }
+
+    public static JobParamsInfo.Builder builder() {
+        return new JobParamsInfo.Builder();
     }
 
     public String getMode() {
@@ -114,10 +133,9 @@ public class JobParamsInfo {
         return addShipFile;
     }
 
-    public static JobParamsInfo.Builder builder() {
-        return new JobParamsInfo.Builder();
+    public Map<String, Object> getDirtyProperties() {
+        return dirtyProperties;
     }
-
 
     public static class Builder {
         private String mode;
@@ -133,6 +151,7 @@ public class JobParamsInfo {
         private Properties confProperties;
         private Properties yarnSessionConfProperties;
         private String addShipfile;
+        private Map<String, Object> dirtyProperties;
 
         public JobParamsInfo.Builder setMode(String mode) {
             this.mode = mode;
@@ -199,10 +218,27 @@ public class JobParamsInfo {
             return this;
         }
 
+        public JobParamsInfo.Builder setDirtyProperties(Map<String, Object> dirtyProperties) {
+            this.dirtyProperties = dirtyProperties;
+            return this;
+        }
+
         public JobParamsInfo build() {
-            return new JobParamsInfo(mode, name, queue, localPluginRoot, flinkConfDir,
-                    yarnConfDir, pluginLoadMode, execArgs, confProperties,
-                    yarnSessionConfProperties, udfJar, flinkJarPath, addShipfile);
+            return new JobParamsInfo(
+                    mode
+                    , name
+                    , queue
+                    , localPluginRoot
+                    , flinkConfDir
+                    , yarnConfDir
+                    , pluginLoadMode
+                    , execArgs
+                    , confProperties
+                    , yarnSessionConfProperties
+                    , udfJar
+                    , flinkJarPath
+                    , addShipfile
+                    , dirtyProperties);
         }
     }
 
@@ -222,6 +258,7 @@ public class JobParamsInfo {
                 ", confProperties=" + confProperties +
                 ", yarnSessionConfProperties=" + yarnSessionConfProperties +
                 ", addShipFile='" + addShipFile + '\'' +
+                ", dirtyProperties=" + dirtyProperties +
                 '}';
     }
 }

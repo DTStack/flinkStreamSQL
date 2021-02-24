@@ -17,3 +17,5 @@ bin/nohup.out
 bin/sideSql.txt
 *.keytab
 krb5.conf
+.gradle
+gradle

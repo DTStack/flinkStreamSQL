@@ -47,6 +47,6 @@ public class ServersocketSourceTest {
         when(serversocketSourceTableInfo.getFields()).thenReturn(new String[]{"id", "name"});
         when(serversocketSourceTableInfo.getFieldClasses()).thenReturn(new Class[]{Integer.class, String.class});
 
-        serversocketSource.genStreamSource(serversocketSourceTableInfo, env, tableEnv);
+//        serversocketSource.genStreamSource(serversocketSourceTableInfo, env, tableEnv);
     }
 }

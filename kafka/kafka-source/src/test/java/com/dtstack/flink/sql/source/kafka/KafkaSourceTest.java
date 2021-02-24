@@ -53,7 +53,7 @@ public class KafkaSourceTest {
 
         KafkaSource kafkaSource = new KafkaSource();
         KafkaSource kafkaSourceSpy = spy(kafkaSource);
-        kafkaSourceSpy.genStreamSource(kafkaSourceTableInfo, env, tableEnv);
+//        kafkaSourceSpy.genStreamSource(kafkaSourceTableInfo, env, tableEnv);
     }
 
 }

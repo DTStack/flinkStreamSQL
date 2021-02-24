@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.table;
 
@@ -50,75 +50,79 @@ public class AbstractTableInfoParser {
 
     private final static Pattern SIDE_PATTERN = Pattern.compile(SIDE_TABLE_SIGN);
 
-    private  Map<String, AbstractTableParser> sourceTableInfoMap = Maps.newConcurrentMap();
+    private Map<String, AbstractTableParser> sourceTableInfoMap = Maps.newConcurrentMap();
 
-    private  Map<String, AbstractTableParser> targetTableInfoMap = Maps.newConcurrentMap();
+    private Map<String, AbstractTableParser> targetTableInfoMap = Maps.newConcurrentMap();
 
-    private  Map<String, AbstractTableParser> sideTableInfoMap = Maps.newConcurrentMap();
+    private Map<String, AbstractTableParser> sideTableInfoMap = Maps.newConcurrentMap();
+
+    /**
+     * judge dim table of PERIOD FOR SYSTEM_TIME
+     *
+     * @param tableField
+     * @return
+     */
+    private static boolean checkIsSideTable(String tableField) {
+        String[] fieldInfos = StringUtils.split(tableField, ",");
+        for (String field : fieldInfos) {
+            Matcher matcher = SIDE_PATTERN.matcher(field.trim());
+            if (matcher.find()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     //Parsing loaded plugin
-    public AbstractTableInfo parseWithTableType(int tableType, CreateTableParser.SqlParserResult parserResult,
-                                                String localPluginRoot, String pluginLoadMode) throws Exception {
+    public AbstractTableInfo parseWithTableType(
+            int tableType
+            , CreateTableParser.SqlParserResult parserResult
+            , String localPluginRoot
+            , String pluginLoadMode
+    ) throws Exception {
         AbstractTableParser absTableParser = null;
         Map<String, Object> props = parserResult.getPropMap();
         String type = MathUtil.getString(props.get(TYPE_KEY));
 
-        if(Strings.isNullOrEmpty(type)){
+        if (Strings.isNullOrEmpty(type)) {
             throw new RuntimeException("create table statement requires property of type");
         }
 
-        if(tableType == ETableType.SOURCE.getType()){
+        if (tableType == ETableType.SOURCE.getType()) {
             boolean isSideTable = checkIsSideTable(parserResult.getFieldsInfoStr());
 
-            if(!isSideTable){
+            if (!isSideTable) {
                 absTableParser = sourceTableInfoMap.get(type);
-                if(absTableParser == null){
+                if (absTableParser == null) {
                     absTableParser = StreamSourceFactory.getSqlParser(type, localPluginRoot, pluginLoadMode);
                     sourceTableInfoMap.put(type, absTableParser);
                 }
-            }else{
+            } else {
                 absTableParser = sideTableInfoMap.get(type);
-                if(absTableParser == null){
+                if (absTableParser == null) {
                     String cacheType = MathUtil.getString(props.get(AbstractSideTableInfo.CACHE_KEY));
                     absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType, pluginLoadMode);
                     sideTableInfoMap.put(type + cacheType, absTableParser);
                 }
             }
 
-        }else if(tableType == ETableType.SINK.getType()){
+        } else if (tableType == ETableType.SINK.getType()) {
             absTableParser = targetTableInfoMap.get(type);
-            if(absTableParser == null){
+            if (absTableParser == null) {
                 absTableParser = StreamSinkFactory.getSqlParser(type, localPluginRoot, pluginLoadMode);
                 targetTableInfoMap.put(type, absTableParser);
             }
         }
 
-        if(absTableParser == null){
+        if (absTableParser == null) {
             throw new RuntimeException(String.format("not support %s type of table", type));
         }
 
         Map<String, Object> prop = Maps.newHashMap();
 
         //Shield case
-        parserResult.getPropMap().forEach((key,val) -> prop.put(key.toLowerCase(), val));
-
+        parserResult.getPropMap().forEach((key, val) -> prop.put(key.toLowerCase(), val));
         return absTableParser.getTableInfo(parserResult.getTableName(), parserResult.getFieldsInfoStr(), prop);
-    }
-
-    /**
-     * judge dim table of PERIOD FOR SYSTEM_TIME
-     * @param tableField
-     * @return
-     */
-    private static boolean checkIsSideTable(String tableField){
-        String[] fieldInfos = StringUtils.split(tableField, ",");
-        for(String field : fieldInfos){
-            Matcher matcher = SIDE_PATTERN.matcher(field.trim());
-            if(matcher.find()){
-                return true;
-            }
-        }
-
-        return false;
     }
 }

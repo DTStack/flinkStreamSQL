@@ -176,6 +176,7 @@
                                         <include name="${project.artifactId}-${project.version}.jar" />
                                     </fileset>
                                 </copy>
+                                <!--suppress UnresolvedMavenProperty -->
                                 <move file="${basedir}/../sqlplugins/${project.artifactId}-${project.version}.jar"
                                       tofile="${basedir}/../sqlplugins/${project.name}-${git.branch}.jar" />
                             </tasks>

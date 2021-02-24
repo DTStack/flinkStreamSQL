@@ -50,7 +50,7 @@ public class LocalTest {
         setLogLevel("INFO");
 
         List<String> propertiesList = new ArrayList<>();
-        String sqlPath = "/Users/chuixue/Desktop/tmp/sqlFile.sql";
+        String sqlPath = "/Users/wtz/dtstack/sql/test/HbaseDemoTwo.sql";
         Map<String, Object> conf = new HashMap<>();
         JSONObject properties = new JSONObject();
 
@@ -65,6 +65,7 @@ public class LocalTest {
         conf.put("-name", "flinkStreamSQLLocalTest");
         conf.put("-confProp", properties.toString());
         conf.put("-pluginLoadMode", "LocalTest");
+//        conf.put("-dirtyProperties", buildDirtyStr());
 
         for (Map.Entry<String, Object> keyValue : conf.entrySet()) {
             propertiesList.add(keyValue.getKey());
@@ -72,6 +73,23 @@ public class LocalTest {
         }
 
         Main.main(propertiesList.toArray(new String[0]));
+    }
+
+    private static String buildDirtyStr() {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("type", "console");
+        // 多少条数据打印一次
+        jsonObject.put("printLimit", "100");
+        jsonObject.put("url", "jdbc:mysql://localhost:3306/tiezhu");
+        jsonObject.put("userName", "root");
+        jsonObject.put("password", "abc123");
+        jsonObject.put("isCreateTable", "false");
+        // 多少条数据写入一次
+        jsonObject.put("batchSize", "1");
+        jsonObject.put("tableName", "dirtyData");
+
+        return jsonObject.toJSONString();
+
     }
 
     private static String readSQL(String sqlPath) {

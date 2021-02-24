@@ -40,20 +40,20 @@ public class AbstractKafkaConsumerFactoryTest {
         KafkaSourceTableInfo kafkaSourceTableInfo = mock(KafkaSourceTableInfo.class);
         when(kafkaSourceTableInfo.getSourceDataType()).thenReturn("DT_NEST");
         Calculate calculate = mock(Calculate.class);
-        kafkaConsumerFactory.createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, calculate);
+//        kafkaConsumerFactory.createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, calculate);
 
 
         when(kafkaSourceTableInfo.getSourceDataType()).thenReturn("JSON");
-        kafkaConsumerFactory.createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, calculate);
+//        kafkaConsumerFactory.createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, calculate);
 
         when(kafkaSourceTableInfo.getSourceDataType()).thenReturn("CSV");
         when(kafkaSourceTableInfo.getFieldDelimiter()).thenReturn(",");
-        kafkaConsumerFactory.createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, calculate);
+//        kafkaConsumerFactory.createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, calculate);
 
 
         when(kafkaSourceTableInfo.getSourceDataType()).thenReturn("AVRO");
         when(kafkaSourceTableInfo.getSchemaString()).thenReturn("{\"type\":\"record\",\"name\":\"MyResult\",\"fields\":[{\"name\":\"channel\",\"type\":\"string\"}]}");
-        kafkaConsumerFactory.createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, calculate);
+//        kafkaConsumerFactory.createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, calculate);
 
     }
 

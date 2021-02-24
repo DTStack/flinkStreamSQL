@@ -627,7 +627,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     public static Builder getImpalaBuilder() {
         return new Builder();
     }
-
+    
     public static class Builder {
         private final ImpalaOutputFormat format = new ImpalaOutputFormat();
 

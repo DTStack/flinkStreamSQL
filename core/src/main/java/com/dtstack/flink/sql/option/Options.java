@@ -72,6 +72,8 @@ public class Options {
     @OptionRequired(description = "file add to ship file")
     private  String addShipfile;
 
+    @OptionRequired(description = "dirty plugin properties")
+    private String dirtyProperties;
 
     public String getMode() {
         return mode;
@@ -185,4 +187,11 @@ public class Options {
         this.addShipfile = addShipfile;
     }
 
+    public String getDirtyProperties() {
+        return dirtyProperties;
+    }
+
+    public void setDirtyProperties(String dirtyProperties) {
+        this.dirtyProperties = dirtyProperties;
+    }
 }

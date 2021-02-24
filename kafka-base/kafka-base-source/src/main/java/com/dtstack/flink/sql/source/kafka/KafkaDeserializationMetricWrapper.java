@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
+import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
 import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import com.dtstack.flink.sql.util.ReflectionUtils;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
@@ -55,8 +56,12 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
 
     private Calculate calculate;
 
-    public KafkaDeserializationMetricWrapper(TypeInformation<Row> typeInfo, DeserializationSchema<Row> deserializationSchema, Calculate calculate) {
-        super(typeInfo, deserializationSchema);
+    public KafkaDeserializationMetricWrapper(
+            TypeInformation<Row> typeInfo
+            , DeserializationSchema<Row> deserializationSchema
+            , Calculate calculate
+            , DirtyDataManager dirtyDataManager) {
+        super(typeInfo, deserializationSchema, dirtyDataManager);
         this.calculate = calculate;
     }
 
