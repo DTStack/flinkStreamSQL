@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class SqlserverSideParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         SqlserverSideParser sideParser = new SqlserverSideParser();
 

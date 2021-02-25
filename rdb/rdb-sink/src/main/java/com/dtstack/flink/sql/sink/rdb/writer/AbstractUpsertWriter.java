@@ -59,7 +59,8 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
             String[] partitionFields,
             boolean objectReuse,
             boolean allReplace,
-            AbstractDtRichOutputFormat metricOutputFormat) {
+            AbstractDtRichOutputFormat metricOutputFormat,
+            long errorLimit) {
 
         checkNotNull(keyFields);
 
@@ -69,21 +70,21 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                 Arrays.stream(pkFields).map(f -> fieldTypes[f]).toArray();
 
         String deleteSql = dialect.getDeleteStatement(schema, tableName, keyFields);
-        LOG.info("deleteSQL is :{}", deleteSql);
+        // LOG.info("deleteSQL is :{}", deleteSql);
 
         Optional<String> upsertSql = dialect.getUpsertStatement(schema, tableName, fieldNames, keyFields, allReplace);
         LOG.info("execute UpsertStatement: {}", upsertSql.orElse("use UsingInsertUpdateStatement"));
 
         return upsertSql.map((Function<String, AbstractUpsertWriter>) sql ->
                 new UpsertWriterUsingUpsertStatement(
-                        fieldTypes, pkFields, pkTypes, objectReuse, deleteSql, sql, metricOutputFormat))
+                        fieldTypes, pkFields, pkTypes, objectReuse, deleteSql, sql, metricOutputFormat, errorLimit))
                 .orElseGet(() ->
                         new UpsertWriterUsingInsertUpdateStatement(
                                 fieldTypes, pkFields, pkTypes, objectReuse, deleteSql,
                                 dialect.getRowExistsStatement(tableName, keyFields),
                                 dialect.getInsertIntoStatement(schema, tableName, fieldNames, partitionFields),
                                 dialect.getUpdateStatement(tableName, fieldNames, keyFields),
-                                metricOutputFormat));
+                                metricOutputFormat, errorLimit));
     }
 
     final int[] fieldTypes;
@@ -97,13 +98,19 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
     // only use metric
     private transient AbstractDtRichOutputFormat metricOutputFormat;
 
-    private AbstractUpsertWriter(int[] fieldTypes, int[] pkFields, int[] pkTypes, String deleteSql, boolean objectReuse, AbstractDtRichOutputFormat metricOutputFormat) {
+    /**
+     * dirty data count limit. Once count over limit then throw exception.
+     */
+    protected long errorLimit;
+
+    private AbstractUpsertWriter(int[] fieldTypes, int[] pkFields, int[] pkTypes, String deleteSql, boolean objectReuse, AbstractDtRichOutputFormat metricOutputFormat, long errorLimit) {
         this.fieldTypes = fieldTypes;
         this.pkFields = pkFields;
         this.pkTypes = pkTypes;
         this.deleteSql = deleteSql;
         this.objectReuse = objectReuse;
         this.metricOutputFormat = metricOutputFormat;
+        this.errorLimit = errorLimit;
     }
 
     @Override
@@ -118,7 +125,7 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
     }
 
     @Override
-    public void addRecord(Tuple2<Boolean, Row> record) throws SQLException {
+    public void addRecord(Tuple2<Boolean, Row> record) {
         // we don't need perform a deep copy, because jdbc field are immutable object.
         Tuple2<Boolean, Row> tuple2 = objectReuse ? new Tuple2<>(record.f0, Row.copy(record.f1)) : record;
         // add records to buffer
@@ -171,14 +178,14 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                     }
                     connection.commit();
                 } catch (Exception e) {
-                    // deal pg error: current transaction is aborted, commands ignored until end of transaction block
-                    connection.rollback();
-                    connection.commit();
-                    if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
-                        LOG.error("record insert failed ,this row is {}", entry.getValue());
-                        LOG.error("", e);
-                    }
-                    metricOutputFormat.outDirtyRecords.inc();
+                    dealExecuteError(
+                        connection,
+                        e,
+                        metricOutputFormat,
+                        entry.getValue().f1,
+                        errorLimit,
+                        LOG
+                    );
                 }
             }
             keyToRows.clear();
@@ -221,8 +228,9 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                 boolean objectReuse,
                 String deleteSql,
                 String upsertSql,
-                AbstractDtRichOutputFormat metricOutputFormat) {
-            super(fieldTypes, pkFields, pkTypes, deleteSql, objectReuse, metricOutputFormat);
+                AbstractDtRichOutputFormat metricOutputFormat,
+                long errorLimit) {
+            super(fieldTypes, pkFields, pkTypes, deleteSql, objectReuse, metricOutputFormat, errorLimit);
             this.upsertSql = upsertSql;
         }
 
@@ -290,8 +298,9 @@ public abstract class AbstractUpsertWriter implements JDBCWriter {
                 String existSql,
                 String insertSql,
                 String updateSql,
-                AbstractDtRichOutputFormat metricOutputFormat) {
-            super(fieldTypes, pkFields, pkTypes, deleteSql, objectReuse, metricOutputFormat);
+                AbstractDtRichOutputFormat metricOutputFormat,
+                long errorLimit) {
+            super(fieldTypes, pkFields, pkTypes, deleteSql, objectReuse, metricOutputFormat, errorLimit);
             this.existSql = existSql;
             this.insertSql = insertSql;
             this.updateSql = updateSql;

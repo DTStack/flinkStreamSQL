@@ -61,7 +61,7 @@ public class AbstractRdbAllReqRowTest {
         reqRow = new ConcreteRdbAllReqRow(sideInfo);
     }
 
-    @Test
+//    @Test
     public void testOpen() throws Exception {
         suppress(
             BaseAllReqRow.class.getMethod( "open", Configuration.class)
@@ -105,7 +105,7 @@ public class AbstractRdbAllReqRowTest {
 //        reqRow.flatMap(input, out);
 //    }
 
-    @Test
+//    @Test
     public void testFillData() {
         GenericRow input = new GenericRow(1);
         input.setField(0, 1);

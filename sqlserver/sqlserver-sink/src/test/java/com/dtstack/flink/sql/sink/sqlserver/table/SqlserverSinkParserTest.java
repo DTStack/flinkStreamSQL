@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class SqlserverSinkParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         SqlserverSinkParser sinkParser = new SqlserverSinkParser();
 

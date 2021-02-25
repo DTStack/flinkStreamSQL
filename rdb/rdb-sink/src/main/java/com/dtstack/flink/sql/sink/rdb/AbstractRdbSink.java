@@ -46,6 +46,8 @@ import java.util.List;
  * @author maqi
  */
 public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Serializable, IStreamSinkGener<AbstractRdbSink> {
+    protected String name;
+
     protected String dbUrl;
 
     protected String userName;
@@ -82,6 +84,8 @@ public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Se
 
     protected String updateMode;
 
+    protected long errorLimit;
+
     public List<String> fieldList;
     public List<String> fieldTypeList;
     public List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfoList;
@@ -93,6 +97,7 @@ public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Se
     @Override
     public AbstractRdbSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
         RdbTableInfo rdbTableInfo = (RdbTableInfo) targetTableInfo;
+        this.name = rdbTableInfo.getName();
         this.batchNum = rdbTableInfo.getBatchSize() == null ? batchNum : rdbTableInfo.getBatchSize();
         this.batchWaitInterval = rdbTableInfo.getBatchWaitInterval() == null ?
                 batchWaitInterval : rdbTableInfo.getBatchWaitInterval();
@@ -112,6 +117,7 @@ public abstract class AbstractRdbSink implements RetractStreamTableSink<Row>, Se
         this.fieldList = rdbTableInfo.getFieldList();
         this.fieldTypeList = rdbTableInfo.getFieldTypeList();
         this.fieldExtraInfoList = rdbTableInfo.getFieldExtraInfoList();
+        this.errorLimit = rdbTableInfo.getErrorLimit();
         return this;
     }
 

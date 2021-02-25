@@ -64,6 +64,10 @@ public class ParamsInfo {
         this.dirtyProperties = dirtyProperties;
     }
 
+    public static ParamsInfo.Builder builder() {
+        return new ParamsInfo.Builder();
+    }
+
     public boolean isGetPlan() {
         return getPlan;
     }
@@ -126,10 +130,6 @@ public class ParamsInfo {
 
     public String convertJarUrlListToString(List<URL> jarUrlList) {
         return jarUrlList.stream().map(URL::toString).reduce((pre, last) -> pre + last).orElse("");
-    }
-
-    public static ParamsInfo.Builder builder() {
-        return new ParamsInfo.Builder();
     }
 
     public static class Builder {

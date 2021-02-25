@@ -59,14 +59,15 @@ public class PostgresqlSink extends AbstractRdbSink implements IStreamSinkGener<
                 .setAllReplace(allReplace)
                 .setUpdateMode(updateMode)
                 .setJDBCWriter(createJdbcWriter())
+                .setErrorLimit(errorLimit)
                 .build();
     }
     private JDBCWriter createJdbcWriter(){
         if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || primaryKeys == null || primaryKeys.size() == 0) {
-            return new CopyWriter(tableName, fieldNames, null);
+            return new CopyWriter(tableName, fieldNames, null, errorLimit);
         }
         return AbstractUpsertWriter.create(
                 jdbcDialect, schema, tableName, fieldNames, sqlTypes, primaryKeys.toArray(new String[primaryKeys.size()]), null,
-                true, allReplace, null);
+                true, allReplace, null, errorLimit);
     }
 }

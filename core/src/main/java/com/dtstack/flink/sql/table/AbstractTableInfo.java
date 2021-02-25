@@ -19,12 +19,14 @@
 package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys;
+import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Reason:
@@ -37,6 +39,7 @@ import java.util.Map;
 public abstract class AbstractTableInfo implements Serializable {
 
     public static final String PARALLELISM_KEY = "parallelism";
+    public static final String ERROR_LIMIT = "errorLimit";
     private final List<String> fieldList = Lists.newArrayList();
     private final List<String> fieldTypeList = Lists.newArrayList();
     private final List<Class> fieldClassList = Lists.newArrayList();
@@ -53,11 +56,18 @@ public abstract class AbstractTableInfo implements Serializable {
     private List<String> primaryKeys;
 
     private Integer parallelism = -1;
+    private Map<String, String> checkProperties;
 
     /**
      * 构建脏数据插件的相关信息
      */
     private Map<String, Object> dirtyProperties;
+
+    /**
+     * error data limit. Task will failed once {@link AbstractDtRichOutputFormat#outDirtyRecords}
+     * count over limit. Default 1000L;
+     */
+    private Long errorLimit = 0L;
 
     public String[] getFieldTypes() {
         return fieldTypes;
@@ -173,6 +183,18 @@ public abstract class AbstractTableInfo implements Serializable {
         return fieldExtraInfoList;
     }
 
+    public Map<String, String> getCheckProperties() {
+        return checkProperties;
+    }
+
+    public void setCheckProperties() {
+        this.checkProperties = buildCheckProperties();
+    }
+
+    public Map<String, String> buildCheckProperties() {
+        return Maps.newHashMap();
+    }
+
     public Map<String, Object> getDirtyProperties() {
         dirtyProperties.put(DirtyKeys.TABLE_NAME, this.name);
         return dirtyProperties;
@@ -180,6 +202,14 @@ public abstract class AbstractTableInfo implements Serializable {
 
     public void setDirtyProperties(Map<String, Object> dirtyProperties) {
         this.dirtyProperties = dirtyProperties;
+    }
+
+    public Long getErrorLimit() {
+        return errorLimit;
+    }
+
+    public void setErrorLimit(Long errorLimit) {
+        this.errorLimit = errorLimit;
     }
 
     public void finish() {

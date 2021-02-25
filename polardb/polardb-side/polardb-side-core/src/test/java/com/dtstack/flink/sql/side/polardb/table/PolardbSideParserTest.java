@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class PolardbSideParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         PolardbSideParser sideParser = new PolardbSideParser();
 

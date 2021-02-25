@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class TidbSideParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         TidbSideParser sideParser = new TidbSideParser();
 

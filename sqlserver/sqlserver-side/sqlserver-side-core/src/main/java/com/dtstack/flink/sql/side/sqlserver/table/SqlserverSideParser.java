@@ -17,6 +17,7 @@
  */
 package com.dtstack.flink.sql.side.sqlserver.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import java.util.Map;
@@ -31,6 +32,7 @@ public class SqlserverSideParser extends RdbSideParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        props.put(JdbcCheckKeys.DRIVER_NAME, "net.sourceforge.jtds.jdbc.Driver");
         AbstractTableInfo sqlServerTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         sqlServerTableInfo.setType(CURR_TYPE);
         return sqlServerTableInfo;

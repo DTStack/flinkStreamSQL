@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class PostgresqlSideParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         PostgresqlSideParser sideParser = new PostgresqlSideParser();
 

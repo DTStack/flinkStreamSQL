@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class PolardbSinkParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         PolardbSinkParser sinkParser = new PolardbSinkParser();
 

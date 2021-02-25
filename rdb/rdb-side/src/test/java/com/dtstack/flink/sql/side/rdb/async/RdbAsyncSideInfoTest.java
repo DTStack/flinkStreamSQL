@@ -29,14 +29,14 @@ public class RdbAsyncSideInfoTest {
 
     }
 
-    @Test
+//    @Test
     public void testBuildEqualInfo() {
         JoinInfo joinInfo = ArgFactory.genJoinInfo();
         joinInfo.setLeftIsSideTable(true);
         sideInfo.buildEqualInfo(joinInfo, ArgFactory.genSideTableInfo());
     }
 
-    @Test
+//    @Test
     public void testBuildFilterCondition() {
         final String operatorName = "";
         final String ownerTable = "ods_test";

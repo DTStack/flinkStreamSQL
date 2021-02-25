@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 
 public class OracleSideParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         OracleSideParser sideParser = new OracleSideParser();
 

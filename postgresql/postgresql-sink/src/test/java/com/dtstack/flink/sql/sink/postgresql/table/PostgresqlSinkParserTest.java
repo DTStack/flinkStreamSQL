@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class PostgresqlSinkParserTest {
     
-    @Test
+//    @Test
     public void getTableInfo() {
         PostgresqlSinkParser sinkParser = new PostgresqlSinkParser();
 

@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.side.impala.table;
 
 import com.dtstack.flink.sql.side.rdb.table.RdbSideParser;
+import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +61,9 @@ public class ImpalaSideParser extends RdbSideParser {
         impalaSideTableInfo.setUserName(MathUtil.getString(props.get(ImpalaSideTableInfo.USER_NAME_KEY.toLowerCase())));
         impalaSideTableInfo.setPassword(MathUtil.getString(props.get(ImpalaSideTableInfo.PASSWORD_KEY.toLowerCase())));
         impalaSideTableInfo.setSchema(MathUtil.getString(props.get(ImpalaSideTableInfo.SCHEMA_KEY.toLowerCase())));
+        impalaSideTableInfo.setDriverName("com.cloudera.impala.jdbc41.Driver");
+        impalaSideTableInfo.setFastCheck(MathUtil.getBoolean(props.getOrDefault(RdbSideTableInfo.FAST_CHECK.toLowerCase(), true)));
+        impalaSideTableInfo.setCheckProperties();
 
 
         //set authmech params
@@ -68,7 +71,7 @@ public class ImpalaSideParser extends RdbSideParser {
 
         authMech = authMech == null? 0 : authMech;
         impalaSideTableInfo.setAuthMech(authMech);
-        List authMechs = Arrays.asList(new Integer[]{0, 1, 2, 3});
+        List authMechs = Arrays.asList(0, 1, 2, 3);
 
         if (!authMechs.contains(authMech)){
             throw new IllegalArgumentException("The value of authMech is illegal, Please select 0, 1, 2, 3");
@@ -106,7 +109,7 @@ public class ImpalaSideParser extends RdbSideParser {
     }
 
     public Map setPartitionFieldValues(String partitionfieldValuesStr){
-        Map<String, Object> fieldValues = new HashMap();
+        Map<String, Object> fieldValues;
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             fieldValues = objectMapper.readValue(partitionfieldValuesStr, Map.class);

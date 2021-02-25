@@ -65,14 +65,20 @@ public class CopyWriter implements JDBCWriter {
 
     private String[] fieldNames;
 
+    /**
+     * dirty data count limit. Once count over limit then throw exception.
+     */
+    private long errorLimit;
+
     // only use metric
     private transient AbstractDtRichOutputFormat metricOutputFormat;
 
-    public CopyWriter(String tableName, String[] fieldNames, AbstractDtRichOutputFormat metricOutputFormat) {
+    public CopyWriter(String tableName, String[] fieldNames, AbstractDtRichOutputFormat metricOutputFormat, long errorLimit) {
         this.tableName = tableName;
         this.fieldNames = fieldNames;
         this.metricOutputFormat = metricOutputFormat;
         this.copySql = String.format(COPY_SQL_TEMPL, tableName, String.join(",", fieldNames), DEFAULT_FIELD_DELIM, DEFAULT_NULL_DELIM);
+        this.errorLimit = errorLimit;
     }
 
     @Override
@@ -92,7 +98,7 @@ public class CopyWriter implements JDBCWriter {
     }
 
     @Override
-    public void addRecord(Tuple2<Boolean, Row> record) throws SQLException {
+    public void addRecord(Tuple2<Boolean, Row> record) {
         if (!record.f0) {
             return;
         }
@@ -152,13 +158,14 @@ public class CopyWriter implements JDBCWriter {
                 copyManager.copyIn(copySql, bi);
                 connection.commit();
             } catch (Exception e) {
-                connection.rollback();
-                connection.commit();
-                if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 || LOG.isDebugEnabled()) {
-                    LOG.error("record insert failed ,this row is {}", row.toString());
-                    LOG.error("", e);
-                }
-                metricOutputFormat.outDirtyRecords.inc();
+                dealExecuteError(
+                    connection,
+                    e,
+                    metricOutputFormat,
+                    row,
+                    errorLimit,
+                    LOG
+                );
             }
         }
         rows.clear();

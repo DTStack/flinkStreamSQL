@@ -17,6 +17,7 @@
  */
 package com.dtstack.flink.sql.sink.oracle.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 
@@ -34,6 +35,7 @@ public class OracleSinkParser extends RdbSinkParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        props.put(JdbcCheckKeys.DRIVER_NAME, "oracle.jdbc.driver.OracleDriver");
         AbstractTableInfo oracleTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         oracleTableInfo.setType(CURR_TYPE);
         return oracleTableInfo;

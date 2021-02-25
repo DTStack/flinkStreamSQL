@@ -15,6 +15,7 @@
     <modules>
         <module>rdb-side</module>
         <module>rdb-sink</module>
+        <module>rdb-core</module>
     </modules>
     <packaging>pom</packaging>
 

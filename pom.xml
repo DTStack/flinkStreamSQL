@@ -19,6 +19,7 @@
         <module>hbase</module>
         <module>elasticsearch5</module>
         <module>elasticsearch6</module>
+        <module>elasticsearch7</module>
         <module>mongo</module>
         <module>redis5</module>
         <module>launcher</module>

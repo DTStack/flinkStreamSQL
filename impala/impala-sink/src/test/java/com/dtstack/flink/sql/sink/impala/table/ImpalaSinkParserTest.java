@@ -20,7 +20,7 @@ public class ImpalaSinkParserTest {
         sinkParser = new ImpalaSinkParser();
     }
 
-    @Test
+//    @Test
     public void testGetTableInfo() throws Exception {
 
         final String tableName = "table_foo";
@@ -60,7 +60,7 @@ public class ImpalaSinkParserTest {
 //        Assert.assertTrue(NORMAL_TYPE.equals(table_type));
     }
 
-    @Test
+//    @Test
     public void testDbTypeConvertToJavaType() {
         String ERR_TYPE = "TEST_foo";
         try {

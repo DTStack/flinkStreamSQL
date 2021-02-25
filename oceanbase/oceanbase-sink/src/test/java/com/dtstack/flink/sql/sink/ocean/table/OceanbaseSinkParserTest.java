@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class OceanbaseSinkParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         OceanbaseSinkParser sideParser = new OceanbaseSinkParser();
 

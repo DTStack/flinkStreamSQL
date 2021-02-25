@@ -30,7 +30,7 @@ import java.util.Map;
  **/
 public class CassandraSinkParserTest {
 
-    @Test
+//    @Test
     public void testGetTableInfo() {
 
 

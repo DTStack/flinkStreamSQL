@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class TidbSinkParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         TidbSinkParser parser = new TidbSinkParser();
 

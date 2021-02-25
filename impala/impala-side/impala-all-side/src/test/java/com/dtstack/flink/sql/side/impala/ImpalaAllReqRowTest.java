@@ -18,7 +18,7 @@ public class ImpalaAllReqRowTest extends RdbAllReqRowTestBase {
         clazz = ImpalaAllReqRow.class;
     }
 
-    @Test
+//    @Test
     public void testGetUrl() throws IOException {
         final String tableName = "table_foo";
         final String fieldsInfo = "id INT, name VARCHAR, PRIMARY  KEY  (id)";

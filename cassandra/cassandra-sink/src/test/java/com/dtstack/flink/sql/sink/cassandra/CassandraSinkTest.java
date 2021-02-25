@@ -48,13 +48,13 @@ public class CassandraSinkTest {
 
     private CassandraSink cassandraSink = new CassandraSink();
 
-    @Test
+//    @Test
     public void testGenStreamSink() {
         CassandraTableInfo cassandraTableInfo = new CassandraTableInfo();
         Assert.assertEquals(cassandraSink, cassandraSink.genStreamSink(cassandraTableInfo));
     }
 
-    @Test
+//    @Test
     public void testEmitDataStream() {
         DataStream dataStream = mock(DataStream.class);
         String[] fieldNames = new String[]{};

@@ -59,7 +59,7 @@ public class RdbAsyncReqRowTest {
         reqRow.open(null);
     }
 
-    @Test
+//    @Test
     public void testFillData() {
         GenericRow input = new GenericRow(1);
         input.setField(0, 1);
@@ -94,12 +94,12 @@ public class RdbAsyncReqRowTest {
         reqRow.handleAsyncInvoke(sideInput, input, future);
     }
 
-    @Test
+//    @Test
     public void testClose() throws Exception {
         reqRow.close();
     }
 
-    @Test
+//    @Test
     public void testConvertDataType() throws Exception {
         Timestamp ts = new Timestamp(1);
         String tsStr = Whitebox.invokeMethod(reqRow, "convertDataType", ts);

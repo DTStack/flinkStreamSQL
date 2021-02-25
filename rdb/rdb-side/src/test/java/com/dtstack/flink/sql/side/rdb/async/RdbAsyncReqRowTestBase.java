@@ -50,7 +50,7 @@ public abstract class RdbAsyncReqRowTestBase {
         suppress(JDBCClient.class.getMethod("createNonShared", Vertx.class, JsonObject.class));
     }
 
-    @Test
+//    @Test
     public void testOpen() throws Exception {
         final String tableName = "table_foo";
         final String fieldsInfo = "id INT, name VARCHAR, PRIMARY  KEY  (id)  , PERIOD  FOR  SYSTEM_TIME";

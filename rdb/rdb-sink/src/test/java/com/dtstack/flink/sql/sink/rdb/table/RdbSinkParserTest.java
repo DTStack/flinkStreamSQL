@@ -22,7 +22,7 @@ public class RdbSinkParserTest extends RdbParserTestBase {
         this.parser = new RdbSinkParser();
     }
 
-    @Test
+//    @Test
     public void testGetTableInfo() {
         RdbSinkParser parser = (RdbSinkParser) this.parser;
 

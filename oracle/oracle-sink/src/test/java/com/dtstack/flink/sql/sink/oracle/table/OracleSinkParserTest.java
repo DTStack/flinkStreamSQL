@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class OracleSinkParserTest {
 
-    @Test
+//    @Test
     public void getTableInfo() {
         OracleSinkParser sinkParser = new OracleSinkParser();
 

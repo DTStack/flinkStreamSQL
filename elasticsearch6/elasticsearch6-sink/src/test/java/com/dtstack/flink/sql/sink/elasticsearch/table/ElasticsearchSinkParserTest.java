@@ -34,14 +34,14 @@ public class ElasticsearchSinkParserTest {
     }
 
     //ElasticsearchSinkParser中的fieldNameNeedsUpperCase方法
-    @Test
+//    @Test
     public void fieldNameNeedsUpperCaseTest() {
         assertFalse(elasticsearchSinkParser.fieldNameNeedsUpperCase());
     }
 
 
     //getTableInfo方法，得到输入的表信息
-    @Test
+//    @Test
     public void getTableInfoTest() {
         String tableName = "MyResult";
         String fieldsInfo = "pv varchar,  channel varchar";
