@@ -18,6 +18,7 @@
         <module>mysql</module>
         <module>hbase</module>
         <module>elasticsearch5</module>
+        <module>elasticsearch5-xh</module>
         <module>elasticsearch6</module>
         <module>mongo</module>
         <module>redis5</module>
@@ -38,7 +39,7 @@
         <module>tidb</module>
         <module>kingbase</module>
         <module>aws</module>
-<!--        <module>localTest</module>-->
+        <!--        <module>localTest</module>-->
 
     </modules>
 

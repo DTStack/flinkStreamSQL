@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.util;
 
+import com.esotericsoftware.minlog.Log;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.util.KerberosName;
@@ -59,6 +60,14 @@ public class KrbUtils {
         configuration.set(HADOOP_AUTH_KEY , KRB_STR);
         UserGroupInformation.setConfiguration(configuration);
         return UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytabPath);
+    }
+
+    public static void loginFromKeytab(String principal, String keytabPath, String krb5confPath) throws IOException{
+        LOG.info("Kerberos login with principal: {} and keytab: {}", principal, keytabPath);
+        System.setProperty(KRB5_CONF_KEY, krb5confPath);
+        Configuration configuration = new Configuration();
+        configuration.set(HADOOP_AUTH_KEY, KRB_STR);
+        UserGroupInformation.setConfiguration(configuration);
     }
 
 }
