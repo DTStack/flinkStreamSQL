@@ -18,12 +18,14 @@
 
 package com.dtstack.flink.sql.table;
 
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Reason:
@@ -84,6 +86,10 @@ public abstract class AbstractTableInfo implements Serializable {
     }
 
     public List<String> getPrimaryKeys() {
+        if (this instanceof AbstractSideTableInfo &&
+            Objects.isNull(primaryKeys)) {
+            throw new IllegalArgumentException("Side table must contain [primary key]!");
+        }
         return primaryKeys;
     }
 
