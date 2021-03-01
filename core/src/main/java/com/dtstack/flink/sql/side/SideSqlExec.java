@@ -79,6 +79,7 @@ import java.util.Set;
 import static org.apache.calcite.sql.SqlKind.AS;
 import static org.apache.calcite.sql.SqlKind.INSERT;
 import static org.apache.calcite.sql.SqlKind.SELECT;
+import static org.apache.calcite.sql.SqlKind.UNION;
 import static org.apache.calcite.sql.SqlKind.WITH_ITEM;
 
 /**
@@ -160,7 +161,7 @@ public class SideSqlExec {
                     Table table = FlinkSQLExec.sqlQuery(tableEnv, sqlWithItem.query, newRegisterTableList);
                     tableEnv.createTemporaryView(tableAlias, table);
 
-                } else if (pollSqlNode.getKind() == SELECT) {
+                } else if (pollSqlNode.getKind() == SELECT || pollSqlNode.getKind() == UNION) {
                     Preconditions.checkState(createView != null, "select sql must included by create view");
                     Collection<String> newRegisterTableList = dimTableNewTable.keySet();
                     Table table = FlinkSQLExec.sqlQuery(tableEnv, pollSqlNode, newRegisterTableList);
