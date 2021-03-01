@@ -26,6 +26,7 @@ import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -104,6 +105,10 @@ public abstract class AbstractTableInfo implements Serializable {
     }
 
     public List<String> getPrimaryKeys() {
+        if (this instanceof AbstractSideTableInfo &&
+            Objects.isNull(primaryKeys)) {
+            throw new IllegalArgumentException("Side table must contain [primary key]!");
+        }
         return primaryKeys;
     }
 
