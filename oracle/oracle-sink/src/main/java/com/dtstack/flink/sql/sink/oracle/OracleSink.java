@@ -59,6 +59,7 @@ public class OracleSink extends AbstractRdbSink implements IStreamSinkGener<Abst
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
                 .setUpdateMode(updateMode)
+                .setErrorLimit(errorLimit)
                 .build();
     }
 }

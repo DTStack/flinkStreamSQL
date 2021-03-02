@@ -23,10 +23,7 @@ import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.rdb.async.RdbAsyncReqRow;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 
@@ -54,6 +51,10 @@ public class KingbaseAsyncReqRow extends RdbAsyncReqRow {
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
+    }
+
+    @Override
+    public JsonObject buildJdbcConfig() {
         JsonObject kingbaseClient = new JsonObject();
         RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
         kingbaseClient.put("url", rdbSideTableInfo.getUrl())
@@ -65,10 +66,6 @@ public class KingbaseAsyncReqRow extends RdbAsyncReqRow {
                 .put("idle_connection_test_period", DEFAULT_IDLE_CONNECTION_TEST_PEROID)
                 .put("test_connection_on_checkin", DEFAULT_TEST_CONNECTION_ON_CHECKIN);
 
-        VertxOptions vo = new VertxOptions();
-        vo.setEventLoopPoolSize(DEFAULT_VERTX_EVENT_LOOP_POOL_SIZE);
-        vo.setWorkerPoolSize(rdbSideTableInfo.getAsyncPoolSize());
-        Vertx vertx = Vertx.vertx(vo);
-        setRdbSqlClient(JDBCClient.createNonShared(vertx, kingbaseClient));
+        return kingbaseClient;
     }
 }

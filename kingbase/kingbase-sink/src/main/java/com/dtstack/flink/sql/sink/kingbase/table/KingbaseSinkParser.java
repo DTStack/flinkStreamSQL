@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.kingbase.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcCheckKeys;
 import com.dtstack.flink.sql.sink.rdb.table.RdbSinkParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 
@@ -34,6 +35,7 @@ public class KingbaseSinkParser extends RdbSinkParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        props.put(JdbcCheckKeys.DRIVER_NAME, "com.kingbase8.Driver");
         AbstractTableInfo kingbaseTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         kingbaseTableInfo.setType(CURRENT_TYPE);
         return kingbaseTableInfo;

@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.enums.ECacheType;
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.dtstack.flink.sql.side.cache.CacheObj;
@@ -31,9 +32,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.MapUtils;
+import org.apache.commons.collections.map.CaseInsensitiveMap;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
+import org.apache.flink.runtime.execution.SuppressRestartsException;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
@@ -72,6 +75,10 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
     protected BaseSideInfo sideInfo;
     protected transient Counter parseErrorRecords;
     private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
+    // 异步维表连接是否共享
+    protected boolean clientShare = false;
+    // 异步维表共享连接池默认大小
+    protected int poolSize = 5;
 
     public BaseAsyncReqRow(BaseSideInfo sideInfo) {
         this.sideInfo = sideInfo;
@@ -81,6 +88,12 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
     public void setRuntimeContext(RuntimeContext runtimeContext) {
         super.setRuntimeContext(runtimeContext);
         this.runtimeContext = runtimeContext;
+
+        Map<String, String> globalJobParameters = runtimeContext.getExecutionConfig().getGlobalJobParameters().toMap();
+        Map<String, String> sensitiveParameters = new CaseInsensitiveMap();
+        sensitiveParameters.putAll(globalJobParameters);
+        this.clientShare = Boolean.parseBoolean(sensitiveParameters.getOrDefault("async.side.clientShare", "false"));
+        this.poolSize = Integer.parseInt(sensitiveParameters.getOrDefault("async.side.poolSize", "5"));
     }
 
     @Override
@@ -143,6 +156,12 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
                 BaseRow row = fillData(input, null);
                 RowDataComplete.completeBaseRow(resultFuture, row);
             } catch (Exception e) {
+                LOG.error(
+                    String.format(
+                        "Fill data error. \nRow: %s\nCause: %s",
+                        input.toString(),
+                        ExceptionTrace.traceOriginalCause(e))
+                );
                 dealFillDataError(input, resultFuture, e);
             }
         } else {
@@ -163,15 +182,20 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
             LOG.info("Async function call has timed out. input:{}, timeOutNum:{}", input.toString(), timeOutNum);
         }
         timeOutNum++;
-        if (sideInfo.getJoinType() == JoinType.LEFT) {
+
+        if (timeOutNum > sideInfo.getSideTableInfo().getErrorLimit()) {
+            resultFuture.completeExceptionally(
+                new SuppressRestartsException(
+                    new Throwable(
+                        String.format(
+                            "Async function call timedOutNum beyond limit. %s",
+                            sideInfo.getSideTableInfo().getErrorLimit()
+                        )
+                    )
+                ));
+        } else {
             resultFuture.complete(Collections.EMPTY_LIST);
-            return;
         }
-        if (timeOutNum > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)) {
-            resultFuture.completeExceptionally(new Exception("Async function call timedoutNum beyond limit."));
-            return;
-        }
-        resultFuture.complete(Collections.EMPTY_LIST);
     }
 
     protected void preInvoke(BaseRow input, ResultFuture<BaseRow> resultFuture)
@@ -219,7 +243,6 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
             if (val != null) {
                 if (ECacheContentType.MissVal == val.getType()) {
                     dealMissKey(input, resultFuture);
-                    return;
                 } else if (ECacheContentType.SingleLine == val.getType()) {
                     try {
                         BaseRow row = fillData(input, val.getContent());
@@ -241,7 +264,6 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
                 } else {
                     resultFuture.completeExceptionally(new RuntimeException("not support cache obj type " + val.getType()));
                 }
-                return;
             }
         }
     }
@@ -273,9 +295,9 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
 
     protected void dealFillDataError(BaseRow input, ResultFuture<BaseRow> resultFuture, Throwable e) {
         parseErrorRecords.inc();
-        if (parseErrorRecords.getCount() > sideInfo.getSideTableInfo().getAsyncFailMaxNum(Long.MAX_VALUE)) {
+        if (parseErrorRecords.getCount() > sideInfo.getSideTableInfo().getErrorLimit()) {
             LOG.info("dealFillDataError", e);
-            resultFuture.completeExceptionally(e);
+            resultFuture.completeExceptionally(new SuppressRestartsException(e));
         } else {
             dealMissKey(input, resultFuture);
         }

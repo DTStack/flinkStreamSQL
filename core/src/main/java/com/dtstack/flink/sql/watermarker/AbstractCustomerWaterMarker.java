@@ -92,7 +92,6 @@ public abstract class AbstractCustomerWaterMarker<T> extends BoundedOutOfOrderne
     public void setRuntimeContext(RuntimeContext t) {
         this.runtimeContext = t;
         eventDelayGauge = new EventDelayGauge();
-        t.getMetricGroup().getAllVariables().put("<source_tag>", fromSourceTag);
         t.getMetricGroup().gauge(MetricConstant.DT_EVENT_DELAY_GAUGE, eventDelayGauge);
     }
 

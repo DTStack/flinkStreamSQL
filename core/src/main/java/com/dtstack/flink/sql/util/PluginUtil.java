@@ -92,20 +92,18 @@ public class PluginUtil {
     }
 
     private static void checkJarFileDirPath(String sqlRootDir, String path, String pluginLoadMode) {
-
-        if (sqlRootDir == null || sqlRootDir.isEmpty()){
-            if (pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name())) {
-                LOG.warn("be sure you are not in LocalTest mode, if not, check the sqlRootDir");
-                return;
+        if (pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name())) {
+            LOG.warn("be sure you are not in LocalTest mode, if not, check the sqlRootDir");
+        } else {
+            if (sqlRootDir == null || sqlRootDir.isEmpty()) {
+                throw new RuntimeException("sqlPlugin is empty !");
             }
 
-            throw new RuntimeException("sqlPlugin is empty !");
-        }
+            File jarFile = new File(path);
 
-        File jarFile = new File(path);
-
-        if(!jarFile.exists()){
-            throw new RuntimeException(String.format("path %s not exists!!!", path));
+            if (!jarFile.exists()) {
+                throw new RuntimeException(String.format("path %s not exists!!!", path));
+            }
         }
     }
 

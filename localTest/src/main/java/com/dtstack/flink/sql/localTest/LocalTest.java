@@ -50,7 +50,7 @@ public class LocalTest {
         setLogLevel("INFO");
 
         List<String> propertiesList = new ArrayList<>();
-        String sqlPath = "/Users/wtz/dtstack/sql/test/HbaseDemoTwo.sql";
+        String sqlPath = "/Users/wtz/dtstack/sql/test/JoinDemoOne.sql";
         Map<String, Object> conf = new HashMap<>();
         JSONObject properties = new JSONObject();
 
@@ -65,7 +65,8 @@ public class LocalTest {
         conf.put("-name", "flinkStreamSQLLocalTest");
         conf.put("-confProp", properties.toString());
         conf.put("-pluginLoadMode", "LocalTest");
-//        conf.put("-dirtyProperties", buildDirtyStr());
+//        conf.put("-checkResource", "true");
+        conf.put("-dirtyProperties", buildDirtyStr());
 
         for (Map.Entry<String, Object> keyValue : conf.entrySet()) {
             propertiesList.add(keyValue.getKey());

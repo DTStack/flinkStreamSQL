@@ -300,6 +300,7 @@ public class JoinNodeDealer {
 
         SqlNode newLeftNode = joinNode.getLeft();
 
+        // 双流JOIN再维表JOIN情况
         if(newLeftNode.getKind() != AS && parentRightIsSide){
 
             String leftTbAlias = buildAs.getOperands()[1].toString();
@@ -975,12 +976,10 @@ public class JoinNodeDealer {
             } else {
                 fields = StringUtils.splitByWholeSeparator(field, " as ");
             }
-            if (fields != null) {
-                fields = Stream
-                        .of(fields)
-                        .map(StringUtils::trimToNull)
-                        .toArray(String[]::new);
-            }
+            fields = Stream
+                    .of(fields)
+                    .map(StringUtils::trimToNull)
+                    .toArray(String[]::new);
             String oldKey = field;
             String[] oldFieldInfo = StringUtils.splitByWholeSeparator(fields[0], ".");
             String oldFieldName = oldFieldInfo.length == 2 ? oldFieldInfo[1] : oldFieldInfo[0];

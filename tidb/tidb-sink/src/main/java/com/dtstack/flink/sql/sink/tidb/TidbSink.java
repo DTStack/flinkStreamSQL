@@ -53,6 +53,7 @@ public class TidbSink extends AbstractRdbSink implements IStreamSinkGener<Abstra
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
                 .setUpdateMode(updateMode)
+                .setErrorLimit(errorLimit)
                 .build();
     }
 }

@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.launcher.executor;
 
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
+import com.dtstack.flink.sql.launcher.LauncherMain;
 import com.dtstack.flink.sql.launcher.entity.JobParamsInfo;
 import com.dtstack.flink.sql.launcher.factory.StandaloneClientFactory;
 import com.dtstack.flink.sql.launcher.utils.JobGraphBuildUtil;
@@ -32,6 +33,8 @@ import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.util.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Date: 2020/3/6
@@ -39,6 +42,9 @@ import org.apache.flink.util.Preconditions;
  * @author maqi
  */
 public class StandaloneExecutor {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StandaloneExecutor.class);
+
     JobParamsInfo jobParamsInfo;
 
     public StandaloneExecutor(JobParamsInfo jobParamsInfo) {
@@ -60,15 +66,21 @@ public class StandaloneExecutor {
         JobGraphBuildUtil.fillJobGraphClassPath(jobGraph);
 
         ClusterDescriptor clusterDescriptor = StandaloneClientFactory.INSTANCE.createClusterDescriptor("", flinkConfiguration);
-        ClusterClientProvider clusterClientProvider = clusterDescriptor.retrieve(StandaloneClusterId.getInstance());
-        ClusterClient clusterClient = clusterClientProvider.getClusterClient();
 
+        try {
+            ClusterClientProvider clusterClientProvider = clusterDescriptor.retrieve(StandaloneClusterId.getInstance());
+            ClusterClient clusterClient = clusterClientProvider.getClusterClient();
 
-        JobExecutionResult jobExecutionResult = ClientUtils.submitJob(clusterClient, jobGraph);
-        String jobId = jobExecutionResult.getJobID().toString();
-        System.out.println("jobID:" + jobId);
+            JobExecutionResult jobExecutionResult = ClientUtils.submitJob(clusterClient, jobGraph);
+            String jobId = jobExecutionResult.getJobID().toString();
+            LOG.info("jobID:" + jobId);
+        } finally {
+            try {
+                clusterDescriptor.close();
+            } catch (Exception e) {
+                LOG.info("Could not properly close the yarn cluster descriptor.", e);
+            }
+        }
 
     }
-
-
 }
