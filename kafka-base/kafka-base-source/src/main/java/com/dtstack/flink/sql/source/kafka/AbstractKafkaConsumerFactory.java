@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
+import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
 import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.format.FormatType;
@@ -50,7 +51,8 @@ public abstract class AbstractKafkaConsumerFactory {
                                                                               Calculate calculate) {
         return new KafkaDeserializationMetricWrapper(typeInformation,
                 createDeserializationSchema(kafkaSourceTableInfo, typeInformation),
-                calculate);
+                calculate,
+                DirtyDataManager.newInstance(kafkaSourceTableInfo.getDirtyProperties()));
     }
 
     private DeserializationSchema<Row> createDeserializationSchema(KafkaSourceTableInfo kafkaSourceTableInfo, TypeInformation<Row> typeInformation) {

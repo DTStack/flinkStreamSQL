@@ -77,6 +77,8 @@ public class ImpalaTableInfo extends AbstractTargetTableInfo {
 
     private String storeType;
 
+    private String driverName;
+
     public String getUrl() {
         return url;
     }
@@ -235,6 +237,14 @@ public class ImpalaTableInfo extends AbstractTargetTableInfo {
 
     public void setStoreType(String storeType) {
         this.storeType = storeType;
+    }
+
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName) {
+        this.driverName = driverName;
     }
 
     @Override

@@ -21,13 +21,14 @@ package com.dtstack.flink.sql.exec;
 
 import java.net.URL;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Properties;
 
 /**
  * 解析传递的参数信息
  * Date: 2020/2/24
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class ParamsInfo {
@@ -41,9 +42,17 @@ public class ParamsInfo {
     private String deployMode;
     private Properties confProp;
     private boolean getPlan = false;
+    private Map<String, Object> dirtyProperties;
 
-    public ParamsInfo(String sql, String name, List<URL> jarUrlList, String localSqlPluginPath,
-                      String remoteSqlPluginPath, String pluginLoadMode, String deployMode, Properties confProp) {
+    public ParamsInfo(
+            String sql
+            , String name, List<URL> jarUrlList
+            , String localSqlPluginPath
+            , String remoteSqlPluginPath
+            , String pluginLoadMode
+            , String deployMode
+            , Properties confProp
+            , Map<String, Object> dirtyProperties) {
         this.sql = sql;
         this.name = name;
         this.jarUrlList = jarUrlList;
@@ -52,6 +61,11 @@ public class ParamsInfo {
         this.pluginLoadMode = pluginLoadMode;
         this.deployMode = deployMode;
         this.confProp = confProp;
+        this.dirtyProperties = dirtyProperties;
+    }
+
+    public static ParamsInfo.Builder builder() {
+        return new ParamsInfo.Builder();
     }
 
     public boolean isGetPlan() {
@@ -94,17 +108,23 @@ public class ParamsInfo {
         return confProp;
     }
 
+    public Map<String, Object> getDirtyProperties() {
+        return dirtyProperties;
+    }
+
     @Override
     public String toString() {
         return "ParamsInfo{" +
                 "sql='" + sql + '\'' +
                 ", name='" + name + '\'' +
-                ", jarUrlList=" + convertJarUrlListToString(jarUrlList) +
+                ", jarUrlList=" + jarUrlList +
                 ", localSqlPluginPath='" + localSqlPluginPath + '\'' +
                 ", remoteSqlPluginPath='" + remoteSqlPluginPath + '\'' +
                 ", pluginLoadMode='" + pluginLoadMode + '\'' +
                 ", deployMode='" + deployMode + '\'' +
                 ", confProp=" + confProp +
+                ", getPlan=" + getPlan +
+                ", dirtyProperties='" + dirtyProperties + '\'' +
                 '}';
     }
 
@@ -112,9 +132,6 @@ public class ParamsInfo {
         return jarUrlList.stream().map(URL::toString).reduce((pre, last) -> pre + last).orElse("");
     }
 
-    public static ParamsInfo.Builder builder() {
-        return new ParamsInfo.Builder();
-    }
     public static class Builder {
 
         private String sql;
@@ -125,6 +142,7 @@ public class ParamsInfo {
         private String pluginLoadMode;
         private String deployMode;
         private Properties confProp;
+        private Map<String, Object> dirtyProperties;
 
         public ParamsInfo.Builder setSql(String sql) {
             this.sql = sql;
@@ -167,9 +185,22 @@ public class ParamsInfo {
             return this;
         }
 
+        public ParamsInfo.Builder setDirtyProperties(Map<String, Object> dirtyProperties) {
+            this.dirtyProperties = dirtyProperties;
+            return this;
+        }
+
         public ParamsInfo build() {
-            return new ParamsInfo(sql, name, jarUrlList, localSqlPluginPath,
-                    remoteSqlPluginPath, pluginLoadMode, deployMode, confProp);
+            return new ParamsInfo(
+                    sql
+                    , name
+                    , jarUrlList
+                    , localSqlPluginPath
+                    , remoteSqlPluginPath
+                    , pluginLoadMode
+                    , deployMode
+                    , confProp
+                    , dirtyProperties);
         }
     }
 }

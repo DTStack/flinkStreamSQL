@@ -32,6 +32,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * redis fill row data
@@ -43,6 +44,8 @@ import java.util.Map;
 public class RedisSideReqRow implements ISideReqRow, Serializable {
 
     private static final long serialVersionUID = 3751171828444748982L;
+
+    public static final Pattern HOST_PORT_PATTERN = Pattern.compile("(?<host>(.*)):(?<port>\\d+)*");
 
     private BaseSideInfo sideInfo;
 

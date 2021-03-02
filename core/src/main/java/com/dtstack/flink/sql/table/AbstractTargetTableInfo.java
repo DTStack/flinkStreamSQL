@@ -31,11 +31,15 @@ import com.dtstack.flink.sql.format.FormatType;
 
 public abstract class AbstractTargetTableInfo extends AbstractTableInfo {
 
+    public static final String FAST_CHECK = "fastCheck";
+
     public static final String TARGET_SUFFIX = "Sink";
 
     public static final String SINK_DATA_TYPE = "sinkdatatype";
 
     private String sinkDataType = FormatType.JSON.name();
+
+    private boolean fastCheck;
 
     public String getSinkDataType() {
         return sinkDataType;
@@ -44,4 +48,13 @@ public abstract class AbstractTargetTableInfo extends AbstractTableInfo {
     public void setSinkDataType(String sinkDataType) {
         this.sinkDataType = sinkDataType;
     }
+
+    public boolean getFastCheck() {
+        return fastCheck;
+    }
+
+    public void setFastCheck(boolean fastCheck) {
+        this.fastCheck = fastCheck;
+    }
+
 }

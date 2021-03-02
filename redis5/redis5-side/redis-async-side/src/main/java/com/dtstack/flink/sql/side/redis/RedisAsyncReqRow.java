@@ -46,7 +46,10 @@ import org.apache.flink.table.dataformat.BaseRow;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+
 /**
  * @author yanxi
  */
@@ -98,11 +101,34 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                 async = connection.async();
                 break;
             case SENTINEL:
-                RedisURI redisSentinelURI = RedisURI.create("redis-sentinel://" + url);
-                redisSentinelURI.setPassword(password);
-                redisSentinelURI.setDatabase(Integer.valueOf(database));
-                redisSentinelURI.setSentinelMasterId(redisSideTableInfo.getMasterName());
-                redisClient = RedisClient.create(redisSentinelURI);
+                String[] urlSplit = StringUtils.split(url, ",");
+                RedisURI.Builder builder = null;
+                for (String item : urlSplit) {
+                    Matcher mather = RedisSideReqRow.HOST_PORT_PATTERN.matcher(item);
+                    if (mather.find()) {
+                        builder = buildSentinelUri(
+                                mather.group("host"),
+                                mather.group("port"),
+                                builder
+                        );
+                    } else {
+                        throw new IllegalArgumentException(
+                                String.format("Illegal format with redis url [%s]", item)
+                        );
+                    }
+                }
+
+                if (Objects.nonNull(builder)) {
+                    builder
+                            .withPassword(tableInfo.getPassword())
+                            .withDatabase(Integer.parseInt(tableInfo.getDatabase()))
+                            .withSentinelMasterId(tableInfo.getMasterName());
+                } else {
+                    throw new NullPointerException("build redis uri error!");
+                }
+
+                RedisURI uri = builder.build();
+                redisClient = RedisClient.create(uri);
                 connection = redisClient.connect();
                 async = connection.async();
                 break;
@@ -115,6 +141,18 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
             default:
                 break;
         }
+    }
+
+    private RedisURI.Builder buildSentinelUri(
+            String host,
+            String port,
+            RedisURI.Builder builder) {
+        if (Objects.nonNull(builder)) {
+            builder.withSentinel(host, Integer.parseInt(port));
+        } else {
+            builder = RedisURI.Builder.sentinel(host, Integer.parseInt(port));
+        }
+        return builder;
     }
 
     @Override

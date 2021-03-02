@@ -51,6 +51,7 @@ public class OceanbaseSink extends AbstractRdbSink implements IStreamSinkGener<A
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
                 .setUpdateMode(updateMode)
+                .setErrorLimit(errorLimit)
                 .build();
     }
 }

@@ -3,13 +3,8 @@ package com.dtstack.flink.sql.util;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.api.Types;
-import org.apache.flink.types.Row;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.sql.Array;
-
-import static org.junit.Assert.*;
 
 public class DataTypeUtilsTest {
 

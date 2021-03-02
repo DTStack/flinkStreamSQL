@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.side.impala.table;
 
+import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.google.common.base.Preconditions;
 
@@ -192,6 +193,10 @@ public class ImpalaSideTableInfo extends RdbSideTableInfo {
             Preconditions.checkNotNull(this.getPartitionfields(), "impala field of partitionfields is required");
             Preconditions.checkNotNull(this.getPartitionfields(), "impala field of partitionfields is required");
             Preconditions.checkNotNull(this.getPartitionfields(), "impala field of partitionfields is required");
+        }
+
+        if (getFastCheck()) {
+            JdbcResourceCheck.getInstance().checkResourceStatus(this.getCheckProperties());
         }
 
         return true;

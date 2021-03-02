@@ -130,7 +130,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     @Override
     public DataStreamSink<?> consumeDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         RichSinkFunction richSinkFunction = createEsSinkFunction();
-        DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
+        DataStreamSink streamSink = dataStream.addSink(richSinkFunction).name(registerTableName);
         if (parallelism > 0) {
             streamSink.setParallelism(parallelism);
         }

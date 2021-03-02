@@ -28,6 +28,7 @@ public class DbSink extends AbstractRdbSink {
                 .setFieldTypes(sqlTypes)
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
+                .setErrorLimit(errorLimit)
                 .setUpdateMode(updateMode).build();
     }
 }

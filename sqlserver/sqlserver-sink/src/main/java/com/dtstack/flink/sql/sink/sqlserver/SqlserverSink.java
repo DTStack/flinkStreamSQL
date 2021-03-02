@@ -54,6 +54,7 @@ public class SqlserverSink  extends AbstractRdbSink implements IStreamSinkGener<
                 .setFieldTypes(sqlTypes)
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
+                .setErrorLimit(errorLimit)
                 .setUpdateMode(updateMode).build();
     }
 }

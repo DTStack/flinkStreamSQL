@@ -18,9 +18,13 @@
 
 package com.dtstack.flink.sql.sink.rdb.writer;
 
+import com.dtstack.flink.sql.core.rdb.util.JdbcConnectUtil;
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.runtime.execution.SuppressRestartsException;
 import org.apache.flink.types.Row;
+import org.slf4j.Logger;
 
 import java.io.Serializable;
 import java.sql.Connection;
@@ -49,7 +53,7 @@ public interface JDBCWriter extends Serializable {
 	/**
 	 * Add record to writer, the writer may cache the data.
 	 */
-	void addRecord(Tuple2<Boolean, Row> record) throws SQLException;
+	void addRecord(Tuple2<Boolean, Row> record);
 
 	/**
 	 * Submits a batch of commands to the database for execution.
@@ -71,4 +75,36 @@ public interface JDBCWriter extends Serializable {
 	 * Close JDBC related statements and other classes.
 	 */
 	void close() throws SQLException;
+
+	default void dealExecuteError(Connection connection,
+								  Exception e,
+								  AbstractDtRichOutputFormat metricOutputFormat,
+								  Row row,
+								  long errorLimit,
+								  Logger LOG) {
+		JdbcConnectUtil.rollBack(connection);
+		JdbcConnectUtil.commit(connection);
+
+		if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 ||
+			LOG.isDebugEnabled()) {
+			LOG.error(
+				String.format(
+					"record insert failed. \nRow: [%s]. \nCause: [%s]",
+					row.toString(),
+					ExceptionTrace.traceOriginalCause(e)));
+		}
+
+		if (errorLimit > -1) {
+			if (metricOutputFormat.outDirtyRecords.getCount() > errorLimit) {
+				throw new SuppressRestartsException(
+					new Throwable(
+						String.format("dirty data Count: [%s]. Error cause: [%s]",
+							metricOutputFormat.outDirtyRecords.getCount(),
+							ExceptionTrace.traceOriginalCause(e)))
+				);
+			}
+		}
+
+		metricOutputFormat.outDirtyRecords.inc();
+	}
 }

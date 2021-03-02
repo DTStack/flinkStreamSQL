@@ -17,6 +17,7 @@
  */
 package com.dtstack.flink.sql.source.serversocket;
 
+import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
 import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
 import com.dtstack.flink.sql.format.dtnest.DtNestRowDeserializationSchema;
 import com.dtstack.flink.sql.source.serversocket.table.ServersocketSourceTableInfo;
@@ -74,7 +75,7 @@ public class CustomerSocketTextStreamFunction implements SourceFunction<Row> {
 											Map<String, String> rowAndFieldMapping, List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos) {
 		this.tableInfo = tableInfo;
 		this.deserializationSchema = new DtNestRowDeserializationSchema(typeInfo, rowAndFieldMapping, fieldExtraInfos, CHARSET_NAME);
-		this.deserializationMetricWrapper = new DeserializationMetricWrapper(typeInfo, deserializationSchema);
+		this.deserializationMetricWrapper = new DeserializationMetricWrapper(typeInfo, deserializationSchema, DirtyDataManager.newInstance(tableInfo.getDirtyProperties()));
 	}
 
 	@Override
