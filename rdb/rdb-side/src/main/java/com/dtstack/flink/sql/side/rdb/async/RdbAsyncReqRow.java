@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.side.rdb.async;
 
+import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
 import com.dtstack.flink.sql.enums.ECacheContentType;
 import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
@@ -30,8 +31,11 @@ import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.util.SwitchUtil;
 import com.dtstack.flink.sql.util.DateUtil;
 import com.dtstack.flink.sql.util.RowDataComplete;
+import com.dtstack.flink.sql.util.ThreadUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonArray;
@@ -100,16 +104,37 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private final AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
+    private static volatile boolean resourceCheck = true;
+
     private transient ThreadPoolExecutor executor;
+
+    // 共享条件：1.一个维表多个并行度在一个tm上可以共享，2.多个同种类型维表单个并行度、多个并行度在一个tm上可以共享
+    protected static Map<String, SQLClient> rdbSqlClientPool = Maps.newConcurrentMap();
+    // 同种类型维表以url为单位，在同一个tm中只有一个连接池
+    private String url ;
 
     private final static int MAX_TASK_QUEUE_SIZE = 100000;
 
+    public RdbAsyncReqRow(BaseSideInfo sideInfo) {
+        super(sideInfo);
+        init(sideInfo);
+    }
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        RdbSideTableInfo rdbSideTableInfo = (RdbSideTableInfo) sideInfo.getSideTableInfo();
+        synchronized (RdbAsyncReqRow.class) {
+            if (resourceCheck) {
+                resourceCheck = false;
+                JdbcResourceCheck.getInstance().checkResourceStatus(rdbSideTableInfo.getCheckProperties());
+            }
+        }
         super.open(parameters);
 
         VertxOptions vertxOptions = new VertxOptions();
+        if (clientShare) {
+            rdbSideTableInfo.setAsyncPoolSize(poolSize);
+        }
 
         JsonObject jdbcConfig = buildJdbcConfig();
         System.setProperty("vertx.disableFileCPResolving", "true");
@@ -128,12 +153,13 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
         vertx = Vertx.vertx(vertxOptions);
-        rdbSqlClient = JDBCClient.createNonShared(vertx, jdbcConfig);
-    }
+        if (clientShare) {
+            rdbSqlClientPool.putIfAbsent(url, JDBCClient.createNonShared(vertx, jdbcConfig));
+            LOG.info("{} lru type open connection share, url:{}, rdbSqlClientPool size:{}, rdbSqlClientPool:{}", rdbSideTableInfo.getType(), url, rdbSqlClientPool.size(), rdbSqlClientPool);
+        } else {
+            this.rdbSqlClient = JDBCClient.createNonShared(vertx, jdbcConfig);
+        }
 
-    public RdbAsyncReqRow(BaseSideInfo sideInfo) {
-        super(sideInfo);
-        init(sideInfo);
     }
 
     protected void init(BaseSideInfo sideInfo) {
@@ -142,6 +168,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
         asyncPoolSize = rdbSideTableInfo.getAsyncPoolSize() > 0 ?
                 rdbSideTableInfo.getAsyncPoolSize() : defaultAsyncPoolSize;
         rdbSideTableInfo.setAsyncPoolSize(asyncPoolSize);
+        url = rdbSideTableInfo.getUrl();
     }
 
     public JsonObject buildJdbcConfig() {
@@ -155,6 +182,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     @Override
     public void handleAsyncInvoke(Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) throws Exception {
+        SQLClient sqlClient = clientShare ? rdbSqlClientPool.get(url) : this.rdbSqlClient;
         AtomicLong networkLogCounter = new AtomicLong(0L);
         //network is unhealthy
         while (!connectionStatus.get()) {
@@ -164,7 +192,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
             Thread.sleep(100);
         }
         Map<String, Object> params = formatInputParam(inputParams);
-        executor.execute(() -> connectWithRetry(params, input, resultFuture, rdbSqlClient));
+        executor.execute(() -> connectWithRetry(params, input, resultFuture, sqlClient));
     }
 
     protected void asyncQueryData(Map<String, Object> inputParams,
@@ -185,13 +213,13 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     }
 
     final protected void doAsyncQueryData(
-        Map<String, Object> inputParams,
-        BaseRow input,
-        ResultFuture<BaseRow> resultFuture,
-        SQLClient rdbSqlClient,
-        AtomicLong failCounter,
-        AtomicBoolean finishFlag,
-        CountDownLatch latch) {
+            Map<String, Object> inputParams,
+            BaseRow input,
+            ResultFuture<BaseRow> resultFuture,
+            SQLClient rdbSqlClient,
+            AtomicLong failCounter,
+            AtomicBoolean finishFlag,
+            CountDownLatch latch) {
         rdbSqlClient.getConnection(conn -> {
             try {
                 String errorMsg;
@@ -255,11 +283,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 connectionStatus.set(false);
             }
             if (!finishFlag.get()) {
-                try {
-                    Thread.sleep(3000);
-                } catch (Exception e) {
-                    LOG.error("", e);
-                }
+                ThreadUtil.sleepSeconds(ThreadUtil.DEFAULT_SLEEP_TIME);
             }
         }
     }
@@ -333,18 +357,11 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
     @Override
     public void close() throws Exception {
         super.close();
+        if (clientShare && rdbSqlClientPool.get(url) != null) {
+            rdbSqlClientPool.get(url).close(getAsyncResultHandler());
+        }
         if (rdbSqlClient != null) {
-            rdbSqlClient.close(done -> {
-                if (done.failed()) {
-                    LOG.error("sql client close failed! " +
-                            ExceptionTrace.traceOriginalCause(done.cause())
-                    );
-                }
-
-                if (done.succeeded()) {
-                    LOG.info("sql client closed.");
-                }
-            });
+            rdbSqlClient.close(getAsyncResultHandler());
         }
 
         if (executor != null) {
@@ -361,6 +378,20 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 }
             });
         }
+    }
+
+    private Handler<AsyncResult<Void>> getAsyncResultHandler() {
+        return done -> {
+            if (done.failed()) {
+                LOG.error("sql client close failed! " +
+                        ExceptionTrace.traceOriginalCause(done.cause())
+                );
+            }
+
+            if (done.succeeded()) {
+                LOG.info("sql client closed.");
+            }
+        };
     }
 
     private void handleQuery(SQLConnection connection, Map<String, Object> inputParams, BaseRow input, ResultFuture<BaseRow> resultFuture) {
@@ -407,10 +438,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 // and close the connection
                 connection.close(done -> {
                     if (done.failed()) {
-                        throw new SuppressRestartsException(
-                                new Throwable(
-                                        ExceptionTrace.traceOriginalCause(done.cause())
-                                )
+                        LOG.error("sql connection close failed! " +
+                                ExceptionTrace.traceOriginalCause(done.cause())
                         );
                     }
                 });

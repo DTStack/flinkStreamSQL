@@ -33,6 +33,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -41,6 +43,9 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
  * @author maqi
  */
 public class YarnSessionClusterExecutor {
+
+    private static final Logger LOG = LoggerFactory.getLogger(YarnJobClusterExecutor.class);
+
     JobParamsInfo jobParamsInfo;
 
     public YarnSessionClusterExecutor(JobParamsInfo jobParamsInfo) {
@@ -52,28 +57,37 @@ public class YarnSessionClusterExecutor {
         Configuration flinkConfiguration = JobGraphBuildUtil.getFlinkConfiguration(jobParamsInfo.getFlinkConfDir(), jobParamsInfo.getConfProperties());
         ClusterDescriptor clusterDescriptor = YarnClusterClientFactory.INSTANCE.createClusterDescriptor(jobParamsInfo.getYarnConfDir(), flinkConfiguration);
 
-        Object yid = jobParamsInfo.getYarnSessionConfProperties().get("yid");
-        if (null == yid) {
-            throw new RuntimeException("yarnSessionMode yid is required");
+        try {
+            Object yid = jobParamsInfo.getYarnSessionConfProperties().get("yid");
+            if (null == yid) {
+                throw new RuntimeException("yarnSessionMode yid is required");
+            }
+
+            ApplicationId applicationId = ConverterUtils.toApplicationId(yid.toString());
+            ClusterClientProvider<ApplicationId> retrieve = clusterDescriptor.retrieve(applicationId);
+            ClusterClient<ApplicationId> clusterClient = retrieve.getClusterClient();
+
+            if (StringUtils.equalsIgnoreCase(jobParamsInfo.getPluginLoadMode(), EPluginLoadMode.SHIPFILE.name())) {
+                jobGraph.getUserArtifacts().clear();
+            } else {
+                JobGraphBuildUtil.fillJobGraphClassPath(jobGraph);
+            }
+
+            if (!StringUtils.isEmpty(jobParamsInfo.getUdfJar())) {
+                JobGraphBuildUtil.fillUserJarForJobGraph(jobParamsInfo.getUdfJar(), jobGraph);
+            }
+
+            JobExecutionResult jobExecutionResult = ClientUtils.submitJob(clusterClient, jobGraph);
+            String jobId = jobExecutionResult.getJobID().toString();
+            LOG.info("jobID:" + jobId);
+        } finally {
+            try {
+                clusterDescriptor.close();
+            } catch (Exception e) {
+                LOG.info("Could not properly close the yarn cluster descriptor.", e);
+            }
         }
 
-        ApplicationId applicationId = ConverterUtils.toApplicationId(yid.toString());
-        ClusterClientProvider<ApplicationId> retrieve = clusterDescriptor.retrieve(applicationId);
-        ClusterClient<ApplicationId> clusterClient = retrieve.getClusterClient();
-
-        if (StringUtils.equalsIgnoreCase(jobParamsInfo.getPluginLoadMode(), EPluginLoadMode.SHIPFILE.name())) {
-            jobGraph.getUserArtifacts().clear();
-        } else {
-            JobGraphBuildUtil.fillJobGraphClassPath(jobGraph);
-        }
-
-        if (!StringUtils.isEmpty(jobParamsInfo.getUdfJar())) {
-            JobGraphBuildUtil.fillUserJarForJobGraph(jobParamsInfo.getUdfJar(), jobGraph);
-        }
-
-        JobExecutionResult jobExecutionResult = ClientUtils.submitJob(clusterClient, jobGraph);
-        String jobId = jobExecutionResult.getJobID().toString();
-        System.out.println("jobID:" + jobId);
 
     }
 

@@ -50,6 +50,7 @@ public class ClickhouseSink extends AbstractRdbSink implements IStreamSinkGener<
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
                 .setUpdateMode(updateMode)
+                .setErrorLimit(errorLimit)
                 .build();
     }
 

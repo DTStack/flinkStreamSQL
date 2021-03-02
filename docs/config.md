@@ -79,8 +79,10 @@ sh submit.sh -key1 val1 -key2 val2
         * allowNonRestoredState：指示保存点是否允许非还原状态的标志（默认false）
         * logLevel: 日志级别动态配置（默认info）
         * [prometheus 相关参数](./prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
-    
-	
+	    * async.side.clientShare：异步访问维表是否开启连接池共享,开启则 1.一个tm上多个task共享该池, 2.一个tm上多个url相同的维表单\多个task共享该池 (默认false)
+	    * async.side.poolSize：连接池中连接的个数,上面参数为true才生效(默认5)
+
+
 * **flinkconf**
 	* 描述：flink配置文件所在的目录（单机模式下不需要），如/hadoop/flink-1.10.0/conf
 	* 必选：否

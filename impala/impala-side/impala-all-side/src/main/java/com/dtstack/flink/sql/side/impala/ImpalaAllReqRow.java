@@ -18,21 +18,19 @@
 
 package com.dtstack.flink.sql.side.impala;
 
+import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.side.FieldInfo;
 import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.dtstack.flink.sql.side.impala.table.ImpalaSideTableInfo;
 import com.dtstack.flink.sql.side.rdb.all.AbstractRdbAllReqRow;
-import com.dtstack.flink.sql.util.JDBCUtils;
 import com.dtstack.flink.sql.util.KrbUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -67,7 +65,7 @@ public class ImpalaAllReqRow extends AbstractRdbAllReqRow {
         try {
             Connection connection;
             String url = getUrl();
-            JDBCUtils.forName(IMPALA_DRIVER, getClass().getClassLoader());
+            ClassLoaderManager.forName(IMPALA_DRIVER, getClass().getClassLoader());
             // Kerberos
             if (impalaSideTableInfo.getAuthMech() == 1) {
                 String keyTabFilePath = impalaSideTableInfo.getKeyTabFilePath();

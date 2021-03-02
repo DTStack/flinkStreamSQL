@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.factory;
 
@@ -33,6 +32,7 @@ public class DTThreadFactory implements ThreadFactory {
     private final static AtomicInteger THREAD_NUMBER = new AtomicInteger(1);
     private final ThreadGroup group;
     private final String namePrefix;
+    private Boolean isDaemon = false;
 
     public DTThreadFactory(String factoryName) {
         SecurityManager s = System.getSecurityManager();
@@ -43,14 +43,29 @@ public class DTThreadFactory implements ThreadFactory {
                 "-thread-";
     }
 
+    public DTThreadFactory(String factoryName, Boolean isDaemon) {
+        SecurityManager s = System.getSecurityManager();
+        group = (s != null) ? s.getThreadGroup() :
+                Thread.currentThread().getThreadGroup();
+        namePrefix = factoryName + "-pool-" +
+                POOL_NUMBER.getAndIncrement() +
+                "-thread-";
+        this.isDaemon = isDaemon;
+    }
+
     @Override
     public Thread newThread(Runnable r) {
         Thread t = new Thread(group, r,
                 namePrefix + THREAD_NUMBER.getAndIncrement(),
                 0);
-        if (t.isDaemon()) {
-            t.setDaemon(false);
+        if (this.isDaemon) {
+            t.setDaemon(true);
+        } else {
+            if (t.isDaemon()) {
+                t.setDaemon(false);
+            }
         }
+
         if (t.getPriority() != Thread.NORM_PRIORITY) {
             t.setPriority(Thread.NORM_PRIORITY);
         }

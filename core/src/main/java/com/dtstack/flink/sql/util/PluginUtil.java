@@ -20,13 +20,13 @@
 
 package com.dtstack.flink.sql.util;
 
-import com.dtstack.flink.sql.classloader.DtClassLoader;
+import com.dtstack.flink.sql.dirtyManager.consumer.DirtyConsumerFactory;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
-import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +39,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -58,7 +59,7 @@ public class PluginUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(PluginUtil.class);
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static URL buildSourceAndSinkPathByLoadMode(String type, String suffix, String localSqlPluginPath, String remoteSqlPluginPath, String pluginLoadMode) throws Exception {
         if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
@@ -91,20 +92,18 @@ public class PluginUtil {
     }
 
     private static void checkJarFileDirPath(String sqlRootDir, String path, String pluginLoadMode) {
-
-        if (sqlRootDir == null || sqlRootDir.isEmpty()){
-            if (pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name())) {
-                LOG.warn("be sure you are not in LocalTest mode, if not, check the sqlRootDir");
-                return;
+        if (pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name())) {
+            LOG.warn("be sure you are not in LocalTest mode, if not, check the sqlRootDir");
+        } else {
+            if (sqlRootDir == null || sqlRootDir.isEmpty()) {
+                throw new RuntimeException("sqlPlugin is empty !");
             }
 
-            throw new RuntimeException("sqlPlugin is empty !");
-        }
+            File jarFile = new File(path);
 
-        File jarFile = new File(path);
-
-        if(!jarFile.exists()){
-            throw new RuntimeException(String.format("path %s not exists!!!", path));
+            if (!jarFile.exists()) {
+                throw new RuntimeException(String.format("path %s not exists!!!", path));
+            }
         }
     }
 
@@ -154,6 +153,33 @@ public class PluginUtil {
         String jarName = getCoreJarFileName(jarPath, prefix, pluginLoadMode);
         String sqlRootDir = remoteSqlRootDir == null ? localSqlPluginPath : remoteSqlRootDir;
         return new URL("file:" + sqlRootDir + SP + dirName + SP + jarName);
+    }
+
+    /**
+     * build dirty data url from plugin path
+     *
+     * @param dirtyType      type of dirty type
+     * @param pluginPath     plugin path
+     * @param pluginLoadMode load plugin mode
+     * @return dirty plugin url
+     * @throws Exception exception
+     */
+    public static URL buildDirtyPluginUrl(
+            String dirtyType,
+            String pluginPath,
+            String pluginLoadMode) throws Exception {
+        if (Objects.isNull(dirtyType)) {
+            dirtyType = DirtyConsumerFactory.DEFAULT_DIRTY_TYPE;
+        }
+        String prefix = String.format("dirtyConsumer-%s", dirtyType.toLowerCase()).toLowerCase();
+        String consumerType = DirtyConsumerFactory.DIRTY_CONSUMER_PATH + File.separator + dirtyType;
+        String consumerJar = PluginUtil.getJarFileDirPath(consumerType, pluginPath, pluginLoadMode);
+        String jarFileName = PluginUtil.getCoreJarFileName(
+                consumerJar,
+                prefix,
+                pluginLoadMode
+        );
+        return new URL("file:" + consumerJar + SP + jarFileName);
     }
 
     public static URL getRemoteSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir, String localSqlPluginPath, String pluginLoadMode) throws Exception {

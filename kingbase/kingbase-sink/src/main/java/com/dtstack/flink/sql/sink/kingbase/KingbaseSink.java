@@ -57,6 +57,7 @@ public class KingbaseSink extends AbstractRdbSink implements IStreamSinkGener<Ab
                 .setKeyFields(primaryKeys)
                 .setAllReplace(allReplace)
                 .setUpdateMode(updateMode)
+                .setErrorLimit(errorLimit)
                 .build();
     }
 }
