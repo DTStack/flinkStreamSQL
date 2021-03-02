@@ -20,4 +20,21 @@ public class ExceptionTrace {
         }
         return errorMsg;
     }
+
+    /**
+     * 根据异常的种类来判断是否需要强制跳过Flink的重启{@link SuppressRestartsException}
+      * @param e exception
+     * @param errorMsg 需要抛出的异常信息
+     */
+    public static void dealExceptionWithSuppressStart(Exception e, String errorMsg) {
+        if (e instanceof SuppressRestartsException) {
+            throw new SuppressRestartsException(
+                new Throwable(
+                    errorMsg
+                )
+            );
+        } else {
+            throw new RuntimeException(errorMsg);
+        }
+    }
 }

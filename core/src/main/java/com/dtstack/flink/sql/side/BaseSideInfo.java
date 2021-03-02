@@ -218,6 +218,22 @@ public abstract class BaseSideInfo implements Serializable{
         Preconditions.checkState(isSide, errorMsg);
     }
 
+    private void checkSupport(SqlIdentifier identifier) {
+        String tableName = identifier.getComponent(0).getSimple();
+        String sideTableName;
+        String sideTableAlias;
+        if (joinInfo.isLeftIsSideTable()) {
+            sideTableName = joinInfo.getLeftTableName();
+            sideTableAlias = joinInfo.getLeftTableAlias();
+        } else {
+            sideTableName = joinInfo.getRightTableName();
+            sideTableAlias = joinInfo.getRightTableAlias();
+        }
+        boolean isSide = tableName.equals(sideTableName) || tableName.equals(sideTableAlias);
+        String errorMsg = "only support set side table constant field, error field " + identifier;
+        Preconditions.checkState(isSide, errorMsg);
+    }
+
     private void associateField(String sourceTableField, String sideTableField, SqlNode sqlNode) {
         String errorMsg = "can't deal equal field: " + sqlNode;
         equalFieldList.add(sideTableField);
