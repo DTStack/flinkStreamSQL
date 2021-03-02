@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.table;
 
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyKeys;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
+import com.dtstack.flink.sql.side.AbstractSideTableInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -27,7 +28,6 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 
 /**
  * Reason:
