@@ -90,9 +90,6 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     // es cluster name
     private static final String CLUSTER_NAME = "cluster.name";
-    // es cluster whether enable security
-    private static final String SECURITY_ENABLE = "security.enable";
-
 
     @Override
     public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {

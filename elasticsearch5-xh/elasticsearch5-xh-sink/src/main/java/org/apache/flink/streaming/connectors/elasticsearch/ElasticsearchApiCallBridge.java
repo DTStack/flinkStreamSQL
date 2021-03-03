@@ -86,7 +86,7 @@ public interface ElasticsearchApiCallBridge<C extends AutoCloseable> extends Ser
 	 *
 	 * @param client the Elasticsearch client.
 	 */
-	void verifyClientConnection(C client) throws IOException;
+	boolean verifyClientConnection(C client) throws IOException;
 
 	/**
 	 * Creates a {@link RequestIndexer} that is able to work with {@link BulkProcessor} binary compatible.

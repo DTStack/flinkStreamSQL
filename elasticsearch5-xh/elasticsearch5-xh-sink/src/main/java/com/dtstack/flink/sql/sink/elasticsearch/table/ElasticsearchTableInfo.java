@@ -24,6 +24,7 @@ package com.dtstack.flink.sql.sink.elasticsearch.table;
 import com.dtstack.flink.sql.krb.KerberosTable;
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
@@ -48,11 +49,6 @@ public class ElasticsearchTableInfo extends AbstractTargetTableInfo implements K
 
     private String esType;
 
-    private boolean authMesh = false;
-
-    private String userName;
-
-    private String password;
 
     /**
      * kerberos
@@ -148,30 +144,6 @@ public class ElasticsearchTableInfo extends AbstractTargetTableInfo implements K
         this.clusterName = clusterName;
     }
 
-    public boolean isAuthMesh() {
-        return authMesh;
-    }
-
-    public void setAuthMesh(boolean authMesh) {
-        this.authMesh = authMesh;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
     public ElasticsearchTableInfo() {
         setType(CURR_TYPE);
     }
@@ -188,6 +160,13 @@ public class ElasticsearchTableInfo extends AbstractTargetTableInfo implements K
                 Preconditions.checkArgument(NumberUtils.isNumber(number), "id must be a numeric type");
             });
         }
+
+        boolean allNotSet =
+                Strings.isNullOrEmpty(principal) &&
+                        Strings.isNullOrEmpty(keytab) &&
+                        Strings.isNullOrEmpty(krb5conf);
+
+        Preconditions.checkState(allNotSet, "xh's elasticsearch type of kerberos file is required");
 
         return true;
     }

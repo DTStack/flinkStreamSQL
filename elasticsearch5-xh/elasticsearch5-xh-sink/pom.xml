@@ -13,17 +13,6 @@
     <name>elasticsearch-xh-sink</name>
 
     <dependencies>
-<!--        <dependency>-->
-<!--            <groupId>org.elasticsearch.client</groupId>-->
-<!--            <artifactId>transport</artifactId>-->
-<!--            <version>5.3.3</version>-->
-<!--        </dependency>-->
-
-<!--        <dependency>-->
-<!--            <groupId>org.elasticsearch.client</groupId>-->
-<!--            <artifactId>x-pack-transport</artifactId>-->
-<!--            <version>5.3.3</version>-->
-<!--        </dependency>-->
 
         <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-log4j12 -->
         <dependency>
@@ -39,13 +28,13 @@
         </dependency>
 
         <dependency>
-            <groupId>transwarp.io.elasticsearch</groupId>
-            <artifactId>elasricearch-client</artifactId>
+            <groupId>io.transwarp.elasticsearch</groupId>
+            <artifactId>elasticsearch-client</artifactId>
             <version>5.4.1</version>
         </dependency>
 
         <dependency>
-            <groupId>guardian.sasl.transwarp</groupId>
+            <groupId>io.transwarp.sasl</groupId>
             <artifactId>guardian-sasl-transwarp</artifactId>
             <version>6.2.1</version>
         </dependency>
@@ -68,17 +57,6 @@
         </dependency>
 
 
-        <!--        <dependency>-->
-<!--            <groupId>org.apache.flink</groupId>-->
-<!--            <artifactId>flink-connector-elasticsearch5_2.11</artifactId>-->
-<!--            <version>${flink.version}</version>-->
-<!--        </dependency>-->
-
-<!--        <dependency>-->
-<!--            <groupId>org.apache.flink</groupId>-->
-<!--            <artifactId>flink-connector-elasticsearch-base_2.11</artifactId>-->
-<!--            <version>${flink.version}</version>-->
-<!--        </dependency>-->
     </dependencies>
 
     <build>

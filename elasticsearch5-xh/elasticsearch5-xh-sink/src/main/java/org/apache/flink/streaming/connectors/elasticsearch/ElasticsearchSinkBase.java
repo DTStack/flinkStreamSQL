@@ -43,6 +43,7 @@ import transwarp.org.elasticsearch.common.unit.ByteSizeValue;
 import transwarp.org.elasticsearch.common.unit.TimeValue;
 import transwarp.org.elasticsearch.rest.RestStatus;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -391,8 +392,31 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 	}
 
 	private class BulkProcessorListener implements BulkProcessor.Listener {
+
+
+		private long lastVerifyTime = 0L;
+
+		/**
+		 * The interval time which check client whether available.
+		 */
+		private static final long verifyInterval = 22 * 60 * 60 * 1000L;
+
 		@Override
-		public void beforeBulk(long executionId, BulkRequest request) { }
+		public void beforeBulk(long executionId, BulkRequest request) {
+
+			// verify client connection.
+			if ((System.currentTimeMillis() - lastVerifyTime) >= verifyInterval) {
+				try {
+					long currentTimeMillis = System.currentTimeMillis();
+					callBridge.verifyClientConnection(client);
+					lastVerifyTime = currentTimeMillis;
+				} catch (IOException e) {
+					LOG.error("Verify and Refresh ClientConnection failed. Reason: {}", e.getMessage());
+					failureThrowable.compareAndSet(null, e);
+				}
+			}
+
+		}
 
 		@Override
 		public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
