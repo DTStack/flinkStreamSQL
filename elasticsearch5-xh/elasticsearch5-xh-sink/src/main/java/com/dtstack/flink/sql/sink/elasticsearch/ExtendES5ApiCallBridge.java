@@ -78,12 +78,13 @@ public class ExtendES5ApiCallBridge implements ElasticsearchApiCallBridge<Transp
 
         //2. set transwarp attributes
         Settings settings = Settings.builder().put(clientConfig)
+                .put("client.transport.sniff", true)
                 .put("security.enable", true)
                 .put(NetworkModule.TRANSPORT_TYPE_KEY, "security-netty3")
                 .build();
 
         //3. build transport client with transwarp plugins
-        TransportClient transportClient = ugi.doAs((PrivilegedAction<TransportClient>) () -> {
+         TransportClient transportClient = ugi.doAs((PrivilegedAction<TransportClient>) () -> {
             TransportClient tmpClient = new PreBuiltTransportClient(settings,
                     Collections.singletonList(DoorKeeperClientPlugin.class));
             for (TransportAddress transport : ElasticsearchUtils.convertInetSocketAddresses(transportAddresses)) {
@@ -91,17 +92,6 @@ public class ExtendES5ApiCallBridge implements ElasticsearchApiCallBridge<Transp
             }
             return tmpClient;
         });
-
-        // verify that we actually are connected to a cluster
-        if (transportClient.connectedNodes().isEmpty()) {
-            // close the transportClient here
-            IOUtils.closeQuietly(transportClient);
-            throw new RuntimeException("Elasticsearch client is not connected to any Elasticsearch nodes!");
-        }
-
-        if (LOG.isInfoEnabled()) {
-            LOG.info("Created Elasticsearch TransportClient with connected nodes {}", transportClient.connectedNodes());
-        }
 
         return transportClient;
     }
@@ -148,7 +138,27 @@ public class ExtendES5ApiCallBridge implements ElasticsearchApiCallBridge<Transp
     }
 
     @Override
-    public void verifyClientConnection(TransportClient client) throws IOException {
+    public boolean verifyClientConnection(TransportClient client) throws IOException {
 
+        //1. login kdc with keytab and krb5 conf
+        UserGroupInformation ugi  = KrbUtils.loginAndReturnUgi(
+                esTableInfo.getPrincipal(),
+                esTableInfo.getKeytab(),
+                esTableInfo.getKrb5conf());
+
+        //2. refresh availableNodes.
+        boolean verifyResult = ugi.doAs((PrivilegedAction<Boolean>) () -> {
+            LOG.info("Refresh client available nodes.");
+            client.refreshAvailableNodes();
+            return client.connectedNodes().isEmpty();
+        });
+
+        if (!verifyResult) {
+            return true;
+        }
+
+        // close the transportClient here
+        IOUtils.closeQuietly(client);
+        throw new RuntimeException("Elasticsearch client is not connected to any Elasticsearch nodes!");
     }
 }

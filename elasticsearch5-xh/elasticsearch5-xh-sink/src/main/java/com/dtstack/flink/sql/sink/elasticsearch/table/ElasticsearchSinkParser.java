@@ -45,12 +45,6 @@ public class ElasticsearchSinkParser extends AbstractTableParser {
 
     private static final String KEY_ES_ID_FIELD_INDEX_LIST = "id";
 
-    private static final String KEY_ES_AUTHMESH = "authMesh";
-
-    private static final String KEY_ES_USERNAME = "userName";
-
-    private static final String KEY_ES_PASSWORD = "password";
-
     private static final String KEY_ES_PARALLELISM = "parallelism";
 
     @Override

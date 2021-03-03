@@ -62,12 +62,4 @@ public class KrbUtils {
         return UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytabPath);
     }
 
-    public static void loginFromKeytab(String principal, String keytabPath, String krb5confPath) throws IOException{
-        LOG.info("Kerberos login with principal: {} and keytab: {}", principal, keytabPath);
-        System.setProperty(KRB5_CONF_KEY, krb5confPath);
-        Configuration configuration = new Configuration();
-        configuration.set(HADOOP_AUTH_KEY, KRB_STR);
-        UserGroupInformation.setConfiguration(configuration);
-    }
-
 }
