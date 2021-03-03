@@ -118,7 +118,7 @@ public class HttpOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             outDirtyRecords.inc();
         } finally {
             sendMessage.clear();
-            if (client == null) {
+            if (client != null) {
                 try {
                     client.close();
                 } catch (IOException e) {
