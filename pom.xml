@@ -39,6 +39,7 @@
         <module>tidb</module>
         <module>kingbase</module>
         <module>aws</module>
+        <module>http</module>
 
         <!-- 脏数据插件 -->
         <module>dirtyData</module>
