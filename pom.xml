@@ -38,7 +38,7 @@
         <module>tidb</module>
         <module>kingbase</module>
         <module>aws</module>
-<!--        <module>localTest</module>-->
+        <module>localTest</module>
 
     </modules>
 
