@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.sink.kudu;
 
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.dtstack.flink.sql.sink.kudu.table.KuduTableInfo;
@@ -60,6 +61,8 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(KuduOutputFormat.class);
+    private static final String MANUAL_FLUSH_BUFFER_BIG_MSG = "MANUAL_FLUSH is enabled but the buffer is too big";
+
     protected String[] fieldNames;
     TypeInformation<?>[] fieldTypes;
     boolean enableKrb;
@@ -75,6 +78,8 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
     private Integer workerCount;
 
     private Integer defaultOperationTimeoutMs;
+
+    private int mutationBufferMaxOps;
 
     /**
      * kerberos
@@ -186,9 +191,7 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
         KuduSession kuduSession = kuduClient.newSession();
         if (flushMode.equalsIgnoreCase(KuduTableInfo.KuduFlushMode.MANUAL_FLUSH.name())) {
             kuduSession.setFlushMode(SessionConfiguration.FlushMode.MANUAL_FLUSH);
-            kuduSession.setMutationBufferSpace(
-                    Integer.parseInt(String.valueOf(Math.round(batchSize * 1.2)))
-            );
+            kuduSession.setMutationBufferSpace(mutationBufferMaxOps);
         }
 
         if (flushMode.equalsIgnoreCase(KuduTableInfo.KuduFlushMode.AUTO_FLUSH_SYNC.name())) {
@@ -197,8 +200,9 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
         }
 
         if (flushMode.equalsIgnoreCase(KuduTableInfo.KuduFlushMode.AUTO_FLUSH_BACKGROUND.name())) {
-            LOG.warn("Unable to determine the order of data at AUTO_FLUSH_BACKGROUND mode.");
+            LOG.warn("Unable to determine the order of data at AUTO_FLUSH_BACKGROUND mode. Only [batchWaitInterval] will effect.");
             kuduSession.setFlushMode(SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND);
+            kuduSession.setFlushInterval(batchWaitInterval);
         }
 
         return kuduSession;
@@ -213,21 +217,26 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
         Row row = record.getField(1);
 
         try {
-            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
-                LOG.info("Receive data : {}", row);
-            }
             if (rowCount.getAndIncrement() >= batchSize) {
                 flush();
             }
             // At AUTO_FLUSH_SYNC mode, kudu automatically flush once session apply operation, then get the response from kudu server.
             if (flushMode.equalsIgnoreCase(SessionConfiguration.FlushMode.AUTO_FLUSH_SYNC.name())) {
                 dealResponse(session.apply(toOperation(writeMode, row)));
+            } else {
+                session.apply(toOperation(writeMode, row));
             }
-
-            session.apply(toOperation(writeMode, row));
             outRecords.inc();
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                LOG.info("Receive data : {}", row);
+            }
         } catch (KuduException e) {
-            throw new RuntimeException(e);
+            // 如果出现了buffer is too big的问题，需要将当前buffer里的数据flush掉即可。
+            if (ExceptionTrace.traceOriginalCause(e).contains(MANUAL_FLUSH_BUFFER_BIG_MSG)) {
+                flush();
+            } else {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -480,6 +489,11 @@ public class KuduOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
 
         public KuduOutputFormatBuilder setFlushMode(String flushMode) {
             kuduOutputFormat.flushMode = flushMode;
+            return this;
+        }
+
+        public KuduOutputFormatBuilder setMutationBufferMaxOps(Integer mutationBufferMaxOps) {
+            kuduOutputFormat.mutationBufferMaxOps = mutationBufferMaxOps;
             return this;
         }
 
