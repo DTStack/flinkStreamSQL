@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.util;
 
+import com.esotericsoftware.minlog.Log;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.util.KerberosName;

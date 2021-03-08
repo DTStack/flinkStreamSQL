@@ -36,6 +36,7 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
     private Integer batchSize;
     private Integer batchWaitInterval;
     private String flushMode;
+    private Integer mutationBufferMaxOps;
 
     @Override
     public KuduSink genStreamSink(AbstractTargetTableInfo targetTableInfo) {
@@ -55,6 +56,9 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
         this.batchSize = kuduTableInfo.getBatchSize();
         this.batchWaitInterval = kuduTableInfo.getBatchWaitInterval();
         this.flushMode = kuduTableInfo.getFlushMode();
+        this.mutationBufferMaxOps = Objects.isNull(kuduTableInfo.getMutationBufferMaxOps()) ?
+            Integer.parseInt(String.valueOf(Math.round(batchSize * 1.2))) :
+            kuduTableInfo.getMutationBufferMaxOps();
         return this;
     }
 
@@ -80,6 +84,7 @@ public class KuduSink implements RetractStreamTableSink<Row>, Serializable, IStr
                 .setBatchSize(this.batchSize)
                 .setBatchWaitInterval(this.batchWaitInterval)
                 .setFlushMode(this.flushMode)
+                .setMutationBufferMaxOps(this.mutationBufferMaxOps)
                 .finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(kuduOutputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);
