@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.sink.rdb.format;
 
 
 import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
+import com.dtstack.flink.sql.core.rdb.util.JdbcConnectionUtil;
 import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
@@ -134,7 +135,12 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     public void openJdbc() throws IOException {
         try {
-            establishConnection();
+            connection = JdbcConnectionUtil.getConnectionWithRetry(
+                driverName,
+                dbURL,
+                username,
+                password
+            );
             initMetric();
             if(jdbcWriter == null){
                 if (StringUtils.equalsIgnoreCase(updateMode, EUpdateMode.APPEND.name()) || keyFields == null || keyFields.length == 0) {
@@ -152,8 +158,6 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             jdbcWriter.open(connection);
         } catch (SQLException sqe) {
             throw new IllegalArgumentException("open() failed.", sqe);
-        } catch (ClassNotFoundException cnfe) {
-            throw new IllegalArgumentException("JDBC driver class not found.", cnfe);
         }
 
         if (flushIntervalMills != 0) {
@@ -190,15 +194,16 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         try {
             if (!connection.isValid(10)) {
                 LOG.info("db connection reconnect..");
-                establishConnection();
+                connection = JdbcConnectionUtil.getConnectionWithRetry(
+                    driverName,
+                    dbURL,
+                    username,
+                    password
+                );
                 jdbcWriter.prepareStatement(connection);
             }
         } catch (SQLException e) {
             LOG.error("check connection open failed..", e);
-        } catch (ClassNotFoundException e) {
-            LOG.error("load jdbc class error when reconnect db..", e);
-        } catch (IOException e) {
-            LOG.error("jdbc io exception..", e);
         }
     }
 
@@ -208,7 +213,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
             batchCount = 0;
         } catch (Exception e) {
             String errorMsg = String.format(
-                "Writing records to JDBC failed. %s",
+                "Writing records to JDBC failed. Cause: [%s]",
                 ExceptionTrace.traceOriginalCause(e));
 
             ExceptionTrace.dealExceptionWithSuppressStart(

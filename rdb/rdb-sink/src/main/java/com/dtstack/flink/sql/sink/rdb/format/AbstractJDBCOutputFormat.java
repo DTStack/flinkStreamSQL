@@ -18,7 +18,6 @@
 
 package com.dtstack.flink.sql.sink.rdb.format;
 
-import com.dtstack.flink.sql.classloader.ClassLoaderManager;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.types.Row;
@@ -61,16 +60,6 @@ public abstract class AbstractJDBCOutputFormat<T> extends AbstractDtRichOutputFo
 
 	@Override
 	public void configure(Configuration parameters) {
-	}
-
-	protected void establishConnection() throws SQLException, ClassNotFoundException, IOException {
-		ClassLoaderManager.forName(driverName, getClass().getClassLoader());
-		if (username == null) {
-			connection = DriverManager.getConnection(dbURL);
-		} else {
-			connection = DriverManager.getConnection(dbURL, username, password);
-		}
-		connection.setAutoCommit(false);
 	}
 
 	protected void closeDbConnection() throws IOException {

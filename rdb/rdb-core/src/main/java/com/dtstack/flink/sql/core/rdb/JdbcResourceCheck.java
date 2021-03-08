@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.core.rdb;
 
-import com.dtstack.flink.sql.core.rdb.util.JdbcConnectUtil;
+import com.dtstack.flink.sql.core.rdb.util.JdbcConnectionUtil;
 import com.dtstack.flink.sql.resource.ResourceCheck;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.runtime.execution.SuppressRestartsException;
@@ -109,7 +109,7 @@ public class JdbcResourceCheck extends ResourceCheck {
             , String schema
             , List<String> privilegeList) {
         Connection connection =
-                JdbcConnectUtil.getConnectWithRetry(driverName, url, userName, password);
+                JdbcConnectionUtil.getConnectionWithRetry(driverName, url, userName, password);
         Statement statement = null;
         String tableInfo = Objects.isNull(schema) ? tableName : schema + "." + tableName;
         String privilege = null;
@@ -133,7 +133,7 @@ public class JdbcResourceCheck extends ResourceCheck {
 
             throw new SuppressRestartsException(new IllegalArgumentException(sqlException.getMessage()));
         } finally {
-            JdbcConnectUtil.closeConnectionResource(null, statement, connection, false);
+            JdbcConnectionUtil.closeConnectionResource(null, statement, connection, false);
         }
     }
 }
