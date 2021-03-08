@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.sink.impala;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
+import com.dtstack.flink.sql.core.rdb.util.JdbcConnectUtil;
 import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
@@ -282,8 +283,8 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             rows.clear();
         } catch (Exception e) {
             LOG.debug("impala jdbc execute batch error ", e);
-            JDBCUtils.rollBack(connection);
-            JDBCUtils.commit(connection);
+            JdbcConnectUtil.rollBack(connection);
+            JdbcConnectUtil.commit(connection);
             updateStatement.clearBatch();
             executeUpdate(connection);
         }
@@ -294,10 +295,10 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             try {
                 setRecordToStatement(updateStatement, JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypes), row);
                 updateStatement.executeUpdate();
-                JDBCUtils.commit(connection);
+                JdbcConnectUtil.commit(connection);
             } catch (Exception e) {
-                JDBCUtils.rollBack(connection);
-                JDBCUtils.commit(connection);
+                JdbcConnectUtil.rollBack(connection);
+                JdbcConnectUtil.commit(connection);
                 if (metricOutputFormat.outDirtyRecords.getCount() % DIRTY_DATA_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
                     LOG.error("record insert failed ,this row is {}", row.toString());
                     LOG.error("", e);
@@ -509,16 +510,16 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                                    Statement statement,
                                    String templateSql) {
         String errorMsg = "Insert into impala error. \nCause: [%s]\nRow: [%s]";
-        JDBCUtils.rollBack(connection);
-        JDBCUtils.commit(connection);
+        JdbcConnectUtil.rollBack(connection);
+        JdbcConnectUtil.commit(connection);
         for (String rowDatum : rowData) {
             String executeSql = templateSql.replace(VALUES_CONDITION, rowDatum);
             try {
                 statement.execute(executeSql);
-                JDBCUtils.commit(connection);
+                JdbcConnectUtil.commit(connection);
             } catch (SQLException e) {
-                JDBCUtils.rollBack(connection);
-                JDBCUtils.commit(connection);
+                JdbcConnectUtil.rollBack(connection);
+                JdbcConnectUtil.commit(connection);
                 if (metricOutputFormat.outDirtyRecords.getCount() % DIRTY_DATA_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
                     LOG.error(
                         String.format(
