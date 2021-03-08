@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.core.rdb.util;
 
 import com.dtstack.flink.sql.classloader.ClassLoaderManager;
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.util.ThreadUtil;
 import com.google.common.base.Preconditions;
 import org.apache.flink.runtime.execution.SuppressRestartsException;
@@ -141,20 +142,19 @@ public class JdbcConnectUtil {
 
         for (int i = 0; i < DEFAULT_RETRY_NUM; i++) {
             try {
-                return Objects.isNull(userName) ?
-                        DriverManager.getConnection(url) : DriverManager.getConnection(url, userName, password);
+                Connection connection =
+                    Objects.isNull(userName) ?
+                        DriverManager.getConnection(url) :
+                        DriverManager.getConnection(url, userName, password);
+                connection.setAutoCommit(false);
+                return connection;
             } catch (Exception e) {
-                if (Objects.isNull(e.getCause())) {
-                    errorCause = e.getMessage();
-                } else {
-                    errorCause = e.getCause().toString();
-                }
-
+                errorCause = ExceptionTrace.traceOriginalCause(e);
                 LOG.warn(errorMessage + errorCause);
                 LOG.warn("Connect will retry after [{}] s. Retry time [{}] ...", DEFAULT_RETRY_TIME_WAIT, i + 1);
                 ThreadUtil.sleepSeconds(DEFAULT_RETRY_TIME_WAIT);
             }
         }
-        throw new SuppressRestartsException(new Throwable(errorMessage + errorCause));
+        throw new SuppressRestartsException(new SQLException(errorMessage + errorCause));
     }
 }
