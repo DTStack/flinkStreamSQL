@@ -20,7 +20,7 @@ package com.dtstack.flink.sql.sink.rdb.format;
 
 
 import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
-import com.dtstack.flink.sql.core.rdb.util.JdbcConnectUtil;
+import com.dtstack.flink.sql.core.rdb.util.JdbcConnectionUtil;
 import com.dtstack.flink.sql.enums.EUpdateMode;
 import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
@@ -135,7 +135,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
 
     public void openJdbc() throws IOException {
         try {
-            connection = JdbcConnectUtil.getConnectWithRetry(
+            connection = JdbcConnectionUtil.getConnectionWithRetry(
                 driverName,
                 dbURL,
                 username,
@@ -194,7 +194,7 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
         try {
             if (!connection.isValid(10)) {
                 LOG.info("db connection reconnect..");
-                connection = JdbcConnectUtil.getConnectWithRetry(
+                connection = JdbcConnectionUtil.getConnectionWithRetry(
                     driverName,
                     dbURL,
                     username,

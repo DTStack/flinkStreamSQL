@@ -19,7 +19,7 @@
 package com.dtstack.flink.sql.side.rdb.all;
 
 import com.dtstack.flink.sql.core.rdb.JdbcResourceCheck;
-import com.dtstack.flink.sql.core.rdb.util.JdbcConnectUtil;
+import com.dtstack.flink.sql.core.rdb.util.JdbcConnectionUtil;
 import com.dtstack.flink.sql.side.BaseAllReqRow;
 import com.dtstack.flink.sql.side.BaseSideInfo;
 import com.dtstack.flink.sql.side.rdb.table.RdbSideTableInfo;
@@ -208,7 +208,7 @@ public abstract class AbstractRdbAllReqRow extends BaseAllReqRow {
             tmpCache.computeIfAbsent(cacheKey, key -> Lists.newArrayList())
                     .add(oneRow);
         }
-        JdbcConnectUtil.closeConnectionResource(resultSet, statement, connection, false);
+        JdbcConnectionUtil.closeConnectionResource(resultSet, statement, connection, false);
     }
 
     public int getFetchSize() {
