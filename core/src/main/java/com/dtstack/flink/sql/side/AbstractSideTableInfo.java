@@ -189,6 +189,10 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
         return predicateInfoes;
     }
 
+    public void addPredicateInfo(PredicateInfo predicateInfo) {
+        this.predicateInfoes.add(predicateInfo);
+    }
+
     public Long getAsyncFailMaxNum(Long defaultValue) {
         return Objects.isNull(asyncFailMaxNum) ? defaultValue : asyncFailMaxNum;
     }
