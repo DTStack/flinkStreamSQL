@@ -4,7 +4,9 @@
 
 #### 1.2 结果表插件
 * [kafka 结果表插件](plugin/kafkaSink.md)
-* [elasticsearch 结果表插件](plugin/elasticsearchSink.md)
+* [elasticsearch5 结果表插件](plugin/elasticsearch5Sink.md)
+* [elasticsearch6 结果表插件](plugin/elasticsearch6Sink.md)
+* [elasticsearch7 结果表插件](plugin/elasticsearch7Sink.md)
 * [hbase 结果表插件](plugin/hbaseSink.md)
 * [mysql 结果表插件](plugin/mysqlSink.md)
 * [oracle 结果表插件](plugin/oracleSink.md)
@@ -21,6 +23,8 @@
 #### 1.3 维表插件
 * [hbase 维表插件](plugin/hbaseSide.md)
 * [mysql 维表插件](plugin/mysqlSide.md)
+* [elasticsearch6 维表插件](plugin/elasticsearch6Side.md)
+* [elasticsearch7 维表插件](plugin/elasticsearch7Side.md)
 * [oracle 维表插件](plugin/oracleSide.md)
 * [mongo 维表插件](plugin/mongoSide.md)
 * [redis 维表插件](plugin/redisSide.md)
