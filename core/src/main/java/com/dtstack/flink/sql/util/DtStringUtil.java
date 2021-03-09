@@ -252,10 +252,12 @@ public class DtStringUtil {
         return result.toString();
     }
 
-    public static String getPluginTypeWithoutVersion(String engineType){
-
+    public static String getPluginTypeWithoutVersion(String engineType) {
         Matcher matcher = NO_VERSION_PATTERN.matcher(engineType);
-        if(!matcher.find()){
+
+        if (!engineType.equals("kafka")) {
+            return engineType;
+        } else if (!matcher.find()) {
             return engineType;
         }
 
