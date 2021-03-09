@@ -60,20 +60,6 @@ public class MetricElasticsearchSink extends org.apache.flink.streaming.connecto
         initMetric();
     }
 
-    /*public void setXPackTransportClient() throws Exception {
-        String authPassword = esTableInfo.getUserName() + ":" + esTableInfo.getPassword();
-        Settings settings = Settings.builder().put(userConfig).put("xpack.security.user", authPassword).build();
-        Class clz = Class.forName("org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkBase");
-        Field clientField = clz.getDeclaredField("client");
-        clientField.setAccessible(true);
-        PreBuiltXPackTransportClient transportClient = new PreBuiltXPackTransportClient(settings);
-        for (TransportAddress transport : ElasticsearchUtils.convertInetSocketAddresses(transportAddresses)) {
-            transportClient.addTransportAddress(transport);
-        }
-
-        clientField.set(this, transportClient);
-    }*/
-
     public void initMetric() {
         Counter counter = getRuntimeContext().getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_OUT);
         customerSinkFunc.setOutRecords(counter);
