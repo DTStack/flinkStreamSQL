@@ -18,12 +18,10 @@
 
 package com.dtstack.flink.sql.sink.elasticsearch;
 
+import com.dtstack.flink.sql.util.DtStringUtil;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
-
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
-
-import com.dtstack.flink.sql.util.DtStringUtil;
 
 import java.util.HashMap;
 import java.util.List;
