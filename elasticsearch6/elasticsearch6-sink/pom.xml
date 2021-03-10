@@ -12,10 +12,6 @@
     <artifactId>sql.sink.elasticsearch6</artifactId>
     <name>elasticsearch6-sink</name>
 
-    <properties>
-        <elasticsearch.version>6.8.6</elasticsearch.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.flink</groupId>

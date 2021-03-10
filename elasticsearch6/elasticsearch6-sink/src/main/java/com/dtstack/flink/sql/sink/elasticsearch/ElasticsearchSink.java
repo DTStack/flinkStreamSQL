@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.sink.elasticsearch;
 
 import com.dtstack.flink.sql.table.AbstractTargetTableInfo;
+import com.google.common.base.Preconditions;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -61,7 +62,10 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
     private String type = "";
 
-    private List<Integer> idIndexList;
+    private List<Object> ids;
+
+    // true means generation doc's id by position "1[,1]"
+    private boolean usePosition = false;
 
     protected String[] fieldNames;
 
@@ -105,6 +109,16 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
 
 
     private RichSinkFunction createEsSinkFunction() {
+
+        // check whether id fields is exists in columns if not use position to generate doc's id
+        if (!usePosition
+                && ids != null
+                && ids.size() != 0) {
+            List<String> filedNamesLists = Arrays.asList(fieldNames);
+            Preconditions.checkState(filedNamesLists.containsAll(ids), "elasticsearch6 type of id %s is should be exists in columns %s.", ids, filedNamesLists);
+        }
+        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), ids, usePosition);
+
         Map<String, String> userConfig = Maps.newHashMap();
         userConfig.put("cluster.name", clusterName);
         // This instructs the sink to emit after every element, otherwise they would be buffered
@@ -118,7 +132,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
                     return new HttpHost(host.trim(), port, ES_DEFAULT_SCHEMA);
                 }).collect(Collectors.toList());
 
-        CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), idIndexList);
+
         return new MetricElasticsearch6Sink(userConfig, transports, customerSinkFunc, esTableInfo);
     }
 
@@ -149,8 +163,15 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         registerTableName = esTableInfo.getName();
         parallelism = Objects.isNull(esTableInfo.getParallelism()) ? parallelism : esTableInfo.getParallelism();
 
+        // check mode of generate doc's id
         if (!StringUtils.isEmpty(id)) {
-            idIndexList = Arrays.stream(StringUtils.split(id, ",")).map(Integer::valueOf).collect(Collectors.toList());
+            if (!Es6Util.checkWhetherUsePosition(id)) {
+                ids = Arrays.stream(StringUtils.split(id, ",")).map(String::valueOf).collect(Collectors.toList());
+            } else {
+                //compatible old version of generate doc' id
+                usePosition = true;
+                ids = Arrays.stream(StringUtils.split(id, ",")).map(Integer::valueOf).collect(Collectors.toList());
+            }
         }
         return this;
     }
