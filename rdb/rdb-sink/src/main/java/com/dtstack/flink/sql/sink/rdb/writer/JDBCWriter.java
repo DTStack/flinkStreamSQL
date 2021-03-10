@@ -93,18 +93,12 @@ public interface JDBCWriter extends Serializable {
 					row.toString(),
 					ExceptionTrace.traceOriginalCause(e)));
 		}
+		metricOutputFormat.outDirtyRecords.inc();
 
 		if (errorLimit > -1) {
 			if (metricOutputFormat.outDirtyRecords.getCount() > errorLimit) {
-				throw new SuppressRestartsException(
-					new Throwable(
-						String.format("dirty data Count: [%s]. Error cause: [%s]",
-							metricOutputFormat.outDirtyRecords.getCount(),
-							ExceptionTrace.traceOriginalCause(e)))
-				);
+				throw new SuppressRestartsException(e);
 			}
 		}
-
-		metricOutputFormat.outDirtyRecords.inc();
 	}
 }
