@@ -18,6 +18,8 @@
 
 package com.dtstack.flink.sql.sink.elasticsearch;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 
@@ -60,6 +62,24 @@ public class EsUtil {
         }
 
         return jsonMap;
+    }
+
+    /**
+     * check whether use position to generation doc's id
+     * eg : |1,2,3 -> true
+     *      |id,name,addr -> false
+     * @param ids
+     * @return
+     */
+    public static boolean checkWhetherUsePosition(String ids) {
+        boolean flag = true;
+        for( String id : StringUtils.split(ids, ",")) {
+            if (!NumberUtils.isNumber(id)) {
+                flag= false;
+                break;
+            }
+        }
+        return flag;
     }
 
 

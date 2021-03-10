@@ -56,7 +56,10 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private String type;
 
-    private List<Integer> idFieldIndexList;
+    private List<Object> ids;
+
+    // true means generation doc's id by position "1[,1]"
+    private boolean usePosition;
 
     private List<String> fieldNames;
 
@@ -64,15 +67,13 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     public transient Counter outRecords;
 
-    /** 默认分隔符为'_' */
-    private char sp = '_';
-
-    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<Integer> idFieldIndexes){
+    public CustomerSinkFunc(String index, String type, List<String> fieldNames, List<String> fieldTypes, List<Object> ids, boolean usePosition) {
         this.index = index;
         this.type = type;
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;
-        this.idFieldIndexList = idFieldIndexes;
+        this.ids = ids;
+        this.usePosition = usePosition;
     }
 
     @Override
@@ -98,14 +99,6 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
     }
 
     private IndexRequest createIndexRequest(Row element) {
-        String idFieldStr = "";
-        if (null != idFieldIndexList) {
-            // index start at 1,
-            idFieldStr = idFieldIndexList.stream()
-                    .filter(index -> index > 0 && index <= element.getArity())
-                    .map(index -> element.getField(index - 1).toString())
-                    .collect(Collectors.joining(ID_VALUE_SPLIT));
-        }
 
         Map<String, Object> dataMap = EsUtil.rowToJsonMap(element,fieldNames,fieldTypes);
         int length = Math.min(element.getArity(), fieldNames.size());
@@ -119,6 +112,24 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
                 continue;
             }
             dataMap.put(fieldNames.get(i), element.getField(i));
+        }
+
+        String idFieldStr = "";
+        if (null != ids) {
+            if (!usePosition) {
+                idFieldStr = ids.stream()
+                        .map(filedName -> (String) filedName)
+                        .map(filedName -> dataMap.get(filedName).toString())
+                        .collect(Collectors.joining(ID_VALUE_SPLIT));
+            } else {
+                // compatible old version of generate doc's id
+                // index start at 1,
+                idFieldStr = ids.stream()
+                        .map(index -> (Integer) index)
+                        .filter(index -> index > 0 && index <= element.getArity())
+                        .map(index -> element.getField( index - 1).toString())
+                        .collect(Collectors.joining(ID_VALUE_SPLIT));
+            }
         }
 
         if (StringUtils.isEmpty(idFieldStr)) {

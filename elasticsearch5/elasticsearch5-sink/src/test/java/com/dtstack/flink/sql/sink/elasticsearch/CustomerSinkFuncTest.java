@@ -32,13 +32,13 @@ public class CustomerSinkFuncTest {
     String type;
     List<String> fieldNames = Collections.singletonList("name.pv");
     List<String> fieldTypes = Arrays.asList("varchar", "varchar");
-    List<Integer> idFieldIndexes = Collections.singletonList(1);
+    List<Object> idFieldIndexes = Collections.singletonList(1);
     Tuple2<Boolean, Row> tuple2 = new Tuple2<>();
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        customerSinkFunc = new CustomerSinkFunc(index, type, fieldNames, fieldTypes, idFieldIndexes);
+        customerSinkFunc = new CustomerSinkFunc(index, type, fieldNames, fieldTypes, idFieldIndexes, true);
         customerSinkFunc.setOutRecords(outRecords);
         tuple2.setField(true, 0);
         Row row = new Row(1);

@@ -15,7 +15,6 @@
 
     <properties>
         <sql.side.elasticsearch6.core.version>1.0-SNAPSHOT</sql.side.elasticsearch6.core.version>
-        <elasticsearch.version>6.8.6</elasticsearch.version>
     </properties>
 
 

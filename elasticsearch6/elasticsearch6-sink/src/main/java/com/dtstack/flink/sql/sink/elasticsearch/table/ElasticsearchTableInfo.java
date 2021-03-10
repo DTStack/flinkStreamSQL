@@ -130,12 +130,6 @@ public class ElasticsearchTableInfo extends AbstractTargetTableInfo {
         Preconditions.checkNotNull(esType, "elasticsearch6 type of type is required");
         Preconditions.checkNotNull(clusterName, "elasticsearch6 type of clusterName is required");
 
-        if (!StringUtils.isEmpty(id)) {
-            Arrays.stream(StringUtils.split(id, ",")).forEach(number -> {
-                Preconditions.checkArgument(NumberUtils.isNumber(number), "id must be a numeric type");
-            });
-        }
-
         if (isAuthMesh()) {
             Preconditions.checkNotNull(userName, "elasticsearch6 type of userName is required");
             Preconditions.checkNotNull(password, "elasticsearch6 type of password is required");
