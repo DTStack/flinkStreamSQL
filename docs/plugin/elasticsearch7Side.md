@@ -1,15 +1,14 @@
 ## 1.格式
-```
+
+```sql
  CREATE TABLE tableName(
      colName cloType,
      ...
      PRIMARY KEY(keyInfo),
      PERIOD FOR SYSTEM_TIME
   )WITH(
-     type='elasticsearch6',
+     type='elasticsearch7',
      address ='ip:port[,ip:port]',
-     cluster='clusterName',
-     estype ='esType',
      index ='index',
      authMesh='true',
      userName='dbUserName',
@@ -27,9 +26,9 @@
  elasticsearch `6.x`
  
 ## 3.表结构定义
-   
+  
 |参数名称|含义|
-|---|---|
+|----|---|
 | tableName | elasticsearch表名称|
 | colName | 列名称|
 | colType | 列类型 [colType支持的类型](../colType.md)|
@@ -39,23 +38,19 @@
 ## 4.参数
 
 |参数名称|含义|是否必填|默认值|
-|----|---|---|----|
+|---|---|---|---|
 |type|表明 输出表类型[elasticsearch6]|是||
 |address | 连接ES Http地址|是||
-|cluster | ES 集群名称 |是||
 |index | 选择的ES上的index名称|否||
-|esType | 选择ES上的type名称|否||
 |authMesh | 是否进行用户名密码认证 | 否 | false|
 |userName | 用户名 | 否，authMesh='true'时为必填 ||
 |password | 密码 | 否，authMesh='true'时为必填 ||
-| cache | 维表缓存策略(NONE/LRU)|否|NONE|
-| partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
+|cache | 维表缓存策略(NONE/LRU)|否|NONE|
+|partitionedJoin | 是否在維表join之前先根据 設定的key 做一次keyby操作(可以減少维表的数据缓存量)|否|false|
 |parallelism | 并行度设置|否|1|
   
-
 ----------
 > 缓存策略
-
 * NONE: 不做内存缓存
 * LRU:
     * cacheSize: 缓存的条目数量
@@ -66,7 +61,7 @@
 
 ## 5.样例
 
-```
+```sql
 create table sideTable(
     channel varchar,
     xccount int,
@@ -90,8 +85,6 @@ create table sideTable(
     parallelism ='1',
     partitionedJoin='false'
  );
-
-
 ```
 
 

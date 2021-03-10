@@ -4,12 +4,10 @@ CREATE TABLE tableName(
     colName colType,
     bb INT
  )WITH(
-    type ='elasticsearch6',
+    type ='elasticsearch7',
     address ='ip:port[,ip:port]',
-    cluster='clusterName',
-    esType ='esType',
     index ='index',
-    id ='num[,num]'(id = 'field[,field]'),
+    id = 'field[,field]',
     authMesh = 'true',
     userName = 'userName',
     password = 'password',
@@ -17,7 +15,7 @@ CREATE TABLE tableName(
  )
 ```
 ## 2.支持的版本
-   elasticsearch `6.x`
+   elasticsearch `7.x`
 
 ## 3.表结构定义
  
@@ -30,14 +28,12 @@ CREATE TABLE tableName(
 ## 4.参数：
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
-|type|表明 输出表类型[elasticsearch6]|是||
+|type|表明 输出表类型[elasticsearch7]|是||
 |address | 连接ES Http地址|是||
-|cluster | ES 集群名称 |是||
-|index | 选择的ES上的index名称|是||
-|esType | 选择ES上的type名称|是||
-|id | 生成id的规则(当前是根据指定的字段名称(或者字段position)获取字段信息,拼接生成id)|否||
-| |若id为空字符串或索引都超出范围，则随机生成id值)|||
-|authMesh | 是否进行用户名密码认证 | 否 | false|
+|index | 选择的ES上的index名称,支持静态索引和动态索引，动态索引示例: `{user_name}`|是||
+|index_definition| 为ES定义索引的字段类型、别名以及shard数量|否|
+|id | 生成id的规则，根据字段名称定义文档ID|否|uuid|
+|authMesh | 是否进行用户名密码认证（xpack） | 否 | false|
 |userName | 用户名 | 否，authMesh='true'时为必填 ||
 |password | 密码 | 否，authMesh='true'时为必填 ||
 |parallelism | 并行度设置|否|1|
@@ -46,8 +42,7 @@ CREATE TABLE tableName(
 ```
 CREATE TABLE MyTable(
     channel varchar,
-    pv INT,
-    xctime bigint
+    pv int,
  )WITH(
     type ='kafka11',
     bootstrapServers ='172.16.8.107:9092',
@@ -62,10 +57,10 @@ CREATE TABLE MyTable(
  );
 
 CREATE TABLE MyResult(
-    pv varchar,
-    channel varchar
+    channel varchar,
+    pv int
  )WITH(
-    type ='elasticsearch6',
+    type ='elasticsearch7',
     address ='172.16.8.193:9200',
     authMesh='true',
     username='elastic',
@@ -73,8 +68,8 @@ CREATE TABLE MyResult(
     estype ='external',
     cluster ='docker-cluster',
     index ='myresult',
+--  index = '{pv}' # 动态索引写法
     id ='pv',
---  id = '1' # 在支持position方式和属性名方式
     parallelism ='1'
  );
 
@@ -84,10 +79,8 @@ CREATE TABLE sideTable(
     PRIMARY KEY(a) ,
     PERIOD FOR SYSTEM_TIME
  )WITH(
-    type ='elasticsearch6',
+    type ='elasticsearch7',
     address ='172.16.8.193:9200',
-    estype ='external',
-    cluster ='docker-cluster',
     index ='sidetest',
     authMesh='true',
     username='elastic',
@@ -121,6 +114,6 @@ into
 ```
 ### 输出数据
 ```
-http://172.16.8.193:9200/myresult/_search
+http://localhost:9200/myresult/_search
 {"_index":"myresult","_type":"external","_id":"8aX_DHIBn3B7OBuqFl-i","_score":1.0,"_source":{"pv":"10","channel":"xc26"}}
 ```
