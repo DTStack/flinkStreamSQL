@@ -33,6 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -113,6 +115,10 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
         for (int i = 0; i < length; i++) {
             if (element.getField(i) instanceof Date) {
                 dataMap.put(fieldNames.get(i), DateUtil.transformSqlDateToUtilDate((Date) element.getField(i)));
+                continue;
+            }
+            if (element.getField(i) instanceof Timestamp) {
+                dataMap.put(fieldNames.get(i), ((Timestamp) element.getField(i)).getTime());
                 continue;
             }
             dataMap.put(fieldNames.get(i), element.getField(i));
