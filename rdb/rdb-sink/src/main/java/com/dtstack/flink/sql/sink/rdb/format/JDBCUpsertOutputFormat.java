@@ -210,16 +210,13 @@ public class JDBCUpsertOutputFormat extends AbstractJDBCOutputFormat<Tuple2<Bool
     public synchronized void flush() {
         try {
             jdbcWriter.executeBatch(connection);
-            batchCount = 0;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             String errorMsg = String.format(
                 "Writing records to JDBC failed. Cause: [%s]",
                 ExceptionTrace.traceOriginalCause(e));
-
-            ExceptionTrace.dealExceptionWithSuppressStart(
-                e,
-                errorMsg
-            );
+            throw new RuntimeException(errorMsg);
+        } finally {
+            batchCount = 0;
         }
     }
 
