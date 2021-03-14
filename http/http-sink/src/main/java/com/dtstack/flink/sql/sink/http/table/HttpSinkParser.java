@@ -36,7 +36,7 @@ public class HttpSinkParser extends AbstractTableParser {
         httpTableInfo.setName(tableName);
         parseFieldsInfo(fieldsInfo, httpTableInfo);
         httpTableInfo.setUrl(MathUtil.getString(props.get(HttpTableInfo.URL_KEY)));
-        httpTableInfo.setDelay(MathUtil.getIntegerVal(props.getOrDefault(HttpTableInfo.DELAY_KEY, 20)));
+        httpTableInfo.setDelay(MathUtil.getIntegerVal(props.getOrDefault(HttpTableInfo.DELAY_KEY, 50)));
         httpTableInfo.setFlag(MathUtil.getString(props.getOrDefault(HttpTableInfo.FLAG_KEY, "")));
         httpTableInfo.setMaxNumRetries(MathUtil.getIntegerVal(props.getOrDefault(HttpTableInfo.MAXNUMRETRIES_KEY, 3)));
 
