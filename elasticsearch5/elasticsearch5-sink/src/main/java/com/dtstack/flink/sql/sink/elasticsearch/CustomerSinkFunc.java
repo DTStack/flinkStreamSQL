@@ -20,6 +20,7 @@
 
 package com.dtstack.flink.sql.sink.elasticsearch;
 
+import com.dtstack.flink.sql.util.DateUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -32,6 +33,8 @@ import org.elasticsearch.client.Requests;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -100,6 +103,14 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
         Map<String, Object> dataMap = EsUtil.rowToJsonMap(element,fieldNames,fieldTypes);
         int length = Math.min(element.getArity(), fieldNames.size());
         for(int i=0; i<length; i++){
+            if (element.getField(i) instanceof Date) {
+                dataMap.put(fieldNames.get(i), DateUtil.transformSqlDateToUtilDate((Date) element.getField(i)));
+                continue;
+            }
+            if (element.getField(i) instanceof Timestamp) {
+                dataMap.put(fieldNames.get(i), ((Timestamp) element.getField(i)).getTime());
+                continue;
+            }
             dataMap.put(fieldNames.get(i), element.getField(i));
         }
 

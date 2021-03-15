@@ -103,6 +103,10 @@ public enum ColumnType {
      */
     TIMESTAMP,
     /**
+     * time eg: 23:59:59
+     */
+    TIME,
+    /**
      * decimal
      */
     DECIMAL;

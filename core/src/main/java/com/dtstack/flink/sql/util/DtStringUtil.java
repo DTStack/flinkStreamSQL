@@ -243,6 +243,9 @@ public class DtStringUtil {
             case DATE:
                 result = DateUtil.dateToString((java.util.Date)column);
                 break;
+            case TIME:
+                result = DateUtil.getTimeFromStr(String.valueOf(column));
+                break;
             case TIMESTAMP:
                 result = DateUtil.timestampToString((java.util.Date)column);
                 break;
