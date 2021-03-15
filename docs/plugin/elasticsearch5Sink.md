@@ -9,7 +9,7 @@ CREATE TABLE tableName(
     cluster='clusterName',
     estype ='esType',
     index ='index',
-    id ='num[,num]',
+    id ='num[,num]'(id = 'field[,field]'),
     parallelism ='1'
  )
 ```
@@ -27,19 +27,19 @@ CREATE TABLE tableName(
 ## 4.参数：
 |参数名称|含义|是否必填|默认值|
 |----|---|---|----|
-|type|表明 输出表类型[mysq&#124;hbase&#124;elasticsearch]|是||
-|address | 连接ES Transport地址(tcp地址)|是||
+|type|表明 输出表类型[mysq&#124;hbase&#124;elasticsearch]|是|elasticsearch|
+|address | 连接ES Transport地址(tcp地址)|是|9300|
 |cluster | ES 集群名称 |是||
 |index | 选择的ES上的index名称|是||
 |estype | 选择ES上的type名称|是||
-|id | 生成id的规则(当前是根据指定的字段pos获取字段信息,拼接生成id)|是||
-|authMesh | 是否进行用户名密码认证 | 否 | false|
+|id | 生成id的规则(当前是根据指定的字段名称(或者字段position)获取字段信息,拼接生成id)|否||
+|authMesh | 是否进行用户名密码认证(xpack认证) | 否 | false|
 |userName | 用户名 | 否，authMesh='true'时为必填 ||
 |password | 密码 | 否，authMesh='true'时为必填 ||
 |parallelism | 并行度设置|否|1|
   
 ## 5.样例：
-```
+```sql
 CREATE TABLE MyTable(
     channel varchar,
     pv varchar
@@ -61,14 +61,15 @@ CREATE TABLE MyResult(
     channel varchar
  )WITH(
     type ='elasticsearch',
-    address ='172.16.8.193:9200',
+    address ='172.16.8.193:9300',
     authMesh='true',
     username='elastic',
     password='abc123',
     estype ='external',
     cluster ='docker-cluster',
     index ='myresult',
-    id ='1',
+    id ='pv',
+--  id = '1' # 在支持position方式和属性名方式
     updateMode ='append',
     parallelism ='1'
  );

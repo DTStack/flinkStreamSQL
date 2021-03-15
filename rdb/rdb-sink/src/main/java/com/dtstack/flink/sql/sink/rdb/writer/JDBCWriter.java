@@ -18,7 +18,7 @@
 
 package com.dtstack.flink.sql.sink.rdb.writer;
 
-import com.dtstack.flink.sql.core.rdb.util.JdbcConnectUtil;
+import com.dtstack.flink.sql.core.rdb.util.JdbcConnectionUtil;
 import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -82,8 +82,8 @@ public interface JDBCWriter extends Serializable {
 								  Row row,
 								  long errorLimit,
 								  Logger LOG) {
-		JdbcConnectUtil.rollBack(connection);
-		JdbcConnectUtil.commit(connection);
+		JdbcConnectionUtil.rollBack(connection);
+		JdbcConnectionUtil.commit(connection);
 
 		if (metricOutputFormat.outDirtyRecords.getCount() % DIRTYDATA_PRINT_FREQUENTY == 0 ||
 			LOG.isDebugEnabled()) {
@@ -93,18 +93,12 @@ public interface JDBCWriter extends Serializable {
 					row.toString(),
 					ExceptionTrace.traceOriginalCause(e)));
 		}
+		metricOutputFormat.outDirtyRecords.inc();
 
 		if (errorLimit > -1) {
 			if (metricOutputFormat.outDirtyRecords.getCount() > errorLimit) {
-				throw new SuppressRestartsException(
-					new Throwable(
-						String.format("dirty data Count: [%s]. Error cause: [%s]",
-							metricOutputFormat.outDirtyRecords.getCount(),
-							ExceptionTrace.traceOriginalCause(e)))
-				);
+				throw new SuppressRestartsException(e);
 			}
 		}
-
-		metricOutputFormat.outDirtyRecords.inc();
 	}
 }

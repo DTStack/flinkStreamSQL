@@ -20,6 +20,7 @@
 package com.dtstack.flink.sql.sink.hbase;
 
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Maps;
@@ -240,12 +241,12 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
         } finally {
             // 判断数据是否插入成功
             for (int i = 0; i < results.length; i++) {
-                if (results[i] != null) {
+                if (results[i] instanceof Exception) {
                     dirtyDataManager.execute();
                     // 脏数据记录
                     dirtyDataManager.collectDirtyData(
-                            records.get(i).toString(),
-                            ((Exception) results[i]).getMessage()
+                        records.get(i).toString(),
+                        ExceptionTrace.traceOriginalCause((Exception) results[i])
                     );
                     outDirtyRecords.inc();
                 } else {
@@ -273,8 +274,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             }
         } catch (Exception e) {
             dirtyDataManager.collectDirtyData(
-                    record.toString()
-                    , e.getMessage());
+                record.toString(),
+                ExceptionTrace.traceOriginalCause(e));
             outDirtyRecords.inc();
         }
 
@@ -347,6 +348,10 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
         if (conn != null) {
             conn.close();
             conn = null;
+        }
+
+        if (dirtyDataManager != null) {
+            dirtyDataManager.close();
         }
     }
 

@@ -137,12 +137,14 @@ public abstract class BaseSideInfo implements Serializable{
         if (leftNode.getKind() == SqlKind.LITERAL) {
             evalConstantEquation(
                 (SqlLiteral) leftNode,
-                (SqlIdentifier) rightNode
+                (SqlIdentifier) rightNode,
+                sqlNode.getKind()
             );
         } else if (rightNode.getKind() == SqlKind.LITERAL) {
             evalConstantEquation(
                 (SqlLiteral) rightNode,
-                (SqlIdentifier) leftNode
+                (SqlIdentifier) leftNode,
+                sqlNode.getKind()
             );
         } else {
             SqlIdentifier left = (SqlIdentifier) leftNode;
@@ -179,20 +181,19 @@ public abstract class BaseSideInfo implements Serializable{
      * @param literal
      * @param identifier
      */
-    private void evalConstantEquation(SqlLiteral literal, SqlIdentifier identifier) {
+    private void evalConstantEquation(SqlLiteral literal, SqlIdentifier identifier, SqlKind sqlKind) {
         String tableName = identifier.getComponent(0).getSimple();
         checkSupport(identifier);
         String fieldName = identifier.getComponent(1).getSimple();
         Object constant = literal.getValue();
-        List<PredicateInfo> predicateInfos = sideTableInfo.getPredicateInfoes();
         PredicateInfo predicate = PredicateInfo.builder()
-            .setOperatorName("=")
-            .setOperatorKind("EQUALS")
+            .setOperatorName(sqlKind.sql)
+            .setOperatorKind(sqlKind.name())
             .setOwnerTable(tableName)
             .setFieldName(fieldName)
             .setCondition(constant.toString())
             .build();
-        predicateInfos.add(predicate);
+        sideTableInfo.addPredicateInfo(predicate);
     }
 
     private void checkSupport(SqlIdentifier identifier) {
