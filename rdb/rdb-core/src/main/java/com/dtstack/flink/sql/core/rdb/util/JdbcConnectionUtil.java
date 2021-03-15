@@ -38,11 +38,11 @@ import java.util.Objects;
  * Date 2020-12-25
  * Company dtstack
  */
-public class JdbcConnectUtil {
+public class JdbcConnectionUtil {
     private static final int DEFAULT_RETRY_NUM = 3;
     private static final long DEFAULT_RETRY_TIME_WAIT = 3L;
     private static final int DEFAULT_VALID_TIME = 10;
-    private static final Logger LOG = LoggerFactory.getLogger(JdbcConnectUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcConnectionUtil.class);
 
     /**
      * 关闭连接资源
@@ -137,7 +137,7 @@ public class JdbcConnectUtil {
                 + "\nerror message: ");
         String errorCause = null;
 
-        ClassLoaderManager.forName(driverName, JdbcConnectUtil.class.getClassLoader());
+        ClassLoaderManager.forName(driverName, JdbcConnectionUtil.class.getClassLoader());
         Preconditions.checkNotNull(url, "url can't be null!");
 
         for (int i = 0; i < DEFAULT_RETRY_NUM; i++) {

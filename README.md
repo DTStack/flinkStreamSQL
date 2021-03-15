@@ -41,5 +41,7 @@ FlinkStreamSQL
 
 ## 如何贡献FlinkStreamSQL
 
+[pr规范](docs/pr.md)
+
 ## License
 FlinkStreamSQL is under the Apache 2.0 license. See the [LICENSE](http://www.apache.org/licenses/LICENSE-2.0) file for details.    
