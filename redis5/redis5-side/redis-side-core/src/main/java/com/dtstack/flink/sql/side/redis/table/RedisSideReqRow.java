@@ -29,6 +29,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 /**
  * redis fill row data
@@ -40,6 +41,8 @@ import java.util.TimeZone;
 public class RedisSideReqRow implements ISideReqRow, Serializable {
 
     private static final long serialVersionUID = 3751171828444748982L;
+
+    public static final Pattern HOST_PORT_PATTERN = Pattern.compile("(?<host>(.*)):(?<port>\\d+)*");
 
     private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
