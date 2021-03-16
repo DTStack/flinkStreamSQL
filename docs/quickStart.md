@@ -65,7 +65,7 @@ sh submit.sh
   -yarnconf F:\dtstack\flinkStreamSql\localhost\hadoop
   -flinkJarPath F:\Java\flink-1.8.2-bin-scala_2.12\flink-1.8.2\lib
   -pluginLoadMode shipfile
-  -confProp {\"time.characteristic\":\"eventTime\",\"logLevel\":\"info\"}
+  -confProp "{\"time.characteristic\":\"eventTime\",\"logLevel\":\"info\"}"
 ```
 
 #### yarn模式命令
@@ -95,7 +95,7 @@ sh submit.sh
   -yarnconf /home/wen/Desktop/flink_stream_sql_conf/yarnConf_node1
   -flinkJarPath /home/wen/Desktop/dtstack/flink-1.8.1/lib
   -pluginLoadMode shipfile
-  -confProp {\"time.characteristic\":\"eventTime\",\"logLevel\":\"info\"}
+  -confProp "{\"time.characteristic\":\"eventTime\",\"logLevel\":\"info\"}"
   -queue c
 ```
 参数具体细节请看[命令参数说明](./config.md)
