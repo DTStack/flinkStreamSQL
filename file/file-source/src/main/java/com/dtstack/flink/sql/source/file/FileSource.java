@@ -23,7 +23,6 @@ import com.dtstack.flink.sql.source.file.table.FileSourceTableInfo;
 import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.runtime.execution.SuppressRestartsException;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -40,12 +39,13 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Locale;
-import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author tiezhu
@@ -63,23 +63,13 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
     /**
      * Flag to mark the main work loop as alive.
      */
-    private volatile boolean running = true;
+    private final AtomicBoolean running = new AtomicBoolean(true);
 
-    private FileSourceTableInfo fileSourceTableInfo;
+    private URI fileUri;
 
     private InputStream inputStream;
 
-    public void setDeserializationSchema(DeserializationSchema<Row> deserializationSchema) {
-        this.deserializationSchema = deserializationSchema;
-    }
-
-    public void setFileSourceTableInfo(FileSourceTableInfo fileSourceTableInfo) {
-        this.fileSourceTableInfo = fileSourceTableInfo;
-    }
-
-    public FileSourceTableInfo getFileSourceTableInfo() {
-        return fileSourceTableInfo;
-    }
+    private String charset;
 
     @Override
     public Table genStreamSource(AbstractSourceTableInfo sourceTableInfo,
@@ -87,89 +77,94 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
                                  StreamTableEnvironment tableEnv) {
         FileSource fileSource = new FileSource();
         FileSourceTableInfo tableInfo = (FileSourceTableInfo) sourceTableInfo;
-        fileSource.setFileSourceTableInfo(tableInfo);
-        fileSource.setDeserializationSchema(tableInfo.buildDeserializationSchema());
 
-        TypeInformation<Row> rowTypeInformation = tableInfo.getRowTypeInformation();
-        String operatorName = tableInfo.getOperatorName();
+        DataStreamSource<?> source = fileSource.initDataStream(tableInfo, env);
+        String fields = StringUtils.join(tableInfo.getFields(), ",");
 
-        DataStreamSource<?> source = env.addSource(fileSource, operatorName, rowTypeInformation);
-
-        String fields = StringUtils.join(fileSource.getFileSourceTableInfo().getFields(), ",");
         return tableEnv.fromDataStream(source, fields);
+    }
+
+    public DataStreamSource<?> initDataStream(FileSourceTableInfo tableInfo,
+                                              StreamExecutionEnvironment env) {
+        deserializationSchema = tableInfo.getDeserializationSchema();
+        fileUri = URI.create(tableInfo.getFilePath() + SP + tableInfo.getFileName());
+        charset = tableInfo.getCharsetName();
+        return env.addSource(
+            this,
+            tableInfo.getOperatorName(),
+            tableInfo.buildRowTypeInfo());
     }
 
     /**
      * 根据存储位置的不同，获取不同的input stream
      *
-     * @param sourceTableInfo source table info
+     * @param fileUri file uri
      * @return input stream
-     * @throws Exception reader exception
      */
-    private InputStream getInputStream(FileSourceTableInfo sourceTableInfo) throws Exception {
-        switch (sourceTableInfo.getLocation().toLowerCase(Locale.ROOT)) {
-            case "local":
-                return fromLocalFile(sourceTableInfo);
-            case "hdfs":
-                return fromHdfsFile(sourceTableInfo);
-            default:
-                throw new IllegalArgumentException();
+    private InputStream getInputStream(URI fileUri) {
+        try {
+            String scheme = fileUri.getScheme() == null ? "local" : fileUri.getScheme();
+            switch (scheme.toLowerCase(Locale.ROOT)) {
+                case "local":
+                    return fromLocalFile(fileUri);
+                case "hdfs":
+                    return fromHdfsFile(fileUri);
+                default:
+                    throw new UnsupportedOperationException(
+                        String.format("Unsupported type [%s] of file.", scheme)
+                    );
+            }
+        } catch (IOException e) {
+            throw new SuppressRestartsException(e);
         }
     }
 
     /**
      * 从HDFS上获取文件内容
      *
-     * @param sourceTableInfo source table info
+     * @param fileUri file uri of file
      * @return hdfs file input stream
-     * @throws Exception reader exception
+     * @throws IOException reader exception
      */
-    private InputStream fromHdfsFile(FileSourceTableInfo sourceTableInfo) throws Exception {
-        String filePath = sourceTableInfo.getFilePath();
-        String fileName = sourceTableInfo.getFileName();
-        String path = filePath + SP + fileName;
-
+    private InputStream fromHdfsFile(URI fileUri) throws IOException {
         Configuration conf = new Configuration();
-        conf.addResource(new Path(sourceTableInfo.getHdfsSite()));
-        conf.addResource(new Path(sourceTableInfo.getCoreSite()));
-        FileSystem fs = FileSystem.newInstance(new URI(filePath), conf, sourceTableInfo.getHdfsUser());
-        return fs.open(new Path(path));
+
+        // get conf from HADOOP_CONF_DIR
+        String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
+        String confHome = hadoopConfDir == null ? "." : hadoopConfDir;
+
+        conf.addResource(new Path(confHome + SP + "hdfs-site.xml"));
+
+        FileSystem fs = FileSystem.get(fileUri, conf);
+        return fs.open(new Path(fileUri.getPath()));
     }
 
     /**
      * 从本地获取文件内容
      *
-     * @param sourceTableInfo source table
+     * @param fileUri file uri of file
      * @return local file input stream
-     * @throws Exception read exception
+     * @throws FileNotFoundException read exception
      */
-    private InputStream fromLocalFile(FileSourceTableInfo sourceTableInfo) throws Exception {
-        String filePath = sourceTableInfo.getFilePath();
-        String fileName = sourceTableInfo.getFileName();
-        String path = filePath + SP + fileName;
-        File file = new File(path);
+    private InputStream fromLocalFile(URI fileUri) throws FileNotFoundException {
+        File file = new File(fileUri.getPath());
         if (file.exists()) {
             return new FileInputStream(file);
         } else {
             throw new SuppressRestartsException(new IOException(
-                String.format(
-                    "File [%s] not exist. File path: [%s]",
-                    sourceTableInfo.getFileName(),
-                    sourceTableInfo.getFilePath())
-            ));
+                String.format("File not exist. File path: [%s]", fileUri.getPath())));
         }
     }
 
-
     @Override
     public void run(SourceContext<Row> ctx) throws Exception {
-        inputStream = getInputStream(fileSourceTableInfo);
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        inputStream = getInputStream(fileUri);
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, charset));
 
-        while (running) {
+        while (running.get()) {
             String line = bufferedReader.readLine();
             if (line == null) {
-                running = false;
+                running.compareAndSet(true, false);
                 inputStream.close();
                 break;
             } else {
@@ -182,8 +177,8 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
     @Override
     public void cancel() {
         LOG.info("File source cancel..");
-        running = false;
-        if (Objects.nonNull(inputStream)) {
+        running.compareAndSet(true, false);
+        if (inputStream != null) {
             try {
                 inputStream.close();
             } catch (IOException ioException) {

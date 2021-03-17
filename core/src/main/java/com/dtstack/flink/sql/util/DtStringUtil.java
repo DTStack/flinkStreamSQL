@@ -21,10 +21,11 @@
 package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.enums.ColumnType;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.util.Preconditions;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -46,7 +47,7 @@ public class DtStringUtil {
 
     private static final Pattern NO_VERSION_PATTERN = Pattern.compile("([a-zA-Z]+).*");
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Split the specified string delimiter --- ignored quotes delimiter
@@ -253,11 +254,11 @@ public class DtStringUtil {
     }
 
     public static String getPluginTypeWithoutVersion(String engineType) {
+        Preconditions.checkNotNull(engineType, "type can't be null!");
+
         Matcher matcher = NO_VERSION_PATTERN.matcher(engineType);
 
-        if (!engineType.equals("kafka")) {
-            return engineType;
-        } else if (!matcher.find()) {
+        if (!matcher.find()) {
             return engineType;
         }
 

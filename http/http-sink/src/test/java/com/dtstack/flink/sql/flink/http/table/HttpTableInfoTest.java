@@ -16,53 +16,44 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.source.file.table;
+package com.dtstack.flink.sql.flink.http.table;
 
-import com.dtstack.flink.sql.table.AbstractSourceParser;
+import com.dtstack.flink.sql.sink.http.table.HttpSinkParser;
+import com.dtstack.flink.sql.sink.http.table.HttpTableInfo;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.formats.csv.CsvRowDeserializationSchema;
-import org.apache.flink.types.Row;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author tiezhu
- * @date 2021/3/10 星期三
+ * @date 2021/3/18 星期四
  * Company dtstack
  */
-public class FileSourceTableInfoTest {
-    private static final AbstractSourceParser parser = new FileSourceParser();
-    Map<String, Object> props;
+public class HttpTableInfoTest {
+    private static final HttpSinkParser parser = new HttpSinkParser();
+    private HashMap<String, Object> map;
 
     @Before
     public void setUp() {
-        props = new HashMap<>();
-        props.put("format", "csv");
-        props.put("type", "file");
-        props.put("filename", "testFile");
-        props.put("filepath", "./");
+        map = new HashMap<>();
+        map.put("type", "http");
+        map.put("url", "localhost:9999");
+        map.put("delay", "20");
+        map.put("flag", "7f8717b2-110c-4012-8e3c-c1965e84ee75");
     }
 
     @Test
-    public void testGetTableInfoWithCsv() throws Exception {
+    public void parsePropertiesAndGetTableInfo() throws Exception {
         AbstractTableInfo tableInfo = parser.getTableInfo(
             "Test",
             "id int, name string",
-            props
+            map
         );
-        FileSourceTableInfo fileSourceTableInfo = (FileSourceTableInfo) tableInfo;
-        TypeInformation<Row> information = fileSourceTableInfo.buildRowTypeInfo();
-        System.out.println(information);
-        Assert.assertEquals(fileSourceTableInfo.getOperatorName(), "testFile_Test");
-        Assert.assertEquals(
-            CsvRowDeserializationSchema.class,
-            fileSourceTableInfo.getDeserializationSchema().getClass()
-        );
+        HttpTableInfo httpTableInfo = (HttpTableInfo) tableInfo;
+        Assert.assertEquals("http", httpTableInfo.getType());
+        Assert.assertEquals(20, httpTableInfo.getDelay());
     }
-
 }

@@ -22,11 +22,9 @@ package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.dirtyManager.consumer.DirtyConsumerFactory;
 import com.dtstack.flink.sql.enums.EPluginLoadMode;
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,7 +126,11 @@ public class PluginUtil {
         return objectMapper.readValue(objectMapper.writeValueAsBytes(obj), Map.class);
     }
 
-    public static <T> T jsonStrToObject(String jsonStr, Class<T> clazz) throws JsonParseException, JsonMappingException, JsonGenerationException, IOException{
+    public static String objectToString(Object obj) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(obj);
+    }
+
+    public static <T> T jsonStrToObject(String jsonStr, Class<T> clazz) throws IOException{
         return  objectMapper.readValue(jsonStr, clazz);
     }
 

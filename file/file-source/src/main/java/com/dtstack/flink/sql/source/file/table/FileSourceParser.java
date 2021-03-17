@@ -18,10 +18,14 @@
 
 package com.dtstack.flink.sql.source.file.table;
 
+import com.dtstack.flink.sql.source.file.FileSourceConstant;
 import com.dtstack.flink.sql.table.AbstractSourceParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.types.Row;
 
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -34,154 +38,55 @@ public class FileSourceParser extends AbstractSourceParser {
     public AbstractTableInfo getTableInfo(String tableName,
                                           String fieldsInfo,
                                           Map<String, Object> props) throws Exception {
-        FileSourceTableInfo fileSourceTableInfo = new FileSourceTableInfo();
+        FileSourceTableInfo tableInfo = new FileSourceTableInfo();
 
-        fileSourceTableInfo.setName(tableName);
-        parseFieldsInfo(fieldsInfo, fileSourceTableInfo);
+        tableInfo.setName(tableName);
+        parseFieldsInfo(fieldsInfo, tableInfo);
 
-        fileSourceTableInfo.setType(
-            MathUtil.getString(
-                props.get(FileSourceTableInfo.TYPE_KEY.toLowerCase())
-            )
-        );
+        tableInfo.setType(MathUtil.getString(props.get(FileSourceConstant.TYPE_KEY.toLowerCase())));
+        tableInfo.setFormat(MathUtil.getString(props.getOrDefault(FileSourceConstant.FORMAT_KEY.toLowerCase(), FileSourceConstant.DEFAULT_FILE_FORMAT)));
+        tableInfo.setFileName(MathUtil.getString(props.get(FileSourceConstant.FILE_NAME_KEY.toLowerCase())));
+        tableInfo.setFilePath(MathUtil.getString(props.getOrDefault(FileSourceConstant.FILE_PATH_KEY.toLowerCase(), FileSourceConstant.DEFAULT_PATH)));
+        tableInfo.setCharsetName(MathUtil.getString(props.getOrDefault(FileSourceConstant.CHARSET_NAME_KEY.toLowerCase(), FileSourceConstant.DEFAULT_CHARSET)));
 
-        fileSourceTableInfo.setFilePath(
-            MathUtil.getString(
-                props.get(FileSourceTableInfo.FILE_PATH_KEY.toLowerCase())
-            )
-        );
+        DeserializationSchema<Row> rowDeserializationSchema = deserializationSchemaFactory(tableInfo, props);
+        tableInfo.setDeserializationSchema(rowDeserializationSchema);
 
-        fileSourceTableInfo.setFileName(
-            MathUtil.getString(
-                props.get(FileSourceTableInfo.FILE_NAME_KEY.toLowerCase())
-            )
-        );
+        tableInfo.check();
 
-        fileSourceTableInfo.setFieldDelimiter(
-            MathUtil.getChar(
-                props.getOrDefault(
-                    FileSourceTableInfo.FIELD_DELIMITER_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_DELIMITER)
-            )
-        );
+        return tableInfo;
+    }
 
-        fileSourceTableInfo.setFormat(
-            MathUtil.getString(
-                props.getOrDefault(
-                    FileSourceTableInfo.FORMAT_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_FILE_FORMAT
-                )
-            )
-        );
+    private DeserializationSchema<Row> deserializationSchemaFactory(FileSourceTableInfo tableInfo,
+                                                                    Map<String, Object> props) {
+        String format = tableInfo.getFormat();
+        switch (format.toLowerCase(Locale.ROOT)) {
+            case "csv":
+                return CsvSourceTableInfo
+                    .newBuilder()
+                    .setTypeInformation(tableInfo.buildRowTypeInfo())
+                    .setIgnoreParseErrors(MathUtil.getBoolean(props.getOrDefault(FileSourceConstant.IGNORE_PARSER_ERROR.toLowerCase(), FileSourceTableInfo.DEFAULT_TRUE)))
+                    .setFieldDelimiter(MathUtil.getChar(props.getOrDefault(FileSourceConstant.FIELD_DELIMITER_KEY.toLowerCase(), FileSourceConstant.DEFAULT_DELIMITER)))
+                    .setNullLiteral(MathUtil.getString(props.getOrDefault(FileSourceConstant.NULL_LITERAL_KEY.toLowerCase(), FileSourceConstant.DEFAULT_NULL_LITERAL)))
+                    .setAllowComment(MathUtil.getBoolean(props.getOrDefault(FileSourceConstant.ALLOW_COMMENT_KEY.toLowerCase(), FileSourceTableInfo.DEFAULT_TRUE)))
+                    .setArrayElementDelimiter(MathUtil.getString(props.getOrDefault(FileSourceConstant.ARRAY_ELEMENT_DELIMITER_KEY.toLowerCase(), FileSourceConstant.DEFAULT_DELIMITER)))
+                    .setQuoterCharacter(MathUtil.getChar(props.getOrDefault(FileSourceConstant.QUOTA_CHARACTER_KEY.toLowerCase(), FileSourceConstant.DEFAULT_QUOTE_CHAR)))
+                    .setEscapeCharacter(MathUtil.getChar(props.getOrDefault(FileSourceConstant.ESCAPE_CHARACTER_KEY.toLowerCase(), FileSourceConstant.DEFAULT_ESCAPE_CHAR)))
+                    .buildCsvDeserializationSchema();
 
-        fileSourceTableInfo.setAvroFormat(
-            MathUtil.getString(
-                props.get(FileSourceTableInfo.AVRO_FORMAT_KEY.toLowerCase()
-                )
-            )
-        );
-
-        fileSourceTableInfo.setCharsetName(
-            MathUtil.getString(
-                props.getOrDefault(
-                    FileSourceTableInfo.CHARSET_NAME_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_CHARSET
-                )
-            )
-        );
-
-        fileSourceTableInfo.setIgnoreParseErrors(
-            MathUtil.getBoolean(
-                props.getOrDefault(
-                    FileSourceTableInfo.IGNORE_PARSER_ERROR.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_TRUE
-                )
-            )
-        );
-
-        fileSourceTableInfo.setNullLiteral(
-            MathUtil.getString(
-                props.getOrDefault(
-                    FileSourceTableInfo.NULL_LITERAL_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_NULL_LITERAL
-                )
-            )
-        );
-
-        fileSourceTableInfo.setAllowComments(
-            MathUtil.getBoolean(
-                props.getOrDefault(
-                    FileSourceTableInfo.ALLOW_COMMENT_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_TRUE
-                )
-            )
-        );
-
-        fileSourceTableInfo.setArrayElementDelimiter(
-            MathUtil.getString(
-                props.getOrDefault(
-                    FileSourceTableInfo.ARRAY_ELEMENT_DELIMITER_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_ARRAY_ELEMENT_SEPARATOR
-                )
-            )
-        );
-
-        fileSourceTableInfo.setQuoteCharacter(
-            MathUtil.getChar(
-                props.getOrDefault(
-                    FileSourceTableInfo.QUOTA_CHARACTER_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_QUOTE_CHAR
-                )
-            )
-        );
-
-        fileSourceTableInfo.setEscapeCharacter(
-            MathUtil.getChar(
-                props.getOrDefault(
-                    FileSourceTableInfo.ESCAPE_CHARACTER_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_ESCAPE_CHAR
-                )
-            )
-        );
-
-        fileSourceTableInfo.setLocation(
-            MathUtil.getString(
-                props.getOrDefault(
-                    FileSourceTableInfo.LOCATION_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_LOCATION
-                )
-            )
-        );
-
-        fileSourceTableInfo.setHdfsSite(
-            MathUtil.getString(
-                props.getOrDefault(
-                    FileSourceTableInfo.HDFS_SITE_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_HDFS_SITE
-                )
-            )
-        );
-
-        fileSourceTableInfo.setCoreSite(
-            MathUtil.getString(
-                props.getOrDefault(
-                    FileSourceTableInfo.CORE_SITE_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_CORE_SITE
-                )
-            )
-        );
-
-        fileSourceTableInfo.setHdfsUser(
-            MathUtil.getString(
-                props.getOrDefault(
-                    FileSourceTableInfo.HDFS_USER_KEY.toLowerCase(),
-                    FileSourceTableInfo.DEFAULT_HDFS_USER
-                )
-            )
-        );
-
-        fileSourceTableInfo.check();
-
-        return fileSourceTableInfo;
+            case "json":
+                return JsonSourceTableInfo
+                    .newBuilder()
+                    .setTypeInformation(tableInfo.buildRowTypeInfo())
+                    .buildCsvDeserializationSchema();
+            case "arvo":
+                return ArvoSourceTableInfo
+                    .newBuilder()
+                    .setTypeInformation(tableInfo.buildRowTypeInfo())
+                    .setArvoFormat(MathUtil.getString(props.get(FileSourceConstant.AVRO_FORMAT_KEY.toLowerCase())))
+                    .buildCsvDeserializationSchema();
+            default:
+                throw new IllegalStateException("Unexpected value: " + format);
+        }
     }
 }

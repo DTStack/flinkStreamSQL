@@ -107,6 +107,18 @@
 
         <dependency>
             <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.http</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
+            <artifactId>sql.sink.http</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dtstack.flink</groupId>
             <artifactId>sql.sink.kudu</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
