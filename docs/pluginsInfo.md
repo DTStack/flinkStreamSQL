@@ -19,6 +19,7 @@
 * [impala 结果表插件](plugin/impalaSink.md)
 * [db2 结果表插件](plugin/db2Sink.md)
 * [sqlserver 结果表插件](plugin/sqlserverSink.md)
+* [http 结果表插件](plugin/httpSink.md)
 
 #### 1.3 维表插件
 * [hbase 维表插件](plugin/hbaseSide.md)
