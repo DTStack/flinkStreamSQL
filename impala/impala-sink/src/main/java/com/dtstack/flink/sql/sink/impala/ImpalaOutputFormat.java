@@ -589,7 +589,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             if (DtStringUtil.isEmptyOrNull(rowField)) {
                 valuesCondition = valuesCondition.replaceFirst("'\\?'", "null");
             } else {
-                valuesCondition = valuesCondition.replaceFirst("\\?", rowField.toString());
+                valuesCondition = valuesCondition.replaceFirst("\\?", Matcher.quoteReplacement(rowField.toString()));
             }
         }
         return "(" + valuesCondition + ")";
