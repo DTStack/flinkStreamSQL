@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ThreadUtil {
     public static final Long DEFAULT_SLEEP_TIME = 10L;
+
     public static void sleepSeconds(long timeout) {
         try {
             TimeUnit.SECONDS.sleep(timeout);
@@ -48,6 +49,14 @@ public class ThreadUtil {
             TimeUnit.MICROSECONDS.sleep(timeout);
         } catch (InterruptedException ie) {
             throw new RuntimeException(ie);
+        }
+    }
+
+    public static void sleepMilliseconds(long timeout) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(timeout);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }
