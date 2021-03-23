@@ -21,15 +21,17 @@
 package com.dtstack.flink.sql.util;
 
 import com.dtstack.flink.sql.enums.ColumnType;
-import org.apache.commons.lang3.StringUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.sql.Timestamp;
+import org.apache.commons.lang3.StringUtils;
+
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -204,7 +206,6 @@ public class DtStringUtil {
         return b.toString();
     }
 
-
     public static String col2string(Object column, String type) {
         String rowData = column.toString();
         ColumnType columnType = ColumnType.valueOf(type.toUpperCase());
@@ -241,6 +242,9 @@ public class DtStringUtil {
                 break;
             case DATE:
                 result = DateUtil.dateToString((java.util.Date)column);
+                break;
+            case TIME:
+                result = DateUtil.getTimeFromStr(String.valueOf(column));
                 break;
             case TIMESTAMP:
                 result = DateUtil.timestampToString((java.util.Date)column);
@@ -374,8 +378,7 @@ public class DtStringUtil {
             return addQuoteForStr(tableName);
         }
 
-        String schemaAndTabName = addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
-        return schemaAndTabName;
+        return addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
     }
 
     /**
@@ -412,5 +415,15 @@ public class DtStringUtil {
     public static String removeStartAndEndQuota(String str) {
         String removeStart = StringUtils.removeStart(str, "'");
         return StringUtils.removeEnd(removeStart, "'");
+    }
+
+    /**
+     * 判断当前对象是null 还是空
+     *
+     * @param obj 需要判断的对象
+     * @return 返回true 如果对象是空或者为null
+     */
+    public static boolean isEmptyOrNull(Object obj) {
+        return Objects.isNull(obj) || obj.toString().isEmpty();
     }
 }

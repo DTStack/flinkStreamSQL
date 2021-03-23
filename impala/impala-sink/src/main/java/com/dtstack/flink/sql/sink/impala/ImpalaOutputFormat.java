@@ -18,10 +18,12 @@
 
 package com.dtstack.flink.sql.sink.impala;
 
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.dtstack.flink.sql.sink.rdb.JDBCTypeConvertUtils;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.JDBCUtils;
 import com.dtstack.flink.sql.util.KrbUtils;
 import com.google.common.collect.Maps;
@@ -41,7 +43,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,8 +73,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
     // ${field}
     private static final Pattern STATIC_PARTITION_PATTERN = Pattern.compile("\\$\\{([^}]*)}");
-    // cast(value as string) -> cast('value' as string)  cast(value as timestamp) -> cast('value' as timestamp)
-    private static final Pattern TYPE_PATTERN = Pattern.compile("cast\\((.*) as (.*)\\)");
     //specific type which values need to be quoted
     private static final String[] NEED_QUOTE_TYPE = {"string", "timestamp", "varchar"};
 
@@ -178,27 +177,20 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             if (!storeType.equalsIgnoreCase(KUDU_TYPE)) {
                 throw new IllegalArgumentException("update mode not support for non-kudu table!");
             }
-
             updateStatement = connection.prepareStatement(buildUpdateSql(schema, tableName, fieldNames, primaryKeys));
-            return;
+        } else {
+            valueFieldNames = rebuildFieldNameListAndTypeList(fieldNames, staticPartitionFields, fieldTypes, partitionFields);
         }
-
-        valueFieldNames = rebuildFieldNameListAndTypeList(fieldNames, staticPartitionFields, fieldTypes, partitionFields);
     }
 
     private void initScheduledTask(Long batchWaitInterval) {
         try {
             if (batchWaitInterval != 0) {
                 this.scheduler = new ScheduledThreadPoolExecutor(1,
-                        new DTThreadFactory("impala-upsert-output-format"));
+                    new DTThreadFactory("impala-upsert-output-format"));
                 this.scheduledFuture = this.scheduler.scheduleWithFixedDelay(() -> {
                     synchronized (ImpalaOutputFormat.this) {
-                        try {
-                            flush();
-                        } catch (Exception e) {
-                            LOG.error("Writing records to impala jdbc failed.", e);
-                            throw new RuntimeException("Writing records to impala jdbc failed.", e);
-                        }
+                        flush();
                     }
                 }, batchWaitInterval, batchWaitInterval, TimeUnit.MILLISECONDS);
             }
@@ -237,16 +229,16 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         }
     }
 
-    private void flush() throws Exception {
-        if (batchCount > 0) {
-            if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
-                executeUpdateBatch();
-            }
-            if (!rowDataMap.isEmpty()) {
-                String templateSql =
+    private synchronized void flush() {
+        try {
+            if (batchCount > 0) {
+                if (updateMode.equalsIgnoreCase(UPDATE_MODE)) {
+                    executeUpdateBatch();
+                }
+                if (!rowDataMap.isEmpty()) {
+                    String templateSql =
                         "INSERT INTO tableName ${tableFieldsCondition} PARTITION ${partitionCondition} VALUES ${valuesCondition}";
-                executeBatchSql(
-                        statement,
+                    executeBatchSql(
                         templateSql,
                         schema,
                         tableName,
@@ -255,12 +247,15 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                         valueFieldNames,
                         partitionFields,
                         rowDataMap
-                );
-                rowDataMap.clear();
+                    );
+                    rowDataMap.clear();
+                }
             }
+            batchCount = 0;
+        } catch (Exception e) {
+            LOG.error("Writing records to impala jdbc failed.", e);
+            throw new RuntimeException("Writing records to impala jdbc failed.", e);
         }
-        batchCount = 0;
-
     }
 
     /**
@@ -273,10 +268,10 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             rows.forEach(row -> {
                 try {
                     JDBCTypeConvertUtils.setRecordToStatement(
-                            updateStatement,
-                            JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypes),
-                            row,
-                            primaryKeys.stream().mapToInt(fieldNames::indexOf).toArray()
+                        updateStatement,
+                        JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypes),
+                        row,
+                        primaryKeys.stream().mapToInt(fieldNames::indexOf).toArray()
                     );
                     updateStatement.addBatch();
                 } catch (Exception e) {
@@ -288,8 +283,8 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             rows.clear();
         } catch (Exception e) {
             LOG.debug("impala jdbc execute batch error ", e);
-            connection.rollback();
-            connection.commit();
+            JDBCUtils.rollBack(connection);
+            JDBCUtils.commit(connection);
             updateStatement.clearBatch();
             executeUpdate(connection);
         }
@@ -300,14 +295,10 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
             try {
                 setRecordToStatement(updateStatement, JDBCTypeConvertUtils.getSqlTypeFromFieldType(fieldTypes), row);
                 updateStatement.executeUpdate();
-                connection.commit();
+                JDBCUtils.commit(connection);
             } catch (Exception e) {
-                try {
-                    connection.rollback();
-                    connection.commit();
-                } catch (SQLException e1) {
-                    throw new RuntimeException(e1);
-                }
+                JDBCUtils.rollBack(connection);
+                JDBCUtils.commit(connection);
                 if (metricOutputFormat.outDirtyRecords.getCount() % DIRTY_DATA_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
                     LOG.error("record insert failed ,this row is {}", row.toString());
                     LOG.error("", e);
@@ -331,7 +322,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     }
 
     private List<String> rebuildFieldNameListAndTypeList(List<String> fieldNames, List<String> staticPartitionFields, List<String> fieldTypes, String partitionFields) {
-        if (partitionFields.isEmpty()) {
+        if (partitionFields == null || partitionFields.isEmpty()) {
             return fieldNames;
         }
 
@@ -352,40 +343,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         }
 
         return valueFields;
-    }
-
-    /**
-     * Quote a specific type of value, like string, timestamp
-     * before: 1, cast(tiezhu as string), cast(2001-01-09 01:05:01 as timestamp), cast(123 as int)
-     * after: 1, cast('tiezhu' as string), cast('2001-01-09 01:05:01' as timestamp), cast(123 as int)
-     * if cast value is null, then cast(null as type)
-     *
-     * @param valueCondition original value condition
-     * @return quoted condition
-     */
-    private String valueConditionAddQuotation(String valueCondition) {
-        String[] temps = valueCondition.split(",");
-        List<String> replacedItem = new ArrayList<>();
-        Arrays.stream(temps).forEach(
-                item -> {
-                    Matcher matcher = TYPE_PATTERN.matcher(item);
-                    while (matcher.find()) {
-                        String value = matcher.group(1);
-                        String type = matcher.group(2);
-
-                        for (String needQuoteType : NEED_QUOTE_TYPE) {
-                            if (type.contains(needQuoteType)) {
-                                if (!"null".equals(value)) {
-                                    item = item.replace(value, "'" + value + "'");
-                                }
-                            }
-                        }
-                    }
-                    replacedItem.add(item);
-                }
-        );
-
-        return "(" + String.join(", ", replacedItem) + ")";
     }
 
     @Override
@@ -422,7 +379,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                 for (int i = 0; i < fieldTypes.size(); i++) {
                     rowValue.setField(i, valueMap.get(valueFieldNames.get(i)));
                 }
-                rowTuple2.f1 = valueConditionAddQuotation(buildValuesCondition(fieldTypes, rowValue));
+                rowTuple2.f1 = buildValuesCondition(fieldTypes, rowValue);
                 putRowIntoMap(rowDataMap, rowTuple2);
             }
 
@@ -446,11 +403,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
         }
         // 将还未执行的SQL flush
         if (batchCount > 0) {
-            try {
-                flush();
-            } catch (Exception e) {
-                throw new RuntimeException("Writing records to impala failed.", e);
-            }
+            flush();
         }
         // cancel scheduled task
         if (this.scheduledFuture != null) {
@@ -484,7 +437,6 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * execute batch sql from row data map
      * sql like 'insert into tableName(f1, f2, f3) ${partitionCondition} values(v1, v2, v3), (v4, v5, v6)....
      *
-     * @param statement       execute statement
      * @param tempSql         template sql
      * @param storeType       the store type of data
      * @param enablePartition enable partition or not
@@ -492,8 +444,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * @param partitionFields partition fields
      * @param rowDataMap      row data map
      */
-    private void executeBatchSql(Statement statement,
-                                 String tempSql,
+    private void executeBatchSql(String tempSql,
                                  String schema,
                                  String tableName,
                                  String storeType,
@@ -501,46 +452,83 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
                                  List<String> fieldNames,
                                  String partitionFields,
                                  Map<String, ArrayList<String>> rowDataMap) {
-        StringBuilder valuesCondition = new StringBuilder();
         StringBuilder partitionCondition = new StringBuilder();
         String tableFieldsCondition = buildTableFieldsCondition(fieldNames, partitionFields);
-        ArrayList<String> rowData;
+        ArrayList<String> rowData = new ArrayList<>();
         String tableNameInfo = Objects.isNull(schema) ?
-                tableName : quoteIdentifier(schema) + "." + tableName;
+            tableName : quoteIdentifier(schema) + "." + tableName;
         tempSql = tempSql.replace("tableName", tableNameInfo);
+        boolean isPartitioned = storeType.equalsIgnoreCase(KUDU_TYPE) || !enablePartition;
 
-        // kudu ${partitionCondition} is null
-        if (storeType.equalsIgnoreCase(KUDU_TYPE) || !enablePartition) {
-            try {
-                rowData = rowDataMap.get(NO_PARTITION);
-                rowData.forEach(row -> valuesCondition.append(row).append(", "));
-                String executeSql = tempSql.replace(VALUES_CONDITION, valuesCondition.toString())
-                        .replace(PARTITION_CONDITION, partitionCondition.toString())
-                        .replace(PARTITION_CONSTANT, "")
-                        .replace(TABLE_FIELDS_CONDITION, tableFieldsCondition);
-                String substring = executeSql.substring(0, executeSql.length() - 2);
-                statement.execute(substring);
-            } catch (Exception e) {
-                throw new RuntimeException("execute impala SQL error!", e);
-            }
-            return;
-        }
-
-        // partition sql
-        Set<String> keySet = rowDataMap.keySet();
-        String finalTempSql = tempSql;
-        for (String key : keySet) {
-            try {
-                String executeSql = String.copyValueOf(finalTempSql.toCharArray());
-                ArrayList<String> valuesConditionList = rowDataMap.get(key);
-                partitionCondition.append(key);
-                executeSql = executeSql.replace(PARTITION_CONDITION, partitionCondition.toString())
-                        .replace(TABLE_FIELDS_CONDITION, tableFieldsCondition)
-                        .replace(VALUES_CONDITION, String.join(", ", valuesConditionList));
+        try {
+            // kudu ${partitionCondition} is null
+            if (isPartitioned) {
+                tempSql = tempSql
+                    .replace(PARTITION_CONDITION, partitionCondition.toString())
+                    .replace(PARTITION_CONSTANT, "")
+                    .replace(TABLE_FIELDS_CONDITION, tableFieldsCondition);
+                rowData.addAll(rowDataMap.get(NO_PARTITION));
+                String executeSql = tempSql.replace(VALUES_CONDITION, String.join(", ", rowData));
                 statement.execute(executeSql);
-                partitionCondition.delete(0, partitionCondition.length());
-            } catch (SQLException sqlException) {
-                throw new RuntimeException("execute impala SQL error! ", sqlException);
+                rowData.clear();
+            } else {
+                // partition sql
+                Set<String> keySet = rowDataMap.keySet();
+                for (String key : keySet) {
+                    rowData.addAll(rowDataMap.get(key));
+                    partitionCondition.append(key);
+                    tempSql = tempSql
+                        .replace(PARTITION_CONDITION, partitionCondition.toString())
+                        .replace(TABLE_FIELDS_CONDITION, tableFieldsCondition);
+                    String executeSql = tempSql
+                        .replace(VALUES_CONDITION, String.join(", ", rowData));
+                    statement.execute(executeSql);
+                    partitionCondition.delete(0, partitionCondition.length());
+                }
+            }
+        } catch (Exception e) {
+            if (e instanceof SQLException) {
+                dealBatchSqlError(rowData, connection, statement, tempSql);
+            } else {
+                throw new RuntimeException("Insert into impala error!", e);
+            }
+        } finally {
+            rowData.clear();
+        }
+    }
+
+    /**
+     * 当批量写入失败时，把批量的sql拆解为单条sql提交，对于单条写入的sql记做脏数据
+     *
+     * @param rowData 批量的values
+     * @param connection 当前数据库connect
+     * @param statement 当前statement
+     * @param templateSql 模版sql，例如insert into tableName(f1, f2, f3) [partition] values $valueCondition
+     */
+    private void dealBatchSqlError(List<String> rowData,
+                                   Connection connection,
+                                   Statement statement,
+                                   String templateSql) {
+        String errorMsg = "Insert into impala error. \nCause: [%s]\nRow: [%s]";
+        JDBCUtils.rollBack(connection);
+        JDBCUtils.commit(connection);
+        for (String rowDatum : rowData) {
+            String executeSql = templateSql.replace(VALUES_CONDITION, rowDatum);
+            try {
+                statement.execute(executeSql);
+                JDBCUtils.commit(connection);
+            } catch (SQLException e) {
+                JDBCUtils.rollBack(connection);
+                JDBCUtils.commit(connection);
+                if (metricOutputFormat.outDirtyRecords.getCount() % DIRTY_DATA_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+                    LOG.error(
+                        String.format(
+                            errorMsg,
+                            ExceptionTrace.traceOriginalCause(e),
+                            rowDatum)
+                    );
+                }
+                metricOutputFormat.outDirtyRecords.inc();
             }
         }
     }
@@ -573,9 +561,9 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      */
     private String buildTableFieldsCondition(List<String> fieldNames, String partitionFields) {
         return "(" + fieldNames.stream()
-                .filter(f -> !partitionFields.contains(f))
-                .map(this::quoteIdentifier)
-                .collect(Collectors.joining(", ")) + ")";
+            .filter(f -> !partitionFields.contains(f))
+            .map(this::quoteIdentifier)
+            .collect(Collectors.joining(", ")) + ")";
     }
 
     /**
@@ -583,22 +571,27 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
      * replace ${valuesCondition}
      *
      * @param fieldTypes field types
-     * @return condition like '(?, ?, cast(? as string))' and '?' will be replaced with row data
+     * @return condition like '(?, ?, cast('?' as string))' and '?' will be replaced with row data
      */
     private String buildValuesCondition(List<String> fieldTypes, Row row) {
         String valuesCondition = fieldTypes.stream().map(
-                f -> {
-                    for (String item : NEED_QUOTE_TYPE) {
-                        if (f.toLowerCase().contains(item)) {
-                            return String.format("cast(? as %s)", f.toLowerCase());
-                        }
+            f -> {
+                for (String item : NEED_QUOTE_TYPE) {
+                    if (f.toLowerCase().contains(item)) {
+                        return String.format("cast('?' as %s)", f.toLowerCase());
                     }
-                    return "?";
-                }).collect(Collectors.joining(", "));
+                }
+                return "?";
+            }).collect(Collectors.joining(", "));
         for (int i = 0; i < row.getArity(); i++) {
-            valuesCondition = valuesCondition.replaceFirst("\\?", Objects.isNull(row.getField(i)) ? "null" : row.getField(i).toString());
+            Object rowField = row.getField(i);
+            if (DtStringUtil.isEmptyOrNull(rowField)) {
+                valuesCondition = valuesCondition.replaceFirst("'\\?'", "null");
+            } else {
+                valuesCondition = valuesCondition.replaceFirst("\\?", Matcher.quoteReplacement(rowField.toString()));
+            }
         }
-        return valuesCondition;
+        return "(" + valuesCondition + ")";
     }
 
     /**
@@ -609,16 +602,16 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
     private String buildUpdateSql(String schema, String tableName, List<String> fieldNames, List<String> primaryKeys) {
         //跳过primary key字段
         String setClause = fieldNames.stream()
-                .filter(f -> !CollectionUtils.isNotEmpty(primaryKeys) || !primaryKeys.contains(f))
-                .map(f -> quoteIdentifier(f) + "=?")
-                .collect(Collectors.joining(", "));
+            .filter(f -> !CollectionUtils.isNotEmpty(primaryKeys) || !primaryKeys.contains(f))
+            .map(f -> quoteIdentifier(f) + "=?")
+            .collect(Collectors.joining(", "));
 
         String conditionClause = primaryKeys.stream()
-                .map(f -> quoteIdentifier(f) + "=?")
-                .collect(Collectors.joining(" AND "));
+            .map(f -> quoteIdentifier(f) + "=?")
+            .collect(Collectors.joining(" AND "));
 
         return "UPDATE " + (Objects.isNull(schema) ? "" : quoteIdentifier(schema) + ".")
-                + quoteIdentifier(tableName) + " SET " + setClause + " WHERE " + conditionClause;
+            + quoteIdentifier(tableName) + " SET " + setClause + " WHERE " + conditionClause;
     }
 
     private String quoteIdentifier(String identifier) {
@@ -664,7 +657,7 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
         public Builder setPartitionFields(String partitionFields) {
             format.partitionFields = Objects.isNull(partitionFields) ?
-                    "" : partitionFields;
+                "" : partitionFields;
             return this;
         }
 
@@ -739,11 +732,11 @@ public class ImpalaOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolea
 
             if (format.authMech == EAuthMech.Kerberos.getType()) {
                 checkNotNull(format.krb5confPath,
-                        "When kerberos authentication is enabled, krb5confPath is required！");
+                    "When kerberos authentication is enabled, krb5confPath is required！");
                 checkNotNull(format.principal,
-                        "When kerberos authentication is enabled, principal is required！");
+                    "When kerberos authentication is enabled, principal is required！");
                 checkNotNull(format.keytabPath,
-                        "When kerberos authentication is enabled, keytabPath is required！");
+                    "When kerberos authentication is enabled, keytabPath is required！");
             }
 
             if (format.authMech == EAuthMech.UserName.getType()) {
