@@ -138,8 +138,7 @@ public class ExecuteProcessHelper {
         }
 
         if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && Objects.isNull(dirtyProperties.get(PLUGIN_PATH_STR))) {
-            dirtyProperties.put(PLUGIN_PATH_STR,
-                    Objects.isNull(remoteSqlPluginPath) ? localSqlPluginPath : remoteSqlPluginPath);
+            dirtyProperties.put(PLUGIN_PATH_STR, localSqlPluginPath);
         }
 
         List<URL> jarUrlList = getExternalJarUrls(options.getAddjar());
