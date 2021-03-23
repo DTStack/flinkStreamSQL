@@ -46,7 +46,7 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
 
     private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
-    private BaseSideInfo sideInfo;
+    private final BaseSideInfo sideInfo;
 
     public RedisSideReqRow(BaseSideInfo sideInfo){
         this.sideInfo = sideInfo;
@@ -105,7 +105,7 @@ public class RedisSideReqRow implements ISideReqRow, Serializable {
                 row.setField(index, Float.valueOf(value));
                 break;
             case "java.math.BigDecimal":
-                row.setField(index, BigDecimal.valueOf(Long.valueOf(value)));
+                row.setField(index, BigDecimal.valueOf(Long.parseLong(value)));
                 break;
             case "java.sql.Timestamp":
                 row.setField(index, Timestamp.valueOf(value));

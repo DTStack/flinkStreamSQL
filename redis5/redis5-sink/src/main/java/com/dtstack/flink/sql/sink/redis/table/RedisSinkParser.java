@@ -51,7 +51,7 @@ public class RedisSinkParser extends AbstractTableParser {
 
         String primaryKeysStr = MathUtil.getString(props.get(RedisTableInfo.PRIMARY_KEYS_NAME));
         if (!StringUtils.isEmpty(primaryKeysStr)) {
-            List<String> primaryKeysList = Lists.newArrayList();
+            List<String> primaryKeysList;
             primaryKeysList = Arrays.asList(StringUtils.split(primaryKeysStr, ","));
             redisTableInfo.setPrimaryKeys(primaryKeysList);
         }

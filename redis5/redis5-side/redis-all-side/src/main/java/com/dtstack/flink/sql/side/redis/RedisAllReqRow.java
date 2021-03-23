@@ -26,6 +26,7 @@ import com.dtstack.flink.sql.side.redis.enums.RedisType;
 import com.dtstack.flink.sql.side.redis.table.RedisSideReqRow;
 import com.dtstack.flink.sql.side.redis.table.RedisSideTableInfo;
 import com.esotericsoftware.minlog.Log;
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.JoinType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -35,7 +36,6 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
-import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.HostAndPort;
@@ -48,20 +48,26 @@ import redis.clients.jedis.JedisSentinelPool;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
-
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * @author yanxi
  */
 public class RedisAllReqRow extends BaseAllReqRow {
 
     private static final long serialVersionUID = 7578879189085344807L;
+
+    private static final Pattern HOST_PORT_PATTERN = Pattern.compile("(?<host>(.*)):(?<port>\\d+)*");
 
     private static final Logger LOG = LoggerFactory.getLogger(RedisAllReqRow.class);
 
@@ -73,9 +79,9 @@ public class RedisAllReqRow extends BaseAllReqRow {
 
     private RedisSideTableInfo tableInfo;
 
-    private AtomicReference<Map<String, Map<String, String>>> cacheRef = new AtomicReference<>();
+    private final AtomicReference<Map<String, Map<String, String>>> cacheRef = new AtomicReference<>();
 
-    private RedisSideReqRow redisSideReqRow;
+    private final RedisSideReqRow redisSideReqRow;
 
     public RedisAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -115,8 +121,8 @@ public class RedisAllReqRow extends BaseAllReqRow {
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = input.row().getField(conValIndex);
-            if(equalObj == null){
-                if(sideInfo.getJoinType() == JoinType.LEFT){
+            if (equalObj == null) {
+                if (sideInfo.getJoinType() == JoinType.LEFT) {
                     Row data = fillData(input.row(), null);
                     out.collect(new CRow(data, input.change()));
                 }
@@ -125,13 +131,13 @@ public class RedisAllReqRow extends BaseAllReqRow {
             inputParams.put(sideInfo.getEqualFieldList().get(i), equalObj.toString());
         }
         String key = buildCacheKey(inputParams);
-        if(StringUtils.isBlank(key)){
+        if (StringUtils.isBlank(key)) {
             return;
         }
 
         Map<String, String> cacheMap = cacheRef.get().get(key);
-        if(MapUtils.isEmpty(cacheMap)){
-            if(sideInfo.getJoinType() != JoinType.LEFT){
+        if (MapUtils.isEmpty(cacheMap)) {
+            if (sideInfo.getJoinType() != JoinType.LEFT) {
                 return;
             }
             Row data = fillData(input.row(), null);
@@ -146,8 +152,8 @@ public class RedisAllReqRow extends BaseAllReqRow {
     private String buildCacheKey(Map<String, String> refData) {
         StringBuilder keyBuilder = new StringBuilder(tableInfo.getTableName());
         List<String> primaryKeys = tableInfo.getPrimaryKeys();
-        for(String primaryKey : primaryKeys){
-            if(!refData.containsKey(primaryKey)){
+        for (String primaryKey : primaryKeys) {
+            if (!refData.containsKey(primaryKey)) {
                 return null;
             }
             keyBuilder.append("_").append(refData.get(primaryKey));
@@ -160,7 +166,7 @@ public class RedisAllReqRow extends BaseAllReqRow {
         JedisCommands jedis = null;
         try {
             StringBuilder keyPattern = new StringBuilder(tableInfo.getTableName());
-            for (String key : tableInfo.getPrimaryKeys()) {
+            for (int i = 0; i < tableInfo.getPrimaryKeys().size(); i++) {
                 keyPattern.append("_").append("*");
             }
             jedis = getJedisWithRetry(CONN_RETRY_NUM);
@@ -195,41 +201,54 @@ public class RedisAllReqRow extends BaseAllReqRow {
         String url = tableInfo.getUrl();
         String password = tableInfo.getPassword();
         String database = tableInfo.getDatabase() == null ? "0" : tableInfo.getDatabase();
+        String masterName = tableInfo.getMasterName();
         int timeout = tableInfo.getTimeout();
-        if (timeout == 0){
-            timeout = 1000;
+        if (timeout == 0) {
+            timeout = 10000;
         }
 
         String[] nodes = url.split(",");
-        String[] firstIpPort = nodes[0].split(":");
-        String firstIp = firstIpPort[0];
-        String firstPort = firstIpPort[1];
-        Set<HostAndPort> addresses = new HashSet<>();
-        Set<String> ipPorts = new HashSet<>();
-        for (String ipPort : nodes) {
-            ipPorts.add(ipPort);
-            String[] ipPortPair = ipPort.split(":");
-            addresses.add(new HostAndPort(ipPortPair[0].trim(), Integer.valueOf(ipPortPair[1].trim())));
-        }
-        if (timeout == 0){
-            timeout = 1000;
-        }
         JedisCommands jedis = null;
         GenericObjectPoolConfig poolConfig = setPoolConfig(tableInfo.getMaxTotal(), tableInfo.getMaxIdle(), tableInfo.getMinIdle());
-        switch (RedisType.parse(tableInfo.getRedisType())){
-            //单机
+        switch (RedisType.parse(tableInfo.getRedisType())) {
             case STANDALONE:
-                pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
-                jedis = pool.getResource();
+                String firstIp = null;
+                String firstPort = null;
+                Matcher standalone = HOST_PORT_PATTERN.matcher(nodes[0]);
+                if (standalone.find()) {
+                    firstIp = standalone.group("host").trim();
+                    firstPort = standalone.group("port").trim();
+                }
+                if (Objects.nonNull(firstIp)) {
+                    pool = new JedisPool(poolConfig, firstIp, Integer.parseInt(firstPort), timeout, password, Integer.parseInt(database));
+                    jedis = pool.getResource();
+                } else {
+                    throw new IllegalArgumentException(
+                            String.format("redis url error. current url [%s]", nodes[0]));
+                }
                 break;
-            //哨兵
             case SENTINEL:
-                jedisSentinelPool = new JedisSentinelPool(tableInfo.getMasterName(), ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
+                Set<String> ipPorts = new HashSet<>(Arrays.asList(nodes));
+                jedisSentinelPool = new JedisSentinelPool(masterName, ipPorts, poolConfig, timeout, password, Integer.parseInt(database));
                 jedis = jedisSentinelPool.getResource();
                 break;
-            //集群
             case CLUSTER:
-                jedis = new JedisCluster(addresses, timeout, timeout,1, poolConfig);
+                Set<HostAndPort> addresses = new HashSet<>();
+                // 对ipv6 支持
+                for (String node : nodes) {
+                    Matcher matcher = HOST_PORT_PATTERN.matcher(node);
+                    if (matcher.find()) {
+                        String host = matcher.group("host").trim();
+                        String portStr = matcher.group("port").trim();
+                        if (org.apache.commons.lang3.StringUtils.isNotBlank(host) && org.apache.commons.lang3.StringUtils.isNotBlank(portStr)) {
+                            // 转化为int格式的端口
+                            int port = Integer.parseInt(portStr);
+                            addresses.add(new HostAndPort(host, port));
+                        }
+                    }
+                }
+                jedis = new JedisCluster(addresses, timeout, timeout, 10, password, poolConfig);
+                break;
             default:
                 break;
         }
@@ -257,35 +276,32 @@ public class RedisAllReqRow extends BaseAllReqRow {
         return null;
     }
 
-    private Set<String> getRedisKeys(RedisType redisType, JedisCommands jedis, String keyPattern){
-        if(!redisType.equals(RedisType.CLUSTER)){
+    private Set<String> getRedisKeys(RedisType redisType, JedisCommands jedis, String keyPattern) {
+        if (!redisType.equals(RedisType.CLUSTER)) {
             return ((Jedis) jedis).keys(keyPattern);
         }
         Set<String> keys = new TreeSet<>();
-        Map<String, JedisPool> clusterNodes = ((JedisCluster)jedis).getClusterNodes();
-        for(String k : clusterNodes.keySet()){
+        Map<String, JedisPool> clusterNodes = ((JedisCluster) jedis).getClusterNodes();
+        for (String k : clusterNodes.keySet()) {
             JedisPool jp = clusterNodes.get(k);
-            Jedis connection = jp.getResource();
-            try {
+            try (Jedis connection = jp.getResource()) {
                 keys.addAll(connection.keys(keyPattern));
-            } catch (Exception e){
-                LOG.error("Getting keys error: {}", e);
-            } finally {
-                connection.close();
+            } catch (Exception e) {
+                LOG.error("Getting keys error.", e);
             }
         }
         return keys;
     }
 
-    private GenericObjectPoolConfig setPoolConfig(String maxTotal, String maxIdle, String minIdle){
+    private GenericObjectPoolConfig setPoolConfig(String maxTotal, String maxIdle, String minIdle) {
         GenericObjectPoolConfig config = new GenericObjectPoolConfig();
-        if (maxTotal != null){
+        if (maxTotal != null) {
             config.setMaxTotal(Integer.parseInt(maxTotal));
         }
-        if (maxIdle != null){
+        if (maxIdle != null) {
             config.setMaxIdle(Integer.parseInt(maxIdle));
         }
-        if (minIdle != null){
+        if (minIdle != null) {
             config.setMinIdle(Integer.parseInt(minIdle));
         }
         return config;
