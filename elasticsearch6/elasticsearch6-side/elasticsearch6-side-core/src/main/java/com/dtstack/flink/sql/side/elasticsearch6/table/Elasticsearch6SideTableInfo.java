@@ -76,10 +76,6 @@ public class Elasticsearch6SideTableInfo extends AbstractSideTableInfo {
         return super.getType().toLowerCase();
     }
 
-    public String getClusterName() {
-        return clusterName;
-    }
-
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
     }

@@ -407,10 +407,8 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                 // and close the connection
                 connection.close(done -> {
                     if (done.failed()) {
-                        throw new SuppressRestartsException(
-                                new Throwable(
-                                        ExceptionTrace.traceOriginalCause(done.cause())
-                                )
+                        LOG.error("sql connection close failed! " +
+                                ExceptionTrace.traceOriginalCause(done.cause())
                         );
                     }
                 });

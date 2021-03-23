@@ -19,6 +19,8 @@ public class KuduTableInfo extends AbstractTargetTableInfo implements KerberosTa
 
     private Integer defaultOperationTimeoutMs;
 
+    private Integer mutationBufferMaxOps;
+
     /**
      * kerberos
      */
@@ -78,6 +80,14 @@ public class KuduTableInfo extends AbstractTargetTableInfo implements KerberosTa
 
     public void setDefaultOperationTimeoutMs(Integer defaultOperationTimeoutMs) {
         this.defaultOperationTimeoutMs = defaultOperationTimeoutMs;
+    }
+
+    public Integer getMutationBufferMaxOps() {
+        return mutationBufferMaxOps;
+    }
+
+    public void setMutationBufferMaxOps(Integer mutationBufferMaxOps) {
+        this.mutationBufferMaxOps = mutationBufferMaxOps;
     }
 
     @Override

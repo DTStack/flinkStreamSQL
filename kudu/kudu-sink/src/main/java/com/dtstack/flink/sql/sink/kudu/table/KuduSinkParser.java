@@ -32,6 +32,8 @@ public class KuduSinkParser extends AbstractTableParser {
 
     public static final String BATCH_WAIT_INTERVAL_KEY = "batchWaitInterval";
 
+    public static final String BUFFER_MAX_KEY = "mutationBufferMaxOps";
+
     public static final Integer DEFAULT_BATCH_WAIT_INTERVAL = 60 * 1000;
 
     public static final String SESSION_FLUSH_MODE_KEY = "flushMode";
@@ -50,6 +52,7 @@ public class KuduSinkParser extends AbstractTableParser {
         kuduTableInfo.setDefaultOperationTimeoutMs(MathUtil.getIntegerVal(props.get(OPERATION_TIMEOUT_MS.toLowerCase())));
         kuduTableInfo.setBatchSize(MathUtil.getIntegerVal(props.getOrDefault(BATCH_SIZE_KEY.toLowerCase(), DEFAULT_BATCH_SIZE)));
         kuduTableInfo.setBatchWaitInterval(MathUtil.getIntegerVal(props.getOrDefault(BATCH_WAIT_INTERVAL_KEY.toLowerCase(), DEFAULT_BATCH_WAIT_INTERVAL)));
+        kuduTableInfo.setMutationBufferMaxOps(MathUtil.getIntegerVal(props.get(BUFFER_MAX_KEY.toLowerCase())));
 
         if (Objects.isNull(props.get(SESSION_FLUSH_MODE_KEY.toLowerCase()))) {
             if (kuduTableInfo.getBatchSize() > 1) {

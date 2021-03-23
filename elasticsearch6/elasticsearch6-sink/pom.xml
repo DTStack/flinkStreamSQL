@@ -12,10 +12,6 @@
     <artifactId>sql.sink.elasticsearch6</artifactId>
     <name>elasticsearch6-sink</name>
 
-    <properties>
-        <elasticsearch.version>6.8.6</elasticsearch.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.flink</groupId>
@@ -31,27 +27,34 @@
         </dependency>
 
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>1.1.7</version>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
         </dependency>
 
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.1.7</version>
+            <artifactId>slf4j-api</artifactId>
+            <groupId>org.slf4j</groupId>
+            <version>1.7.15</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-log4j12 -->
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-to-slf4j</artifactId>
-            <version>2.7</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.6.1</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-elasticsearch6_2.11</artifactId>
             <version>${flink.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>log4j-to-slf4j</artifactId>
+                    <groupId>org.apache.logging.log4j</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

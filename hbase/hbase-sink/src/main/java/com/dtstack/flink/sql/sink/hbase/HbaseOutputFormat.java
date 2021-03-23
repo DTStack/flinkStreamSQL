@@ -19,6 +19,7 @@
 
 package com.dtstack.flink.sql.sink.hbase;
 
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.factory.DTThreadFactory;
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
 import com.google.common.collect.Maps;
@@ -233,10 +234,10 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
         } finally {
             // 判断数据是否插入成功
             for (int i = 0; i < results.length; i++) {
-                if (results[i] != null) {
+                if (results[i] instanceof Exception) {
                     if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
                         LOG.error("Get dirty data: {}", records.get(i).toString());
-                        LOG.error("Error cause: " + results[i]);
+                        LOG.error("Error cause: " + ExceptionTrace.traceOriginalCause((Exception) results[i]));
                     }
                     // 脏数据记录
                     outDirtyRecords.inc();
@@ -262,8 +263,8 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             table.put(put);
         } catch (Exception e) {
             if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                LOG.error("record insert failed ..{}", record.toString());
-                LOG.error("", e);
+                LOG.error("Get dirty data: {}", record.toString());
+                LOG.error("Error cause: " + ExceptionTrace.traceOriginalCause(e));
             }
             outDirtyRecords.inc();
         }

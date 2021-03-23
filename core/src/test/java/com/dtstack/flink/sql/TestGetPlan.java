@@ -43,7 +43,7 @@ public class TestGetPlan {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    @Test
+    // @Test
     public void testGetExecutionPlan() throws Exception {
         List<URL> urls = new ArrayList<URL>();
         urls.addAll(getJarUrl("/Users/maqi/tmp/flink/flink-1.8.1/lib"));

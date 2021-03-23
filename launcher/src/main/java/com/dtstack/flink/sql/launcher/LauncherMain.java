@@ -31,6 +31,8 @@ import com.dtstack.flink.sql.option.OptionParser;
 import com.dtstack.flink.sql.option.Options;
 import com.dtstack.flink.sql.util.PluginUtil;
 import org.apache.commons.io.Charsets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -51,7 +53,7 @@ import java.util.Properties;
 
 public class LauncherMain {
 
-
+    private static final Logger LOG = LoggerFactory.getLogger(LauncherMain.class);
 
     public static JobParamsInfo parseArgs(String[] args) throws Exception {
         if (args.length == 1 && args[0].endsWith(".json")) {
@@ -97,30 +99,24 @@ public class LauncherMain {
     }
 
     private static String[] parseJson(String[] args) {
-        BufferedReader reader = null;
         StringBuilder lastStr = new StringBuilder();
         try {
-            FileInputStream fileInputStream = new FileInputStream(args[0]);
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, StandardCharsets.UTF_8);
-            reader = new BufferedReader(inputStreamReader);
-            String tempString;
-            while ((tempString = reader.readLine()) != null) {
-                lastStr.append(tempString);
-            }
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+            try (FileInputStream fileInputStream = new FileInputStream(args[0])) {
+                try (InputStreamReader inputStreamReader =
+                             new InputStreamReader(fileInputStream, StandardCharsets.UTF_8)) {
+                    try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
+                        String tempString;
+                        while ((tempString = reader.readLine()) != null) {
+                            lastStr.append(tempString);
+                        }
+                    }
                 }
             }
+        } catch (IOException e) {
+            LOG.error("", e);
         }
-        Map<String, Object> map = JSON.parseObject(lastStr.toString(), new TypeReference<Map<String, Object>>() {
-        });
+
+        Map<String, Object> map = JSON.parseObject(lastStr.toString(), new TypeReference<Map<String, Object>>() {});
         List<String> list = new LinkedList<>();
 
         for (Map.Entry<String, Object> entry : map.entrySet()) {
@@ -129,7 +125,6 @@ public class LauncherMain {
         }
         return list.toArray(new String[0]);
     }
-
 
     public static void main(String[] args) throws Exception {
         JobParamsInfo jobParamsInfo = parseArgs(args);
