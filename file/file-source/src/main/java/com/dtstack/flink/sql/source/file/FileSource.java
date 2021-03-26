@@ -46,6 +46,7 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author tiezhu
@@ -70,6 +71,10 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
     private InputStream inputStream;
 
     private String charset;
+
+    private final AtomicInteger count = new AtomicInteger(0);
+
+    private final AtomicInteger errorCount = new AtomicInteger(0);
 
     @Override
     public Table genStreamSource(AbstractSourceTableInfo sourceTableInfo,
@@ -168,10 +173,19 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
                 inputStream.close();
                 break;
             } else {
-                Row row = deserializationSchema.deserialize(line.getBytes());
-                ctx.collect(row);
+                try {
+                    Row row = deserializationSchema.deserialize(line.getBytes());
+                    if (row == null) {
+                        throw new IOException("Deserialized row is null");
+                    }
+                    ctx.collect(row);
+                    count.incrementAndGet();
+                } catch (IOException e) {
+                    errorCount.incrementAndGet();
+                }
             }
         }
+        printCount();
     }
 
     @Override
@@ -185,5 +199,11 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
                 LOG.error("File input stream close error!");
             }
         }
+        printCount();
+    }
+
+    private void printCount() {
+        LOG.info("Read count: {}", count.get());
+        LOG.info("Error count: {}", errorCount.get());
     }
 }
