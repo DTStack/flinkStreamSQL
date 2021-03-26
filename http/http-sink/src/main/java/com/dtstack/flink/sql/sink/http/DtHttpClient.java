@@ -118,7 +118,7 @@ public class DtHttpClient {
                             String contentEncoding) throws IOException {
         HttpPost httpPost = new HttpPost(httpUrl);
         httpPost.setConfig(requestConfig);
-        StringEntity entity = new StringEntity(message);
+        StringEntity entity = new StringEntity(message, contentEncoding);
         entity.setContentType(contentType);
         entity.setContentEncoding(contentEncoding);
         httpPost.setEntity(entity);
