@@ -263,4 +263,16 @@ public class MathUtil {
         throw new RuntimeException("not support type of " + obj.getClass() + " convert to Date.");
     }
 
+    public static Character getChar(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Character) {
+            return (Character) obj;
+        }
+        if (obj instanceof String) {
+            return String.valueOf(obj).charAt(0);
+        }
+        throw new RuntimeException("not support type of " + obj.getClass() + " convert to Char");
+    }
 }

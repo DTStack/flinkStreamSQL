@@ -41,6 +41,9 @@ public abstract class AbstractTableInfo implements Serializable {
 
     public static final String PARALLELISM_KEY = "parallelism";
     public static final String ERROR_LIMIT = "errorLimit";
+    public static final Boolean DEFAULT_FALSE = false;
+    public static final Boolean DEFAULT_TRUE = true;
+    public static final Object DEFAULT_NULL = null;
     private final List<String> fieldList = Lists.newArrayList();
     private final List<String> fieldTypeList = Lists.newArrayList();
     private final List<Class> fieldClassList = Lists.newArrayList();
