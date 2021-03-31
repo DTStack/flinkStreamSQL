@@ -29,7 +29,7 @@ import java.util.Map;
  * @description:资源检测
  **/
 public abstract class ResourceCheck {
-    public static Boolean NEED_CHECK = true;
+    public static Boolean NEED_CHECK = false;
     public static String CHECK_STR = "checkResource";
     protected static Logger LOG = LoggerFactory.getLogger(ResourceCheck.class);
     public String TABLE_TYPE_KEY = "tableType";
