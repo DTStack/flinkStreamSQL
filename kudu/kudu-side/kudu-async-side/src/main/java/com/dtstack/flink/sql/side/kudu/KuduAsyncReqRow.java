@@ -10,6 +10,7 @@ import com.dtstack.flink.sql.side.PredicateInfo;
 import com.dtstack.flink.sql.side.cache.CacheObj;
 import com.dtstack.flink.sql.side.kudu.table.KuduSideTableInfo;
 import com.dtstack.flink.sql.side.kudu.utils.KuduUtil;
+import com.dtstack.flink.sql.util.DateUtil;
 import com.dtstack.flink.sql.util.KrbUtils;
 import com.dtstack.flink.sql.util.RowDataComplete;
 import com.google.common.collect.Lists;
@@ -38,7 +39,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.security.PrivilegedAction;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -91,7 +95,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                 throw new IllegalArgumentException("Table Open Failed , please check table exists");
             }
             table = asyncClient.syncClient().openTable(tableName);
-            LOG.info("connect kudu is successed!");
+            LOG.info("connect kudu is succeed!");
         }
         scannerBuilder = asyncClient.newScannerBuilder(table);
         Integer batchSizeBytes = kuduSideTableInfo.getBatchSizeBytes();
@@ -139,12 +143,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                 kuduSideTableInfo.getKrb5conf()
             );
             return ugi.doAs(
-                new PrivilegedAction<AsyncKuduClient>() {
-                    @Override
-                    public AsyncKuduClient run() {
-                        return asyncKuduClientBuilder.build();
-                    }
-                });
+                (PrivilegedAction<AsyncKuduClient>) asyncKuduClientBuilder::build);
         } else {
             return asyncKuduClientBuilder.build();
         }
@@ -160,19 +159,24 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         connKuDu();
         Schema schema = table.getSchema();
         //  @wenbaoup fix bug
-        inputParams.entrySet().forEach(e ->{
-            scannerBuilder.addPredicate(KuduPredicate.newInListPredicate(schema.getColumn(e.getKey()), Collections.singletonList(e.getValue())));
+        inputParams.forEach((key, value) -> {
+            Object transformValue = transformValue(value);
+            scannerBuilder.addPredicate(
+                KuduPredicate.newInListPredicate(
+                    schema.getColumn(key),
+                    Collections.singletonList(transformValue)
+                )
+            );
         });
 
         //  填充谓词信息
         List<PredicateInfo> predicateInfoes = sideInfo.getSideTableInfo().getPredicateInfoes();
         if (predicateInfoes.size() > 0) {
-            predicateInfoes.stream().map(info -> {
+            predicateInfoes.stream().peek(info -> {
                 KuduPredicate kuduPredicate = KuduUtil.buildKuduPredicate(schema, info);
                 if (null != kuduPredicate) {
                     scannerBuilder.addPredicate(kuduPredicate);
                 }
-                return info;
             }).count();
         }
 
@@ -182,6 +186,42 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         Deferred<RowResultIterator> data = asyncKuduScanner.nextRows();
         //从之前的同步修改为调用异步的Callback
         data.addCallbackDeferring(new GetListRowCB(inputCopy, cacheContent, rowList, asyncKuduScanner, resultFuture, buildCacheKey(inputParams)));
+    }
+
+    /**
+     * 将value转化为Java 通用类型
+     * @param value value
+     * @return 类型转化的value
+     */
+    private Object transformValue(Object value) {
+        if (value == null) {
+            return null;
+        } else if (value instanceof Number && !(value instanceof BigDecimal)) {
+            return value;
+        } else if (value instanceof Boolean) {
+            return value;
+        } else if (value instanceof String) {
+            return value;
+        } else if (value instanceof Character) {
+            return value;
+        } else if (value instanceof CharSequence) {
+            return value;
+        } else if (value instanceof Map) {
+            return value;
+        } else if (value instanceof List) {
+            return value;
+        } else if (value instanceof byte[]) {
+            return value;
+        } else if (value instanceof Instant) {
+            return value;
+        } else if (value instanceof Timestamp) {
+            value = DateUtil.timestampToString((Timestamp) value);
+        } else if (value instanceof java.util.Date) {
+            value = DateUtil.dateToString((java.sql.Date) value);
+        } else {
+            value = value.toString();
+        }
+        return value;
     }
 
     @Override
