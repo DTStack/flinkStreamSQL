@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -35,7 +35,7 @@ public class SqlserverSinkParser extends RdbSinkParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        props.put(JdbcCheckKeys.DRIVER_NAME, "net.sourceforge.jtds.jdbc.Driver");
+        props.put(JdbcCheckKeys.DRIVER_NAME, "com.microsoft.sqlserver.jdbc.SQLServerDriver");
         AbstractTableInfo sqlserverTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         sqlserverTableInfo.setType(CURR_TYPE);
         return sqlserverTableInfo;

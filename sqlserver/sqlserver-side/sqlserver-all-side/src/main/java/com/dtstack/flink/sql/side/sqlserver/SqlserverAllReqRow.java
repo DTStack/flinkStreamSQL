@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -44,7 +44,7 @@ public class SqlserverAllReqRow extends AbstractRdbAllReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(SqlserverAllReqRow.class);
 
-    private static final String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
+    private static final String SQLSERVER_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 
     public SqlserverAllReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new SqlserverAllSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -63,5 +63,4 @@ public class SqlserverAllReqRow extends AbstractRdbAllReqRow {
             throw new RuntimeException("", e);
         }
     }
-
 }
