@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -199,7 +200,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
     @Override
     public void writeRecord(Tuple2<Boolean, Row> record) {
         if (record.f0) {
-            if (this.batchSize != 0) {
+            if (this.batchSize > 1) {
                 writeBatchRecord(record.f1);
             } else {
                 dealInsert(record.f1);
@@ -217,12 +218,20 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
 
     protected synchronized void dealBatchOperation(List<Row> records) {
         // A null in the result array means that the call for that action failed, even after retries.
-        Object[] results = new Object[records.size()];
+        Object[] results = null;
         try {
             List<Put> puts = new ArrayList<>();
             for (Row record : records) {
-                puts.add(getPutByRow(record));
+                Put put = getPutByRow(record);
+                if (put == null || put.isEmpty()) {
+                    dealError(
+                        record,
+                        "HBase put is empty, please check the record.");
+                } else {
+                    puts.add(put);
+                }
             }
+            results = new Object[puts.size()];
             table.batch(puts, results);
 
             // 打印结果
@@ -230,17 +239,13 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
                 // 只打印最后一条数据
                 LOG.info(records.get(records.size() - 1).toString());
             }
-        } catch (IOException | InterruptedException ignored) {
+        } catch (IOException | InterruptedException e) {
+            // ignore exception
         } finally {
             // 判断数据是否插入成功
-            for (int i = 0; i < results.length; i++) {
+            for (int i = 0; i < Objects.requireNonNull(results).length; i++) {
                 if (results[i] instanceof Exception) {
-                    if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0) {
-                        LOG.error("Get dirty data: {}", records.get(i).toString());
-                        LOG.error("Error cause: " + ExceptionTrace.traceOriginalCause((Exception) results[i]));
-                    }
-                    // 脏数据记录
-                    outDirtyRecords.inc();
+                    dealError(records.get(i), ExceptionTrace.traceOriginalCause((Exception) results[i]));
                 } else {
                     // 输出结果条数记录
                     outRecords.inc();
@@ -262,17 +267,21 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
         try {
             table.put(put);
         } catch (Exception e) {
-            if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
-                LOG.error("Get dirty data: {}", record.toString());
-                LOG.error("Error cause: " + ExceptionTrace.traceOriginalCause(e));
-            }
-            outDirtyRecords.inc();
+            dealError(record, ExceptionTrace.traceOriginalCause(e));
         }
 
         if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
             LOG.info(record.toString());
         }
         outRecords.inc();
+    }
+
+    private void dealError(Row record, String cause) {
+        if (outDirtyRecords.getCount() % DIRTY_PRINT_FREQUENCY == 0 || LOG.isDebugEnabled()) {
+            LOG.error("Get dirty data: {}", record.toString());
+            LOG.error("Error cause: " + cause);
+        }
+        outDirtyRecords.inc();
     }
 
     private Put getPutByRow(Row record) {
