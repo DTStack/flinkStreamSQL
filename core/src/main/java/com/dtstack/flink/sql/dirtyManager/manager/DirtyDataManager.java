@@ -140,9 +140,12 @@ public class DirtyDataManager implements Serializable {
      * 脏数据收集任务停止，任务停止之前，需要将队列中所有的数据清空
      */
     public void close() {
-        if (checkConsumer()) {
+        if (consumer != null && checkConsumer()) {
             LOG.info("dirty consumer is closing ...");
             consumer.close();
+        }
+
+        if (dirtyDataConsumer != null) {
             dirtyDataConsumer.shutdownNow();
         }
     }

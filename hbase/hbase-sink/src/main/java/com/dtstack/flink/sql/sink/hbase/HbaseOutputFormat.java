@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -223,12 +224,23 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
 
     protected synchronized void dealBatchOperation(List<Row> records) {
         // A null in the result array means that the call for that action failed, even after retries.
-        Object[] results = new Object[records.size()];
+        Object[] results = null;
         try {
             List<Put> puts = new ArrayList<>();
             for (Row record : records) {
-                puts.add(getPutByRow(record));
+                Put put = getPutByRow(record);
+                if (put == null || put.isEmpty()) {
+                    dirtyDataManager.execute();
+                    dirtyDataManager.collectDirtyData(
+                        record.toString(),
+                        "HBase put is empty, check record please!"
+                    );
+                    outDirtyRecords.inc();
+                } else {
+                    puts.add(put);
+                }
             }
+            results = new Object[puts.size()];
             table.batch(puts, results);
 
             // 打印结果
@@ -240,7 +252,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             // ignore exception
         } finally {
             // 判断数据是否插入成功
-            for (int i = 0; i < results.length; i++) {
+            for (int i = 0; i < Objects.requireNonNull(results).length; i++) {
                 if (results[i] instanceof Exception) {
                     dirtyDataManager.execute();
                     // 脏数据记录
