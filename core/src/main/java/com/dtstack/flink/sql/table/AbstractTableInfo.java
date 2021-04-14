@@ -68,7 +68,8 @@ public abstract class AbstractTableInfo implements Serializable {
      * error data limit. Task will failed once {@link AbstractDtRichOutputFormat#outDirtyRecords}
      * count over limit. Default 1000L;
      */
-    private Long errorLimit = 0L;
+    // TODO: 暂时默认值设置为10000，后面排期支持在产品上设置
+    private Long errorLimit = 10000L;
 
     public String[] getFieldTypes() {
         return fieldTypes;
