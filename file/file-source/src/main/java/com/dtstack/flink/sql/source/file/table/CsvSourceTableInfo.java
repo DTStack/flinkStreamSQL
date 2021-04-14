@@ -18,10 +18,7 @@
 
 package com.dtstack.flink.sql.source.file.table;
 
-import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.formats.csv.CsvRowDeserializationSchema;
-import org.apache.flink.types.Row;
+import com.dtstack.flink.sql.source.file.DTCsvRowDeserializationSchema;
 
 /**
  * @author tiezhu
@@ -31,14 +28,9 @@ import org.apache.flink.types.Row;
 public class CsvSourceTableInfo extends FileSourceTableInfo {
 
     /**
-     * 是否忽略解析错误，默认为true
-     */
-    private Boolean ignoreParseErrors;
-
-    /**
      * 字段值的分割符，默认为','
      */
-    private char fieldDelimiter;
+    private Character fieldDelimiter;
 
     /**
      * 针对null的替换值，默认为"null"字符
@@ -55,26 +47,17 @@ public class CsvSourceTableInfo extends FileSourceTableInfo {
      */
     private String arrayElementDelimiter;
 
-    private char quoteCharacter;
+    private Character quoteCharacter;
 
-    private char escapeCharacter;
+    private Character escapeCharacter;
 
-    private CsvSourceTableInfo() {
-    }
+    private int fromLine;
 
-    public Boolean getIgnoreParseErrors() {
-        return ignoreParseErrors;
-    }
-
-    public void setIgnoreParseErrors(Boolean ignoreParseErrors) {
-        this.ignoreParseErrors = ignoreParseErrors;
-    }
-
-    public char getFieldDelimiter() {
+    public Character getFieldDelimiter() {
         return fieldDelimiter;
     }
 
-    public void setFieldDelimiter(char fieldDelimiter) {
+    public void setFieldDelimiter(Character fieldDelimiter) {
         this.fieldDelimiter = fieldDelimiter;
     }
 
@@ -102,84 +85,42 @@ public class CsvSourceTableInfo extends FileSourceTableInfo {
         this.arrayElementDelimiter = arrayElementDelimiter;
     }
 
-    public char getQuoteCharacter() {
+    public Character getQuoteCharacter() {
         return quoteCharacter;
     }
 
-    public void setQuoteCharacter(char quoteCharacter) {
+    public void setQuoteCharacter(Character quoteCharacter) {
         this.quoteCharacter = quoteCharacter;
     }
 
-    public char getEscapeCharacter() {
+    public Character getEscapeCharacter() {
         return escapeCharacter;
     }
 
-    public void setEscapeCharacter(char escapeCharacter) {
+    public void setEscapeCharacter(Character escapeCharacter) {
         this.escapeCharacter = escapeCharacter;
     }
 
-    public static Builder newBuilder() {
-        return new Builder();
+    public int getFromLine() {
+        return fromLine;
     }
 
-    public static class Builder {
-        private final CsvSourceTableInfo tableInfo;
+    public void setFromLine(int fromLine) {
+        this.fromLine = fromLine;
+    }
 
-        public Builder() {
-            tableInfo = new CsvSourceTableInfo();
-        }
-
-        public Builder setFieldDelimiter(Character fieldDelimiter) {
-            tableInfo.setFieldDelimiter(fieldDelimiter);
-            return this;
-        }
-
-        public Builder setIgnoreParseErrors(Boolean ignoreParseErrors) {
-            tableInfo.setIgnoreParseErrors(ignoreParseErrors);
-            return this;
-        }
-
-        public Builder setNullLiteral(String nullLiteral) {
-            tableInfo.setNullLiteral(nullLiteral);
-            return this;
-        }
-
-        public Builder setAllowComment(Boolean allowComment) {
-            tableInfo.setAllowComments(allowComment);
-            return this;
-        }
-
-        public Builder setArrayElementDelimiter(String arrayElementDelimiter) {
-            tableInfo.setArrayElementDelimiter(arrayElementDelimiter);
-            return this;
-        }
-
-        public Builder setQuoterCharacter(Character quoterCharacter) {
-            tableInfo.setQuoteCharacter(quoterCharacter);
-            return this;
-        }
-
-        public Builder setEscapeCharacter(Character escapeCharacter) {
-            tableInfo.setEscapeCharacter(escapeCharacter);
-            return this;
-        }
-
-        public Builder setTypeInformation(TypeInformation<Row> typeInformation) {
-            tableInfo.setTypeInformation(typeInformation);
-            return this;
-        }
-
-        public DeserializationSchema<Row> buildCsvDeserializationSchema() {
-            return new CsvRowDeserializationSchema
-                .Builder(tableInfo.getTypeInformation())
-                .setIgnoreParseErrors(tableInfo.getIgnoreParseErrors())
-                .setFieldDelimiter(tableInfo.getFieldDelimiter())
-                .setNullLiteral(tableInfo.getNullLiteral())
-                .setAllowComments(tableInfo.getAllowComments())
-                .setArrayElementDelimiter(tableInfo.getArrayElementDelimiter())
-                .setEscapeCharacter(tableInfo.getEscapeCharacter())
-                .setQuoteCharacter(tableInfo.getQuoteCharacter())
-                .build();
-        }
+    public void buildDeserializationSchema() {
+        DTCsvRowDeserializationSchema dtCsvRowDeserializationSchema = new DTCsvRowDeserializationSchema
+            .Builder()
+            .setTypeInfo(this.buildRowTypeInfo())
+            .setFieldDelimiter(this.getFieldDelimiter())
+            .setNullLiteral(this.getNullLiteral())
+            .setAllowComments(this.getAllowComments())
+            .setArrayElementDelimiter(this.getArrayElementDelimiter())
+            .setEscapeCharacter(this.getEscapeCharacter())
+            .setQuoteCharacter(this.getQuoteCharacter())
+            .setFromLine(this.getFromLine())
+            .build();
+        this.setDeserializationSchema(dtCsvRowDeserializationSchema);
     }
 }

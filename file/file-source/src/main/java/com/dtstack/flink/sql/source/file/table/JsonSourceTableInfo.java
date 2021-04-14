@@ -29,19 +29,15 @@ import org.apache.flink.types.Row;
  * Company dtstack
  */
 public class JsonSourceTableInfo extends FileSourceTableInfo {
-    private JsonSourceTableInfo() {
-
-    }
-
-    public static Builder newBuilder() {
-        return new Builder();
+    public static Builder newBuilder(JsonSourceTableInfo tableInfo) {
+        return new Builder(tableInfo);
     }
 
     public static class Builder {
         private final JsonSourceTableInfo tableInfo;
 
-        public Builder() {
-            tableInfo = new JsonSourceTableInfo();
+        public Builder(JsonSourceTableInfo tableInfo) {
+            this.tableInfo = tableInfo;
         }
 
         public Builder setTypeInformation(TypeInformation<Row> typeInformation) {
@@ -49,7 +45,14 @@ public class JsonSourceTableInfo extends FileSourceTableInfo {
             return this;
         }
 
-        public DeserializationSchema<Row> buildCsvDeserializationSchema() {
+        public JsonSourceTableInfo buildTableInfo() {
+            DeserializationSchema<Row> deserializationSchema = buildDeserializationSchema();
+            tableInfo.setDeserializationSchema(deserializationSchema);
+
+            return tableInfo;
+        }
+
+        public DeserializationSchema<Row> buildDeserializationSchema() {
             return new JsonRowDeserializationSchema
                 .Builder(tableInfo.getTypeInformation())
                 .build();

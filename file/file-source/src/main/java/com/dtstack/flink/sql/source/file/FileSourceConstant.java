@@ -18,8 +18,6 @@
 
 package com.dtstack.flink.sql.source.file;
 
-import java.io.File;
-
 /**
  * @author tiezhu
  * @date 2021/3/22 星期一
@@ -36,8 +34,6 @@ public class FileSourceConstant {
 
     public static final String FILE_PATH_KEY = "filePath";
 
-    public static final String IGNORE_PARSER_ERROR = "ignoreParserError";
-
     public static final String CHARSET_NAME_KEY = "charsetName";
 
     public static final String AVRO_FORMAT_KEY = "avroFormat";
@@ -52,6 +48,8 @@ public class FileSourceConstant {
 
     public static final String ESCAPE_CHARACTER_KEY = "escapeCharacter";
 
+    public static final String FROM_LINE_KEY = "fromLine";
+
     public static final Character DEFAULT_DELIMITER = ',';
 
     public static final String DEFAULT_FILE_FORMAT = "csv";
@@ -60,10 +58,8 @@ public class FileSourceConstant {
 
     public static final String DEFAULT_PATH = ".";
 
-    public static final char DEFAULT_QUOTE_CHAR = '"';
+    public static final String FILE_LOCAL = "local";
 
-    public static final char DEFAULT_ESCAPE_CHAR = '\\';
-
-    public static final String DEFAULT_NULL_LITERAL = "null";
+    public static final String FILE_HDFS = "hdfs";
 
 }

@@ -40,12 +40,6 @@ public class FileSourceTableInfo extends AbstractSourceTableInfo {
     /*-------------------------------------------------------------*/
 
     /**
-     * 默认为csv，可选json
-     * TODO orc, parquet等也需要支持
-     */
-    private String format;
-
-    /**
      * 文件名
      */
     private String fileName;
@@ -65,14 +59,6 @@ public class FileSourceTableInfo extends AbstractSourceTableInfo {
     private TypeInformation<Row> typeInformation;
 
     /*-------------------------------------------------------------*/
-
-    public String getFormat() {
-        return format;
-    }
-
-    public void setFormat(String format) {
-        this.format = format;
-    }
 
     public String getFileName() {
         return fileName;

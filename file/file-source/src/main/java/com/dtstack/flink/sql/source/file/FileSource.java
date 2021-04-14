@@ -1,28 +1,15 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.dtstack.flink.sql.source.file;
 
+import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.file.table.FileSourceTableInfo;
 import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
+import com.dtstack.flink.sql.util.ThreadUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.functions.AbstractRichFunction;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.metrics.Counter;
 import org.apache.flink.runtime.execution.SuppressRestartsException;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -46,16 +33,16 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author tiezhu
  * @date 2021/3/9 星期二
  * Company dtstack
  */
-public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row> {
-
+public class FileSource extends AbstractRichFunction implements IStreamSourceGener<Table>, SourceFunction<Row> {
     private static final Logger LOG = LoggerFactory.getLogger(FileSource.class);
+
+    private static final Long METRIC_WAIT_TIME = 5L;
 
     private static final String SP = File.separator;
 
@@ -72,9 +59,17 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
 
     private String charset;
 
-    private final AtomicInteger count = new AtomicInteger(0);
+    protected transient Counter errorCounter;
 
-    private final AtomicInteger errorCount = new AtomicInteger(0);
+    /**
+     * tps ransactions Per Second
+     */
+    protected transient Counter numInRecord;
+
+    /**
+     * rps Record Per Second: deserialize data and out record num
+     */
+    protected transient Counter numInResolveRecord;
 
     @Override
     public Table genStreamSource(AbstractSourceTableInfo sourceTableInfo,
@@ -87,6 +82,17 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
         String fields = StringUtils.join(tableInfo.getFields(), ",");
 
         return tableEnv.fromDataStream(source, fields);
+    }
+
+    /**
+     * 初始化指标
+     */
+    public void initMetric() {
+        RuntimeContext runtimeContext = getRuntimeContext();
+
+        errorCounter = runtimeContext.getMetricGroup().counter(MetricConstant.DT_DIRTY_DATA_COUNTER);
+        numInRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_IN_COUNTER);
+        numInResolveRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_COUNTER);
     }
 
     public DataStreamSource<?> initDataStream(FileSourceTableInfo tableInfo,
@@ -108,11 +114,11 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
      */
     private InputStream getInputStream(URI fileUri) {
         try {
-            String scheme = fileUri.getScheme() == null ? "local" : fileUri.getScheme();
+            String scheme = fileUri.getScheme() == null ? FileSourceConstant.FILE_LOCAL : fileUri.getScheme();
             switch (scheme.toLowerCase(Locale.ROOT)) {
-                case "local":
+                case FileSourceConstant.FILE_LOCAL:
                     return fromLocalFile(fileUri);
-                case "hdfs":
+                case FileSourceConstant.FILE_HDFS:
                     return fromHdfsFile(fileUri);
                 default:
                     throw new UnsupportedOperationException(
@@ -163,29 +169,47 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
 
     @Override
     public void run(SourceContext<Row> ctx) throws Exception {
+        int fromLine = 1;
+        String line;
+        initMetric();
         inputStream = getInputStream(fileUri);
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, charset));
 
+        if (deserializationSchema instanceof DTCsvRowDeserializationSchema) {
+            fromLine = ((DTCsvRowDeserializationSchema) deserializationSchema).getFromLine();
+            LOG.info("Read from line: " + fromLine);
+        }
+
         while (running.get()) {
-            String line = bufferedReader.readLine();
+            line = bufferedReader.readLine();
             if (line == null) {
                 running.compareAndSet(true, false);
                 inputStream.close();
                 break;
             } else {
+                numInRecord.inc();
+
+                if (numInRecord.getCount() <= fromLine) {
+                    continue;
+                }
+
                 try {
                     Row row = deserializationSchema.deserialize(line.getBytes());
                     if (row == null) {
                         throw new IOException("Deserialized row is null");
                     }
                     ctx.collect(row);
-                    count.incrementAndGet();
+                    numInResolveRecord.inc();
                 } catch (IOException e) {
-                    errorCount.incrementAndGet();
+                    if (errorCounter.getCount() % 1000 == 0) {
+                        LOG.error("Deserialize error! Record: " + line);
+                        LOG.error("Cause: ", e);
+                    }
+                    errorCounter.inc();
                 }
             }
         }
-        printCount();
+        ThreadUtil.sleepSeconds(METRIC_WAIT_TIME);
     }
 
     @Override
@@ -199,11 +223,5 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
                 LOG.error("File input stream close error!");
             }
         }
-        printCount();
-    }
-
-    private void printCount() {
-        LOG.info("Read count: {}", count.get());
-        LOG.info("Error count: {}", errorCount.get());
     }
 }
