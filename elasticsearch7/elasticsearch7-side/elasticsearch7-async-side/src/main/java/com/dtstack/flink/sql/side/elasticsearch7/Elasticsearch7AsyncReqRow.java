@@ -27,7 +27,6 @@ import com.dtstack.flink.sql.side.elasticsearch7.util.Es7Util;
 import com.dtstack.flink.sql.util.ParseUtils;
 import com.dtstack.flink.sql.util.RowDataComplete;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
@@ -50,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -64,7 +64,7 @@ public class Elasticsearch7AsyncReqRow extends BaseAsyncReqRow implements Serial
     private static final Logger LOG = LoggerFactory.getLogger(Elasticsearch7AsyncReqRow.class);
     private transient RestHighLevelClient rhlClient;
     private SearchRequest searchRequest;
-    private List<String> sqlJoinCompareOperate = Lists.newArrayList();
+    private List<String> sqlJoinCompareOperate = new ArrayList<>();
 
     public Elasticsearch7AsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new Elasticsearch7AsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -97,8 +97,8 @@ public class Elasticsearch7AsyncReqRow extends BaseAsyncReqRow implements Serial
             @Override
             public void onResponse(SearchResponse searchResponse) {
 
-                List<Object> cacheContent = Lists.newArrayList();
-                List<BaseRow> rowList = Lists.newArrayList();
+                List<Object> cacheContent = new ArrayList<>();
+                List<BaseRow> rowList = new ArrayList<>();
                 SearchHit[] searchHits = searchResponse.getHits().getHits();
                 if (searchHits.length > 0) {
                     Elasticsearch7SideTableInfo tableInfo = null;
