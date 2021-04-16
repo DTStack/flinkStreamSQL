@@ -51,6 +51,11 @@ public class RedisSideParser extends AbstractSideTableParser {
         redisSideTableInfo.setMasterName(MathUtil.getString(props.get(RedisSideTableInfo.MASTER_NAME.toLowerCase())));
         redisSideTableInfo.setRedisType(MathUtil.getString(props.get(RedisSideTableInfo.REDIS_TYPE.toLowerCase())));
 
+        if (MathUtil.getLongVal(props.get(RedisSideTableInfo.ERROR_LIMIT.toLowerCase())) != null) {
+            redisSideTableInfo.setErrorLimit(MathUtil.getLongVal(props.get(RedisSideTableInfo.ERROR_LIMIT.toLowerCase())));
+        }
+
+        redisSideTableInfo.check();
         return redisSideTableInfo;
     }
 }
