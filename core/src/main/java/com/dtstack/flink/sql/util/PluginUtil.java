@@ -34,6 +34,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -51,11 +52,13 @@ import java.util.Properties;
 
 public class PluginUtil {
 
-    private static String SP = File.separator;
+    private static final String SP = File.separator;
 
     private static final String JAR_SUFFIX = ".jar";
 
     private static final String CLASS_PRE_STR = "com.dtstack.flink.sql";
+
+    private static final String DIRTY_DATA_PRE = "dirtyData";
 
     private static final Logger LOG = LoggerFactory.getLogger(PluginUtil.class);
 
@@ -159,27 +162,32 @@ public class PluginUtil {
      * build dirty data url from plugin path
      *
      * @param dirtyType      type of dirty type
-     * @param pluginPath     plugin path
+     * @param localPath      local path
+     * @param remotePath     remote path
      * @param pluginLoadMode load plugin mode
      * @return dirty plugin url
      * @throws Exception exception
      */
     public static URL buildDirtyPluginUrl(
-            String dirtyType,
-            String pluginPath,
-            String pluginLoadMode) throws Exception {
+        String dirtyType,
+        String localPath,
+        String remotePath,
+        String pluginLoadMode) throws Exception {
         if (Objects.isNull(dirtyType)) {
             dirtyType = DirtyConsumerFactory.DEFAULT_DIRTY_TYPE;
         }
         String prefix = String.format("dirtyConsumer-%s", dirtyType.toLowerCase()).toLowerCase();
         String consumerType = DirtyConsumerFactory.DIRTY_CONSUMER_PATH + File.separator + dirtyType;
-        String consumerJar = PluginUtil.getJarFileDirPath(consumerType, pluginPath, pluginLoadMode);
+        String consumerJar = PluginUtil.getJarFileDirPath(consumerType, localPath, pluginLoadMode);
         String jarFileName = PluginUtil.getCoreJarFileName(
-                consumerJar,
-                prefix,
-                pluginLoadMode
+            consumerJar,
+            prefix,
+            pluginLoadMode
         );
-        return new URL("file:" + consumerJar + SP + jarFileName);
+        String path = remotePath == null ? localPath : remotePath;
+        String dirtyPath = path + SP + DIRTY_DATA_PRE + SP + dirtyType;
+        URI uri = URI.create("file:" + dirtyPath + SP + jarFileName);
+        return uri.toURL();
     }
 
     public static URL getRemoteSideJarFilePath(String pluginType, String sideOperator, String tableType, String remoteSqlRootDir, String localSqlPluginPath, String pluginLoadMode) throws Exception {
