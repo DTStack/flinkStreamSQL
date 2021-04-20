@@ -104,7 +104,7 @@ public class ExecuteProcessHelper {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String TIME_ZONE = "timezone";
-    private static final String PLUGIN_PATH_STR = "pluginPath";
+    private static final String PLUGIN_LOCAL_STR = "pluginPath";
     private static final String PLUGIN_LOAD_STR = "pluginLoadMode";
 
     public static FlinkPlanner flinkPlanner = new FlinkPlanner();
@@ -137,8 +137,8 @@ public class ExecuteProcessHelper {
             dirtyProperties.put(PLUGIN_LOAD_STR, pluginLoadMode);
         }
 
-        if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && Objects.isNull(dirtyProperties.get(PLUGIN_PATH_STR))) {
-            dirtyProperties.put(PLUGIN_PATH_STR, localSqlPluginPath);
+        if (!pluginLoadMode.equalsIgnoreCase(EPluginLoadMode.LOCALTEST.name()) && Objects.isNull(dirtyProperties.get(PLUGIN_LOCAL_STR))) {
+            dirtyProperties.put(PLUGIN_LOCAL_STR, localSqlPluginPath);
         }
 
         List<URL> jarUrlList = getExternalJarUrls(options.getAddjar());
@@ -393,9 +393,10 @@ public class ExecuteProcessHelper {
             return Sets.newHashSet();
         }
         pluginClassPathSets.add(PluginUtil.buildDirtyPluginUrl(
-               String.valueOf(dirtyProperties.get(DirtyKeys.PLUGIN_TYPE_STR)),
-               String.valueOf(dirtyProperties.get(DirtyKeys.PLUGIN_PATH_STR)),
-               String.valueOf(dirtyProperties.get(DirtyKeys.PLUGIN_LOAD_MODE_STR))
+            String.valueOf(dirtyProperties.get(DirtyKeys.PLUGIN_TYPE_STR)),
+            localSqlPluginPath,
+            remoteSqlPluginPath,
+            pluginLoadMode
         ));
         return pluginClassPathSets;
     }
