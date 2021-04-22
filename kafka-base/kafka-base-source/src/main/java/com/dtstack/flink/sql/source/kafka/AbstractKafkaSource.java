@@ -63,7 +63,18 @@ public abstract class AbstractKafkaSource implements IStreamSourceGener<Table> {
         if (StringUtils.isNotBlank(kafkaSourceTableInfo.getGroupId())) {
             props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, kafkaSourceTableInfo.getGroupId());
         }
-
+        if("kafka".equalsIgnoreCase(kafkaSourceTableInfo.getType())){
+            String keyDeserializer = kafkaSourceTableInfo.getKafkaParam(KafkaSourceTableInfo.KEY_DESERIALIZER);
+            if(StringUtils.isNotBlank(keyDeserializer)){
+                kafkaSourceTableInfo.putKafkaParam(KafkaSourceTableInfo.KEY_DESERIALIZER, KafkaSourceTableInfo.DT_DESERIALIZER_CLASS_NAME);
+                kafkaSourceTableInfo.putKafkaParam(KafkaSourceTableInfo.DT_KEY_DESERIALIZER, keyDeserializer);
+            }
+            String valueDeserializer = kafkaSourceTableInfo.getKafkaParam(KafkaSourceTableInfo.VALUE_DESERIALIZER);
+            if(StringUtils.isNotBlank(valueDeserializer)){
+                kafkaSourceTableInfo.putKafkaParam(KafkaSourceTableInfo.VALUE_DESERIALIZER, KafkaSourceTableInfo.DT_DESERIALIZER_CLASS_NAME);
+                kafkaSourceTableInfo.putKafkaParam(KafkaSourceTableInfo.DT_VALUE_DESERIALIZER, valueDeserializer);
+            }
+        }
         for (String key : kafkaSourceTableInfo.getKafkaParamKeys()) {
             props.setProperty(key, kafkaSourceTableInfo.getKafkaParam(key));
         }
