@@ -71,7 +71,7 @@ public abstract class AbstractTableInfo implements Serializable {
      * error data limit. Task will failed once {@link AbstractDtRichOutputFormat#outDirtyRecords}
      * count over limit. Default 1000L;
      */
-    private Long errorLimit = 0L;
+    private Long errorLimit = Long.MAX_VALUE;
 
     public String[] getFieldTypes() {
         return fieldTypes;

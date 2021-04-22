@@ -72,6 +72,11 @@ public class HbaseSideParser extends AbstractSideTableParser {
         hbaseTableInfo.setPreRowKey(MathUtil.getBoolean(props.get(PRE_ROW_KEY.toLowerCase()), false));
         hbaseTableInfo.setCacheType((String) props.get(CACHE));
         hbaseTableInfo.setKerberosAuthEnable(MathUtil.getBoolean(props.get(KERBEROS_ENABLE), false));
+
+        if (MathUtil.getLongVal(props.get(hbaseTableInfo.ERROR_LIMIT.toLowerCase())) != null) {
+            hbaseTableInfo.setErrorLimit(MathUtil.getLongVal(props.get(hbaseTableInfo.ERROR_LIMIT.toLowerCase())));
+        }
+
         props.entrySet().stream()
                 .filter(entity -> entity.getKey().contains("."))
                 .map(entity -> hbaseTableInfo.getHbaseConfig().put(entity.getKey(), String.valueOf(entity.getValue())))

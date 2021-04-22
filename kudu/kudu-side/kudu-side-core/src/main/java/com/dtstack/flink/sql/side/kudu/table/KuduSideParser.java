@@ -80,6 +80,10 @@ public class KuduSideParser extends AbstractSideTableParser {
         );
         kuduSideTableInfo.judgeKrbEnable();
 
+        if (MathUtil.getLongVal(props.get(kuduSideTableInfo.ERROR_LIMIT.toLowerCase())) != null) {
+            kuduSideTableInfo.setErrorLimit(MathUtil.getLongVal(props.get(kuduSideTableInfo.ERROR_LIMIT.toLowerCase())));
+        }
+
         return kuduSideTableInfo;
 
     }

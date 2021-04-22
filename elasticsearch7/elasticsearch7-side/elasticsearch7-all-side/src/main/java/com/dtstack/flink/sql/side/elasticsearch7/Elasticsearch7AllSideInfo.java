@@ -26,9 +26,9 @@ import com.dtstack.flink.sql.side.JoinInfo;
 import com.dtstack.flink.sql.util.ParseUtils;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.compress.utils.Lists;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -53,7 +53,7 @@ public class Elasticsearch7AllSideInfo extends BaseSideInfo {
 
         String sideTableName = joinInfo.getSideTableName();
         String nonSideTableName = joinInfo.getNonSideTable();
-        List<String> fields = Lists.newArrayList();
+        List<String> fields = new ArrayList<>();
 
         int sideIndex = 0;
         for (int i = 0; i< outFieldInfoList.size(); i++) {
@@ -77,7 +77,7 @@ public class Elasticsearch7AllSideInfo extends BaseSideInfo {
 
         SqlNode conditionNode = joinInfo.getCondition();
 
-        List<SqlNode> sqlNodeList = Lists.newArrayList();
+        List<SqlNode> sqlNodeList = new ArrayList<>();
 
         ParseUtils.parseAnd(conditionNode, sqlNodeList);
 

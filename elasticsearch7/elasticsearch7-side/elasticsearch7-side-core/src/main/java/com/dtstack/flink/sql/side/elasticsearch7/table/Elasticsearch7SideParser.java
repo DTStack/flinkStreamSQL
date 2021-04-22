@@ -71,6 +71,11 @@ public class Elasticsearch7SideParser extends AbstractSideTableParser {
             elasticsearch7SideTableInfo.setUserName(MathUtil.getString(props.get(KEY_ES7_USERNAME.toLowerCase())));
             elasticsearch7SideTableInfo.setPassword(MathUtil.getString(props.get(KEY_ES7_PASSWORD.toLowerCase())));
         }
+
+        if (MathUtil.getLongVal(props.get(elasticsearch7SideTableInfo.ERROR_LIMIT.toLowerCase())) != null) {
+            elasticsearch7SideTableInfo.setErrorLimit(MathUtil.getLongVal(props.get(elasticsearch7SideTableInfo.ERROR_LIMIT.toLowerCase())));
+        }
+
         elasticsearch7SideTableInfo.check();
         return elasticsearch7SideTableInfo;
     }

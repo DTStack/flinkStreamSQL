@@ -71,6 +71,11 @@ public class Elasticsearch6SideParser extends AbstractSideTableParser {
             elasticsearch6SideTableInfo.setUserName(MathUtil.getString(props.get(KEY_ES6_USERNAME.toLowerCase())));
             elasticsearch6SideTableInfo.setPassword(MathUtil.getString(props.get(KEY_ES6_PASSWORD.toLowerCase())));
         }
+
+        if (MathUtil.getLongVal(props.get(elasticsearch6SideTableInfo.ERROR_LIMIT.toLowerCase())) != null) {
+            elasticsearch6SideTableInfo.setErrorLimit(MathUtil.getLongVal(props.get(elasticsearch6SideTableInfo.ERROR_LIMIT.toLowerCase())));
+        }
+
         elasticsearch6SideTableInfo.check();
         return elasticsearch6SideTableInfo;
     }

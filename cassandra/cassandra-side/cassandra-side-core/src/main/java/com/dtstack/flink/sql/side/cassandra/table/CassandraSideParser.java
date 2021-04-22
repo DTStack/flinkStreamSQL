@@ -91,6 +91,10 @@ public class CassandraSideParser extends AbstractSideTableParser {
         cassandraSideTableInfo.setConnectTimeoutMillis(MathUtil.getIntegerVal(props.get(CONNECT_TIMEOUT_MILLIS_KEY.toLowerCase())));
         cassandraSideTableInfo.setPoolTimeoutMillis(MathUtil.getIntegerVal(props.get(POOL_TIMEOUT_MILLIS_KEY.toLowerCase())));
 
+        if (MathUtil.getLongVal(props.get(cassandraSideTableInfo.ERROR_LIMIT.toLowerCase())) != null) {
+            cassandraSideTableInfo.setErrorLimit(MathUtil.getLongVal(props.get(cassandraSideTableInfo.ERROR_LIMIT.toLowerCase())));
+        }
+
         return cassandraSideTableInfo;
     }
 
