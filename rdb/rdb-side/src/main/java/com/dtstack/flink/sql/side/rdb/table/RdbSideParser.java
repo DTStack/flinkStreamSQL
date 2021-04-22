@@ -52,14 +52,10 @@ public class RdbSideParser extends AbstractSideTableParser {
         rdbTableInfo.setSchema(MathUtil.getString(props.get(RdbSideTableInfo.SCHEMA_KEY.toLowerCase())));
         rdbTableInfo.setDriverName(MathUtil.getString(props.get(RdbSideTableInfo.DRIVER_NAME)));
         rdbTableInfo.setFastCheck(MathUtil.getBoolean(props.getOrDefault(RdbSideTableInfo.FAST_CHECK.toLowerCase(), false)));
-        rdbTableInfo.setErrorLimit(
-            MathUtil.getLongVal(
-                props.getOrDefault(
-                    RdbSideTableInfo.ERROR_LIMIT.toLowerCase(),
-                    1000L
-                )
-            )
-        );
+
+        if (MathUtil.getLongVal(props.get(RdbSideTableInfo.ERROR_LIMIT.toLowerCase())) != null) {
+            rdbTableInfo.setErrorLimit(MathUtil.getLongVal(props.get(RdbSideTableInfo.ERROR_LIMIT.toLowerCase())));
+        }
 
         rdbTableInfo.setCheckProperties();
 

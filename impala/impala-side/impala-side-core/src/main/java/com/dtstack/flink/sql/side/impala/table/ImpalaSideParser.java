@@ -65,6 +65,9 @@ public class ImpalaSideParser extends RdbSideParser {
         impalaSideTableInfo.setFastCheck(MathUtil.getBoolean(props.getOrDefault(RdbSideTableInfo.FAST_CHECK.toLowerCase(), true)));
         impalaSideTableInfo.setCheckProperties();
 
+        if (MathUtil.getLongVal(props.get(impalaSideTableInfo.ERROR_LIMIT.toLowerCase())) != null) {
+            impalaSideTableInfo.setErrorLimit(MathUtil.getLongVal(props.get(impalaSideTableInfo.ERROR_LIMIT.toLowerCase())));
+        }
 
         //set authmech params
         Integer authMech = MathUtil.getIntegerVal(props.get(ImpalaSideTableInfo.AUTHMECH_KEY.toLowerCase()));
