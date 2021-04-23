@@ -150,7 +150,7 @@ public class KuduAllReqRow extends BaseAllReqRow {
                         String sideFieldName = sideFieldName1.trim();
                         ColumnSchema columnSchema = table.getSchema().getColumn(sideFieldName);
                         if (null != columnSchema) {
-                            KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
+                            oneRow.put(sideFieldName, result.getObject(sideFieldName));
                         }
                     }
                     String cacheKey = buildKey(oneRow, sideInfo.getEqualFieldList());
