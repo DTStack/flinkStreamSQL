@@ -201,9 +201,13 @@ public abstract class BaseAsyncReqRow extends RichAsyncFunction<BaseRow, BaseRow
         for (int i = 0; i < sideInfo.getEqualValIndex().size(); i++) {
             Integer conValIndex = sideInfo.getEqualValIndex().get(i);
             Object equalObj = genericRow.getField(conValIndex);
-            if (equalObj == null) {
-                return inputParams;
-            }
+            // comment by tiezhu
+            // 假设SQL中有三个主键[a, b, c]，同时主键[b]的值为null，那么
+            // inputParams中只会有主键[a]的值，主键[b, c]都不包含，导致
+            // 后面rdb 维表替换where 条件时缺少 value，查询SQL 执行失败
+//            if (equalObj == null) {
+//                return inputParams;
+//            }
             String columnName = sideInfo.getEqualFieldList().get(i);
             inputParams.put(columnName, equalObj);
         }
