@@ -301,7 +301,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                     String sideFieldName = sideFieldName1.trim();
                     ColumnSchema columnSchema = table.getSchema().getColumn(sideFieldName);
                     if (null != columnSchema) {
-                        KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
+                        oneRow.put(sideFieldName, result.getObject(sideFieldName));
                     }
                 }
                 BaseRow row = fillData(input, oneRow);
