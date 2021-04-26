@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.dtstack.flink.sql.source.file;
 
 import com.dtstack.flink.sql.metric.MetricConstant;
@@ -56,6 +74,8 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
     private URI fileUri;
 
     private InputStream inputStream;
+
+    private BufferedReader bufferedReader;
 
     private String charset;
 
@@ -173,7 +193,7 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
         String line;
         initMetric();
         inputStream = getInputStream(fileUri);
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, charset));
+        bufferedReader = new BufferedReader(new InputStreamReader(inputStream, charset));
 
         if (deserializationSchema instanceof DTCsvRowDeserializationSchema) {
             fromLine = ((DTCsvRowDeserializationSchema) deserializationSchema).getFromLine();
@@ -185,6 +205,7 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
             if (line == null) {
                 running.compareAndSet(true, false);
                 inputStream.close();
+                bufferedReader.close();
                 break;
             } else {
                 numInRecord.inc();
@@ -220,7 +241,15 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
             try {
                 inputStream.close();
             } catch (IOException ioException) {
-                LOG.error("File input stream close error!");
+                LOG.error("File input stream close error!", ioException);
+            }
+        }
+
+        if (bufferedReader != null) {
+            try {
+                bufferedReader.close();
+            } catch (IOException ioException) {
+                LOG.error("File buffer reader close error!", ioException);
             }
         }
     }

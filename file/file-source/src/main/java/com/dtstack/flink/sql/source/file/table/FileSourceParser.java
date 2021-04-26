@@ -23,6 +23,7 @@ import com.dtstack.flink.sql.table.AbstractSourceParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
 
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -50,7 +51,7 @@ public class FileSourceParser extends AbstractSourceParser {
     private FileSourceTableInfo switchTableType(String tableName,
                                                 String fieldsInfo,
                                                 Map<String, Object> props) {
-        String format = MathUtil.getString(props.getOrDefault(FileSourceConstant.FORMAT_KEY.toLowerCase(), FileSourceConstant.DEFAULT_FILE_FORMAT));
+        String format = MathUtil.getString(props.getOrDefault(FileSourceConstant.FORMAT_KEY.toLowerCase(), FileSourceConstant.DEFAULT_FILE_FORMAT)).toLowerCase(Locale.ROOT);
         switch (format) {
             case "csv": {
                 CsvSourceTableInfo tableInfo = new CsvSourceTableInfo();
