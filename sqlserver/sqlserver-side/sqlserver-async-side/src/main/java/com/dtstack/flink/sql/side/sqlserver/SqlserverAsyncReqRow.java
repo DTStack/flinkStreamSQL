@@ -41,7 +41,7 @@ public class SqlserverAsyncReqRow extends RdbAsyncReqRow {
 
     private static final Logger LOG = LoggerFactory.getLogger(SqlserverAsyncReqRow.class);
 
-    private final static String SQLSERVER_DRIVER = "net.sourceforge.jtds.jdbc.Driver";
+    private final static String SQLSERVER_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 
     public SqlserverAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new SqlserverAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));

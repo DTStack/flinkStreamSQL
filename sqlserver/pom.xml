@@ -17,6 +17,7 @@
     <properties>
         <jtds.version>1.3.1</jtds.version>
         <sql.core.version>1.0-SNAPSHOT</sql.core.version>
+        <mssql.jdbc.version>9.2.1.jre8</mssql.jdbc.version>
     </properties>
 
     <modules>
@@ -32,10 +33,11 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc -->
         <dependency>
-            <groupId>net.sourceforge.jtds</groupId>
-            <artifactId>jtds</artifactId>
-            <version>${jtds.version}</version>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>${mssql.jdbc.version}</version>
         </dependency>
 
     </dependencies>
