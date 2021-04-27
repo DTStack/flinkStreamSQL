@@ -44,7 +44,7 @@ public class KafkaConsumer011Factory extends AbstractKafkaConsumerFactory {
             kafkaSrc = new KafkaConsumer011(Pattern.compile(kafkaSourceTableInfo.getTopic()), deserMetricWrapper, props);
         } else {
             DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) (subscriptionState, tp) -> subscriptionState.partitionLag(tp, IsolationLevel.READ_UNCOMMITTED));
-            kafkaSrc = new KafkaConsumer011(kafkaSourceTableInfo.getTopic(), deserMetricWrapper, props);
+            kafkaSrc = new KafkaConsumer011(kafkaSourceTableInfo.getTopic(), deserMetricWrapper, kafkaSourceTableInfo.getSpecificEndOffsets(), props);
         }
         return kafkaSrc;
     }
