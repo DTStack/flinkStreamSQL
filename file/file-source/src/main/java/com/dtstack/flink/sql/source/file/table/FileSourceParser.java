@@ -73,7 +73,7 @@ public class FileSourceParser extends AbstractSourceParser {
                     tableInfo.setEscapeCharacter(escapeChar);
                 }
 
-                tableInfo.setFromLine(MathUtil.getIntegerVal(props.getOrDefault(FileSourceConstant.FROM_LINE_KEY, 1)));
+                tableInfo.setFromLine(MathUtil.getIntegerVal(props.getOrDefault(FileSourceConstant.FROM_LINE_KEY.toLowerCase(), 1)));
                 tableInfo.buildDeserializationSchema();
                 return tableInfo;
             }

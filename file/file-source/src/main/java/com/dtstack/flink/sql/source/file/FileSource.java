@@ -210,7 +210,7 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
             } else {
                 numInRecord.inc();
 
-                if (numInRecord.getCount() <= fromLine) {
+                if (numInRecord.getCount() < fromLine) {
                     continue;
                 }
 
