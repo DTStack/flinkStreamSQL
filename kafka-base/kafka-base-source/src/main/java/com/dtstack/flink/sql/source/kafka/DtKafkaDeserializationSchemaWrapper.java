@@ -51,16 +51,21 @@ public class DtKafkaDeserializationSchemaWrapper<T> extends KafkaDeserialization
         if (endPartition.contains(record.partition())) {
             return null;
         }
-        Long endOffset = specificEndOffsets.get(topicPartition);
-        if (record.offset() >= endOffset) {
-            endPartition.add(record.partition());
-            return null;
+        if (specificEndOffsets != null) {
+            Long endOffset = specificEndOffsets.get(topicPartition);
+            if (record.offset() >= endOffset) {
+                endPartition.add(record.partition());
+                return null;
+            }
         }
+
         return super.deserialize(record);
     }
 
     public boolean isEndOfStream(T nextElement) {
-        return super.isEndOfStream(nextElement)
-                || endPartition.size() == specificEndOffsets.size();
+        boolean isEnd =
+                specificEndOffsets != null
+                        && endPartition.size() == specificEndOffsets.size();
+        return super.isEndOfStream(nextElement) || isEnd;
     }
 }
