@@ -53,7 +53,7 @@ public class DtKafkaDeserializationSchemaWrapper<T> extends KafkaDeserialization
         }
         if (specificEndOffsets != null) {
             Long endOffset = specificEndOffsets.get(topicPartition);
-            if (record.offset() >= endOffset) {
+            if (endOffset != null && record.offset() >= endOffset) {
                 endPartition.add(record.partition());
                 return null;
             }
