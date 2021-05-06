@@ -51,6 +51,7 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author tiezhu
@@ -194,6 +195,7 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
 
     @Override
     public void run(SourceContext<Row> ctx) throws Exception {
+        AtomicInteger currentLine = new AtomicInteger(0);
         String line;
         initMetric();
         inputStream = getInputStream(fileUri);
@@ -207,13 +209,12 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
                 bufferedReader.close();
                 break;
             } else {
-                numInRecord.inc();
-
-                if (numInRecord.getCount() < fromLine) {
+                if (currentLine.incrementAndGet() < fromLine) {
                     continue;
                 }
 
                 try {
+                    numInRecord.inc();
                     Row row = deserializationSchema.deserialize(line.getBytes());
                     if (row == null) {
                         throw new IOException("Deserialized row is null");
