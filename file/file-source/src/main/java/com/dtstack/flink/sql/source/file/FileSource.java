@@ -79,6 +79,8 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
 
     private String charset;
 
+    private int fromLine;
+
     protected transient Counter errorCounter;
 
     /**
@@ -98,8 +100,11 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
         FileSource fileSource = new FileSource();
         FileSourceTableInfo tableInfo = (FileSourceTableInfo) sourceTableInfo;
 
-        DataStreamSource<?> source = fileSource.initDataStream(tableInfo, env);
+        fileSource.initSource(tableInfo);
+
         String fields = StringUtils.join(tableInfo.getFields(), ",");
+
+        DataStreamSource<Row> source = env.addSource(fileSource, tableInfo.getOperatorName(), tableInfo.getTypeInformation());
 
         return tableEnv.fromDataStream(source, fields);
     }
@@ -115,15 +120,15 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
         numInResolveRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_COUNTER);
     }
 
-    public DataStreamSource<?> initDataStream(FileSourceTableInfo tableInfo,
-                                              StreamExecutionEnvironment env) {
+    public void initSource(FileSourceTableInfo tableInfo) {
         deserializationSchema = tableInfo.getDeserializationSchema();
         fileUri = URI.create(tableInfo.getFilePath() + SP + tableInfo.getFileName());
+
         charset = tableInfo.getCharsetName();
-        return env.addSource(
-            this,
-            tableInfo.getOperatorName(),
-            tableInfo.buildRowTypeInfo());
+        LOG.info("File charset: " + charset);
+
+        fromLine = tableInfo.getFromLine();
+        LOG.info("Read from line: " + fromLine);
     }
 
     /**
@@ -189,16 +194,10 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
 
     @Override
     public void run(SourceContext<Row> ctx) throws Exception {
-        int fromLine = 1;
         String line;
         initMetric();
         inputStream = getInputStream(fileUri);
         bufferedReader = new BufferedReader(new InputStreamReader(inputStream, charset));
-
-        if (deserializationSchema instanceof DTCsvRowDeserializationSchema) {
-            fromLine = ((DTCsvRowDeserializationSchema) deserializationSchema).getFromLine();
-            LOG.info("Read from line: " + fromLine);
-        }
 
         while (running.get()) {
             line = bufferedReader.readLine();

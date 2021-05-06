@@ -42,6 +42,7 @@ public class FileSourceParser extends AbstractSourceParser {
         tableInfo.setFileName(MathUtil.getString(props.get(FileSourceConstant.FILE_NAME_KEY.toLowerCase())));
         tableInfo.setFilePath(MathUtil.getString(props.getOrDefault(FileSourceConstant.FILE_PATH_KEY.toLowerCase(), FileSourceConstant.DEFAULT_PATH)));
         tableInfo.setCharsetName(MathUtil.getString(props.getOrDefault(FileSourceConstant.CHARSET_NAME_KEY.toLowerCase(), FileSourceConstant.DEFAULT_CHARSET)));
+        tableInfo.setFromLine(MathUtil.getIntegerVal(props.getOrDefault(FileSourceConstant.FROM_LINE_KEY.toLowerCase(), 1)));
 
         tableInfo.check();
 
@@ -73,7 +74,6 @@ public class FileSourceParser extends AbstractSourceParser {
                     tableInfo.setEscapeCharacter(escapeChar);
                 }
 
-                tableInfo.setFromLine(MathUtil.getIntegerVal(props.getOrDefault(FileSourceConstant.FROM_LINE_KEY.toLowerCase(), 1)));
                 tableInfo.buildDeserializationSchema();
                 return tableInfo;
             }

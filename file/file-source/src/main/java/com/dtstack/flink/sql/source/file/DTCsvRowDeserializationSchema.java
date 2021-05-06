@@ -68,8 +68,6 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
      */
     private ObjectReader objectReader;
 
-    private int fromLine;
-
     /**
      * 字段值的分割符，默认为','
      */
@@ -154,10 +152,6 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
     // Setter
     // --------------------------------------------------------------------------------------------
 
-    public void setFromLine(int fromLine) {
-        this.fromLine = fromLine;
-    }
-
     public void setFieldDelimiter(Character fieldDelimiter) {
         this.fieldDelimiter = fieldDelimiter;
     }
@@ -184,10 +178,6 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
 
     public void setTypeInfo(TypeInformation<Row> typeInfo) {
         this.typeInfo = typeInfo;
-    }
-
-    public int getFromLine() {
-        return fromLine;
     }
 
     // --------------------------------------------------------------------------------------------
@@ -229,11 +219,6 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
 
         public Builder setEscapeCharacter(Character escapeCharacter) {
             deserializationSchema.setEscapeCharacter(escapeCharacter);
-            return this;
-        }
-
-        public Builder setFromLine(int fromLine) {
-            deserializationSchema.setFromLine(fromLine);
             return this;
         }
 
