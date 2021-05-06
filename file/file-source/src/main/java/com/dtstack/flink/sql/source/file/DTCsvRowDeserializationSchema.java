@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.source.file;
 
+import com.dtstack.flink.sql.source.file.throwable.LengthMismatchException;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.BasicArrayTypeInfo;
@@ -67,8 +68,6 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
      * Object reader used to read rows. It is configured by {@link CsvSchema}.
      */
     private ObjectReader objectReader;
-
-    private int fromLine;
 
     /**
      * 字段值的分割符，默认为','
@@ -154,10 +153,6 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
     // Setter
     // --------------------------------------------------------------------------------------------
 
-    public void setFromLine(int fromLine) {
-        this.fromLine = fromLine;
-    }
-
     public void setFieldDelimiter(Character fieldDelimiter) {
         this.fieldDelimiter = fieldDelimiter;
     }
@@ -184,10 +179,6 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
 
     public void setTypeInfo(TypeInformation<Row> typeInfo) {
         this.typeInfo = typeInfo;
-    }
-
-    public int getFromLine() {
-        return fromLine;
     }
 
     // --------------------------------------------------------------------------------------------
@@ -229,11 +220,6 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
 
         public Builder setEscapeCharacter(Character escapeCharacter) {
             deserializationSchema.setEscapeCharacter(escapeCharacter);
-            return this;
-        }
-
-        public Builder setFromLine(int fromLine) {
-            deserializationSchema.setFromLine(fromLine);
             return this;
         }
 
@@ -386,8 +372,9 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
 
     private static void validateArity(int expected, int actual) {
         if (expected != actual) {
-            LOG.warn("Row length mismatch. " + expected +
-                " fields expected but was " + actual + ".");
+            throw new LengthMismatchException(
+                    "Row length mismatch. " + expected +
+                            " fields expected but was " + actual + ".");
         }
     }
 }

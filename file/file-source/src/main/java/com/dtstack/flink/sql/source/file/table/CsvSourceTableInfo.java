@@ -51,8 +51,6 @@ public class CsvSourceTableInfo extends FileSourceTableInfo {
 
     private Character escapeCharacter;
 
-    private int fromLine;
-
     public Character getFieldDelimiter() {
         return fieldDelimiter;
     }
@@ -101,14 +99,6 @@ public class CsvSourceTableInfo extends FileSourceTableInfo {
         this.escapeCharacter = escapeCharacter;
     }
 
-    public int getFromLine() {
-        return fromLine;
-    }
-
-    public void setFromLine(int fromLine) {
-        this.fromLine = fromLine;
-    }
-
     public void buildDeserializationSchema() {
         DTCsvRowDeserializationSchema dtCsvRowDeserializationSchema = new DTCsvRowDeserializationSchema
             .Builder()
@@ -119,7 +109,6 @@ public class CsvSourceTableInfo extends FileSourceTableInfo {
             .setArrayElementDelimiter(this.getArrayElementDelimiter())
             .setEscapeCharacter(this.getEscapeCharacter())
             .setQuoteCharacter(this.getQuoteCharacter())
-            .setFromLine(this.getFromLine())
             .build();
         this.setDeserializationSchema(dtCsvRowDeserializationSchema);
     }

@@ -58,6 +58,8 @@ public class FileSourceTableInfo extends AbstractSourceTableInfo {
 
     private TypeInformation<Row> typeInformation;
 
+    private int fromLine;
+
     /*-------------------------------------------------------------*/
 
     public String getFileName() {
@@ -98,6 +100,14 @@ public class FileSourceTableInfo extends AbstractSourceTableInfo {
 
     public void setDeserializationSchema(DeserializationSchema<Row> deserializationSchema) {
         this.deserializationSchema = deserializationSchema;
+    }
+
+    public int getFromLine() {
+        return fromLine;
+    }
+
+    public void setFromLine(int fromLine) {
+        this.fromLine = fromLine;
     }
 
     @SuppressWarnings("unchecked")

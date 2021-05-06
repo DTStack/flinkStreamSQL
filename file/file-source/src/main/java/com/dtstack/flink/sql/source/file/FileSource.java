@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.source.file;
 
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.file.table.FileSourceTableInfo;
@@ -51,6 +52,7 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author tiezhu
@@ -79,6 +81,8 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
 
     private String charset;
 
+    private int fromLine;
+
     protected transient Counter errorCounter;
 
     /**
@@ -98,8 +102,11 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
         FileSource fileSource = new FileSource();
         FileSourceTableInfo tableInfo = (FileSourceTableInfo) sourceTableInfo;
 
-        DataStreamSource<?> source = fileSource.initDataStream(tableInfo, env);
+        fileSource.initSource(tableInfo);
+
         String fields = StringUtils.join(tableInfo.getFields(), ",");
+
+        DataStreamSource<Row> source = env.addSource(fileSource, tableInfo.getOperatorName(), tableInfo.getTypeInformation());
 
         return tableEnv.fromDataStream(source, fields);
     }
@@ -115,15 +122,15 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
         numInResolveRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_COUNTER);
     }
 
-    public DataStreamSource<?> initDataStream(FileSourceTableInfo tableInfo,
-                                              StreamExecutionEnvironment env) {
+    public void initSource(FileSourceTableInfo tableInfo) {
         deserializationSchema = tableInfo.getDeserializationSchema();
         fileUri = URI.create(tableInfo.getFilePath() + SP + tableInfo.getFileName());
+
         charset = tableInfo.getCharsetName();
-        return env.addSource(
-            this,
-            tableInfo.getOperatorName(),
-            tableInfo.buildRowTypeInfo());
+        LOG.info("File charset: " + charset);
+
+        fromLine = tableInfo.getFromLine();
+        LOG.info("Read from line: " + fromLine);
     }
 
     /**
@@ -189,16 +196,11 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
 
     @Override
     public void run(SourceContext<Row> ctx) throws Exception {
-        int fromLine = 1;
+        AtomicInteger currentLine = new AtomicInteger(0);
         String line;
         initMetric();
         inputStream = getInputStream(fileUri);
         bufferedReader = new BufferedReader(new InputStreamReader(inputStream, charset));
-
-        if (deserializationSchema instanceof DTCsvRowDeserializationSchema) {
-            fromLine = ((DTCsvRowDeserializationSchema) deserializationSchema).getFromLine();
-            LOG.info("Read from line: " + fromLine);
-        }
 
         while (running.get()) {
             line = bufferedReader.readLine();
@@ -208,13 +210,12 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
                 bufferedReader.close();
                 break;
             } else {
-                numInRecord.inc();
-
-                if (numInRecord.getCount() < fromLine) {
+                if (currentLine.incrementAndGet() < fromLine) {
                     continue;
                 }
 
                 try {
+                    numInRecord.inc();
                     Row row = deserializationSchema.deserialize(line.getBytes());
                     if (row == null) {
                         throw new IOException("Deserialized row is null");
@@ -224,7 +225,7 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
                 } catch (IOException e) {
                     if (errorCounter.getCount() % 1000 == 0) {
                         LOG.error("Deserialize error! Record: " + line);
-                        LOG.error("Cause: ", e);
+                        LOG.error("Cause: " + ExceptionTrace.traceOriginalCause(e));
                     }
                     errorCounter.inc();
                 }
