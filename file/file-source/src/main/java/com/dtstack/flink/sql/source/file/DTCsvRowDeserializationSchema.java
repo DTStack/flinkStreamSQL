@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.source.file;
 
+import com.dtstack.flink.sql.source.file.throwable.LengthMismatchException;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.BasicArrayTypeInfo;
@@ -371,8 +372,9 @@ public class DTCsvRowDeserializationSchema implements DeserializationSchema<Row>
 
     private static void validateArity(int expected, int actual) {
         if (expected != actual) {
-            LOG.warn("Row length mismatch. " + expected +
-                " fields expected but was " + actual + ".");
+            throw new LengthMismatchException(
+                    "Row length mismatch. " + expected +
+                            " fields expected but was " + actual + ".");
         }
     }
 }

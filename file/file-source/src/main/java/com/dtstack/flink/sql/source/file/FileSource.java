@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.source.file;
 
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.file.table.FileSourceTableInfo;
@@ -224,7 +225,7 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
                 } catch (IOException e) {
                     if (errorCounter.getCount() % 1000 == 0) {
                         LOG.error("Deserialize error! Record: " + line);
-                        LOG.error("Cause: ", e);
+                        LOG.error("Cause: " + ExceptionTrace.traceOriginalCause(e));
                     }
                     errorCounter.inc();
                 }
