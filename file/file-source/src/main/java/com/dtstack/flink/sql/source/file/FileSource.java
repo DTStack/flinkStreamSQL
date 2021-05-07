@@ -62,7 +62,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FileSource extends AbstractRichFunction implements IStreamSourceGener<Table>, SourceFunction<Row> {
     private static final Logger LOG = LoggerFactory.getLogger(FileSource.class);
 
-    private static final Long METRIC_WAIT_TIME = 5L;
+    private static final Long METRIC_WAIT_TIME = 20L;
 
     private static final String SP = File.separator;
 
