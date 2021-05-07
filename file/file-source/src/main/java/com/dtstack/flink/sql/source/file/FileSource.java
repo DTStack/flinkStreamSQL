@@ -196,32 +196,34 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
 
     @Override
     public void run(SourceContext<Row> ctx) throws Exception {
-        AtomicInteger currentLine = new AtomicInteger(0);
-        String line;
         initMetric();
+        AtomicInteger currentLine = new AtomicInteger(0);
+        String line = "";
         inputStream = getInputStream(fileUri);
         bufferedReader = new BufferedReader(new InputStreamReader(inputStream, charset));
 
-        while (running.get()) {
-            line = bufferedReader.readLine();
-            if (line == null) {
-                running.compareAndSet(true, false);
-                inputStream.close();
-                bufferedReader.close();
-                break;
-            } else {
-                if (currentLine.incrementAndGet() < fromLine) {
-                    continue;
-                }
-
+        try {
+            while (running.get()) {
                 try {
-                    numInRecord.inc();
-                    Row row = deserializationSchema.deserialize(line.getBytes());
-                    if (row == null) {
-                        throw new IOException("Deserialized row is null");
+                    line = bufferedReader.readLine();
+                    if (line == null) {
+                        running.compareAndSet(true, false);
+                        inputStream.close();
+                        bufferedReader.close();
+                        break;
+                    } else {
+                        if (currentLine.incrementAndGet() < fromLine) {
+                            continue;
+                        }
+
+                        numInRecord.inc();
+                        Row row = deserializationSchema.deserialize(line.getBytes());
+                        if (row == null) {
+                            throw new IOException("Deserialized row is null");
+                        }
+                        ctx.collect(row);
+                        numInResolveRecord.inc();
                     }
-                    ctx.collect(row);
-                    numInResolveRecord.inc();
                 } catch (IOException e) {
                     if (errorCounter.getCount() % 1000 == 0) {
                         LOG.error("Deserialize error! Record: " + line);
@@ -230,8 +232,9 @@ public class FileSource extends AbstractRichFunction implements IStreamSourceGen
                     errorCounter.inc();
                 }
             }
+        } finally {
+            ThreadUtil.sleepSeconds(METRIC_WAIT_TIME);
         }
-        ThreadUtil.sleepSeconds(METRIC_WAIT_TIME);
     }
 
     @Override
