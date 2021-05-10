@@ -56,6 +56,16 @@ public class KafkaConsumer011 extends FlinkKafkaConsumer011<Row> {
         this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
+    public KafkaConsumer011(String topic,
+                            DeserializationMetricWrapper deserializationMetricWrapper,
+                            Map<KafkaTopicPartition, Long> specificEndOffsets,
+                            Properties props) {
+        super(Arrays.asList(StringUtils.split(topic, ",")),
+                new DtKafkaDeserializationSchemaWrapper<>(deserializationMetricWrapper, specificEndOffsets),
+                props);
+        this.deserializationMetricWrapper = deserializationMetricWrapper;
+    }
+
     public KafkaConsumer011(Pattern subscriptionPattern, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
         super(subscriptionPattern, deserializationMetricWrapper, props);
         this.deserializationMetricWrapper = deserializationMetricWrapper;

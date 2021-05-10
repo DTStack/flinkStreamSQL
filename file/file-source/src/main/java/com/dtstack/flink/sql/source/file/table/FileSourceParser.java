@@ -22,8 +22,6 @@ import com.dtstack.flink.sql.source.file.FileSourceConstant;
 import com.dtstack.flink.sql.table.AbstractSourceParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
 import com.dtstack.flink.sql.util.MathUtil;
-import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.types.Row;
 
 import java.util.Locale;
 import java.util.Map;
@@ -37,54 +35,68 @@ public class FileSourceParser extends AbstractSourceParser {
     @Override
     public AbstractTableInfo getTableInfo(String tableName,
                                           String fieldsInfo,
-                                          Map<String, Object> props) throws Exception {
-        FileSourceTableInfo tableInfo = new FileSourceTableInfo();
-
-        tableInfo.setName(tableName);
-        parseFieldsInfo(fieldsInfo, tableInfo);
+                                          Map<String, Object> props) {
+        FileSourceTableInfo tableInfo = switchTableType(tableName, fieldsInfo, props);
 
         tableInfo.setType(MathUtil.getString(props.get(FileSourceConstant.TYPE_KEY.toLowerCase())));
-        tableInfo.setFormat(MathUtil.getString(props.getOrDefault(FileSourceConstant.FORMAT_KEY.toLowerCase(), FileSourceConstant.DEFAULT_FILE_FORMAT)));
         tableInfo.setFileName(MathUtil.getString(props.get(FileSourceConstant.FILE_NAME_KEY.toLowerCase())));
         tableInfo.setFilePath(MathUtil.getString(props.getOrDefault(FileSourceConstant.FILE_PATH_KEY.toLowerCase(), FileSourceConstant.DEFAULT_PATH)));
         tableInfo.setCharsetName(MathUtil.getString(props.getOrDefault(FileSourceConstant.CHARSET_NAME_KEY.toLowerCase(), FileSourceConstant.DEFAULT_CHARSET)));
-
-        DeserializationSchema<Row> rowDeserializationSchema = deserializationSchemaFactory(tableInfo, props);
-        tableInfo.setDeserializationSchema(rowDeserializationSchema);
+        tableInfo.setFromLine(MathUtil.getIntegerVal(props.getOrDefault(FileSourceConstant.FROM_LINE_KEY.toLowerCase(), 1)));
 
         tableInfo.check();
 
         return tableInfo;
     }
 
-    private DeserializationSchema<Row> deserializationSchemaFactory(FileSourceTableInfo tableInfo,
-                                                                    Map<String, Object> props) {
-        String format = tableInfo.getFormat();
-        switch (format.toLowerCase(Locale.ROOT)) {
-            case "csv":
-                return CsvSourceTableInfo
-                    .newBuilder()
-                    .setTypeInformation(tableInfo.buildRowTypeInfo())
-                    .setIgnoreParseErrors(MathUtil.getBoolean(props.getOrDefault(FileSourceConstant.IGNORE_PARSER_ERROR.toLowerCase(), FileSourceTableInfo.DEFAULT_TRUE)))
-                    .setFieldDelimiter(MathUtil.getChar(props.getOrDefault(FileSourceConstant.FIELD_DELIMITER_KEY.toLowerCase(), FileSourceConstant.DEFAULT_DELIMITER)))
-                    .setNullLiteral(MathUtil.getString(props.getOrDefault(FileSourceConstant.NULL_LITERAL_KEY.toLowerCase(), FileSourceConstant.DEFAULT_NULL_LITERAL)))
-                    .setAllowComment(MathUtil.getBoolean(props.getOrDefault(FileSourceConstant.ALLOW_COMMENT_KEY.toLowerCase(), FileSourceTableInfo.DEFAULT_TRUE)))
-                    .setArrayElementDelimiter(MathUtil.getString(props.getOrDefault(FileSourceConstant.ARRAY_ELEMENT_DELIMITER_KEY.toLowerCase(), FileSourceConstant.DEFAULT_DELIMITER)))
-                    .setQuoterCharacter(MathUtil.getChar(props.getOrDefault(FileSourceConstant.QUOTA_CHARACTER_KEY.toLowerCase(), FileSourceConstant.DEFAULT_QUOTE_CHAR)))
-                    .setEscapeCharacter(MathUtil.getChar(props.getOrDefault(FileSourceConstant.ESCAPE_CHARACTER_KEY.toLowerCase(), FileSourceConstant.DEFAULT_ESCAPE_CHAR)))
-                    .buildCsvDeserializationSchema();
+    private FileSourceTableInfo switchTableType(String tableName,
+                                                String fieldsInfo,
+                                                Map<String, Object> props) {
+        String format = MathUtil.getString(props.getOrDefault(FileSourceConstant.FORMAT_KEY.toLowerCase(), FileSourceConstant.DEFAULT_FILE_FORMAT)).toLowerCase(Locale.ROOT);
+        switch (format) {
+            case "csv": {
+                CsvSourceTableInfo tableInfo = new CsvSourceTableInfo();
+                tableInfo.setName(tableName);
+                parseFieldsInfo(fieldsInfo, tableInfo);
 
-            case "json":
+                tableInfo.setTypeInformation(tableInfo.buildRowTypeInfo());
+                tableInfo.setFieldDelimiter(MathUtil.getChar(props.getOrDefault(FileSourceConstant.FIELD_DELIMITER_KEY.toLowerCase(), FileSourceConstant.DEFAULT_DELIMITER)));
+                tableInfo.setNullLiteral(MathUtil.getString(props.get(FileSourceConstant.NULL_LITERAL_KEY.toLowerCase())));
+                tableInfo.setAllowComments(MathUtil.getBoolean(props.getOrDefault(FileSourceConstant.ALLOW_COMMENT_KEY.toLowerCase(), FileSourceTableInfo.DEFAULT_TRUE)));
+                tableInfo.setArrayElementDelimiter(MathUtil.getString(props.get(FileSourceConstant.ARRAY_ELEMENT_DELIMITER_KEY.toLowerCase())));
+                Character quoteChar = MathUtil.getChar(props.get(FileSourceConstant.QUOTA_CHARACTER_KEY.toLowerCase()));
+                if (quoteChar != null && !Character.isSpaceChar(quoteChar)) {
+                    tableInfo.setQuoteCharacter(quoteChar);
+                }
+
+                Character escapeChar = MathUtil.getChar(props.get(FileSourceConstant.ESCAPE_CHARACTER_KEY.toLowerCase()));
+                if (escapeChar != null && !Character.isSpaceChar(escapeChar)) {
+                    tableInfo.setEscapeCharacter(escapeChar);
+                }
+
+                tableInfo.buildDeserializationSchema();
+                return tableInfo;
+            }
+            case "json": {
+                JsonSourceTableInfo tableInfo = new JsonSourceTableInfo();
+                tableInfo.setName(tableName);
+                parseFieldsInfo(fieldsInfo, tableInfo);
                 return JsonSourceTableInfo
-                    .newBuilder()
+                    .newBuilder(tableInfo)
                     .setTypeInformation(tableInfo.buildRowTypeInfo())
-                    .buildCsvDeserializationSchema();
-            case "arvo":
+                    .buildTableInfo();
+            }
+            case "avro": {
+                ArvoSourceTableInfo tableInfo = new ArvoSourceTableInfo();
+                tableInfo.setName(tableName);
+                parseFieldsInfo(fieldsInfo, tableInfo);
+
                 return ArvoSourceTableInfo
-                    .newBuilder()
+                    .newBuilder(tableInfo)
                     .setTypeInformation(tableInfo.buildRowTypeInfo())
                     .setArvoFormat(MathUtil.getString(props.get(FileSourceConstant.AVRO_FORMAT_KEY.toLowerCase())))
-                    .buildCsvDeserializationSchema();
+                    .buildTableInfo();
+            }
             default:
                 throw new IllegalStateException("Unexpected value: " + format);
         }

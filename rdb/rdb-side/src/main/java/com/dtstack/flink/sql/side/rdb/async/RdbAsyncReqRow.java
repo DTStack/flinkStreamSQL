@@ -104,7 +104,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
 
     private final AtomicBoolean connectionStatus = new AtomicBoolean(true);
 
-    private static volatile boolean resourceCheck = true;
+    private static volatile boolean resourceCheck = false;
 
     private transient ThreadPoolExecutor executor;
 
@@ -235,11 +235,7 @@ public class RdbAsyncReqRow extends BaseAsyncReqRow {
                     LOG.error(String.format("retry ... current time [%s]", failCounter.get()));
                     if (failCounter.get() >= retryMaxNum) {
                         resultFuture.completeExceptionally(
-                                new SuppressRestartsException(
-                                        new Throwable(
-                                                ExceptionTrace.traceOriginalCause(conn.cause())
-                                        )
-                                )
+                                new SuppressRestartsException(conn.cause())
                         );
                         finishFlag.set(true);
                     }

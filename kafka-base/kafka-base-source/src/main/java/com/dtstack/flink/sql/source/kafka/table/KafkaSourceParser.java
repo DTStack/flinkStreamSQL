@@ -23,9 +23,13 @@ import com.dtstack.flink.sql.format.FormatType;
 import com.dtstack.flink.sql.source.kafka.enums.EKafkaOffset;
 import com.dtstack.flink.sql.table.AbstractSourceParser;
 import com.dtstack.flink.sql.table.AbstractTableInfo;
+import com.dtstack.flink.sql.util.DtStringUtil;
 import com.dtstack.flink.sql.util.MathUtil;
+import com.dtstack.flink.sql.util.PluginUtil;
+import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -52,6 +56,12 @@ public class KafkaSourceParser extends AbstractSourceParser {
         kafkaSourceTableInfo.setTopic(MathUtil.getString(props.get(KafkaSourceTableInfo.TOPIC_KEY.toLowerCase())));
         kafkaSourceTableInfo.setTopicIsPattern(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.TOPICISPATTERN_KEY.toLowerCase()), false));
         kafkaSourceTableInfo.setOffsetReset(MathUtil.getString(props.getOrDefault(KafkaSourceTableInfo.OFFSETRESET_KEY.toLowerCase(), EKafkaOffset.LATEST.name().toLowerCase())));
+
+        String offsetEnd = MathUtil.getString(props.get(KafkaSourceTableInfo.OFFSET_END_KEY.toLowerCase()));
+        if (DtStringUtil.isJson(offsetEnd)) {
+            kafkaSourceTableInfo.setSpecificEndOffsets(buildOffsetMap(offsetEnd, kafkaSourceTableInfo.getTopic()));
+        }
+
         kafkaSourceTableInfo.setCharsetName(MathUtil.getString(props.getOrDefault(KafkaSourceTableInfo.CHARSET_NAME_KEY.toLowerCase(),"UTF-8")));
 
         kafkaSourceTableInfo.setSchemaString(MathUtil.getString(props.get(KafkaSourceTableInfo.SCHEMA_STRING_KEY.toLowerCase())));
@@ -72,5 +82,29 @@ public class KafkaSourceParser extends AbstractSourceParser {
         kafkaSourceTableInfo.check();
 
         return kafkaSourceTableInfo;
+    }
+
+    /**
+     * kafka offset,eg.. {"0":12312,"1":12321,"2":12312}
+     *
+     * @param offsetJson offset json
+     * @param topicName  kafka topic
+     * @return offset map
+     */
+    protected Map<KafkaTopicPartition, Long> buildOffsetMap(String offsetJson, String topicName) {
+        try {
+            Properties properties = PluginUtil.jsonStrToObject(offsetJson, Properties.class);
+            Map<String, Object> offsetMap = PluginUtil.objectToMap(properties);
+
+            return offsetMap
+                    .entrySet()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            (Map.Entry<String, Object> entry) -> new KafkaTopicPartition(topicName, Integer.parseInt(entry.getKey())),
+                            (Map.Entry<String, Object> entry) -> Long.valueOf(entry.getValue().toString()))
+                    );
+        } catch (Exception e) {
+            throw new RuntimeException("not support offsetReset type:" + offsetJson);
+        }
     }
 }

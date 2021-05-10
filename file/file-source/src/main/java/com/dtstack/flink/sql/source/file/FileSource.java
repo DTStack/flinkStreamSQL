@@ -18,11 +18,17 @@
 
 package com.dtstack.flink.sql.source.file;
 
+import com.dtstack.flink.sql.exception.ExceptionTrace;
+import com.dtstack.flink.sql.metric.MetricConstant;
 import com.dtstack.flink.sql.source.IStreamSourceGener;
 import com.dtstack.flink.sql.source.file.table.FileSourceTableInfo;
 import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
+import com.dtstack.flink.sql.util.ThreadUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.functions.AbstractRichFunction;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.metrics.Counter;
 import org.apache.flink.runtime.execution.SuppressRestartsException;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -53,9 +59,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2021/3/9 星期二
  * Company dtstack
  */
-public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row> {
-
+public class FileSource extends AbstractRichFunction implements IStreamSourceGener<Table>, SourceFunction<Row> {
     private static final Logger LOG = LoggerFactory.getLogger(FileSource.class);
+
+    private static final Long METRIC_WAIT_TIME = 20L;
 
     private static final String SP = File.separator;
 
@@ -70,11 +77,23 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
 
     private InputStream inputStream;
 
+    private BufferedReader bufferedReader;
+
     private String charset;
 
-    private final AtomicInteger count = new AtomicInteger(0);
+    private int fromLine;
 
-    private final AtomicInteger errorCount = new AtomicInteger(0);
+    protected transient Counter errorCounter;
+
+    /**
+     * tps ransactions Per Second
+     */
+    protected transient Counter numInRecord;
+
+    /**
+     * rps Record Per Second: deserialize data and out record num
+     */
+    protected transient Counter numInResolveRecord;
 
     @Override
     public Table genStreamSource(AbstractSourceTableInfo sourceTableInfo,
@@ -83,21 +102,35 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
         FileSource fileSource = new FileSource();
         FileSourceTableInfo tableInfo = (FileSourceTableInfo) sourceTableInfo;
 
-        DataStreamSource<?> source = fileSource.initDataStream(tableInfo, env);
+        fileSource.initSource(tableInfo);
+
         String fields = StringUtils.join(tableInfo.getFields(), ",");
+
+        DataStreamSource<Row> source = env.addSource(fileSource, tableInfo.getOperatorName(), tableInfo.getTypeInformation());
 
         return tableEnv.fromDataStream(source, fields);
     }
 
-    public DataStreamSource<?> initDataStream(FileSourceTableInfo tableInfo,
-                                              StreamExecutionEnvironment env) {
+    /**
+     * 初始化指标
+     */
+    public void initMetric() {
+        RuntimeContext runtimeContext = getRuntimeContext();
+
+        errorCounter = runtimeContext.getMetricGroup().counter(MetricConstant.DT_DIRTY_DATA_COUNTER);
+        numInRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_IN_COUNTER);
+        numInResolveRecord = runtimeContext.getMetricGroup().counter(MetricConstant.DT_NUM_RECORDS_RESOVED_IN_COUNTER);
+    }
+
+    public void initSource(FileSourceTableInfo tableInfo) {
         deserializationSchema = tableInfo.getDeserializationSchema();
         fileUri = URI.create(tableInfo.getFilePath() + SP + tableInfo.getFileName());
+
         charset = tableInfo.getCharsetName();
-        return env.addSource(
-            this,
-            tableInfo.getOperatorName(),
-            tableInfo.buildRowTypeInfo());
+        LOG.info("File charset: " + charset);
+
+        fromLine = tableInfo.getFromLine();
+        LOG.info("Read from line: " + fromLine);
     }
 
     /**
@@ -108,11 +141,11 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
      */
     private InputStream getInputStream(URI fileUri) {
         try {
-            String scheme = fileUri.getScheme() == null ? "local" : fileUri.getScheme();
+            String scheme = fileUri.getScheme() == null ? FileSourceConstant.FILE_LOCAL : fileUri.getScheme();
             switch (scheme.toLowerCase(Locale.ROOT)) {
-                case "local":
+                case FileSourceConstant.FILE_LOCAL:
                     return fromLocalFile(fileUri);
-                case "hdfs":
+                case FileSourceConstant.FILE_HDFS:
                     return fromHdfsFile(fileUri);
                 default:
                     throw new UnsupportedOperationException(
@@ -163,29 +196,45 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
 
     @Override
     public void run(SourceContext<Row> ctx) throws Exception {
+        initMetric();
+        AtomicInteger currentLine = new AtomicInteger(0);
+        String line = "";
         inputStream = getInputStream(fileUri);
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, charset));
+        bufferedReader = new BufferedReader(new InputStreamReader(inputStream, charset));
 
-        while (running.get()) {
-            String line = bufferedReader.readLine();
-            if (line == null) {
-                running.compareAndSet(true, false);
-                inputStream.close();
-                break;
-            } else {
+        try {
+            while (running.get()) {
                 try {
-                    Row row = deserializationSchema.deserialize(line.getBytes());
-                    if (row == null) {
-                        throw new IOException("Deserialized row is null");
+                    line = bufferedReader.readLine();
+                    if (line == null) {
+                        running.compareAndSet(true, false);
+                        inputStream.close();
+                        bufferedReader.close();
+                        break;
+                    } else {
+                        if (currentLine.incrementAndGet() < fromLine) {
+                            continue;
+                        }
+
+                        numInRecord.inc();
+                        Row row = deserializationSchema.deserialize(line.getBytes());
+                        if (row == null) {
+                            throw new IOException("Deserialized row is null");
+                        }
+                        ctx.collect(row);
+                        numInResolveRecord.inc();
                     }
-                    ctx.collect(row);
-                    count.incrementAndGet();
                 } catch (IOException e) {
-                    errorCount.incrementAndGet();
+                    if (errorCounter.getCount() % 1000 == 0) {
+                        LOG.error("Deserialize error! Record: " + line);
+                        LOG.error("Cause: " + ExceptionTrace.traceOriginalCause(e));
+                    }
+                    errorCounter.inc();
                 }
             }
+        } finally {
+            ThreadUtil.sleepSeconds(METRIC_WAIT_TIME);
         }
-        printCount();
     }
 
     @Override
@@ -196,14 +245,16 @@ public class FileSource implements IStreamSourceGener<Table>, SourceFunction<Row
             try {
                 inputStream.close();
             } catch (IOException ioException) {
-                LOG.error("File input stream close error!");
+                LOG.error("File input stream close error!", ioException);
             }
         }
-        printCount();
-    }
 
-    private void printCount() {
-        LOG.info("Read count: {}", count.get());
-        LOG.info("Error count: {}", errorCount.get());
+        if (bufferedReader != null) {
+            try {
+                bufferedReader.close();
+            } catch (IOException ioException) {
+                LOG.error("File buffer reader close error!", ioException);
+            }
+        }
     }
 }
