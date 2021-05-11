@@ -33,6 +33,7 @@ import transwarp.org.elasticsearch.action.bulk.BulkItemResponse;
 import transwarp.org.elasticsearch.action.bulk.BulkProcessor;
 import transwarp.org.elasticsearch.client.transport.TransportClient;
 import transwarp.org.elasticsearch.common.network.NetworkModule;
+import transwarp.org.elasticsearch.common.settings.Setting;
 import transwarp.org.elasticsearch.common.settings.Settings;
 import transwarp.org.elasticsearch.common.transport.TransportAddress;
 import transwarp.org.elasticsearch.common.unit.TimeValue;
@@ -65,33 +66,47 @@ public class ExtendES5ApiCallBridge implements ElasticsearchApiCallBridge<Transp
         Preconditions.checkArgument(transportAddresses != null && !transportAddresses.isEmpty());
         this.transportAddresses = transportAddresses;
         this.esTableInfo = esTableInfo;
+        this.esTableInfo.judgeKrbEnable();
     }
 
     @Override
     public TransportClient createClient(Map<String, String> clientConfig) throws IOException{
 
-        //1. login kdc with keytab and krb5 conf
-        UserGroupInformation ugi  = KrbUtils.loginAndReturnUgi(
-                esTableInfo.getPrincipal(),
-                esTableInfo.getKeytab(),
-                esTableInfo.getKrb5conf());
+        TransportClient transportClient;
 
-        //2. set transwarp attributes
-        Settings settings = Settings.builder().put(clientConfig)
-                .put("client.transport.sniff", true)
-                .put("security.enable", true)
-                .put(NetworkModule.TRANSPORT_TYPE_KEY, "security-netty3")
-                .build();
+        if (esTableInfo.isEnableKrb()) {
+            //1. login kdc with keytab and krb5 conf
+            UserGroupInformation ugi  = KrbUtils.loginAndReturnUgi(
+                    esTableInfo.getPrincipal(),
+                    esTableInfo.getKeytab(),
+                    esTableInfo.getKrb5conf());
 
-        //3. build transport client with transwarp plugins
-         TransportClient transportClient = ugi.doAs((PrivilegedAction<TransportClient>) () -> {
-            TransportClient tmpClient = new PreBuiltTransportClient(settings,
-                    Collections.singletonList(DoorKeeperClientPlugin.class));
+            //2. set transwarp attributes
+            Settings settings = Settings.builder().put(clientConfig)
+                    .put("client.transport.sniff", true)
+                    .put("security.enable", true)
+                    .put(NetworkModule.TRANSPORT_TYPE_KEY, "security-netty3")
+                    .build();
+
+            //3. build transport client with transwarp plugins
+            transportClient = ugi.doAs((PrivilegedAction<TransportClient>) () -> {
+                TransportClient tmpClient = new PreBuiltTransportClient(settings,
+                        Collections.singletonList(DoorKeeperClientPlugin.class));
+                for (TransportAddress transport : ElasticsearchUtils.convertInetSocketAddresses(transportAddresses)) {
+                    tmpClient.addTransportAddress(transport);
+                }
+                return tmpClient;
+            });
+        } else {
+            Settings settings = Settings.builder().put(clientConfig)
+                    .put("client.transport.sniff", true)
+                    .build();
+
+            transportClient = new PreBuiltTransportClient(settings);
             for (TransportAddress transport : ElasticsearchUtils.convertInetSocketAddresses(transportAddresses)) {
-                tmpClient.addTransportAddress(transport);
+                transportClient.addTransportAddress(transport);
             }
-            return tmpClient;
-        });
+        }
 
         return transportClient;
     }
@@ -140,18 +155,27 @@ public class ExtendES5ApiCallBridge implements ElasticsearchApiCallBridge<Transp
     @Override
     public boolean verifyClientConnection(TransportClient client) throws IOException {
 
-        //1. login kdc with keytab and krb5 conf
-        UserGroupInformation ugi  = KrbUtils.loginAndReturnUgi(
-                esTableInfo.getPrincipal(),
-                esTableInfo.getKeytab(),
-                esTableInfo.getKrb5conf());
 
-        //2. refresh availableNodes.
-        boolean verifyResult = ugi.doAs((PrivilegedAction<Boolean>) () -> {
-            LOG.info("Refresh client available nodes.");
+        boolean verifyResult = false;
+
+        if (esTableInfo.isEnableKrb()) {
+            //1. login kdc with keytab and krb5 conf
+            UserGroupInformation ugi  = KrbUtils.loginAndReturnUgi(
+                    esTableInfo.getPrincipal(),
+                    esTableInfo.getKeytab(),
+                    esTableInfo.getKrb5conf());
+
+            //2. refresh availableNodes.
+            verifyResult = ugi.doAs((PrivilegedAction<Boolean>) () -> {
+                LOG.info("Refresh client available nodes.");
+                client.refreshAvailableNodes();
+                return client.connectedNodes().isEmpty();
+            });
+        } else {
             client.refreshAvailableNodes();
-            return client.connectedNodes().isEmpty();
-        });
+            verifyResult = client.connectedNodes().isEmpty();
+        }
+
 
         if (!verifyResult) {
             return true;

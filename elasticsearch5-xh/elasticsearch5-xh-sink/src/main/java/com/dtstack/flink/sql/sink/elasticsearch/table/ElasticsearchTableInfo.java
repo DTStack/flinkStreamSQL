@@ -161,12 +161,14 @@ public class ElasticsearchTableInfo extends AbstractTargetTableInfo implements K
             });
         }
 
-        boolean allNotSet =
-                Strings.isNullOrEmpty(principal) &&
-                        Strings.isNullOrEmpty(keytab) &&
-                        Strings.isNullOrEmpty(krb5conf);
 
-        Preconditions.checkState(!allNotSet, "xh's elasticsearch type of kerberos file is required");
+        // all or nothing
+        boolean allSet = Strings.isNullOrEmpty(principal)
+                        == Strings.isNullOrEmpty(keytab)
+                        == Strings.isNullOrEmpty(krb5conf);
+
+
+        Preconditions.checkState(!allSet, "xh's elasticsearch type of kerberos file is required");
 
         return true;
     }
