@@ -186,7 +186,14 @@ public class PluginUtil {
             prefix,
             pluginLoadMode
         );
-        String path = remotePath == null ? localPath : remotePath;
+
+        String path;
+        if (StringUtils.equalsIgnoreCase(pluginLoadMode, EPluginLoadMode.CLASSPATH.name())) {
+            path = remotePath == null ? localPath : remotePath;
+        } else {
+            path = localPath;
+        }
+
         String dirtyPath = path + SP + DIRTY_DATA_PRE + SP + dirtyType;
         URI uri = URI.create("file:" + dirtyPath + SP + jarFileName);
         return uri.toURL();
