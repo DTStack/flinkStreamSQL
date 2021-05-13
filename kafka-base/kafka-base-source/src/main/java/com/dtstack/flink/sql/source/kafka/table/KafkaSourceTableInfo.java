@@ -21,6 +21,7 @@ package com.dtstack.flink.sql.source.kafka.table;
 
 import com.dtstack.flink.sql.table.AbstractSourceTableInfo;
 import com.google.common.base.Preconditions;
+import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +45,8 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
     public static final String GROUPID_KEY = "groupId";
 
     public static final String OFFSETRESET_KEY = "offsetReset";
+
+    public static final String OFFSET_END_KEY = "offsetEnd";
 
     public static final String TOPICISPATTERN_KEY = "topicIsPattern";
 
@@ -88,6 +91,8 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
     public String charsetName;
 
     private Long timestampOffset;
+
+    private Map<KafkaTopicPartition, Long> specificEndOffsets;
 
     public String getBootstrapServers() {
         return bootstrapServers;
@@ -185,7 +190,15 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
         this.timestampOffset = timestampOffset;
     }
 
-	@Override
+    public Map<KafkaTopicPartition, Long> getSpecificEndOffsets() {
+        return specificEndOffsets;
+    }
+
+    public void setSpecificEndOffsets(Map<KafkaTopicPartition, Long> specificEndOffsets) {
+        this.specificEndOffsets = specificEndOffsets;
+    }
+
+    @Override
 	public boolean check() {
 		Preconditions.checkNotNull(getType(), "kafka of type is required");
 		Preconditions.checkNotNull(bootstrapServers, "kafka of bootstrapServers is required");

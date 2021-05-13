@@ -22,6 +22,7 @@ import com.dtstack.flink.sql.parser.FlinkPlanner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
@@ -35,7 +36,9 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.calcite.sql.SqlKind.*;
+import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
+import static org.apache.calcite.sql.SqlKind.LITERAL;
+import static org.apache.calcite.sql.SqlKind.OR;
 
 /**
  *
@@ -47,6 +50,7 @@ import static org.apache.calcite.sql.SqlKind.*;
 public class SidePredicatesParser {
 
     private FlinkPlanner flinkPlanner = new FlinkPlanner();
+    private static final String QUOTE = "'";
 
     public void fillPredicatesForSideTable(String exeSql, Map<String, AbstractSideTableInfo> sideTableMap) throws SqlParseException {
         SqlNode sqlNode = flinkPlanner.getParser().parse(exeSql);
@@ -140,26 +144,57 @@ public class SidePredicatesParser {
         }
     }
 
-    private void  fillPredicateInfoToList(SqlBasicCall whereNode, List<PredicateInfo> predicatesInfoList, String operatorName, SqlKind operatorKind,
-                                         int fieldIndex, int conditionIndex) {
+    private void fillPredicateInfoToList(
+            SqlBasicCall whereNode,
+            List<PredicateInfo> predicatesInfoList,
+            String operatorName,
+            SqlKind operatorKind,
+            int fieldIndex,
+            int conditionIndex) {
         SqlNode sqlNode = whereNode.getOperands()[fieldIndex];
         if (sqlNode.getKind() == SqlKind.IDENTIFIER) {
             SqlIdentifier fieldFullPath = (SqlIdentifier) sqlNode;
             if (fieldFullPath.names.size() == 2) {
                 String ownerTable = fieldFullPath.names.get(0);
                 String fieldName = fieldFullPath.names.get(1);
-                String content = (operatorKind == SqlKind.BETWEEN) ? whereNode.getOperands()[conditionIndex].toString() + " AND " +
-                        whereNode.getOperands()[2].toString() : whereNode.getOperands()[conditionIndex].toString();
 
-                if (StringUtils.containsIgnoreCase(content,SqlKind.CASE.toString())) {
+                String condition;
+                SqlNode[] conditionNodes = whereNode.getOperands();
+                SqlNode literal = conditionNodes[conditionIndex];
+                if (operatorKind == SqlKind.BETWEEN) {
+                    condition = literal.toString() + " AND " + conditionNodes[2].toString();
+                } else {
+                    if (literal instanceof SqlCharStringLiteral) {
+                        condition = removeCoding((SqlCharStringLiteral) literal);
+                    } else {
+                        condition = literal.toString();
+                    }
+                }
+
+                if (StringUtils.containsIgnoreCase(condition, SqlKind.CASE.toString())) {
                     return;
                 }
 
-                PredicateInfo predicateInfo = PredicateInfo.builder().setOperatorName(operatorName).setOperatorKind(operatorKind.toString())
-                        .setOwnerTable(ownerTable).setFieldName(fieldName).setCondition(content).build();
+                PredicateInfo predicateInfo =
+                        PredicateInfo.builder()
+                                .setOperatorName(operatorName)
+                                .setOperatorKind(operatorKind.toString())
+                                .setOwnerTable(ownerTable)
+                                .setFieldName(fieldName)
+                                .setCondition(condition)
+                                .build();
                 predicatesInfoList.add(predicateInfo);
             }
         }
     }
 
+    /**
+     * 去掉_UTF16前缀，只获取字符本身。要不然中文编码会有问题。例如 _UTF16'甲' 去掉后返回结果为 '甲'。
+     *
+     * @param stringLiteral
+     * @return
+     */
+    private String removeCoding(SqlCharStringLiteral stringLiteral) {
+        return QUOTE + stringLiteral.getNlsString().getValue() + QUOTE;
+    }
 }

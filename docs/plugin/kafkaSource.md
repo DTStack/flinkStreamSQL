@@ -44,6 +44,7 @@ CREATE TABLE tableName(
 |topic | 需要读取的 topic 名称|是||
 |topicIsPattern | topic是否是正则表达式格式(true&#124;false)  |否| false
 |offsetReset  | 读取的topic 的offset初始位置[latest&#124;earliest&#124;指定offset值({"0":12312,"1":12321,"2":12312},{"partition_no":offset_value})]|否|latest|
+|offsetEnd  | 任务停止时的offset位置|否|无|
 |parallelism | 并行度设置|否|1|
 |sourcedatatype | 数据类型,avro,csv,json,dt_nest。dt_nest为默认JSON解析器，能够解析嵌套JSON数据类型，其他仅支持非嵌套格式|否|dt_nest|
 |schemaInfo | avro类型使用的schema信息|否||
@@ -104,6 +105,23 @@ CREATE TABLE MyTable(
     parallelism ='1',
     sourcedatatype ='json' #可不设置
  );
+ 
+ CREATE TABLE two
+(
+    id      int,
+    name    string,
+    message string
+) WITH (
+      type = 'kafka11',
+      bootstrapServers = 'kudu1:9092,kudu2:9092,kudu3:9092',
+      zookeeperQuorum = 'kudu1:2181,kudu2:2181,kudu3:2181/kafka',
+      offsetReset = '{"0": 0,"1": 0,"2":0}',
+--       offsetReset = '{"0": 34689}',
+--     offsetReset = 'earliest',
+      offsetEnd = '{"0": 100,"1": 100,"2":100}',
+--       offsetEnd = '{"0": 34789}',
+      topic = 'kafka'
+      );
 ```
 ## 6.支持嵌套json、数据类型字段解析
 

@@ -46,7 +46,7 @@ public class KafkaConsumer010Factory extends AbstractKafkaConsumerFactory {
             kafkaSrc = new KafkaConsumer010(Pattern.compile(kafkaSourceTableInfo.getTopic()), deserMetricWrapper, props);
         } else {
             DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) SubscriptionState::partitionLag);
-            kafkaSrc = new KafkaConsumer010(kafkaSourceTableInfo.getTopic(), deserMetricWrapper, props);
+            kafkaSrc = new KafkaConsumer010(kafkaSourceTableInfo.getTopic(), deserMetricWrapper, kafkaSourceTableInfo.getSpecificEndOffsets(), props);
         }
 
         return kafkaSrc;

@@ -32,7 +32,7 @@ public class SqlserverSideParser extends RdbSideParser {
 
     @Override
     public AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
-        props.put(JdbcCheckKeys.DRIVER_NAME, "net.sourceforge.jtds.jdbc.Driver");
+        props.put(JdbcCheckKeys.DRIVER_NAME, "com.microsoft.sqlserver.jdbc.SQLServerDriver");
         AbstractTableInfo sqlServerTableInfo = super.getTableInfo(tableName, fieldsInfo, props);
         sqlServerTableInfo.setType(CURR_TYPE);
         return sqlServerTableInfo;

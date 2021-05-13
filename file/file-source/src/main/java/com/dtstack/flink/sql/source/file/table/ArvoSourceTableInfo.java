@@ -35,9 +35,6 @@ public class ArvoSourceTableInfo extends FileSourceTableInfo {
      */
     private String arvoFormat;
 
-    private ArvoSourceTableInfo() {
-    }
-
     public String getArvoFormat() {
         return arvoFormat;
     }
@@ -46,15 +43,15 @@ public class ArvoSourceTableInfo extends FileSourceTableInfo {
         this.arvoFormat = arvoFormat;
     }
 
-    public static Builder newBuilder() {
-        return new Builder();
+    public static Builder newBuilder(ArvoSourceTableInfo tableInfo) {
+        return new Builder(tableInfo);
     }
 
     public static class Builder {
         private final ArvoSourceTableInfo tableInfo;
 
-        public Builder() {
-            tableInfo = new ArvoSourceTableInfo();
+        public Builder(ArvoSourceTableInfo tableInfo) {
+            this.tableInfo = tableInfo;
         }
 
         public Builder setArvoFormat(String arvoFormat) {
@@ -67,7 +64,14 @@ public class ArvoSourceTableInfo extends FileSourceTableInfo {
             return this;
         }
 
-        public DeserializationSchema<Row> buildCsvDeserializationSchema() {
+        public ArvoSourceTableInfo buildTableInfo() {
+            DeserializationSchema<Row> deserializationSchema = buildDeserializationSchema();
+            tableInfo.setDeserializationSchema(deserializationSchema);
+
+            return tableInfo;
+        }
+
+        public DeserializationSchema<Row> buildDeserializationSchema() {
             String arvoFormat = tableInfo.getArvoFormat();
             Preconditions.checkNotNull(arvoFormat, "format [arvo] must set arvoFormat");
             return new AvroRowDeserializationSchema(arvoFormat);

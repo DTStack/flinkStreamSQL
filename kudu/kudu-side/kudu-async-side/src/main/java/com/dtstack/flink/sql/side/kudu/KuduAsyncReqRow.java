@@ -161,6 +161,12 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         //  @wenbaoup fix bug
         inputParams.forEach((key, value) -> {
             Object transformValue = transformValue(value);
+            if (transformValue == null) {
+                scannerBuilder.addPredicate(
+                       KuduPredicate.newIsNullPredicate(schema.getColumn(key))
+                );
+                return;
+            }
             scannerBuilder.addPredicate(
                 KuduPredicate.newInListPredicate(
                     schema.getColumn(key),
@@ -228,7 +234,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
     public String buildCacheKey(Map<String, Object> inputParams) {
         StringBuilder sb = new StringBuilder();
         for (Object ele : inputParams.values()) {
-            sb.append(ele.toString())
+            sb.append(ele)
                     .append("_");
         }
 
@@ -295,13 +301,18 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
 
         @Override
         public Deferred<List<Row>> call(RowResultIterator results) throws Exception {
+            if (results == null) {
+                resultFuture.complete(Collections.emptyList());
+                return null;
+            }
+
             for (RowResult result : results) {
                 Map<String, Object> oneRow = Maps.newHashMap();
                 for (String sideFieldName1 : StringUtils.split(sideInfo.getSideSelectFields(), ",")) {
                     String sideFieldName = sideFieldName1.trim();
                     ColumnSchema columnSchema = table.getSchema().getColumn(sideFieldName);
                     if (null != columnSchema) {
-                        KuduUtil.setMapValue(columnSchema.getType(), oneRow, sideFieldName, result);
+                        oneRow.put(sideFieldName, result.getObject(sideFieldName));
                     }
                 }
                 BaseRow row = fillData(input, oneRow);
@@ -327,6 +338,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
                 }
             }
 
+            resultFuture.complete(Collections.emptyList());
             return null;
         }
     }

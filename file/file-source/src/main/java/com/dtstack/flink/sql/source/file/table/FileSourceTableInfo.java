@@ -40,12 +40,6 @@ public class FileSourceTableInfo extends AbstractSourceTableInfo {
     /*-------------------------------------------------------------*/
 
     /**
-     * 默认为csv，可选json
-     * TODO orc, parquet等也需要支持
-     */
-    private String format;
-
-    /**
      * 文件名
      */
     private String fileName;
@@ -64,15 +58,9 @@ public class FileSourceTableInfo extends AbstractSourceTableInfo {
 
     private TypeInformation<Row> typeInformation;
 
+    private int fromLine;
+
     /*-------------------------------------------------------------*/
-
-    public String getFormat() {
-        return format;
-    }
-
-    public void setFormat(String format) {
-        this.format = format;
-    }
 
     public String getFileName() {
         return fileName;
@@ -112,6 +100,14 @@ public class FileSourceTableInfo extends AbstractSourceTableInfo {
 
     public void setDeserializationSchema(DeserializationSchema<Row> deserializationSchema) {
         this.deserializationSchema = deserializationSchema;
+    }
+
+    public int getFromLine() {
+        return fromLine;
+    }
+
+    public void setFromLine(int fromLine) {
+        this.fromLine = fromLine;
     }
 
     @SuppressWarnings("unchecked")
