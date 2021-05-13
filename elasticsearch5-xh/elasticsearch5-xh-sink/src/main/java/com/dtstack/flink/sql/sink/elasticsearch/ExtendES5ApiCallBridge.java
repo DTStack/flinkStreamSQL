@@ -66,7 +66,6 @@ public class ExtendES5ApiCallBridge implements ElasticsearchApiCallBridge<Transp
         Preconditions.checkArgument(transportAddresses != null && !transportAddresses.isEmpty());
         this.transportAddresses = transportAddresses;
         this.esTableInfo = esTableInfo;
-        this.esTableInfo.judgeKrbEnable();
     }
 
     @Override
