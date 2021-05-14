@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.format;
 
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
+import com.dtstack.flink.sql.exception.ExceptionTrace;
 import com.dtstack.flink.sql.metric.MetricConstant;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
@@ -111,7 +112,8 @@ public class DeserializationMetricWrapper extends AbstractDeserializationSchema<
         } catch (Exception e) {
             //add metric of dirty data
             dirtyDataManager.execute();
-            dirtyDataManager.collectDirtyData(new String(message), e.getMessage());
+            dirtyDataManager.collectDirtyData(
+                    new String(message), ExceptionTrace.traceOriginalCause(e));
             dirtyDataCounter.inc();
             return null;
         }
