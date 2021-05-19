@@ -160,14 +160,6 @@ public class ElasticsearchTableInfo extends AbstractTargetTableInfo implements K
                 Preconditions.checkArgument(NumberUtils.isNumber(number), "id must be a numeric type");
             });
         }
-
-        boolean allNotSet =
-                Strings.isNullOrEmpty(principal) &&
-                        Strings.isNullOrEmpty(keytab) &&
-                        Strings.isNullOrEmpty(krb5conf);
-
-        Preconditions.checkState(!allNotSet, "xh's elasticsearch type of kerberos file is required");
-
         return true;
     }
 
