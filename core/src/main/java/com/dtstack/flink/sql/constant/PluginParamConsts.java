@@ -22,9 +22,15 @@ package com.dtstack.flink.sql.constant;
  * @program: flinkStreamSQL
  * @author: wuren
  * @create: 2020/09/15
- **/
+ */
 public class PluginParamConsts {
+
     public static final String PRINCIPAL = "principal";
     public static final String KEYTAB = "keytab";
     public static final String KRB5_CONF = "krb5conf";
+
+    public static final String SINK_BUFFER_FLUSH_MAX_ROWS = "sink.buffer-flush.max-rows";
+    public static final String SINK_BUFFER_FLUSH_INTERVAL = "sink.buffer-flush.interval";
+    public static final String SINK_MAX_RETRIES = "sink.max-retries";
+
 }

@@ -19,6 +19,8 @@
 package com.dtstack.flink.sql.util;
 
 import com.esotericsoftware.minlog.Log;
+import org.apache.flink.runtime.security.DynamicConfiguration;
+import org.apache.flink.runtime.security.KerberosUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.util.KerberosName;
@@ -27,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import sun.security.krb5.Config;
 import sun.security.krb5.KrbException;
 
+import javax.security.auth.login.AppConfigurationEntry;
 import java.io.IOException;
 
 /**
@@ -62,4 +65,13 @@ public class KrbUtils {
         return UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytabPath);
     }
 
+    public synchronized static void appendJaasConf(String name, String keytab, String principal) {
+        javax.security.auth.login.Configuration priorConfig = javax.security.auth.login.Configuration.getConfiguration();
+        // construct a dynamic JAAS configuration
+        DynamicConfiguration currentConfig = new DynamicConfiguration(priorConfig);
+        // wire up the configured JAAS login contexts to use the krb5 entries
+        AppConfigurationEntry krb5Entry = KerberosUtils.keytabEntry(keytab, principal);
+        currentConfig.addAppConfigurationEntry(name, krb5Entry);
+        javax.security.auth.login.Configuration.setConfiguration(currentConfig);
+    }
 }

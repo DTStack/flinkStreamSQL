@@ -59,7 +59,8 @@ public interface KerberosTable {
         } else if (allNotSet) {
             setEnableKrb(false);
         } else {
-            throw new RuntimeException("Missing kerberos parameter! all kerberos params must be set, or all kerberos params are not set");
+            throw new RuntimeException(
+                    "Missing kerberos parameter! all kerberos params must be set, or all kerberos params are not set");
         }
     }
 }

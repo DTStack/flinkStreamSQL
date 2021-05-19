@@ -42,6 +42,7 @@
         <module>aws</module>
         <module>file</module>
         <module>http</module>
+        <module>solr</module>
 
         <!-- 脏数据插件 -->
         <module>dirtyData</module>
