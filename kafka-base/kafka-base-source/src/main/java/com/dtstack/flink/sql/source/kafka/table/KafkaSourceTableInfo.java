@@ -60,6 +60,16 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     public static final String TIMESTAMP_OFFSET = "timestampOffset";
 
+    public static final String KEY_DESERIALIZER = "key.deserializer";
+
+    public static final String DT_KEY_DESERIALIZER = "dt.key.deserializer";
+
+    public static final String VALUE_DESERIALIZER = "value.deserializer";
+
+    public static final String DT_VALUE_DESERIALIZER = "dt.value.deserializer";
+
+    public static final String DT_DESERIALIZER_CLASS_NAME = "com.dtstack.flink.sql.source.kafka.deserializer.DtKafkaDeserializer";
+
     private String bootstrapServers;
 
     private String topic;
@@ -130,6 +140,10 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     public String getKafkaParam(String key) {
         return kafkaParams.get(key);
+    }
+
+    public void putKafkaParam(String key, String value) {
+        kafkaParams.put(key, value);
     }
 
     public Set<String> getKafkaParamKeys() {
