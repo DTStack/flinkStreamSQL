@@ -302,7 +302,7 @@ public class KuduAsyncReqRow extends BaseAsyncReqRow {
         @Override
         public Deferred<List<Row>> call(RowResultIterator results) throws Exception {
             if (results == null) {
-                resultFuture.complete(Collections.emptyList());
+                dealMissKey(input, resultFuture);
                 return null;
             }
 
