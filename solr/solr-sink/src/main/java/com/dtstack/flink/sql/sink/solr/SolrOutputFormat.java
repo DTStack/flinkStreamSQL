@@ -98,7 +98,11 @@ public class SolrOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean,
             columnIndex++;
         }
         try {
+            if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0) {
+                LOG.info("Receive data : {}", row);
+            }
             provider.add(solrDocument);
+            outRecords.inc();
         } catch (SolrServerException | PrivilegedActionException e) {
             LOG.error("", e);
         }
