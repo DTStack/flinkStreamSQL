@@ -109,8 +109,6 @@ public class SolrSinkParser extends AbstractTableParser {
             case "date":
             case "timestamp":
                 return Timestamp.class;
-            case "binary":
-                return byte[].class;
             default:
                 throw new RuntimeException("不支持 " + fieldType + " 类型");
         }
