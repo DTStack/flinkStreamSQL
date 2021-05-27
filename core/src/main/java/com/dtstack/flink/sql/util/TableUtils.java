@@ -758,8 +758,7 @@ public class TableUtils {
         List<PredicateInfo> predicateInfos = sideTableInfo.getPredicateInfoes();
         final String name = sideTableInfo.getName();
         for (PredicateInfo info : predicateInfos) {
-            if (info.getOwnerTable().equals(name)
-                && info.getOperatorName().equals("=")) {
+            if (info.getOperatorName().equals("=")) {
                 String condition = info.getCondition();
                 Matcher matcher = stringPattern.matcher(condition);
                 if (matcher.matches()) {
