@@ -95,6 +95,8 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     private List<PredicateInfo>  predicateInfoes = Lists.newArrayList();
 
+    private List<PredicateInfo>  fullPredicateInfoes = Lists.newArrayList();
+
     private boolean fastCheck;
 
     public RowTypeInfo getRowTypeInfo(){
@@ -195,6 +197,14 @@ public abstract class AbstractSideTableInfo extends AbstractTableInfo implements
 
     public void addPredicateInfo(PredicateInfo predicateInfo) {
         this.predicateInfoes.add(predicateInfo);
+    }
+
+    public List<PredicateInfo> getFullPredicateInfoes() {
+        return fullPredicateInfoes;
+    }
+
+    public void addFullPredicateInfoes(PredicateInfo predicateInfo) {
+        this.fullPredicateInfoes.add(predicateInfo);
     }
 
     public Long getAsyncFailMaxNum(Long defaultValue) {
