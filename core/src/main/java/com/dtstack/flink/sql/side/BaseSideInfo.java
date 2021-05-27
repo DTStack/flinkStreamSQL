@@ -194,6 +194,7 @@ public abstract class BaseSideInfo implements Serializable{
             .setCondition(constant.toString())
             .build();
         sideTableInfo.addPredicateInfo(predicate);
+        sideTableInfo.addFullPredicateInfoes(predicate);
     }
 
     private void checkSupport(SqlIdentifier identifier) {
