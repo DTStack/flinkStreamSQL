@@ -34,6 +34,7 @@ import com.google.common.collect.Maps;
 import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -92,17 +93,20 @@ public abstract class BaseSideInfo implements Serializable{
         String sideTableName = joinInfo.getSideTableName();
         String nonSideTableName = joinInfo.getNonSideTable();
         List<String> fields = Lists.newArrayList();
-        int sideTableFieldIndex = 0;
+        int sideTableFieldIndex;
 
         for( int i=0; i<outFieldInfoList.size(); i++){
             FieldInfo fieldInfo = outFieldInfoList.get(i);
             if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
                 String sideFieldName = sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName());
                 fields.add(sideFieldName);
+                sideTableFieldIndex = Arrays.asList(sideTableInfo.getFields()).indexOf(sideFieldName);
+                if (sideTableFieldIndex == -1){
+                    throw new RuntimeException(String.format("unknown filed {%s} in sideTable {%s} ", sideFieldName, sideTableName));
+                }
                 sideSelectFieldsType.put(sideTableFieldIndex, getTargetFieldType(fieldInfo.getFieldName()));
                 sideFieldIndex.put(i, sideTableFieldIndex);
                 sideFieldNameIndex.put(i, sideFieldName);
-                sideTableFieldIndex++;
             }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
                 int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
                 inFieldIndex.put(i, nonSideIndex);
