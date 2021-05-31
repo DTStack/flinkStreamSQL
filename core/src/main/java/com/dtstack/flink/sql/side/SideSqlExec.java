@@ -75,6 +75,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.SqlKind.AS;
 import static org.apache.calcite.sql.SqlKind.INSERT;
@@ -506,6 +507,8 @@ public class SideSqlExec {
             sideTableInfo = sideTableMap.get(joinInfo.getRightTableAlias());
         }
 
+        extractActualSidePredicateInfos(joinInfo, sideTableInfo);
+
         if (sideTableInfo == null) {
             throw new RuntimeException("can't not find side table:" + joinInfo.getRightTableName());
         }
@@ -590,6 +593,18 @@ public class SideSqlExec {
             localTableCache.put(joinInfo.getNewTableName(), joinTable);
             dimTableNewTable.put(joinInfo.getNewTableName(), joinTable);
         }
+    }
+
+    /**
+     * 抽取维表本次真正使用的谓词集合
+     * @param joinInfo 维表join信息
+     * @param sideTableInfo 维表实体信息
+     */
+    private void extractActualSidePredicateInfos(JoinInfo joinInfo, AbstractSideTableInfo sideTableInfo) {
+        sideTableInfo.setPredicateInfoes(sideTableInfo.getFullPredicateInfoes()
+                .stream()
+                .filter(e -> e.getOwnerTable().equals(joinInfo.getRightTableAlias()))
+                .collect(Collectors.toList()));
     }
 
     private boolean checkFieldsInfo(CreateTmpTableParser.SqlParserResult result, Table table) {

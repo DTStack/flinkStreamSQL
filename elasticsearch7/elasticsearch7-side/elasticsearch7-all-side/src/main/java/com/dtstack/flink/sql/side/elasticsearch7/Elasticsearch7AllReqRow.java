@@ -208,7 +208,6 @@ public class Elasticsearch7AllReqRow extends BaseAllReqRow implements Serializab
         }
 
         searchSourceBuilder.size(getFetchSize());
-        searchSourceBuilder.sort("_id", SortOrder.DESC);
 
         // fields included in the source data
         String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");

@@ -66,7 +66,9 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
     private final String charsetName;
 
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d+$");
-    private static final Pattern TIME_FORMAT_PATTERN = Pattern.compile("\\w+\\d+:\\d+:\\d+");
+    private static final Pattern TIMESTAMP_FORMAT_PATTERN = Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}?.*");
+    private static final Pattern TIME_FORMAT_PATTERN = Pattern.compile("[0-9]{2}:[0-9]{2}:[0-9]{2}?.*");
+    private static final Pattern DATE_FORMAT_PATTERN = Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}");
 
     public DtNestRowDeserializationSchema(TypeInformation<Row> typeInfo, Map<String, String> rowAndFieldMapping,
                                           List<AbstractTableInfo.FieldExtraInfo> fieldExtraInfos,
@@ -147,7 +149,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
                 return node.asText();
             }
         } else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
-            return Date.valueOf(node.asText());
+            return convertToDate(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
             // local zone
             return convertToTime(node.asText());
@@ -169,27 +171,51 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
         }
     }
 
-    /**
-     * 将 2020-09-07 14:49:10.0 和 1598446699685 两种格式都转化为 Timestamp
-     */
+    /** 将 2020-09-07 14:49:10.0 和 1598446699685 两种格式都转化为 Timestamp */
     private Timestamp convertToTimestamp(String timestamp) {
         if (TIMESTAMP_PATTERN.matcher(timestamp).find()) {
             return new Timestamp(Long.parseLong(timestamp));
         }
-        if (TIME_FORMAT_PATTERN.matcher(timestamp).find()) {
+        if (TIMESTAMP_FORMAT_PATTERN.matcher(timestamp).find()) {
             return Timestamp.valueOf(timestamp);
         }
-        throw new IllegalArgumentException("Incorrect time format of timestamp");
+        throw new IllegalArgumentException(
+                String.format(
+                        "Incorrect timestamp format [yyyy-MM-dd hh:mm:ss] of timestamp type. Input value: [%s]",
+                        timestamp));
+    }
+
+    private Date convertToDate(String date) {
+        if (TIMESTAMP_PATTERN.matcher(date).find()) {
+            return new Date(Long.parseLong(date));
+        }
+        if (TIMESTAMP_FORMAT_PATTERN.matcher(date).find()) {
+            return new Date(Timestamp.valueOf(date).getTime());
+        }
+        if (DATE_FORMAT_PATTERN.matcher(date).find()) {
+            return Date.valueOf(date);
+        }
+        throw new IllegalArgumentException(
+                String.format(
+                        "Incorrect date format [yyyy-MM-dd] of date type. Input value: [%s]",
+                        date));
     }
 
     private Time convertToTime(String timestamp) {
         if (TIMESTAMP_PATTERN.matcher(timestamp).find()) {
             return new Time(Long.parseLong(timestamp));
         }
+        if (TIMESTAMP_FORMAT_PATTERN.matcher(timestamp).find()) {
+            long time = Timestamp.valueOf(timestamp).getTime();
+            return new Time(time);
+        }
         if (TIME_FORMAT_PATTERN.matcher(timestamp).find()) {
             return Time.valueOf(timestamp);
         }
-        throw new IllegalArgumentException("Incorrect time format of time");
+        throw new IllegalArgumentException(
+                String.format(
+                        "Incorrect time format [hh:mm:ss] of time type. Input value: [%s]",
+                        timestamp));
     }
 
     private Row convertTopRow() {

@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.sink.postgresql;
 
 
 import com.dtstack.flink.sql.sink.rdb.dialect.JDBCDialect;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -48,8 +49,17 @@ public class PostgresqlDialect implements JDBCDialect {
                 .collect(Collectors.joining(", "));
 
         String updateClause = Arrays.stream(fieldNames)
+                .filter(item -> !Arrays.asList(uniqueKeyFields).contains(item))
                 .map(f -> quoteIdentifier(f) + "=EXCLUDED." + quoteIdentifier(f))
                 .collect(Collectors.joining(", "));
+
+        if (StringUtils.isBlank(updateClause)) {
+            return Optional.of(
+                    getInsertIntoStatement(schema, tableName, fieldNames, null)
+                            + " ON CONFLICT ("
+                            + uniqueColumns
+                            + ") DO NOTHING");
+        }
 
         return Optional.of(getInsertIntoStatement(schema, tableName, fieldNames, null) +
                 " ON CONFLICT (" + uniqueColumns + ")" +

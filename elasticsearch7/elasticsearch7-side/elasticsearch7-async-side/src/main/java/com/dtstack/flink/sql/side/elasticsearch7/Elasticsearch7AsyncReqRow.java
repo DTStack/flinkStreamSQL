@@ -218,7 +218,6 @@ public class Elasticsearch7AsyncReqRow extends BaseAsyncReqRow implements Serial
     private SearchSourceBuilder initConfiguration() {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.size(getFetchSize());
-        searchSourceBuilder.sort("_id", SortOrder.DESC);
         String[] sideFieldNames = StringUtils.split(sideInfo.getSideSelectFields().trim(), ",");
         searchSourceBuilder.fetchSource(sideFieldNames, null);
 
