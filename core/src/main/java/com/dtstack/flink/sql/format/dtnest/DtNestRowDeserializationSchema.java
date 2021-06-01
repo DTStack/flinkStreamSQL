@@ -225,7 +225,7 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
                 JsonNode node = getIgnoreCase(fieldNames[i]);
                 AbstractTableInfo.FieldExtraInfo fieldExtraInfo = fieldExtraInfos.get(i);
 
-                if (node == null) {
+                if (node == null || node instanceof NullNode) {
                     if (fieldExtraInfo != null && fieldExtraInfo.getNotNull()) {
                         throw new IllegalStateException("Failed to find field with name '"
                                 + fieldNames[i] + "'.");
