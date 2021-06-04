@@ -36,7 +36,9 @@ import org.apache.flink.types.Row;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.sql.Clob;
 import java.sql.Date;
+import java.sql.NClob;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Iterator;
@@ -146,6 +148,10 @@ public class DtNestRowDeserializationSchema extends AbstractDeserializationSchem
             } else {
                 return node.asText();
             }
+        } else if (info.getTypeClass().equals(Clob.class)) {
+            return node.asText();
+        } else if (info.getTypeClass().equals(NClob.class)) {
+            return node.asText();
         } else if (info.getTypeClass().equals(Types.SQL_DATE.getTypeClass())) {
             return Date.valueOf(node.asText());
         } else if (info.getTypeClass().equals(Types.SQL_TIME.getTypeClass())) {
