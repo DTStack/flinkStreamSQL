@@ -22,8 +22,11 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.StringReader;
 import java.math.BigDecimal;
+import java.sql.Clob;
 import java.sql.Date;
+import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -155,6 +158,12 @@ public class JDBCTypeConvertUtils {
                     case java.sql.Types.LONGVARBINARY:
                         upload.setBytes(index + 1, (byte[]) field);
                         break;
+                    case Types.CLOB:
+                    case Types.NCLOB:
+                        try (StringReader reader = new StringReader(field.toString())) {
+                            upload.setClob(index + 1, reader);
+                        }
+                        break;
                     default:
                         upload.setObject(index + 1, field);
                         LOG.warn("Unmanaged sql type ({}) for column {}. Best effort approach to set its value: {}.",
@@ -163,8 +172,7 @@ public class JDBCTypeConvertUtils {
                         // case java.sql.Types.ARRAY:
                         // case java.sql.Types.JAVA_OBJECT:
                         // case java.sql.Types.BLOB:
-                        // case java.sql.Types.CLOB:
-                        // case java.sql.Types.NCLOB:
+//                         case java.sql.Types.NCLOB:
                         // case java.sql.Types.DATALINK:
                         // case java.sql.Types.DISTINCT:
                         // case java.sql.Types.OTHER:
@@ -272,7 +280,11 @@ public class JDBCTypeConvertUtils {
             } else if (fieldType.equals(Date.class.getName())) {
                 tmpFieldsType[i] = Types.DATE;
             } else if (fieldType.equals(Time.class.getName())) {
-				tmpFieldsType[i] = Types.TIME;
+                tmpFieldsType[i] = Types.TIME;
+            }else if (fieldType.equals(Clob.class.getName())){
+                tmpFieldsType[i] = Types.CLOB;
+            } else if (fieldType.equals(NClob.class.getName())) {
+                tmpFieldsType[i] = Types.NCLOB;
             } else {
                 throw new RuntimeException("no support field type for sql. the input type:" + fieldType);
             }
