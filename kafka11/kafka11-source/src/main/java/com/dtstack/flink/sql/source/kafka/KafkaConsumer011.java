@@ -18,6 +18,13 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
+import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
+import com.dtstack.flink.sql.source.kafka.deserialization.DtKafkaDeserializationSchemaWrapper;
+import com.dtstack.flink.sql.source.kafka.deserialization.KafkaDeserializationMetricWrapper;
+import com.dtstack.flink.sql.source.kafka.sample.OffsetFetcher;
+import com.dtstack.flink.sql.source.kafka.sample.OffsetMap;
+import com.dtstack.flink.sql.source.kafka.sample.SampleCalculateHelper;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.metrics.MetricGroup;
@@ -30,11 +37,13 @@ import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 
-import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
-import org.apache.commons.lang3.StringUtils;
-
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
@@ -47,27 +56,42 @@ import java.util.regex.Pattern;
  *
  * @author xuchao
  */
-public class KafkaConsumer011 extends FlinkKafkaConsumer011<Row> {
+public class KafkaConsumer011 extends FlinkKafkaConsumer011<Row> implements OffsetFetcher {
 
-    private DeserializationMetricWrapper deserializationMetricWrapper;
+    private final DeserializationMetricWrapper deserializationMetricWrapper;
 
-    public KafkaConsumer011(String topic, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
-        super(Arrays.asList(StringUtils.split(topic, ",")), deserializationMetricWrapper, props);
-        this.deserializationMetricWrapper = deserializationMetricWrapper;
-    }
+    private String topic;
 
-    public KafkaConsumer011(String topic,
-                            DeserializationMetricWrapper deserializationMetricWrapper,
-                            Map<KafkaTopicPartition, Long> specificEndOffsets,
-                            Properties props) {
-        super(Arrays.asList(StringUtils.split(topic, ",")),
-                new DtKafkaDeserializationSchemaWrapper<>(deserializationMetricWrapper, specificEndOffsets),
+    private final Properties props;
+
+    private final Long sampleSize;
+
+    public KafkaConsumer011(
+            String topic,
+            Long sampleSize,
+            DeserializationMetricWrapper deserializationMetricWrapper,
+            Properties props) {
+        super(
+                Arrays.asList(StringUtils.split(topic, ",")),
+                new DtKafkaDeserializationSchemaWrapper<>(deserializationMetricWrapper),
                 props);
+        this.topic = topic;
+        this.props = props;
+        this.sampleSize = sampleSize;
         this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
-    public KafkaConsumer011(Pattern subscriptionPattern, DeserializationMetricWrapper deserializationMetricWrapper, Properties props) {
-        super(subscriptionPattern, deserializationMetricWrapper, props);
+    public KafkaConsumer011(
+            Pattern subscriptionPattern,
+            Long sampleSize,
+            DeserializationMetricWrapper deserializationMetricWrapper,
+            Properties props) {
+        super(
+                subscriptionPattern,
+                new DtKafkaDeserializationSchemaWrapper<>(deserializationMetricWrapper),
+                props);
+        this.sampleSize = sampleSize;
+        this.props = props;
         this.deserializationMetricWrapper = deserializationMetricWrapper;
     }
 
@@ -87,16 +111,27 @@ public class KafkaConsumer011 extends FlinkKafkaConsumer011<Row> {
                                                     OffsetCommitMode offsetCommitMode,
                                                     MetricGroup consumerMetricGroup,
                                                     boolean useMetrics) throws Exception {
+        final OffsetMap offsetMap = seekOffset(props, topic);
+        Map<KafkaTopicPartition, Long> rebuild;
 
-        AbstractFetcher<Row, ?> fetcher = super.createFetcher(sourceContext,
-                assignedPartitionsWithInitialOffsets,
-                watermarksPeriodic,
-                watermarksPunctuated,
-                runtimeContext,
-                offsetCommitMode,
-                consumerMetricGroup,
-                useMetrics);
+        rebuild =
+                sampleSize > 0
+                        ? SampleCalculateHelper.rebuildAssignedPartitionsWithInitialOffsets(
+                                offsetMap, sampleSize, assignedPartitionsWithInitialOffsets)
+                        : assignedPartitionsWithInitialOffsets;
+
+        AbstractFetcher<Row, ?> fetcher =
+                super.createFetcher(
+                        sourceContext,
+                        rebuild,
+                        watermarksPeriodic,
+                        watermarksPunctuated,
+                        runtimeContext,
+                        offsetCommitMode,
+                        consumerMetricGroup,
+                        useMetrics);
         ((KafkaDeserializationMetricWrapper) deserializationMetricWrapper).setFetcher(fetcher);
+        ((DtKafkaDeserializationSchemaWrapper<?>) deserializer).setSpecificEndOffsets(offsetMap);
         return fetcher;
     }
 
@@ -104,5 +139,36 @@ public class KafkaConsumer011 extends FlinkKafkaConsumer011<Row> {
     public TypeInformation<Row> getProducedType() {
         DeserializationSchema<Row> deserializationSchema = deserializationMetricWrapper.getDeserializationSchema();
         return deserializationSchema.getProducedType();
+    }
+
+    @Override
+    public OffsetMap fetchOffset(KafkaConsumer<?, ?> consumer, String topic) {
+        OffsetMap offsetMap = new OffsetMap();
+
+        List<TopicPartition> topicPartitions = new ArrayList<>();
+
+        List<PartitionInfo> partitionInfos = consumer.partitionsFor(topic);
+
+        partitionInfos.forEach(
+                item -> topicPartitions.add(new TopicPartition(topic, item.partition())));
+
+        consumer.assign(topicPartitions);
+        consumer.poll(10 * 1000L);
+
+        consumer.seekToEnd(topicPartitions);
+        topicPartitions.forEach(
+                item ->
+                        offsetMap.setLatest(
+                                new KafkaTopicPartition(topic, item.partition()),
+                                consumer.position(item)));
+
+        consumer.seekToBeginning(topicPartitions);
+        topicPartitions.forEach(
+                item ->
+                        offsetMap.setEarliest(
+                                new KafkaTopicPartition(topic, item.partition()),
+                                consumer.position(item)));
+
+        return offsetMap;
     }
 }

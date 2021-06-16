@@ -57,17 +57,14 @@ public class KafkaSourceParser extends AbstractSourceParser {
         kafkaSourceTableInfo.setTopicIsPattern(MathUtil.getBoolean(props.get(KafkaSourceTableInfo.TOPICISPATTERN_KEY.toLowerCase()), false));
         kafkaSourceTableInfo.setOffsetReset(MathUtil.getString(props.getOrDefault(KafkaSourceTableInfo.OFFSETRESET_KEY.toLowerCase(), EKafkaOffset.LATEST.name().toLowerCase())));
 
-        String offsetEnd = MathUtil.getString(props.get(KafkaSourceTableInfo.OFFSET_END_KEY.toLowerCase()));
-        if (DtStringUtil.isJson(offsetEnd)) {
-            kafkaSourceTableInfo.setSpecificEndOffsets(buildOffsetMap(offsetEnd, kafkaSourceTableInfo.getTopic()));
-        }
-
         kafkaSourceTableInfo.setCharsetName(MathUtil.getString(props.getOrDefault(KafkaSourceTableInfo.CHARSET_NAME_KEY.toLowerCase(),"UTF-8")));
 
         kafkaSourceTableInfo.setSchemaString(MathUtil.getString(props.get(KafkaSourceTableInfo.SCHEMA_STRING_KEY.toLowerCase())));
         kafkaSourceTableInfo.setFieldDelimiter(MathUtil.getString(props.getOrDefault(KafkaSourceTableInfo.CSV_FIELD_DELIMITER_KEY.toLowerCase(), "|")));
         kafkaSourceTableInfo.setSourceDataType(MathUtil.getString(props.getOrDefault(KafkaSourceTableInfo.SOURCE_DATA_TYPE_KEY.toLowerCase(), FormatType.DT_NEST.name())));
         kafkaSourceTableInfo.setTimeZone(MathUtil.getString(props.get(KafkaSourceTableInfo.TIME_ZONE_KEY.toLowerCase())));
+
+        kafkaSourceTableInfo.setSampleSize(MathUtil.getLongVal(props.getOrDefault(KafkaSourceTableInfo.SAMPLE_SIZE_KEY.toLowerCase(), -1L)));
 
         if(props.containsKey(KafkaSourceTableInfo.TIMESTAMP_OFFSET.toLowerCase())){
             kafkaSourceTableInfo.setTimestampOffset(MathUtil.getLongVal(props.getOrDefault(KafkaSourceTableInfo.TIMESTAMP_OFFSET.toLowerCase(), System.currentTimeMillis())));
@@ -82,29 +79,5 @@ public class KafkaSourceParser extends AbstractSourceParser {
         kafkaSourceTableInfo.check();
 
         return kafkaSourceTableInfo;
-    }
-
-    /**
-     * kafka offset,eg.. {"0":12312,"1":12321,"2":12312}
-     *
-     * @param offsetJson offset json
-     * @param topicName  kafka topic
-     * @return offset map
-     */
-    protected Map<KafkaTopicPartition, Long> buildOffsetMap(String offsetJson, String topicName) {
-        try {
-            Properties properties = PluginUtil.jsonStrToObject(offsetJson, Properties.class);
-            Map<String, Object> offsetMap = PluginUtil.objectToMap(properties);
-
-            return offsetMap
-                    .entrySet()
-                    .stream()
-                    .collect(Collectors.toMap(
-                            (Map.Entry<String, Object> entry) -> new KafkaTopicPartition(topicName, Integer.parseInt(entry.getKey())),
-                            (Map.Entry<String, Object> entry) -> Long.valueOf(entry.getValue().toString()))
-                    );
-        } catch (Exception e) {
-            throw new RuntimeException("not support offsetReset type:" + offsetJson);
-        }
     }
 }

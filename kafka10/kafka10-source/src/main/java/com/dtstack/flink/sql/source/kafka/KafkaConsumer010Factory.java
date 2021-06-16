@@ -40,13 +40,23 @@ public class KafkaConsumer010Factory extends AbstractKafkaConsumerFactory {
     public FlinkKafkaConsumerBase<Row> createKafkaTableSource(KafkaSourceTableInfo kafkaSourceTableInfo,
                                                               TypeInformation<Row> typeInformation,
                                                               Properties props) {
-        KafkaConsumer010 kafkaSrc = null;
+        KafkaConsumer010 kafkaSrc;
         if (kafkaSourceTableInfo.getTopicIsPattern()) {
             DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) SubscriptionState::partitionLag);
-            kafkaSrc = new KafkaConsumer010(Pattern.compile(kafkaSourceTableInfo.getTopic()), deserMetricWrapper, props);
+            kafkaSrc =
+                    new KafkaConsumer010(
+                            Pattern.compile(kafkaSourceTableInfo.getTopic()),
+                            kafkaSourceTableInfo.getSampleSize(),
+                            deserMetricWrapper,
+                            props);
         } else {
             DeserializationMetricWrapper deserMetricWrapper = createDeserializationMetricWrapper(kafkaSourceTableInfo, typeInformation, (Calculate & Serializable) SubscriptionState::partitionLag);
-            kafkaSrc = new KafkaConsumer010(kafkaSourceTableInfo.getTopic(), deserMetricWrapper, kafkaSourceTableInfo.getSpecificEndOffsets(), props);
+            kafkaSrc =
+                    new KafkaConsumer010(
+                            kafkaSourceTableInfo.getTopic(),
+                            kafkaSourceTableInfo.getSampleSize(),
+                            deserMetricWrapper,
+                            props);
         }
 
         return kafkaSrc;

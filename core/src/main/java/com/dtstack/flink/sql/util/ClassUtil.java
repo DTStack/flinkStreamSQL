@@ -22,7 +22,9 @@ package com.dtstack.flink.sql.util;
 
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
+import java.sql.Clob;
 import java.sql.Date;
+import java.sql.NClob;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -101,6 +103,10 @@ public class ClassUtil {
             case "decimal":
             case "decimalunsigned":
                 return BigDecimal.class;
+            case "clob":
+                return Clob.class;
+            case "nclob":
+                return NClob.class;
             default:
                 break;
         }
