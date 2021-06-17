@@ -18,6 +18,7 @@
 
 package com.dtstack.flink.sql.source.kafka.sample;
 
+import com.dtstack.flink.sql.source.kafka.throwable.KafkaSamplingUnavailableException;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -41,7 +42,7 @@ public interface OffsetFetcher {
         try (KafkaConsumer<?, ?> consumer = new KafkaConsumer<>(props)) {
             OffsetMap offsetMap = fetchOffset(consumer, topic);
 
-            judgeKafkaSampleIsAvailable(offsetMap);
+            judgeKafkaSampleIsAvailable(offsetMap, topic);
 
             return offsetMap;
         }
@@ -53,7 +54,7 @@ public interface OffsetFetcher {
      *
      * @param offsetMap offset map
      */
-    default void judgeKafkaSampleIsAvailable(OffsetMap offsetMap) {
+    default void judgeKafkaSampleIsAvailable(OffsetMap offsetMap, String topic) {
         boolean kafkaSampleIsAvailable = false;
         Map<KafkaTopicPartition, Long> latest = offsetMap.getLatest();
         Map<KafkaTopicPartition, Long> earliest = offsetMap.getEarliest();
@@ -68,8 +69,10 @@ public interface OffsetFetcher {
         }
 
         if (!kafkaSampleIsAvailable) {
-            throw new RuntimeException(
-                    "Kafka sample is unavailable because there is no data in all partitions");
+            throw new KafkaSamplingUnavailableException(
+                    String.format(
+                            "Kafka sampling of [%s] is unavailable because there is no data in all partitions",
+                            topic));
         }
     }
 
