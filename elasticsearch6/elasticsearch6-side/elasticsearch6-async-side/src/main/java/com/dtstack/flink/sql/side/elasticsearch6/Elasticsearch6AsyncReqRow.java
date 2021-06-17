@@ -156,7 +156,7 @@ public class Elasticsearch6AsyncReqRow extends BaseAsyncReqRow implements Serial
     public String buildCacheKey(Map<String, Object> inputParams) {
         StringBuilder sb = new StringBuilder();
         for (Object ele : inputParams.values()) {
-            sb.append(ele.toString())
+            sb.append(ele)
                     .append("_");
         }
 
