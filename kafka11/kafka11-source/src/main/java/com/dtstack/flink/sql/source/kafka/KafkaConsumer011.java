@@ -111,7 +111,7 @@ public class KafkaConsumer011 extends FlinkKafkaConsumer011<Row> implements Offs
                                                     OffsetCommitMode offsetCommitMode,
                                                     MetricGroup consumerMetricGroup,
                                                     boolean useMetrics) throws Exception {
-        final OffsetMap offsetMap = seekOffset(props, topic);
+        final OffsetMap offsetMap = sampleSize > 0 ? seekOffset(props, topic) : new OffsetMap();
         Map<KafkaTopicPartition, Long> rebuild;
 
         rebuild =
