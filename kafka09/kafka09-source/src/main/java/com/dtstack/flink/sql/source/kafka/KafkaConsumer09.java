@@ -113,7 +113,7 @@ public class KafkaConsumer09 extends FlinkKafkaConsumer09<Row> implements Offset
                                                     MetricGroup consumerMetricGroup,
                                                     boolean useMetrics) throws Exception {
 
-        final OffsetMap offsetMap = seekOffset(props, topic);
+        final OffsetMap offsetMap = sampleSize > 0 ? seekOffset(props, topic) : new OffsetMap();
         Map<KafkaTopicPartition, Long> rebuild;
 
         rebuild =
