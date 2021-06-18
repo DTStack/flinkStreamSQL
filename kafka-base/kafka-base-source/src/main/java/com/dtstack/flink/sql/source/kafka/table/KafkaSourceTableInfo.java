@@ -46,8 +46,6 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     public static final String OFFSETRESET_KEY = "offsetReset";
 
-    public static final String OFFSET_END_KEY = "offsetEnd";
-
     public static final String TOPICISPATTERN_KEY = "topicIsPattern";
 
     public static final String SCHEMA_STRING_KEY = "schemaInfo";
@@ -57,6 +55,8 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
     public static final String SOURCE_DATA_TYPE_KEY = "sourceDataType";
 
     public static final String CHARSET_NAME_KEY = "charsetName";
+
+    public static final String SAMPLE_SIZE_KEY = "sampleSize";
 
     public static final String TIMESTAMP_OFFSET = "timestampOffset";
 
@@ -92,7 +92,7 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
 
     private Long timestampOffset;
 
-    private Map<KafkaTopicPartition, Long> specificEndOffsets;
+    private Long sampleSize;
 
     public String getBootstrapServers() {
         return bootstrapServers;
@@ -190,12 +190,12 @@ public class KafkaSourceTableInfo extends AbstractSourceTableInfo {
         this.timestampOffset = timestampOffset;
     }
 
-    public Map<KafkaTopicPartition, Long> getSpecificEndOffsets() {
-        return specificEndOffsets;
+    public Long getSampleSize() {
+        return sampleSize;
     }
 
-    public void setSpecificEndOffsets(Map<KafkaTopicPartition, Long> specificEndOffsets) {
-        this.specificEndOffsets = specificEndOffsets;
+    public void setSampleSize(Long sampleSize) {
+        this.sampleSize = sampleSize;
     }
 
     @Override

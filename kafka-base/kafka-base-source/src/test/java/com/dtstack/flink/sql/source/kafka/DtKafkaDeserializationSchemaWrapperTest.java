@@ -18,18 +18,16 @@
 
 package com.dtstack.flink.sql.source.kafka;
 
+import com.dtstack.flink.sql.source.kafka.deserialization.DtKafkaDeserializationSchemaWrapper;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
-import org.apache.flink.types.Row;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -59,7 +57,7 @@ public class DtKafkaDeserializationSchemaWrapperTest {
                                 -> Long.valueOf(entry.getValue().toString()))
                 );
 
-        kafkaDeserializationSchemaWrapper = new DtKafkaDeserializationSchemaWrapper<>(new SimpleStringSchema(), specificEndOffsets);
+        kafkaDeserializationSchemaWrapper = new DtKafkaDeserializationSchemaWrapper<>(new SimpleStringSchema());
     }
 
     @Test

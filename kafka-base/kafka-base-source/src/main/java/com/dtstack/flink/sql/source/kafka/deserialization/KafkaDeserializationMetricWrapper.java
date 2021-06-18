@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.source.kafka;
+package com.dtstack.flink.sql.source.kafka.deserialization;
 
 import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
 import com.dtstack.flink.sql.format.DeserializationMetricWrapper;
+import com.dtstack.flink.sql.source.kafka.Calculate;
 import com.dtstack.flink.sql.util.ReflectionUtils;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -54,13 +55,13 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaDeserializationMetricWrapper.class);
 
-    private Calculate calculate;
+    private final Calculate calculate;
 
     public KafkaDeserializationMetricWrapper(
-            TypeInformation<Row> typeInfo
-            , DeserializationSchema<Row> deserializationSchema
-            , Calculate calculate
-            , DirtyDataManager dirtyDataManager) {
+            TypeInformation<Row> typeInfo,
+            DeserializationSchema<Row> deserializationSchema,
+            Calculate calculate,
+            DirtyDataManager dirtyDataManager) {
         super(typeInfo, deserializationSchema, dirtyDataManager);
         this.calculate = calculate;
     }

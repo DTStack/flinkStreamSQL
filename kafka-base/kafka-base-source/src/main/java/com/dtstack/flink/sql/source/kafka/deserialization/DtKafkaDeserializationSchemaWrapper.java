@@ -16,14 +16,16 @@
  * limitations under the License.
  */
 
-package com.dtstack.flink.sql.source.kafka;
+package com.dtstack.flink.sql.source.kafka.deserialization;
 
+import com.dtstack.flink.sql.source.kafka.sample.OffsetMap;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaDeserializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,15 +36,28 @@ import java.util.Map;
  */
 public class DtKafkaDeserializationSchemaWrapper<T> extends KafkaDeserializationSchemaWrapper<T> {
 
-    private final Map<KafkaTopicPartition, Long> specificEndOffsets;
-
     private final List<Integer> endPartition = new ArrayList<>();
 
-    public DtKafkaDeserializationSchemaWrapper(DeserializationSchema<T> deserializationSchema,
-                                               Map<KafkaTopicPartition, Long> specificEndOffsets) {
+    private Map<KafkaTopicPartition, Long> specificEndOffsets;
 
+    public DtKafkaDeserializationSchemaWrapper(DeserializationSchema<T> deserializationSchema) {
         super(deserializationSchema);
-        this.specificEndOffsets = specificEndOffsets;
+    }
+
+    public void setSpecificEndOffsets(OffsetMap offsetMap) {
+        Map<KafkaTopicPartition, Long> latest = offsetMap.getLatest();
+        Map<KafkaTopicPartition, Long> earliest = offsetMap.getEarliest();
+
+        this.specificEndOffsets = new HashMap<>(latest);
+
+        // 除去没有数据的分区，避免任务一直等待分区数据
+        latest.keySet().forEach(
+                partition -> {
+                    if (latest.get(partition).equals(earliest.get(partition))) {
+                        specificEndOffsets.remove(partition);
+                    }
+                }
+        );
     }
 
     @Override
@@ -53,9 +68,9 @@ public class DtKafkaDeserializationSchemaWrapper<T> extends KafkaDeserialization
         }
         if (specificEndOffsets != null) {
             Long endOffset = specificEndOffsets.get(topicPartition);
-            if (endOffset != null && record.offset() >= endOffset) {
+            if (endOffset != null && record.offset() >= endOffset - 1) {
                 endPartition.add(record.partition());
-                return null;
+                return super.deserialize(record);
             }
         }
 
@@ -65,6 +80,7 @@ public class DtKafkaDeserializationSchemaWrapper<T> extends KafkaDeserialization
     public boolean isEndOfStream(T nextElement) {
         boolean isEnd =
                 specificEndOffsets != null
+                        && !specificEndOffsets.isEmpty()
                         && endPartition.size() == specificEndOffsets.size();
         return super.isEndOfStream(nextElement) || isEnd;
     }

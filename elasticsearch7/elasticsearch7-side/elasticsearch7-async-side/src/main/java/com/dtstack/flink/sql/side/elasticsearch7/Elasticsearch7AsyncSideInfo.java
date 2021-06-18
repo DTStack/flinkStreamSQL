@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -41,6 +42,40 @@ public class Elasticsearch7AsyncSideInfo extends BaseSideInfo {
 
     public Elasticsearch7AsyncSideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo);
+    }
+
+    @Override
+    public void parseSelectFields(JoinInfo joinInfo){
+        String sideTableName = joinInfo.getSideTableName();
+        String nonSideTableName = joinInfo.getNonSideTable();
+        List<String> fields = Lists.newArrayList();
+        int sideTableFieldIndex;
+
+        for( int i=0; i<outFieldInfoList.size(); i++){
+            FieldInfo fieldInfo = outFieldInfoList.get(i);
+            if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
+                String sideFieldName = sideTableInfo.getPhysicalFields().getOrDefault(fieldInfo.getFieldName(), fieldInfo.getFieldName());
+                fields.add(sideFieldName);
+                sideTableFieldIndex = Arrays.asList(sideTableInfo.getFields()).indexOf(sideFieldName);
+                if (sideTableFieldIndex == -1){
+                    throw new RuntimeException(String.format("unknown filed {%s} in sideTable {%s} ", sideFieldName, sideTableName));
+                }
+                sideSelectFieldsType.put(sideTableFieldIndex, getTargetFieldType(fieldInfo.getFieldName()));
+                sideFieldIndex.put(i, sideTableFieldIndex);
+                sideFieldNameIndex.put(i, sideFieldName);
+            }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
+                int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
+                inFieldIndex.put(i, nonSideIndex);
+            }else{
+                throw new RuntimeException("unknown table " + fieldInfo.getTable());
+            }
+        }
+
+        if(fields.size() == 0){
+            throw new RuntimeException("select non field from table " +  sideTableName);
+        }
+
+        sideSelectFields = String.join(",", fields);
     }
 
     @Override

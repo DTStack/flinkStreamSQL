@@ -1,16 +1,13 @@
 package com.dtstack.flink.sql.source.kafka;
 
-import com.dtstack.flink.sql.dirtyManager.manager.DirtyDataManager;
+import com.dtstack.flink.sql.source.kafka.deserialization.KafkaDeserializationMetricWrapper;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread;
-import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.types.Row;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
