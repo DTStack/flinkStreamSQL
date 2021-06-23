@@ -80,6 +80,7 @@ import static org.apache.calcite.sql.SqlKind.OR;
 import static org.apache.calcite.sql.SqlKind.OTHER;
 import static org.apache.calcite.sql.SqlKind.OTHER_FUNCTION;
 import static org.apache.calcite.sql.SqlKind.PLUS;
+import static org.apache.calcite.sql.SqlKind.POSITION;
 import static org.apache.calcite.sql.SqlKind.SELECT;
 import static org.apache.calcite.sql.SqlKind.SESSION;
 import static org.apache.calcite.sql.SqlKind.SESSION_END;
@@ -162,37 +163,7 @@ public class TableUtils {
                         }
                 }
             }
-        } else if (AGGREGATE.contains(fieldNode.getKind())
-                || AVG_AGG_FUNCTIONS.contains(fieldNode.getKind())
-                || COMPARISON.contains(fieldNode.getKind())
-                || fieldNode.getKind() == OTHER_FUNCTION
-                || fieldNode.getKind() == DIVIDE
-                || fieldNode.getKind() == CAST
-                || fieldNode.getKind() == TRIM
-                || fieldNode.getKind() == TIMES
-                || fieldNode.getKind() == PLUS
-                || fieldNode.getKind() == NOT_IN
-                || fieldNode.getKind() == OR
-                || fieldNode.getKind() == AND
-                || fieldNode.getKind() == MINUS
-                || fieldNode.getKind() == TUMBLE
-                || fieldNode.getKind() == TUMBLE_START
-                || fieldNode.getKind() == TUMBLE_END
-                || fieldNode.getKind() == SESSION
-                || fieldNode.getKind() == SESSION_START
-                || fieldNode.getKind() == SESSION_END
-                || fieldNode.getKind() == HOP
-                || fieldNode.getKind() == HOP_START
-                || fieldNode.getKind() == HOP_END
-                || fieldNode.getKind() == BETWEEN
-                || fieldNode.getKind() == IS_NULL
-                || fieldNode.getKind() == IS_NOT_NULL
-                || fieldNode.getKind() == CONTAINS
-                || fieldNode.getKind() == TIMESTAMP_ADD
-                || fieldNode.getKind() == TIMESTAMP_DIFF
-                || fieldNode.getKind() == LIKE
-                || fieldNode.getKind() == COALESCE
-                ) {
+        } else if (isCommonExpression(fieldNode)) {
             SqlBasicCall sqlBasicCall = (SqlBasicCall) fieldNode;
             for (int i = 0; i < sqlBasicCall.getOperands().length; i++) {
                 SqlNode sqlNode = sqlBasicCall.getOperands()[i];
@@ -368,38 +339,7 @@ public class TableUtils {
 
         }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
             return;
-        }else if(  AGGREGATE.contains(selectNode.getKind())
-                || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
-                || COMPARISON.contains(selectNode.getKind())
-                || selectNode.getKind() == OTHER_FUNCTION
-                || selectNode.getKind() == DIVIDE
-                || selectNode.getKind() == CAST
-                || selectNode.getKind() == TRIM
-                || selectNode.getKind() == TIMES
-                || selectNode.getKind() == PLUS
-                || selectNode.getKind() == NOT_IN
-                || selectNode.getKind() == OR
-                || selectNode.getKind() == AND
-                || selectNode.getKind() == MINUS
-                || selectNode.getKind() == TUMBLE
-                || selectNode.getKind() == TUMBLE_START
-                || selectNode.getKind() == TUMBLE_END
-                || selectNode.getKind() == SESSION
-                || selectNode.getKind() == SESSION_START
-                || selectNode.getKind() == SESSION_END
-                || selectNode.getKind() == HOP
-                || selectNode.getKind() == HOP_START
-                || selectNode.getKind() == HOP_END
-                || selectNode.getKind() == BETWEEN
-                || selectNode.getKind() == IS_NULL
-                || selectNode.getKind() == IS_NOT_NULL
-                || selectNode.getKind() == CONTAINS
-                || selectNode.getKind() == TIMESTAMP_ADD
-                || selectNode.getKind() == TIMESTAMP_DIFF
-                || selectNode.getKind() == LIKE
-                || selectNode.getKind() == COALESCE
-
-        ){
+        } else if (isCommonExpression(selectNode)) {
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
                 SqlNode sqlNode = sqlBasicCall.getOperands()[i];
@@ -465,38 +405,7 @@ public class TableUtils {
             return;
         }
         SqlKind joinKind = condition.getKind();
-        if( AGGREGATE.contains(joinKind)
-                || AVG_AGG_FUNCTIONS.contains(joinKind)
-                || COMPARISON.contains(joinKind)
-                || joinKind == OTHER_FUNCTION
-                || joinKind == DIVIDE
-                || joinKind == CAST
-                || joinKind == TRIM
-                || joinKind == TIMES
-                || joinKind == PLUS
-                || joinKind == NOT_IN
-                || joinKind == OR
-                || joinKind == AND
-                || joinKind == MINUS
-                || joinKind == TUMBLE
-                || joinKind == TUMBLE_START
-                || joinKind == TUMBLE_END
-                || joinKind == SESSION
-                || joinKind == SESSION_START
-                || joinKind == SESSION_END
-                || joinKind == HOP
-                || joinKind == HOP_START
-                || joinKind == HOP_END
-                || joinKind == BETWEEN
-                || joinKind == IS_NULL
-                || joinKind == IS_NOT_NULL
-                || joinKind == CONTAINS
-                || joinKind == TIMESTAMP_ADD
-                || joinKind == TIMESTAMP_DIFF
-                || joinKind == LIKE
-                || joinKind == COALESCE
-                || joinKind == EQUALS ){
-
+        if(isCommonExpression(condition) || joinKind == EQUALS) {
             SqlBasicCall sqlBasicCall = (SqlBasicCall) condition;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
                 SqlNode sqlNode = sqlBasicCall.getOperands()[i];
@@ -602,38 +511,7 @@ public class TableUtils {
             return;
         }else if(selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN){//字面含义
             return;
-        }else if(  AGGREGATE.contains(selectNode.getKind())
-                || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
-                || COMPARISON.contains(selectNode.getKind())
-                || selectNode.getKind() == OTHER_FUNCTION
-                || selectNode.getKind() == DIVIDE
-                || selectNode.getKind() == CAST
-                || selectNode.getKind() == TRIM
-                || selectNode.getKind() == TIMES
-                || selectNode.getKind() == PLUS
-                || selectNode.getKind() == NOT_IN
-                || selectNode.getKind() == OR
-                || selectNode.getKind() == AND
-                || selectNode.getKind() == MINUS
-                || selectNode.getKind() == TUMBLE
-                || selectNode.getKind() == TUMBLE_START
-                || selectNode.getKind() == TUMBLE_END
-                || selectNode.getKind() == SESSION
-                || selectNode.getKind() == SESSION_START
-                || selectNode.getKind() == SESSION_END
-                || selectNode.getKind() == HOP
-                || selectNode.getKind() == HOP_START
-                || selectNode.getKind() == HOP_END
-                || selectNode.getKind() == BETWEEN
-                || selectNode.getKind() == IS_NULL
-                || selectNode.getKind() == IS_NOT_NULL
-                || selectNode.getKind() == CONTAINS
-                || selectNode.getKind() == TIMESTAMP_ADD
-                || selectNode.getKind() == TIMESTAMP_DIFF
-                || selectNode.getKind() == LIKE
-                || selectNode.getKind() == COALESCE
-
-        ){
+        } else if (isCommonExpression(selectNode)) {
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
             for(int i=0; i<sqlBasicCall.getOperands().length; i++){
                 SqlNode sqlNode = sqlBasicCall.getOperands()[i];
@@ -676,38 +554,7 @@ public class TableUtils {
             return;
         } else if (selectNode.getKind() == LITERAL || selectNode.getKind() == LITERAL_CHAIN) {//字面含义
             return;
-        } else if (AGGREGATE.contains(selectNode.getKind())
-                || AVG_AGG_FUNCTIONS.contains(selectNode.getKind())
-                || COMPARISON.contains(selectNode.getKind())
-                || selectNode.getKind() == OTHER_FUNCTION
-                || selectNode.getKind() == DIVIDE
-                || selectNode.getKind() == CAST
-                || selectNode.getKind() == TRIM
-                || selectNode.getKind() == TIMES
-                || selectNode.getKind() == PLUS
-                || selectNode.getKind() == NOT_IN
-                || selectNode.getKind() == OR
-                || selectNode.getKind() == AND
-                || selectNode.getKind() == MINUS
-                || selectNode.getKind() == TUMBLE
-                || selectNode.getKind() == TUMBLE_START
-                || selectNode.getKind() == TUMBLE_END
-                || selectNode.getKind() == SESSION
-                || selectNode.getKind() == SESSION_START
-                || selectNode.getKind() == SESSION_END
-                || selectNode.getKind() == HOP
-                || selectNode.getKind() == HOP_START
-                || selectNode.getKind() == HOP_END
-                || selectNode.getKind() == BETWEEN
-                || selectNode.getKind() == IS_NULL
-                || selectNode.getKind() == IS_NOT_NULL
-                || selectNode.getKind() == CONTAINS
-                || selectNode.getKind() == TIMESTAMP_ADD
-                || selectNode.getKind() == TIMESTAMP_DIFF
-                || selectNode.getKind() == LIKE
-                || selectNode.getKind() == COALESCE
-
-                ) {
+        } else if (isCommonExpression(selectNode) || selectNode.getKind() == POSITION) {
             SqlBasicCall sqlBasicCall = (SqlBasicCall) selectNode;
             for (int i = 0; i < sqlBasicCall.getOperands().length; i++) {
                 SqlNode sqlNode = sqlBasicCall.getOperands()[i];
@@ -941,5 +788,38 @@ public class TableUtils {
         return functionName.equalsIgnoreCase("tumble")
                 || functionName.equalsIgnoreCase("session")
                 || functionName.equalsIgnoreCase("hop");
+    }
+
+    private static boolean isCommonExpression(SqlNode sqlNode) {
+        return AGGREGATE.contains(sqlNode.getKind())
+                || AVG_AGG_FUNCTIONS.contains(sqlNode.getKind())
+                || COMPARISON.contains(sqlNode.getKind())
+                || sqlNode.getKind() == OTHER_FUNCTION
+                || sqlNode.getKind() == DIVIDE
+                || sqlNode.getKind() == CAST
+                || sqlNode.getKind() == TRIM
+                || sqlNode.getKind() == TIMES
+                || sqlNode.getKind() == PLUS
+                || sqlNode.getKind() == NOT_IN
+                || sqlNode.getKind() == OR
+                || sqlNode.getKind() == AND
+                || sqlNode.getKind() == MINUS
+                || sqlNode.getKind() == TUMBLE
+                || sqlNode.getKind() == TUMBLE_START
+                || sqlNode.getKind() == TUMBLE_END
+                || sqlNode.getKind() == SESSION
+                || sqlNode.getKind() == SESSION_START
+                || sqlNode.getKind() == SESSION_END
+                || sqlNode.getKind() == HOP
+                || sqlNode.getKind() == HOP_START
+                || sqlNode.getKind() == HOP_END
+                || sqlNode.getKind() == BETWEEN
+                || sqlNode.getKind() == IS_NULL
+                || sqlNode.getKind() == IS_NOT_NULL
+                || sqlNode.getKind() == CONTAINS
+                || sqlNode.getKind() == TIMESTAMP_ADD
+                || sqlNode.getKind() == TIMESTAMP_DIFF
+                || sqlNode.getKind() == LIKE
+                || sqlNode.getKind() == COALESCE;
     }
 }
