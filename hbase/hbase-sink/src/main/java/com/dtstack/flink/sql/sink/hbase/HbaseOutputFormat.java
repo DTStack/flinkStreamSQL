@@ -228,17 +228,7 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
         try {
             List<Put> puts = new ArrayList<>();
             for (Row record : records) {
-                Put put = getPutByRow(record);
-                if (put == null || put.isEmpty()) {
-                    dirtyDataManager.execute();
-                    dirtyDataManager.collectDirtyData(
-                        record.toString(),
-                        "HBase put is empty, check record please!"
-                    );
-                    outDirtyRecords.inc();
-                } else {
-                    puts.add(put);
-                }
+                addPut(puts, record);
             }
             results = new Object[puts.size()];
             table.batch(puts, results);
@@ -268,6 +258,22 @@ public class HbaseOutputFormat extends AbstractDtRichOutputFormat<Tuple2<Boolean
             }
             // 添加完数据之后数据清空records
             records.clear();
+        }
+    }
+
+    private void addPut(List<Put> puts, Row record) {
+        try {
+            Put put = getPutByRow(record);
+            if (put == null || put.isEmpty()) {
+                throw new RuntimeException("HBase put is empty, check record please!");
+            } else {
+                puts.add(put);
+            }
+        } catch (Exception e) {
+            dirtyDataManager.execute();
+            dirtyDataManager.collectDirtyData(
+                    record.toString(), ExceptionTrace.traceOriginalCause(e));
+            outDirtyRecords.inc();
         }
     }
 
