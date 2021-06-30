@@ -24,7 +24,12 @@ import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.NlsString;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
@@ -200,22 +205,6 @@ public abstract class BaseSideInfo implements Serializable{
             .build();
         sideTableInfo.addPredicateInfo(predicate);
         sideTableInfo.addFullPredicateInfoes(predicate);
-    }
-
-    private void checkSupport(SqlIdentifier identifier) {
-        String tableName = identifier.getComponent(0).getSimple();
-        String sideTableName;
-        String sideTableAlias;
-        if (joinInfo.isLeftIsSideTable()) {
-            sideTableName = joinInfo.getLeftTableName();
-            sideTableAlias = joinInfo.getLeftTableAlias();
-        } else {
-            sideTableName = joinInfo.getRightTableName();
-            sideTableAlias = joinInfo.getRightTableAlias();
-        }
-        boolean isSide = tableName.equals(sideTableName) || tableName.equals(sideTableAlias);
-        String errorMsg = "only support set side table constant field, error field " + identifier;
-        Preconditions.checkState(isSide, errorMsg);
     }
 
     private void checkSupport(SqlIdentifier identifier) {
