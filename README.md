@@ -2,6 +2,11 @@ FlinkStreamSQL
 ============
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
+# 通知！！！
+因该项目与FlinkX项目合并统一，即 2021-07-01 起， 1.12.x 版本之后，项目迁移到 FlinkX 项目中。
+
+FlinkStreamSQL 项目推荐使用版本 1.10_release（为最新稳定版本）。
+
 ## 技术交流
 - 招聘**Flink开发工程师**，如果有兴趣，请联系思枢【微信号ysqwhiletrue】，注明招聘<BR>
   Flink开发工程师JD要求：<BR>
