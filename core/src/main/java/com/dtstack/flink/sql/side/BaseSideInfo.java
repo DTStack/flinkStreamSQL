@@ -22,15 +22,11 @@ package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.side.cache.AbstractSideCache;
 import com.google.common.base.Preconditions;
-import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.calcite.sql.*;
+import org.apache.calcite.util.NlsString;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.table.runtime.typeutils.BaseRowTypeInfo;
 
 import java.io.Serializable;
@@ -45,6 +41,9 @@ import java.util.Map;
  */
 
 public abstract class BaseSideInfo implements Serializable{
+
+    protected static final String QUOTE = "'";
+    protected static final String ESCAPEQUOTE = "''";
 
     protected RowTypeInfo rowTypeInfo;
 
@@ -186,12 +185,18 @@ public abstract class BaseSideInfo implements Serializable{
         checkSupport(identifier);
         String fieldName = identifier.getComponent(1).getSimple();
         Object constant = literal.getValue();
+        String condition;
+        if(constant instanceof NlsString){
+            condition = QUOTE + ((NlsString) constant).getValue().replace(QUOTE,ESCAPEQUOTE)+ QUOTE;
+        }else {
+            condition = constant.toString();
+        }
         PredicateInfo predicate = PredicateInfo.builder()
             .setOperatorName(sqlKind.sql)
             .setOperatorKind(sqlKind.name())
             .setOwnerTable(tableName)
             .setFieldName(fieldName)
-            .setCondition(constant.toString())
+            .setCondition(condition)
             .build();
         sideTableInfo.addPredicateInfo(predicate);
         sideTableInfo.addFullPredicateInfoes(predicate);
