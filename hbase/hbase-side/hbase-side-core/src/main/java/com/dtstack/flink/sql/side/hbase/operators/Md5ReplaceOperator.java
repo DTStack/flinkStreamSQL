@@ -16,42 +16,31 @@
  * limitations under the License.
  */
 
- 
 
-package com.dtstack.flink.sql.side.hbase;
+package com.dtstack.flink.sql.side.hbase.operators;
 
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceOpType;
+import com.dtstack.flink.sql.side.hbase.operators.AbstractReplaceOperator;
+import com.dtstack.flink.sql.util.MD5Utils;
 
-import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Reason:
  * Date: 2018/8/23
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public abstract class AbstractReplaceOperator {
+public class Md5ReplaceOperator extends AbstractReplaceOperator {
 
-    private EReplaceOpType opType;
-
-    public AbstractReplaceOperator(EReplaceOpType opType){
-        this.opType = opType;
+    public Md5ReplaceOperator() {
+        super(EReplaceOpType.MD5, Pattern.compile("(?i)^md5\\(\\s*(.*)\\s*\\)$"));
     }
 
-    public String doOperator(Map<String, Object> refData){
-        String replaceStr = replaceStr(refData);
-        return doFunc(replaceStr);
+    @Override
+    public String doFunc(String replaceStr) {
+        return MD5Utils.getMD5String(replaceStr);
     }
-
-    public String replaceStr(Map<String, Object> refData){
-        return "";
-    }
-
-    /**
-     * The processing function to provide custom
-     * @param replaceStr
-     * @return
-     */
-    abstract String doFunc(String replaceStr);
 }

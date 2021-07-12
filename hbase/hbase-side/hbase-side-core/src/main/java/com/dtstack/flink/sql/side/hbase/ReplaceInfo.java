@@ -24,6 +24,7 @@ import java.io.Serializable;
 import java.util.List;
 
 import com.dtstack.flink.sql.side.hbase.enums.EReplaceType;
+import com.dtstack.flink.sql.side.hbase.operators.AbstractReplaceOperator;
 
 /**
  * Reason:
@@ -40,6 +41,8 @@ public class ReplaceInfo implements Serializable {
     private EReplaceType type;
 
     private String param;
+
+    private AbstractReplaceOperator operator;
     
     private List<ReplaceInfo> subReplaceInfos;
 
@@ -69,5 +72,13 @@ public class ReplaceInfo implements Serializable {
 
     public void setSubReplaceInfos(List<ReplaceInfo> subReplaceInfos) {
         this.subReplaceInfos = subReplaceInfos;
+    }
+
+    public AbstractReplaceOperator getOperator() {
+        return operator;
+    }
+
+    public void setOperator(AbstractReplaceOperator operator) {
+        this.operator = operator;
     }
 }
