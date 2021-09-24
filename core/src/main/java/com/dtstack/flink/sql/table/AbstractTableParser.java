@@ -26,10 +26,12 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Reason:
@@ -44,16 +46,16 @@ public abstract class AbstractTableParser {
     private static final String NEST_JSON_FIELD_KEY = "nestFieldKey";
     private static final String CHAR_TYPE_NO_LENGTH = "CHAR";
 
-    private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
-    private static Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+?)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
-    private static Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
-    private static Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
-    private static Pattern typePattern = Pattern.compile("(\\S+)\\s+(\\w+.*)");
+    private static final Pattern primaryKeyPattern = Pattern.compile("(?i)(^\\s*)PRIMARY\\s+KEY\\s*\\((.*)\\)");
+    private static final Pattern nestJsonFieldKeyPattern = Pattern.compile("(?i)((@*\\S+\\.)*\\S+)\\s+(.+?)\\s+AS\\s+(\\w+)(\\s+NOT\\s+NULL)?$");
+    private static final Pattern physicalFieldFunPattern = Pattern.compile("\\w+\\((\\w+)\\)$");
+    private static final Pattern charTypePattern = Pattern.compile("(?i)CHAR\\((\\d*)\\)$");
+    private static final Pattern typePattern = Pattern.compile("(\\S+)\\s+(\\w+.*)");
 
 
-    private Map<String, Pattern> patternMap = Maps.newHashMap();
+    private final Map<String, Pattern> patternMap = Maps.newHashMap();
 
-    private Map<String, ITableFieldDealHandler> handlerMap = Maps.newHashMap();
+    private final Map<String, ITableFieldDealHandler> handlerMap = Maps.newHashMap();
 
     public AbstractTableParser() {
         addParserHandler(PRIMARY_KEY, primaryKeyPattern, this::dealPrimaryKey);
@@ -112,7 +114,7 @@ public abstract class AbstractTableParser {
             if (matcher.find()) {
                 fieldClass = dbTypeConvertToJavaType(CHAR_TYPE_NO_LENGTH);
                 fieldExtraInfo = new AbstractTableInfo.FieldExtraInfo();
-                fieldExtraInfo.setLength(Integer.valueOf(matcher.group(1)));
+                fieldExtraInfo.setLength(Integer.parseInt(matcher.group(1)));
             } else {
                 fieldClass = dbTypeConvertToJavaType(fieldType);
             }
@@ -140,9 +142,11 @@ public abstract class AbstractTableParser {
     }
 
     public void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo) {
-        String primaryFields = matcher.group(1).trim();
-        String[] splitArray = primaryFields.split(",");
-        List<String> primaryKeys = Lists.newArrayList(splitArray);
+        String primaryFields = matcher.group(2).trim();
+        List<String> primaryKeys = Arrays
+                .stream(primaryFields.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
         tableInfo.setPrimaryKeys(primaryKeys);
     }
 

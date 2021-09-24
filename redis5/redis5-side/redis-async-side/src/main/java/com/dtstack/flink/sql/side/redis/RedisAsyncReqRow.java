@@ -36,6 +36,7 @@ import io.lettuce.core.api.async.RedisHashAsyncCommands;
 import io.lettuce.core.api.async.RedisKeyAsyncCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.internal.HostAndPort;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -44,11 +45,11 @@ import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.table.runtime.types.CRow;
 import org.apache.flink.types.Row;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 
 /**
@@ -70,7 +71,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
 
     private RedisSideTableInfo redisSideTableInfo;
 
-    private RedisSideReqRow redisSideReqRow;
+    private final RedisSideReqRow redisSideReqRow;
 
     public RedisAsyncReqRow(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList, AbstractSideTableInfo sideTableInfo) {
         super(new RedisAsyncSideInfo(rowTypeInfo, joinInfo, outFieldInfoList, sideTableInfo));
@@ -95,7 +96,7 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
             case STANDALONE:
                 RedisURI redisURI = RedisURI.create("redis://" + url);
                 redisURI.setPassword(password);
-                redisURI.setDatabase(Integer.valueOf(database));
+                redisURI.setDatabase(Integer.parseInt(database));
                 redisClient = RedisClient.create(redisURI);
                 connection = redisClient.connect();
                 async = connection.async();
@@ -133,14 +134,32 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
                 async = connection.async();
                 break;
             case CLUSTER:
-                RedisURI clusterURI = RedisURI.create("redis://" + url);
-                clusterURI.setPassword(password);
-                clusterClient = RedisClusterClient.create(clusterURI);
+                List<RedisURI> clusterURIs = buildClusterURIs(url);
+                clusterClient = RedisClusterClient.create(clusterURIs);
                 clusterConnection = clusterClient.connect();
                 async = clusterConnection.async();
             default:
                 break;
         }
+    }
+
+    private List<RedisURI> buildClusterURIs(String url) {
+        String password = redisSideTableInfo.getPassword();
+        String database = redisSideTableInfo.getDatabase();
+        String[] addresses = StringUtils.split(url, ",");
+        List<RedisURI> redisURIs = new ArrayList<>(addresses.length);
+        for (String addr : addresses){
+            HostAndPort hostAndPort = HostAndPort.parse(addr);
+            RedisURI redisURI = RedisURI.create(hostAndPort.hostText, hostAndPort.port);
+            if (StringUtils.isNotEmpty(password)) {
+                redisURI.setPassword(password);
+            }
+            if (StringUtils.isNotEmpty(database)) {
+                redisURI.setDatabase(Integer.valueOf(database));
+            }
+            redisURIs.add(redisURI);
+        }
+        return redisURIs;
     }
 
     private RedisURI.Builder buildSentinelUri(
@@ -167,21 +186,18 @@ public class RedisAsyncReqRow extends BaseAsyncReqRow {
             return;
         }
         RedisFuture<Map<String, String>> future = ((RedisHashAsyncCommands) async).hgetall(key);
-        future.thenAccept(new Consumer<Map<String, String>>() {
-            @Override
-            public void accept(Map<String, String> values) {
-                if (MapUtils.isNotEmpty(values)) {
-                    try {
-                        Row row = fillData(input.row(), values);
-                        dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, values));
-                        resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
-                    } catch (Exception e) {
-                        dealFillDataError(input, resultFuture, e);
-                    }
-                } else {
-                    dealMissKey(input, resultFuture);
-                    dealCacheData(key,CacheMissVal.getMissKeyObj());
+        future.thenAccept(values -> {
+            if (MapUtils.isNotEmpty(values)) {
+                try {
+                    Row row = fillData(input.row(), values);
+                    dealCacheData(key,CacheObj.buildCacheObj(ECacheContentType.SingleLine, values));
+                    resultFuture.complete(Collections.singleton(new CRow(row, input.change())));
+                } catch (Exception e) {
+                    dealFillDataError(input, resultFuture, e);
                 }
+            } else {
+                dealMissKey(input, resultFuture);
+                dealCacheData(key,CacheMissVal.getMissKeyObj());
             }
         });
     }

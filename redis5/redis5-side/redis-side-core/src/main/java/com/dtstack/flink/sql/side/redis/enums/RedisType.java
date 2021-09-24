@@ -28,6 +28,7 @@ public enum RedisType {
                 return type;
             }
         }
-        throw new RuntimeException("unsupport redis type["+ redisType + "]");
+        throw new IllegalArgumentException(
+                "unsupported redis type["+ redisType + "]");
     }
 }

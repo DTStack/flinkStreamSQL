@@ -50,12 +50,11 @@ public class RedisSinkParser extends AbstractTableParser {
         redisTableInfo.setMasterName(MathUtil.getString(props.get(RedisTableInfo.MASTER_NAME.toLowerCase())));
 
         String primaryKeysStr = MathUtil.getString(props.get(RedisTableInfo.PRIMARY_KEYS_NAME));
-        List<String> primaryKeysList = Lists.newArrayList();
         if (!StringUtils.isEmpty(primaryKeysStr)) {
+            List<String> primaryKeysList;
             primaryKeysList = Arrays.asList(StringUtils.split(primaryKeysStr, ","));
+            redisTableInfo.setPrimaryKeys(primaryKeysList);
         }
-        redisTableInfo.setPrimaryKeys(primaryKeysList);
-        redisTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(RedisTableInfo.PARALLELISM_KEY.toLowerCase())));
 
         return redisTableInfo;
     }
