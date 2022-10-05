@@ -17,7 +17,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.package.name>core</project.package.name>
-        <jackson.version>2.11.3</jackson.version>
+        <jackson.version>2.12.6.1</jackson.version>
         <guava.version>19.0</guava.version>
         <logger.tool.version>1.0.0-SNAPSHOT</logger.tool.version>
     </properties>
