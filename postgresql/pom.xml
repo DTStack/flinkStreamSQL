@@ -18,7 +18,7 @@
     </modules>
     <properties>
         <sql.core.version>1.0-SNAPSHOT</sql.core.version>
-        <postgresql.version>42.2.2</postgresql.version>
+        <postgresql.version>42.4.1</postgresql.version>
     </properties>
 
     <dependencies>
