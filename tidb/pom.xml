@@ -18,7 +18,7 @@
     </modules>
 
     <properties>
-        <tidb.connector.version>5.1.46</tidb.connector.version>
+        <tidb.connector.version>8.0.28</tidb.connector.version>
         <sql.core.version>1.0-SNAPSHOT</sql.core.version>
     </properties>
 
