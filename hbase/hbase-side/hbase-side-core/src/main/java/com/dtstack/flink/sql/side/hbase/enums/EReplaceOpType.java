@@ -21,19 +21,28 @@
 package com.dtstack.flink.sql.side.hbase.enums;
 
 /**
- * Reason:
- * Date: 2018/8/23
- * Company: www.dtstack.com
- * @author xuchao
+ * Reason: Rowkey的操作算子的所有枚举
+ * Date: 2020/10/19
+ * @author zhaown
  */
-
 public enum  EReplaceOpType {
     /**
-     * 没有func
+     * 对rowkey，md5运算
      */
-    NO_FUNC,
+    MD5("com.dtstack.flink.sql.side.hbase.operators.Md5ReplaceOperator"),
+
     /**
-     * md5 func
+     * 对rowkey，add运算
      */
-    MD5_FUNC;
+    ADD("com.dtstack.flink.sql.side.hbase.operators.AddReplaceOperator");
+
+    private String reference;
+
+    EReplaceOpType(String reference) {
+        this.reference = reference;
+    }
+
+    public String getReference() {
+        return reference;
+    }
 }
